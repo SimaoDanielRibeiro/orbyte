@@ -1,0 +1,32 @@
+# Ambiente virtual e caches
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Build do pacote
+build/
+dist/
+*.egg-info/
+
+# Configuração local (copia .env.example para .env)
+.env
+
+# Datasets carregados e artefactos gerados: as pastas ficam no Git graças ao .gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
+artifacts/*
+!artifacts/.gitkeep
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Sistema operativo e editores
+.DS_Store
+Thumbs.db
+.idea/

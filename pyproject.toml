@@ -1,0 +1,101 @@
+[project]
+name = "ml-lab"
+version = "0.1.0"
+description = "Laboratório de machine learning para aprender: treino passo a passo, métricas e registo de experiências."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Simão" }]
+# As bibliotecas de dados e ML entram fase a fase (ver docs/architecture.md, secção Roadmap):
+# fase 1: numpy, pandas, plotly · fase 2: scikit-learn, pydantic · fase 6: torch · fase 7: fastapi
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11.25,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+# Ferramentas de desenvolvimento: estilo, tipos e testes.
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.2",
+]
+# Interface simples. Não faz parte do pacote ml_lab: vive em ui/simple/ e usa os serviços.
+ui = [
+    "streamlit>=1.66.1",
+]
+
+[tool.uv]
+# `uv sync` instala tudo o que é preciso para desenvolver e abrir a app, num só comando.
+default-groups = ["dev", "ui"]
+
+# --- ruff: linter e formatador -------------------------------------------------
+[tool.ruff]
+line-length = 100
+# Pastas com código próprio: o isort trata os seus módulos como "first-party".
+src = ["src", "ui/simple", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle: erros de estilo
+    "W",   # pycodestyle: avisos de estilo
+    "F",   # Pyflakes: nomes por definir, imports não usados
+    "I",   # isort: ordem dos imports
+    "N",   # pep8-naming: convenções de nomes
+    "D",   # pydocstyle: docstrings no estilo Google
+    "UP",  # pyupgrade: sintaxe moderna de Python 3.12
+    "B",   # flake8-bugbear: armadilhas comuns
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PIE", # flake8-pie: código desnecessário
+    "PTH", # flake8-use-pathlib: pathlib em vez de os.path
+    "PT",  # flake8-pytest-style
+    "TID", # flake8-tidy-imports: só imports absolutos
+    "G",   # flake8-logging-format: formatação preguiçosa nos logs
+    "LOG", # flake8-logging: boas práticas do módulo logging
+    "T20", # flake8-print: sem print() no código (usa logging)
+    "NPY", # regras do NumPy (ex.: geradores aleatórios modernos)
+    "RUF", # regras próprias do ruff
+]
+ignore = [
+    "D105", # métodos mágicos (__len__, __repr__...) dispensam docstring
+    "D107", # os argumentos de __init__ documentam-se na docstring da classe
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+# Nos testes, o nome da função é a documentação.
+"tests/**" = ["D"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# --- mypy: verificação estática de tipos ---------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+files = ["src", "tests", "ui"]
+# src/ é a raiz do pacote ml_lab; ui/simple/ é a raiz dos módulos da interface simples
+# (app, pages.*, components.*, charts.*), tal como o Streamlit os importa.
+mypy_path = ["src", "ui/simple"]
+explicit_package_bases = true
+pretty = true
+
+# --- pytest: testes ---------------------------------------------------------------
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--import-mode=importlib"]
+strict = true
+filterwarnings = ["error"]
+markers = [
+    "integration: fluxo completo de ponta a ponta; corre antes de cada push",
+    "api: endpoints HTTP e WebSocket (a partir da fase 7); corre antes de cada push",
+]

@@ -1,0 +1,118 @@
+# ML Lab
+
+Laboratório de machine learning para aprender. Carregas um dataset, escolhes um tipo de
+aprendizagem e um algoritmo, e vês o treino passo a passo (snapshots), as métricas de
+avaliação e o registo da experiência.
+
+O plano completo está em [docs/architecture.md](docs/architecture.md); as decisões e as suas
+razões estão em [docs/adr/](docs/adr/).
+
+## Estado
+
+| Fase | O que entrega | Estado |
+|---|---|---|
+| 0 — Fundações | Repositório, configuração, logs, registo de componentes, tipos, eventos, seeds, testes de arquitetura, esqueleto da interface | ✅ concluída |
+| 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Dados, Explorar e Preparar | próxima |
+| 2 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+
+## Requisitos
+
+- [uv](https://docs.astral.sh/uv/), que instala o Python 3.12 sozinho se for preciso.
+- Git.
+
+## Instalação
+
+```bash
+uv sync
+```
+
+Este comando cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em
+`uv.lock` (ferramentas de desenvolvimento e Streamlit) e instala o pacote `ml_lab` em modo
+editável: as alterações em `src/` ficam ativas sem reinstalar.
+
+## Abrir a interface simples
+
+```bash
+uv run streamlit run ui/simple/app.py
+```
+
+Corre-o a partir da raiz do projeto. A app abre em <http://localhost:8501> e só este
+computador lhe tem acesso (ver `.streamlit/config.toml`). Na primeira vez, o Streamlit pode
+pedir um email no terminal: basta carregar em Enter.
+
+## Testes e verificações
+
+Uma fase só termina quando estas quatro verificações passam (corre-as antes de cada push):
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run mypy
+uv run pytest
+```
+
+Para um ciclo rápido, sem os testes de integração e da API:
+
+```bash
+uv run pytest -m "not integration and not api"
+```
+
+| Pasta | O que verifica | Quando corre |
+|---|---|---|
+| `tests/unit/` | Uma função ou classe isolada; espelha `src/ml_lab/` | Sempre |
+| `tests/contract/` | Todos os componentes registados cumprem o seu contrato (fase 2) | Sempre |
+| `tests/architecture/` | Regras de importação entre camadas | Sempre |
+| `tests/integration/` | Fluxos de ponta a ponta; hoje, a interface abre em todos os ecrãs | Antes de cada push |
+| `tests/api/` | Endpoints HTTP e WebSocket (fase 7) | Antes de cada push |
+
+Os avisos (`warnings`) contam como erros nos testes: um aviso do pandas ou do scikit-learn
+costuma anunciar um problema real, por isso é melhor resolvê-lo logo.
+
+## Configuração
+
+Os valores por omissão chegam para começar. Para mudar alguma coisa, copia `.env.example`
+para `.env` e edita-o, ou define variáveis de ambiente (que têm prioridade sobre o `.env`).
+
+| Variável | Para que serve | Omissão |
+|---|---|---|
+| `ML_LAB_UPLOADS_DIR` | Datasets carregados pelo utilizador | `data/uploads` |
+| `ML_LAB_ARTIFACTS_DIR` | Modelos treinados e snapshots | `artifacts` |
+| `ML_LAB_DATABASE_PATH` | Ficheiro SQLite do registo de experiências | `artifacts/ml_lab.db` |
+| `ML_LAB_LOG_LEVEL` | Nível mínimo dos logs | `INFO` |
+| `ML_LAB_LOG_FORMAT` | `text` (terminal) ou `json` (logs estruturados) | `text` |
+
+## Estrutura
+
+```text
+src/ml_lab/          pacote instalável
+├── config.py        definições: caminhos, base de dados, logs
+├── logging.py       logs estruturados
+├── core/            núcleo: não importa api/ nem ui/
+│   ├── foundation/  tipos, erros, registo de componentes, eventos, seeds
+│   ├── data/        camada de dados (o único sítio com pandas)
+│   ├── models/      algoritmos: um ficheiro = um modelo
+│   ├── services/    a única porta de entrada do núcleo
+│   └── ...          training, evaluation, explainability, tracking...
+└── api/             FastAPI (fase 7)
+ui/simple/           interface simples (Streamlit)
+ui/web/              interface aprimorada (React, fase 9)
+tests/               unit, contract, integration, architecture, api
+docs/                arquitetura, ADRs e fichas didáticas dos algoritmos
+```
+
+A árvore completa, com o papel de cada ficheiro, está em
+[docs/architecture.md](docs/architecture.md#estrutura-de-pastas). Cada camada tem um
+`README.md` curto com as suas regras.
+
+## Convenções
+
+- Nomes de código em inglês; documentação e explicações didáticas em português.
+- Tipos em todas as funções públicas, verificados com `mypy --strict`.
+- Docstrings no estilo Google, em português.
+- Imports sempre absolutos (`from ml_lab.core.foundation.types import TaskType`).
+- Ramo `main` sempre a funcionar; trabalho em ramos `feat/...` e `fix/...`.
+- Mensagens de commit no formato Conventional Commits (`feat: adiciona k-means didático`).
+- Cada decisão que não seja óbvia fica registada numa ADR em `docs/adr/`.
+
+Para acrescentar um algoritmo, uma métrica, uma fonte de dados ou um tipo de tarefa, segue
+[Manutenção: como adicionar componentes](docs/architecture.md#manutenção-como-adicionar-componentes).
