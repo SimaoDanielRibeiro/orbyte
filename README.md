@@ -12,8 +12,9 @@ razões estão em [docs/adr/](docs/adr/).
 | Fase | O que entrega | Estado |
 |---|---|---|
 | 0 — Fundações | Repositório, configuração, logs, registo de componentes, tipos, eventos, seeds, testes de arquitetura, esqueleto da interface | ✅ concluída |
-| 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Dados, Explorar e Preparar | próxima |
-| 2 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+| 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Dados, Explorar e Preparar | ✅ concluída |
+| 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação; ecrãs Modelo e Avaliar | próxima |
+| 3 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
 
 ## Requisitos
 
@@ -27,8 +28,16 @@ uv sync
 ```
 
 Este comando cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em
-`uv.lock` (ferramentas de desenvolvimento e Streamlit) e instala o pacote `ml_lab` em modo
-editável: as alterações em `src/` ficam ativas sem reinstalar.
+`uv.lock` (as bibliotecas do pacote, as ferramentas de desenvolvimento, o Streamlit e o
+Plotly) e instala o pacote `ml_lab` em modo editável: as alterações em `src/` ficam ativas sem
+reinstalar.
+
+Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no repositório, em
+`data/samples/`. Para os voltar a descarregar das origens, com verificação SHA-256:
+
+```bash
+uv run python scripts/download_samples.py --force
+```
 
 ## Abrir a interface simples
 
@@ -39,6 +48,11 @@ uv run streamlit run ui/simple/app.py
 Corre-o a partir da raiz do projeto. A app abre em <http://localhost:8501> e só este
 computador lhe tem acesso (ver `.streamlit/config.toml`). Na primeira vez, o Streamlit pode
 pedir um email no terminal: basta carregar em Enter.
+
+Um percurso para começar: em **Dados**, carrega o exemplo Titanic; em **Explorar**, vê o
+perfil das colunas e os avisos (77% de nulos em `Cabin`, `PassengerId` é um identificador);
+em **Preparar**, escolhe o alvo `Survived`, aceita as limpezas sugeridas e vê a linhagem, a
+divisão e a projeção 2D.
 
 ## Testes e verificações
 
@@ -60,9 +74,9 @@ uv run pytest -m "not integration and not api"
 | Pasta | O que verifica | Quando corre |
 |---|---|---|
 | `tests/unit/` | Uma função ou classe isolada; espelha `src/ml_lab/` | Sempre |
-| `tests/contract/` | Todos os componentes registados cumprem o seu contrato (fase 2) | Sempre |
+| `tests/contract/` | Todos os componentes registados cumprem o seu contrato | Sempre |
 | `tests/architecture/` | Regras de importação entre camadas | Sempre |
-| `tests/integration/` | Fluxos de ponta a ponta; hoje, a interface abre em todos os ecrãs | Antes de cada push |
+| `tests/integration/` | Fluxos de ponta a ponta: o critério de cada fase, nos serviços e na interface | Antes de cada push |
 | `tests/api/` | Endpoints HTTP e WebSocket (fase 7) | Antes de cada push |
 
 Os avisos (`warnings`) contam como erros nos testes: um aviso do pandas ou do scikit-learn
@@ -89,7 +103,7 @@ src/ml_lab/          pacote instalável
 ├── logging.py       logs estruturados
 ├── core/            núcleo: não importa api/ nem ui/
 │   ├── foundation/  tipos, erros, registo de componentes, eventos, seeds
-│   ├── data/        camada de dados (o único sítio com pandas)
+│   ├── data/        camada de dados: as nove etapas (o único sítio com pandas)
 │   ├── models/      algoritmos: um ficheiro = um modelo
 │   ├── services/    a única porta de entrada do núcleo
 │   └── ...          training, evaluation, explainability, tracking...
@@ -97,6 +111,8 @@ src/ml_lab/          pacote instalável
 ui/simple/           interface simples (Streamlit)
 ui/web/              interface aprimorada (React, fase 9)
 tests/               unit, contract, integration, architecture, api
+data/samples/        datasets de exemplo (versionados)
+scripts/             utilitários, como descarregar os exemplos
 docs/                arquitetura, ADRs e fichas didáticas dos algoritmos
 ```
 

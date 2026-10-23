@@ -1,11 +1,17 @@
 import pytest
 
 from ml_lab.core.foundation.errors import (
+    ColumnNotFoundError,
     ComponentNotFoundError,
     ConfigurationError,
+    DataError,
+    DataSourceError,
+    DataValidationError,
     DuplicateComponentError,
+    InvalidParameterError,
     InvalidSeedError,
     MLLabError,
+    NotFittedError,
     RegistryError,
 )
 
@@ -18,6 +24,12 @@ from ml_lab.core.foundation.errors import (
         RegistryError,
         DuplicateComponentError,
         ComponentNotFoundError,
+        InvalidParameterError,
+        NotFittedError,
+        DataError,
+        DataSourceError,
+        DataValidationError,
+        ColumnNotFoundError,
     ],
 )
 def test_domain_errors_share_a_common_base(error_type: type[Exception]) -> None:
@@ -26,7 +38,9 @@ def test_domain_errors_share_a_common_base(error_type: type[Exception]) -> None:
 
 def test_domain_errors_are_also_standard_python_errors() -> None:
     assert issubclass(InvalidSeedError, ValueError)
+    assert issubclass(InvalidParameterError, ValueError)
     assert issubclass(ComponentNotFoundError, LookupError)
+    assert issubclass(ColumnNotFoundError, LookupError)
 
 
 def test_component_not_found_suggests_the_closest_name() -> None:
@@ -48,3 +62,18 @@ def test_duplicate_component_names_the_conflict() -> None:
 
     assert "'knn'" in str(error)
     assert "'models'" in str(error)
+
+
+def test_column_not_found_suggests_the_closest_column() -> None:
+    error = ColumnNotFoundError("Sruvived", ["Survived", "Age"])
+
+    assert "Querias dizer 'Survived'?" in str(error)
+    assert error.column == "Sruvived"
+    assert error.available == ("Survived", "Age")
+
+
+def test_data_validation_error_keeps_every_problem() -> None:
+    error = DataValidationError(["O ficheiro está vazio.", "Falta o cabeçalho."])
+
+    assert error.problems == ("O ficheiro está vazio.", "Falta o cabeçalho.")
+    assert str(error) == "O ficheiro está vazio. Falta o cabeçalho."

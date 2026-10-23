@@ -20,6 +20,10 @@ class InvalidSeedError(MLLabError, ValueError):
     """Seed que não é um inteiro ou que está fora do intervalo aceite."""
 
 
+class InvalidParameterError(MLLabError, ValueError):
+    """Parâmetro com um valor que não é aceite, por exemplo uma proporção de teste de 1,5."""
+
+
 class RegistryError(MLLabError):
     """Erro no registo de componentes (plugins)."""
 
@@ -72,3 +76,47 @@ class ComponentNotFoundError(RegistryError, LookupError):
         if close:
             message += f" Querias dizer '{close[0]}'?"
         return f"{message} Disponíveis: {', '.join(self.available)}."
+
+
+class NotFittedError(MLLabError):
+    """Um componente que aprende com os dados foi usado antes de aprender (antes do ``fit``)."""
+
+
+class DataError(MLLabError):
+    """Erro na camada de dados: dados em falta, ilegíveis ou que não servem para o pedido."""
+
+
+class DataSourceError(DataError):
+    """Não foi possível obter os dados: ficheiro em falta, formato não suportado, ilegível..."""
+
+
+class DataValidationError(DataError):
+    """Os dados têm problemas que impedem usá-los.
+
+    Args:
+        problems: Explicação de cada problema encontrado.
+    """
+
+    def __init__(self, problems: Iterable[str]) -> None:
+        self.problems = tuple(problems)
+        super().__init__(" ".join(self.problems) or "Os dados não passaram a validação.")
+
+
+class ColumnNotFoundError(DataError, LookupError):
+    """Não existe nenhuma coluna com o nome pedido; a mensagem sugere a mais parecida.
+
+    Args:
+        column: Nome pedido.
+        available: Colunas que existem.
+    """
+
+    def __init__(self, column: str, available: Iterable[str]) -> None:
+        self.column = column
+        self.available = tuple(available)
+        message = f"Não existe nenhuma coluna chamada '{column}'."
+        close = difflib.get_close_matches(column, self.available, n=1)
+        if close:
+            message += f" Querias dizer '{close[0]}'?"
+        if self.available:
+            message += f" Colunas: {', '.join(self.available)}."
+        super().__init__(message)

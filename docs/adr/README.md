@@ -12,6 +12,9 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0005](0005-interface-simples-primeiro-react-no-fim.md) | Interface simples (Streamlit) primeiro, React no fim | Aceite |
 | [0006](0006-seeds-derivadas-por-nome.md) | Seeds derivadas por nome a partir de uma seed raiz | Proposta |
 | [0007](0007-descoberta-automatica-de-componentes.md) | Descoberta automática dos componentes registados | Proposta |
+| [0008](0008-camada-de-dados-so-com-pandas-e-numpy.md) | Camada de dados só com pandas e NumPy | Proposta |
+| [0009](0009-fonte-de-dados-devolve-uma-tabela.md) | A fonte de dados devolve uma tabela; o `Dataset` só existe à saída | Proposta |
+| [0010](0010-datasets-de-exemplo-versionados.md) | Datasets de exemplo versionados, com descarga verificada | Proposta |
 
 ## Como escrever uma ADR
 

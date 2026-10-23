@@ -7,7 +7,11 @@ requires-python = ">=3.12"
 authors = [{ name = "Simão" }]
 # As bibliotecas de dados e ML entram fase a fase (ver docs/architecture.md, secção Roadmap):
 # fase 1: numpy, pandas, plotly · fase 2: scikit-learn, pydantic · fase 6: torch · fase 7: fastapi
-dependencies = []
+dependencies = [
+    "numpy>=2.5.4",
+    "openpyxl>=3.1.5",
+    "pandas>=3.1.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.25,<0.12.0"]
@@ -17,11 +21,13 @@ build-backend = "uv_build"
 # Ferramentas de desenvolvimento: estilo, tipos e testes.
 dev = [
     "mypy>=2.4.0",
+    "pandas-stubs>=3.0.5",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
 # Interface simples. Não faz parte do pacote ml_lab: vive em ui/simple/ e usa os serviços.
 ui = [
+    "plotly>=7.1.0",
     "streamlit>=1.66.1",
 ]
 
@@ -62,6 +68,9 @@ ignore = [
     "D107", # os argumentos de __init__ documentam-se na docstring da classe
 ]
 
+# O sinal de multiplicação aparece nas dimensões das tabelas ("891 × 12"), de propósito.
+allowed-confusables = ["×"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
@@ -81,12 +90,17 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-files = ["src", "tests", "ui"]
+files = ["src", "tests", "ui", "scripts"]
 # src/ é a raiz do pacote ml_lab; ui/simple/ é a raiz dos módulos da interface simples
 # (app, pages.*, components.*, charts.*), tal como o Streamlit os importa.
 mypy_path = ["src", "ui/simple"]
 explicit_package_bases = true
 pretty = true
+
+# O Plotly não traz anotações de tipos: os seus objetos ficam com o tipo Any.
+[[tool.mypy.overrides]]
+module = ["plotly", "plotly.*"]
+ignore_missing_imports = true
 
 # --- pytest: testes ---------------------------------------------------------------
 [tool.pytest]

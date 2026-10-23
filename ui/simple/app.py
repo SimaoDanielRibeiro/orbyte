@@ -4,7 +4,9 @@ Abrir com ``uv run streamlit run ui/simple/app.py``.
 
 O Streamlit volta a correr este script a cada interação. A navegação fica no topo,
 da esquerda para a direita pela ordem de uma experiência, e a barra lateral mostra
-o estado da experiência atual em todos os ecrãs.
+o estado da experiência atual em todos os ecrãs. A barra lateral é desenhada depois
+do ecrã, para já mostrar o que o ecrã acabou de mudar (um dataset carregado, uma
+tarefa escolhida).
 """
 
 import streamlit as st
@@ -30,5 +32,5 @@ navigation = st.navigation(
     [st.Page(screen.page_path, title=screen.title, icon=screen.icon) for screen in SCREENS],
     position="top",
 )
-render_sidebar()
 navigation.run()
+render_sidebar()

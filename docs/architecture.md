@@ -423,6 +423,7 @@ ml-lab/
 ├── src/ml_lab/
 │   ├── config.py             # definições: caminhos, base de dados, logs
 │   ├── logging.py            # configuração de logs estruturados
+│   ├── formatting.py         # números à portuguesa (19,9%, 20 640)
 │   │
 │   ├── core/                 # NÚCLEO: não importa api/ nem ui/
 │   │   ├── foundation/       # FUNDAÇÃO: peças usadas por todas as camadas
@@ -430,6 +431,7 @@ ml-lab/
 │   │   │   ├── errors.py     # exceções do domínio
 │   │   │   ├── registry.py   # registo genérico de componentes (plugins)
 │   │   │   ├── events.py     # eventos de treino e EventBus
+│   │   │   ├── notices.py    # avisos didáticos (info, aviso, erro)
 │   │   │   └── random.py     # gestão central de seeds
 │   │   │
 │   │   ├── data/             # CAMADA DE DADOS: o único sítio onde o pandas é usado
@@ -437,6 +439,8 @@ ml-lab/
 │   │   │   ├── dataset.py    # Dataset: o objeto que sai da camada (NumPy + metadados)
 │   │   │   ├── schema.py     # descrição de colunas: tipo, papel (feature/alvo/ignorar)
 │   │   │   ├── lineage.py    # histórico de todas as operações aplicadas aos dados
+│   │   │   ├── preparation.py  # etapas 4 a 9 pela ordem certa: configuração → Dataset
+│   │   │   ├── explanations.py # textos do painel "Porquê?" de cada etapa
 │   │   │   ├── io/           # 1. ENTRADA
 │   │   │   │   ├── base.py               # contrato DataSource
 │   │   │   │   ├── file_source.py        # CSV e Excel carregados pelo utilizador
@@ -450,13 +454,17 @@ ml-lab/
 │   │   │   │   ├── column_profile.py     # nulos, únicos, estatísticas por coluna
 │   │   │   │   └── dataset_profile.py    # resumo global, correlações, desequilíbrio
 │   │   │   ├── cleaning/     # 4. LIMPEZA (cada operação fica registada)
+│   │   │   │   ├── base.py               # registo CLEANING, receita e aplicação
 │   │   │   │   ├── duplicates.py
 │   │   │   │   ├── type_coercion.py      # texto → número, data, booleano
 │   │   │   │   ├── columns.py            # remover IDs e colunas inúteis
-│   │   │   │   └── outliers.py           # detetar e, se pedido, tratar extremos
+│   │   │   │   ├── missing.py            # remover linhas com nulos (sobretudo no alvo)
+│   │   │   │   ├── outliers.py           # detetar e, se pedido, tratar extremos
+│   │   │   │   └── suggestions.py        # receita sugerida a partir do perfil
 │   │   │   ├── task/         # 5. TAREFA
 │   │   │   │   └── task_detection.py     # sugere o TaskType a partir do alvo
 │   │   │   ├── splitting/    # 6. DIVISÃO
+│   │   │   │   ├── base.py               # SplitConfig, registo SPLITTERS
 │   │   │   │   ├── random_split.py
 │   │   │   │   ├── stratified_split.py
 │   │   │   │   └── time_split.py
@@ -468,6 +476,8 @@ ml-lab/
 │   │   │   │   ├── feature_engineering.py  # polinomiais, datas, intervalos
 │   │   │   │   └── pipeline_builder.py   # monta o pipeline a partir da configuração
 │   │   │   ├── projection/   # 8. PROJEÇÃO 2D para gráficos
+│   │   │   │   ├── pca.py                # PCA didática em NumPy
+│   │   │   │   └── projection_2d.py      # duas colunas ou PCA
 │   │   │   └── boundary.py   # 9. SAÍDA: DataFrame → NumPy (fim do pandas)
 │   │   │
 │   │   ├── models/           # algoritmos (um ficheiro = um modelo)
@@ -490,6 +500,8 @@ ml-lab/
 │   │   ├── tracking/         # registo de experiências, base de dados, artefactos
 │   │   ├── schemas/          # esquemas Pydantic partilhados
 │   │   ├── services/         # casos de uso: a única porta de entrada do núcleo
+│   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1 a 3)
+│   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
 │   │   └── rl/               # reservado (fase 8): ambiente em grelha, Q-learning, DQN
 │   │
 │   └── api/                  # FastAPI: rotas HTTP e WebSocket
@@ -619,8 +631,10 @@ A métrica aparece em todos os relatórios dos tipos de tarefa indicados.
 
 ### Adicionar uma fonte de dados
 
-Implementar `DataSource.load() -> Dataset` num novo ficheiro em `data/sources/` e registar
-em `DATA_SOURCES`. Ex.: uma fonte que lê de uma URL, ou de uma base de dados.
+Implementar `DataSource.load() -> LoadedTable` (o DataFrame e os seus metadados) e
+`DataSource.spec()` num novo ficheiro em `data/io/`, e registar com
+`@DATA_SOURCES.register("nome")`. Ex.: uma fonte que lê de uma URL, ou de uma base de dados.
+O `Dataset` com arrays NumPy só existe no fim da camada de dados (ADR 0009).
 
 ### Adicionar um tipo de tarefa (o caso maior)
 
@@ -766,7 +780,7 @@ cada vez.
 | Fase | Backend | Interface simples (ecrãs que ganha) | Tecnologias novas | Pronto quando |
 |---|---|---|---|---|
 | 0 — Fundações ✅ | Repositório, configuração, logs, registo genérico, tipos, eventos, seeds; testes de arquitetura | Esqueleto com navegação entre ecrãs vazios | Python, uv, ruff, mypy, pytest, Streamlit | `pytest` e `mypy` passam; a app abre |
-| 1 — Camada de dados | As nove etapas: entrada, validação, perfil, limpeza, tarefa, divisão, transformação, projeção, saída; linhagem | Dados, Explorar, Preparar | pandas, NumPy, Plotly | Carregar o Titanic mostra perfil correto, avisos e a sugestão "classificação binária"; o teste de arquitetura confirma o pandas isolado |
+| 1 — Camada de dados ✅ | As nove etapas: entrada, validação, perfil, limpeza, tarefa, divisão, transformação, projeção, saída; linhagem | Dados, Explorar, Preparar | pandas, NumPy, Plotly | Carregar o Titanic mostra perfil correto, avisos e a sugestão "classificação binária"; o teste de arquitetura confirma o pandas isolado |
 | 2 — Primeiro fluxo completo | Contrato de modelo, adaptador scikit-learn, regressão logística, avaliador de classificação, serviço de experiências | Modelo, Avaliar (básico) | scikit-learn, Pydantic | No Iris: escolher modelo, treinar e ver métricas na interface; testes de contrato a passar |
 | 3 — Eventos e snapshots | Contexto de treino, gravador de snapshots, regressões didáticas em NumPy, dados da fronteira de decisão | Treinar (com reprodução passo a passo) | — (gradiente descendente, padrão observer) | Ver a fronteira da regressão logística didática a mover-se; resultado final igual ao do scikit-learn |
 | 4 — Catálogo clássico | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
@@ -853,10 +867,62 @@ Pequenas inconsistências encontradas no plano, por resolver nas fases em que im
 - As exceções do domínio aparecem em `core/errors.py` nas convenções e em
   `core/foundation/errors.py` na árvore. Ficaram na fundação, porque a fundação não pode
   importar nada de fora dela (e o registo precisa das exceções).
-- "Adicionar uma fonte de dados" fala em `data/sources/` e em `DataSource.load() -> Dataset`;
+- "Adicionar uma fonte de dados" falava em `data/sources/` e em `DataSource.load() -> Dataset`;
   a árvore usa `data/io/` e a tabela de contratos diz que a fonte devolve "DataFrame +
-  metadados". A decidir na fase 1.
+  metadados". Resolvido na fase 1 a favor da árvore e da tabela de contratos (ADR 0009).
 - O catálogo inicial dizia "Reinforcement learning (fase 7)"; no roadmap o RL é a fase 8
   (a 7 é a API). Corrigido acima para fase 8.
 - "Adicionar um tipo de tarefa" refere `splitting.py`; na árvore, a divisão é a pasta
-  `splitting/` com três estratégias.
+  `splitting/` com três estratégias. Na fase 1, cada estratégia regista-se em `SPLITTERS`
+  (`splitting/base.py`): uma estratégia nova é um ficheiro novo nessa pasta.
+
+### Fase 1
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Dependências:** `numpy`, `pandas` e `openpyxl` no pacote (o `openpyxl` é o motor que o
+  pandas usa para ler `.xlsx`, não uma tecnologia nova); `plotly` no grupo `ui`, porque só a
+  interface desenha; `pandas-stubs` no grupo `dev`, para o mypy conhecer os tipos do pandas. O
+  Plotly não traz tipos, por isso o mypy trata-o como `Any` (`[[tool.mypy.overrides]]`).
+- **Sem scikit-learn na camada de dados** (ADR 0008): transformações, divisão, geradores
+  sintéticos e PCA em pandas/NumPy. Na fase 2 são comparados com o scikit-learn.
+- **A fonte de dados devolve uma tabela** (`LoadedTable`) e o `Dataset` só existe à saída
+  (ADR 0009). **Datasets de exemplo versionados** e confirmados com SHA-256 (ADR 0010).
+- **`preparation.py`** (fora da árvore original) junta as etapas 4 a 9 pela ordem certa. Uma
+  `PreparationConfig` (alvo, tarefa, receita de limpeza, divisão, transformações, projeção) e
+  a seed da experiência reproduzem sempre o mesmo `Dataset`; a divisão usa
+  `seeds.seed_for("split")` (ADR 0006).
+- **Mais registos com o mesmo padrão plugin:** `DATA_SOURCES`, `SAMPLES`, `GENERATORS`,
+  `CLEANING` e `SPLITTERS`. Uma fonte, um exemplo, um gerador, uma operação de limpeza ou uma
+  estratégia de divisão nova é um ficheiro (ou uma entrada) novo, e os testes de contrato em
+  `tests/contract/test_data_components.py` testam-na sozinhos.
+- **Tipo da coluna ≠ tipo do pandas:** `ColumnKind` diz o que a coluna significa (um `int64`
+  com 0 e 1 é booleano; inteiros seguidos e todos diferentes são um identificador; números
+  escritos com vírgula decimal são numéricos guardados como texto). Texto livre e
+  identificadores ficam com o papel `IGNORED`; colunas por converter ficam de fora do modelo
+  com um aviso.
+- **Avisos didáticos** (`Notice`, em `foundation/notices.py`): nível (info, aviso, erro),
+  código estável e mensagem em português. Todas as etapas os produzem; a interface agrupa-os.
+- **Números à portuguesa** (`ml_lab/formatting.py`: `19,9%`, `20 640`), usáveis por todas as
+  camadas exceto a fundação, como `config` e `logging`.
+- **Limpeza:** os duplicados procuram-se antes de remover os identificadores (sem o
+  `PassengerId`, passageiros diferentes com os mesmos dados pareceriam repetidos). Os limites
+  do IQR dos valores extremos são calculados antes da divisão; a descrição da operação avisa.
+- **Tarefa:** as linhas sem alvo são removidas pela preparação, com um passo na linhagem.
+- **Divisão:** o teste e a validação arredondam para cima, como no scikit-learn (891 linhas
+  dão 712 de treino e 179 de teste); a estratificada reparte as classes pelo método do maior
+  resto.
+- **pandas 3:** o Copy-on-Write está sempre ligado (nenhuma etapa altera a tabela recebida) e
+  o texto é lido com o tipo `str`. `ExcelFile.parse` e `Series.dt.weekday` estão
+  descontinuados: como os avisos contam como erros nos testes, foram apanhados logo.
+- **Serviço de datasets:** guarda até 20 datasets em memória, identificados por
+  `SourceSpec.key`; os ficheiros enviados ficam em `data/uploads/` com o início do SHA-256 no
+  nome. Devolve só estruturas simples, e `core/services/__init__.py` reexporta os tipos de que
+  a interface precisa (a interface só pode importar `services` e `schemas`).
+- **Interface:** a barra lateral é desenhada depois do ecrã, para mostrar o que o ecrã acabou
+  de mudar; os controlos usam `persist_state="session"` para manter as escolhas ao mudar de
+  ecrã; o ecrã Preparar volta a preparar a cada mudança. Os textos do painel "Porquê?" vêm do
+  backend (`core/data/explanations.py`).
+- **Testes da interface:** o `AppTest` do Streamlit perde a barra lateral quando uma app com
+  várias páginas volta a correr; o teste da barra lateral monta o estado da sessão antes da
+  primeira corrida.

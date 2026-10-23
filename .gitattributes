@@ -1,0 +1,3 @@
+# Datasets de exemplo: guardados byte a byte, sem conversão de fins de linha (CRLF/LF),
+# para serem iguais em todos os sistemas operativos.
+data/samples/** -text

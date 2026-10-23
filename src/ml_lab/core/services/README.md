@@ -7,4 +7,12 @@ validadas e devolve resultados prontos a mostrar, em estruturas simples (sem Dat
 - **Pode importar:** todo o núcleo.
 - **Nunca importa:** `ml_lab.api` nem a interface.
 
-Serviços previstos: datasets (fase 1), catálogo de modelos e experiências (fase 2).
+Como a interface só pode importar `ml_lab.core.services` e `ml_lab.core.schemas`,
+`__init__.py` reexporta os tipos de que ela precisa (resultados, configurações, o erro base).
+
+| Serviço | O que faz | Fase |
+|---|---|---|
+| `datasets.py` · `DatasetService` | Exemplos, geradores, upload, validação, perfil, sugestões de tarefa e de limpeza, preparação | 1 |
+| `lab.py` · `Lab` | Os serviços de uma sessão, ligados entre si | 1 |
+
+Serviços previstos: catálogo de modelos e experiências (fase 2).

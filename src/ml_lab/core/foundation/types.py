@@ -1,4 +1,4 @@
-"""Tipos partilhados por todo o projeto: paradigmas de aprendizagem e tipos de tarefa.
+"""Tipos partilhados por todo o projeto: paradigmas, tipos de tarefa e partições dos dados.
 
 O tipo de tarefa (``TaskType``) organiza o ML Lab inteiro: decide que algoritmos
 aparecem no catálogo, que métricas se calculam e que snapshots fazem sentido
@@ -61,6 +61,28 @@ class TaskType(StrEnum):
         """Se a tarefa é de classificação, binária ou multiclasse."""
         return self in (TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION)
 
+
+class Partition(StrEnum):
+    """Parte dos dados depois da divisão.
+
+    O modelo aprende com o treino; a validação serve para afinar escolhas (por
+    exemplo, quando parar o treino); o teste só se usa no fim, para medir o
+    desempenho em dados que o modelo nunca viu.
+    """
+
+    TRAIN = "train"
+    VALIDATION = "validation"
+    TEST = "test"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em português."""
+        return _PARTITION_LABELS[self]
+
+
+_PARTITION_LABELS: Final[Mapping[Partition, str]] = MappingProxyType(
+    {Partition.TRAIN: "Treino", Partition.VALIDATION: "Validação", Partition.TEST: "Teste"}
+)
 
 _LABELS: Final[Mapping[TaskType, str]] = MappingProxyType(
     {

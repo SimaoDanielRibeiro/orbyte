@@ -1,6 +1,6 @@
 import pytest
 
-from ml_lab.core.foundation.types import Paradigm, TaskType
+from ml_lab.core.foundation.types import Paradigm, Partition, TaskType
 
 
 def test_task_types_are_the_closed_list_from_the_plan() -> None:
@@ -40,3 +40,7 @@ def test_task_type_round_trips_through_its_text_value() -> None:
     # O valor em texto é o que fica guardado em JSON e na base de dados.
     assert TaskType("regression") is TaskType.REGRESSION
     assert str(TaskType.REGRESSION) == "regression"
+
+
+def test_partitions_have_portuguese_labels() -> None:
+    assert [partition.label for partition in Partition] == ["Treino", "Validação", "Teste"]
