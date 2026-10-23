@@ -1,5 +1,6 @@
 """A interface simples abre, e cada ecrã do plano abre sem erros (critério da fase 0)."""
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -39,3 +40,17 @@ def test_every_screen_opens_without_errors(page: Path) -> None:
 
     assert not app.exception
     assert len(app.title) == 1
+
+
+@pytest.mark.parametrize("page", [UI_DIR / "app.py", *PAGES], ids=lambda page: page.stem)
+def test_screens_have_no_loose_text(page: Path) -> None:
+    # A "magia" do Streamlit desenha qualquer expressão solta de um ecrã, incluindo uma
+    # docstring por baixo de uma constante. Só a docstring do módulo é ignorada.
+    body = ast.parse(page.read_bytes()).body
+    loose = [
+        node.lineno
+        for node in body[1:]
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+    ]
+
+    assert not loose, f"{page.name}: texto solto nas linhas {loose} (usa um comentário)"

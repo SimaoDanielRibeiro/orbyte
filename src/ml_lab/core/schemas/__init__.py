@@ -1,4 +1,5 @@
-"""Esquemas Pydantic partilhados: configurações, hiperparâmetros e relatórios.
+"""Esquemas Pydantic partilhados: configurações, hiperparâmetros e mensagens de validação.
 
-Fase 2.
+São os tipos que atravessam a fronteira do núcleo: a interface e a API constroem-nos,
+os serviços validam-nos. Por isso a interface pode importá-los diretamente.
 """

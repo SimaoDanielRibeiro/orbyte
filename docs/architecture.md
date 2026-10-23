@@ -380,6 +380,9 @@ experiências) são usadas a pedido.
 8. A interface pede os dados dos gráficos (fronteira de decisão, curvas, projeção 2D) e
    desenha-os.
 
+Na fase 2, o `ExperimentService` faz os passos 1 a 7 sem o Trainer (fase 3) nem o registo
+de experiências (fase 5): anuncia o run no `EventBus`, treina, avalia e devolve o resultado.
+
 ### Regra de dependências
 
 | Camada | Pode importar | Nunca importa |
@@ -481,10 +484,12 @@ ml-lab/
 │   │   │   └── boundary.py   # 9. SAÍDA: DataFrame → NumPy (fim do pandas)
 │   │   │
 │   │   ├── models/           # algoritmos (um ficheiro = um modelo)
-│   │   │   ├── base.py       # contrato LabModel + ficha técnica do modelo
+│   │   │   ├── base.py       # contrato LabModel + ficha técnica do modelo + registo MODELS
 │   │   │   ├── adapters/     # ligação ao scikit-learn e ao PyTorch
+│   │   │   │   └── sklearn_adapter.py    # SklearnModel: o contrato, uma vez, para o scikit-learn
 │   │   │   ├── supervised/
 │   │   │   │   ├── classification/  # logística, perceptron, KNN, árvore, RF, SVM, NB
+│   │   │   │   │   └── logistic_regression.py  # regressão logística (scikit-learn)
 │   │   │   │   └── regression/      # linear (GD e OLS), Ridge, Lasso, polinomial, árvores
 │   │   │   ├── ensemble/     # gradient boosting, AdaBoost (scikit-learn)
 │   │   │   ├── unsupervised/
@@ -494,13 +499,25 @@ ml-lab/
 │   │   │   └── neural/       # redes PyTorch, captura de ativações e gradientes
 │   │   │
 │   │   ├── training/         # Trainer, callbacks, snapshots, jobs, validação cruzada
+│   │   │   └── context.py    # TrainingContext: o canal entre o modelo e o exterior
 │   │   ├── evaluation/       # métricas, avaliadores por tarefa, diagnósticos, explicações
+│   │   │   ├── metrics/      # base.py (registo METRICS) e classification.py
+│   │   │   ├── base.py       # contrato Evaluator, registo EVALUATORS, métrica principal
+│   │   │   ├── classification.py  # avaliador de classificação
+│   │   │   ├── report.py     # EvaluationReport, MetricResult, ConfusionMatrix
+│   │   │   ├── explanations.py    # o que mede cada métrica e como se lê
+│   │   │   └── diagnostics.py     # comparação treino vs. teste (overfitting)
 │   │   ├── explainability/   # importância por permutação, dependência parcial
 │   │   ├── visualization_data/  # prepara DADOS para gráficos (sem desenhar)
 │   │   ├── tracking/         # registo de experiências, base de dados, artefactos
 │   │   ├── schemas/          # esquemas Pydantic partilhados
+│   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação)
+│   │   │   ├── experiment.py # ExperimentConfig: dados, preparação, modelo e seed
+│   │   │   └── validation.py # erros do Pydantic explicados em português
 │   │   ├── services/         # casos de uso: a única porta de entrada do núcleo
 │   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1 a 3)
+│   │   │   ├── catalog.py    # catálogo de modelos (ecrã 4)
+│   │   │   ├── experiments.py  # treinar, avaliar e anunciar o run (ecrãs 4 e 6)
 │   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
 │   │   └── rl/               # reservado (fase 8): ambiente em grelha, Q-learning, DQN
 │   │
@@ -781,7 +798,7 @@ cada vez.
 |---|---|---|---|---|
 | 0 — Fundações ✅ | Repositório, configuração, logs, registo genérico, tipos, eventos, seeds; testes de arquitetura | Esqueleto com navegação entre ecrãs vazios | Python, uv, ruff, mypy, pytest, Streamlit | `pytest` e `mypy` passam; a app abre |
 | 1 — Camada de dados ✅ | As nove etapas: entrada, validação, perfil, limpeza, tarefa, divisão, transformação, projeção, saída; linhagem | Dados, Explorar, Preparar | pandas, NumPy, Plotly | Carregar o Titanic mostra perfil correto, avisos e a sugestão "classificação binária"; o teste de arquitetura confirma o pandas isolado |
-| 2 — Primeiro fluxo completo | Contrato de modelo, adaptador scikit-learn, regressão logística, avaliador de classificação, serviço de experiências | Modelo, Avaliar (básico) | scikit-learn, Pydantic | No Iris: escolher modelo, treinar e ver métricas na interface; testes de contrato a passar |
+| 2 — Primeiro fluxo completo ✅ | Contrato de modelo, adaptador scikit-learn, regressão logística, avaliador de classificação, serviço de experiências | Modelo, Avaliar (básico) | scikit-learn, Pydantic | No Iris: escolher modelo, treinar e ver métricas na interface; testes de contrato a passar |
 | 3 — Eventos e snapshots | Contexto de treino, gravador de snapshots, regressões didáticas em NumPy, dados da fronteira de decisão | Treinar (com reprodução passo a passo) | — (gradiente descendente, padrão observer) | Ver a fronteira da regressão logística didática a mover-se; resultado final igual ao do scikit-learn |
 | 4 — Catálogo clássico | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
 | 5 — Memória | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs | Experiências | SQLite (`sqlite3`), joblib | Fechar a app, reabrir e comparar dois runs |
@@ -926,3 +943,51 @@ Decisões tomadas ao implementar (as não óbvias têm ADR própria):
 - **Testes da interface:** o `AppTest` do Streamlit perde a barra lateral quando uma app com
   várias páginas volta a correr; o teste da barra lateral monta o estado da sessão antes da
   primeira corrida.
+
+### Fase 2
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Dependências:** `scikit-learn` e `pydantic` no pacote. O scikit-learn não traz tipos (o
+  mypy trata-o como `Any`, como o Plotly); o Pydantic tem um plugin para o mypy
+  (`plugins = ["pydantic.mypy"]`).
+- **Configurações** (ADR 0011): as dataclasses da preparação ficam como estão e o
+  `ExperimentConfig` (Pydantic) compõe-nas; os hiperparâmetros de cada modelo são classes
+  Pydantic, e os erros de validação chegam em português.
+- **Contrato `LabModel`** (ADR 0012): genérico nos hiperparâmetros, com o contexto de treino
+  já na assinatura do `fit` (nulo até à fase 3), `classes()` para alinhar as probabilidades e
+  os avisos das bibliotecas transformados em avisos didáticos. O `ModelFamily` só tem, por
+  agora, os modelos lineares: cresce com o catálogo da fase 4.
+- **Regressão logística:** envolve o `LogisticRegression` do scikit-learn 1.9, com
+  regularização L2 e o otimizador L-BFGS (o parâmetro `penalty` está descontinuado e não se
+  passa). Hiperparâmetros: `C` (em escala logarítmica no formulário), `max_iter`,
+  `class_weight` e `fit_intercept`. A ficha didática está em
+  `docs/algorithms/logistic_regression.md`.
+- **Avaliação:** sete métricas de classificação (exatidão, exatidão equilibrada, precisão,
+  recall, F1, ROC AUC e log-loss), cada uma com explicação. A exatidão equilibrada está
+  escrita à mão, com a definição do scikit-learn, porque a dele avisa quando o modelo prevê
+  uma classe ausente das linhas avaliadas. Uma métrica que não está definida (a ROC AUC sem
+  todas as classes no teste) aparece como "—", com uma nota a explicar.
+- **Comparações didáticas:** cada relatório compara o modelo com "prever sempre a classe mais
+  frequente"; o diagnóstico compara treino e teste na métrica principal (a exatidão) e avisa a
+  partir de 10 pontos de diferença (overfitting).
+- **Serviço de experiências:** a seed da divisão e a do modelo derivam da seed raiz
+  (`"split"` e `"model"`); sem seed, gera-se uma e fica registada na configuração do
+  resultado, que repete o run tal e qual. Os problemas encontrados antes do treino (modelo
+  desconhecido, hiperparâmetros inválidos, tarefa que o modelo não resolve) não publicam
+  eventos; uma falha durante o treino publica `RunFailed`.
+- **Catálogo:** cada cartão traz o JSON Schema dos hiperparâmetros e o texto da ficha
+  didática. A interface desenha o formulário com o mesmo `components/forms.py` dos geradores
+  sintéticos, que entende `"x-scale": "log"` e `"x-labels"`.
+- **Implementações didáticas vs. scikit-learn:**
+  `tests/unit/core/data/test_matches_scikit_learn.py` confirma que a escala, a imputação, o
+  one-hot, a PCA (incluindo o sinal das componentes), os tamanhos da divisão e os dados
+  sintéticos da fase 1 dão o mesmo que o scikit-learn.
+- **Interface:** o ecrã Modelo mostra os cartões por família, a ficha didática e o
+  formulário, e "Treinar e avaliar" leva ao ecrã Avaliar: cartões de métricas com explicação,
+  matriz de confusão, treino vs. teste, pesos aprendidos e a configuração do run. A barra
+  lateral mostra o modelo e o último resultado.
+- **Testes:** os testes de contrato percorrem `MODELS` e `METRICS` (treinar em cada tarefa
+  declarada, probabilidades, seed, ficha didática com todos os hiperparâmetros, métricas
+  finitas, puras e explicadas); o teste de integração da fase 2 percorre o Iris pela
+  interface, de Dados a Avaliar.

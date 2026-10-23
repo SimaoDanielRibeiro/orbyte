@@ -6,11 +6,14 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Simão" }]
 # As bibliotecas de dados e ML entram fase a fase (ver docs/architecture.md, secção Roadmap):
-# fase 1: numpy, pandas, plotly · fase 2: scikit-learn, pydantic · fase 6: torch · fase 7: fastapi
+# fase 1: numpy, pandas (+ openpyxl para Excel), plotly · fase 2: scikit-learn, pydantic
+# fase 6: torch · fase 7: fastapi
 dependencies = [
     "numpy>=2.5.4",
     "openpyxl>=3.1.5",
     "pandas>=3.1.0",
+    "pydantic>=2.14.1",
+    "scikit-learn>=1.9.1",
 ]
 
 [build-system]
@@ -74,6 +77,10 @@ allowed-confusables = ["×"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.pep8-naming]
+# Em ML, X é o nome habitual da matriz de features (e y o do alvo).
+ignore-names = ["X", "X_*"]
+
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
@@ -96,10 +103,12 @@ files = ["src", "tests", "ui", "scripts"]
 mypy_path = ["src", "ui/simple"]
 explicit_package_bases = true
 pretty = true
+# O plugin do Pydantic ensina o mypy a ler os modelos (campos, valores por omissão, Field).
+plugins = ["pydantic.mypy"]
 
-# O Plotly não traz anotações de tipos: os seus objetos ficam com o tipo Any.
+# O Plotly e o scikit-learn não trazem anotações de tipos: os seus objetos ficam com o tipo Any.
 [[tool.mypy.overrides]]
-module = ["plotly", "plotly.*"]
+module = ["plotly", "plotly.*", "sklearn", "sklearn.*"]
 ignore_missing_imports = true
 
 # --- pytest: testes ---------------------------------------------------------------

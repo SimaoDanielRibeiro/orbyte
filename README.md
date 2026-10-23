@@ -13,8 +13,9 @@ razões estão em [docs/adr/](docs/adr/).
 |---|---|---|
 | 0 — Fundações | Repositório, configuração, logs, registo de componentes, tipos, eventos, seeds, testes de arquitetura, esqueleto da interface | ✅ concluída |
 | 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Dados, Explorar e Preparar | ✅ concluída |
-| 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação; ecrãs Modelo e Avaliar | próxima |
-| 3 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+| 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação de classificação, serviço de experiências; ecrãs Modelo e Avaliar | ✅ concluída |
+| 3 — Eventos e snapshots | Contexto de treino, snapshots, regressões didáticas em NumPy; ecrã Treinar | próxima |
+| 4 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
 
 ## Requisitos
 
@@ -52,7 +53,10 @@ pedir um email no terminal: basta carregar em Enter.
 Um percurso para começar: em **Dados**, carrega o exemplo Titanic; em **Explorar**, vê o
 perfil das colunas e os avisos (77% de nulos em `Cabin`, `PassengerId` é um identificador);
 em **Preparar**, escolhe o alvo `Survived`, aceita as limpezas sugeridas e vê a linhagem, a
-divisão e a projeção 2D.
+divisão e a projeção 2D; em **Modelo**, lê a ficha da regressão logística, ajusta os
+hiperparâmetros e carrega em "Treinar e avaliar"; em **Avaliar**, vê as métricas (cada uma com
+a sua explicação), a matriz de confusão, o treino contra o teste e os pesos que o modelo
+aprendeu. Experimenta baixar o `C` e treinar outra vez.
 
 ## Testes e verificações
 
@@ -74,7 +78,7 @@ uv run pytest -m "not integration and not api"
 | Pasta | O que verifica | Quando corre |
 |---|---|---|
 | `tests/unit/` | Uma função ou classe isolada; espelha `src/ml_lab/` | Sempre |
-| `tests/contract/` | Todos os componentes registados cumprem o seu contrato | Sempre |
+| `tests/contract/` | Todos os componentes registados cumprem o seu contrato: modelos, métricas, fontes de dados, limpezas, divisões | Sempre |
 | `tests/architecture/` | Regras de importação entre camadas | Sempre |
 | `tests/integration/` | Fluxos de ponta a ponta: o critério de cada fase, nos serviços e na interface | Antes de cada push |
 | `tests/api/` | Endpoints HTTP e WebSocket (fase 7) | Antes de cada push |

@@ -120,3 +120,25 @@ class ColumnNotFoundError(DataError, LookupError):
         if self.available:
             message += f" Colunas: {', '.join(self.available)}."
         super().__init__(message)
+
+
+class ModelError(MLLabError):
+    """Erro de um modelo: configuração inválida, tarefa que não resolve, capacidade em falta."""
+
+
+class HyperparameterError(ModelError, ValueError):
+    """Hiperparâmetros com valores que o modelo não aceita.
+
+    Args:
+        model: Nome do modelo.
+        problems: Explicação de cada valor recusado.
+    """
+
+    def __init__(self, model: str, problems: Iterable[str]) -> None:
+        self.model = model
+        self.problems = tuple(problems)
+        super().__init__(f"Hiperparâmetros inválidos para '{model}': {' '.join(self.problems)}")
+
+
+class CapabilityError(ModelError):
+    """O modelo não tem a capacidade pedida (por exemplo, não dá probabilidades)."""

@@ -1,0 +1,143 @@
+"""Avaliador de classificação: métricas, matriz de confusão e comparação com o acaso.
+
+Além das métricas, compara o modelo com a referência mais simples possível: prever
+sempre a classe mais frequente. Um modelo que não bate essa referência não aprendeu
+nada de útil, por mais alta que pareça a exatidão.
+"""
+
+import math
+from typing import Any, Final, override
+
+import numpy as np
+from numpy.typing import NDArray
+from sklearn.metrics import confusion_matrix
+
+from ml_lab.core.evaluation.base import EVALUATORS, Evaluator
+from ml_lab.core.evaluation.explanations import METRIC_EXPLANATIONS
+from ml_lab.core.evaluation.metrics.base import METRICS, MetricInputs
+from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport, MetricResult
+from ml_lab.core.foundation.errors import ModelError
+from ml_lab.core.foundation.notices import Notice
+from ml_lab.core.foundation.types import Partition, TaskType
+from ml_lab.core.models.base import Features, LabModel, Target
+from ml_lab.formatting import format_percent
+
+DISPLAY_ORDER: Final = (
+    "accuracy",
+    "balanced_accuracy",
+    "precision",
+    "recall",
+    "f1",
+    "roc_auc",
+    "log_loss",
+)
+"""Ordem dos cartões de métricas; as métricas novas aparecem depois, por ordem alfabética."""
+
+_BASELINE_MARGIN: Final = 0.01
+
+
+@EVALUATORS.register("classification")
+class ClassificationEvaluator(Evaluator):
+    """Avalia classificadores (binários e multiclasse)."""
+
+    task_types = frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION})
+
+    @override
+    def evaluate(
+        self,
+        model: LabModel[Any],
+        X: Features,
+        y: Target | None,
+        *,
+        partition: Partition,
+        task_type: TaskType,
+        class_labels: tuple[str, ...] = (),
+    ) -> EvaluationReport:
+        if y is None or not class_labels:
+            raise ModelError("Para avaliar uma classificação são precisos o alvo e as classes.")
+        n_classes = len(class_labels)
+        y_true = y.astype(np.int64)
+        y_pred = np.asarray(model.predict(X), dtype=np.int64)
+        y_proba = _probabilities(model, X, n_classes) if model.info.supports_proba else None
+        inputs = MetricInputs(y_true, y_pred, y_proba, n_classes)
+
+        results: list[MetricResult] = []
+        undefined: list[str] = []
+        for name, metric in sorted(METRICS.for_task(task_type).items(), key=_display_rank):
+            if metric.needs_proba and y_proba is None:
+                continue
+            value = metric(inputs)
+            explanation = METRIC_EXPLANATIONS[name]
+            if math.isnan(value):
+                undefined.append(metric.display_name)
+            results.append(
+                MetricResult(
+                    name=name,
+                    display_name=metric.display_name,
+                    value=None if math.isnan(value) else value,
+                    higher_is_better=metric.higher_is_better,
+                    as_percent=metric.as_percent,
+                    what=explanation.what,
+                    how_to_read=explanation.how_to_read,
+                )
+            )
+        counts = confusion_matrix(y_true, y_pred, labels=list(range(n_classes)))
+        matrix = ConfusionMatrix(class_labels, tuple(tuple(int(c) for c in row) for row in counts))
+        notices = [_baseline_notice(y_true, y_pred, class_labels, partition)]
+        if undefined:
+            notices.append(
+                Notice.info(
+                    "undefined_metric",
+                    f"{', '.join(undefined)}: não está definida no {partition.label.lower()}, "
+                    "porque falta pelo menos uma classe nas linhas avaliadas.",
+                )
+            )
+        return EvaluationReport(
+            partition=partition,
+            task_type=task_type,
+            n_samples=len(y_true),
+            metrics=tuple(results),
+            confusion_matrix=matrix,
+            notices=tuple(notices),
+        )
+
+
+def _probabilities(model: LabModel[Any], X: Features, n_classes: int) -> NDArray[np.float64]:
+    """As probabilidades de todas as classes, mesmo das que não apareceram no treino (zero)."""
+    proba = model.predict_proba(X)
+    seen = model.classes()
+    if seen is None or proba.shape[1] == n_classes:
+        return proba
+    full = np.zeros((proba.shape[0], n_classes))
+    full[:, seen] = proba
+    return full
+
+
+def _display_rank(item: tuple[str, object]) -> tuple[int, str]:
+    name = item[0]
+    return (DISPLAY_ORDER.index(name) if name in DISPLAY_ORDER else len(DISPLAY_ORDER), name)
+
+
+def _baseline_notice(
+    y_true: NDArray[np.int64],
+    y_pred: NDArray[np.int64],
+    class_labels: tuple[str, ...],
+    partition: Partition,
+) -> Notice:
+    counts = np.bincount(y_true, minlength=len(class_labels))
+    majority = int(counts.argmax())
+    baseline = float(counts[majority] / len(y_true))
+    accuracy = float((y_true == y_pred).mean())
+    where = f"no {partition.label.lower()}"
+    if accuracy <= baseline + _BASELINE_MARGIN:
+        return Notice.warning(
+            "below_baseline",
+            f"Prever sempre «{class_labels[majority]}» acertava {format_percent(baseline)} "
+            f"{where}, e o modelo acerta {format_percent(accuracy)}: não aprendeu nada que "
+            "ajude. Revê as features e a preparação.",
+        )
+    return Notice.info(
+        "baseline",
+        f"Para comparar: prever sempre «{class_labels[majority]}» acertava "
+        f"{format_percent(baseline)} {where}; o modelo acerta {format_percent(accuracy)}.",
+    )

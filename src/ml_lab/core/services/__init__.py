@@ -30,9 +30,13 @@ from ml_lab.core.data.transforms.imputation import ImputationStrategy
 from ml_lab.core.data.transforms.pipeline_builder import TransformConfig
 from ml_lab.core.data.transforms.scaling import ScalingMethod
 from ml_lab.core.data.validation.checks import ValidationReport
+from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport, MetricResult
 from ml_lab.core.foundation.errors import MLLabError
 from ml_lab.core.foundation.notices import Notice, NoticeLevel
 from ml_lab.core.foundation.types import Partition, TaskType
+from ml_lab.core.models.base import Implementation, ModelFamily
+from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.services.catalog import CatalogService, ModelCard
 from ml_lab.core.services.datasets import (
     ColumnInfo,
     DatasetService,
@@ -44,28 +48,40 @@ from ml_lab.core.services.datasets import (
     ProjectionPoints,
     SampleSummary,
 )
+from ml_lab.core.services.experiments import ExperimentResult, ExperimentService
 from ml_lab.core.services.lab import Lab
 
 __all__ = [
+    "CatalogService",
     "ClassBalance",
     "CleaningStep",
     "CleaningSuggestion",
     "ColumnInfo",
     "ColumnKind",
     "ColumnProfile",
+    "ConfusionMatrix",
     "CorrelationMatrix",
     "DatasetProfile",
     "DatasetService",
     "DatasetSummary",
+    "EvaluationReport",
+    "ExperimentConfig",
+    "ExperimentResult",
+    "ExperimentService",
     "Explanation",
     "GeneratorSummary",
     "GroupMeans",
     "Histogram",
+    "Implementation",
     "ImputationStrategy",
     "Lab",
     "LineageStep",
     "MLLabError",
+    "MetricResult",
     "MissingMap",
+    "ModelCard",
+    "ModelFamily",
+    "ModelSpec",
     "Notice",
     "NoticeLevel",
     "OperationSummary",

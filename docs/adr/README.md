@@ -15,6 +15,8 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0008](0008-camada-de-dados-so-com-pandas-e-numpy.md) | Camada de dados só com pandas e NumPy | Proposta |
 | [0009](0009-fonte-de-dados-devolve-uma-tabela.md) | A fonte de dados devolve uma tabela; o `Dataset` só existe à saída | Proposta |
 | [0010](0010-datasets-de-exemplo-versionados.md) | Datasets de exemplo versionados, com descarga verificada | Proposta |
+| [0011](0011-configuracoes-em-dataclasses-pydantic-na-fronteira.md) | Configurações da preparação em dataclasses; o Pydantic valida-as na fronteira | Proposta |
+| [0012](0012-contrato-labmodel-e-avaliacao.md) | Contrato LabModel completo desde a fase 2, e avaliação por registos | Proposta |
 
 ## Como escrever uma ADR
 

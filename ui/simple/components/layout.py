@@ -3,7 +3,7 @@
 import streamlit as st
 
 from components.screens import SCREENS, Screen, get_screen
-from components.state import current_dataset, current_preparation
+from components.state import chosen_model, current_dataset, current_preparation, last_result
 from ml_lab import __version__
 from ml_lab.core.services import DatasetSummary, explain
 from ml_lab.formatting import format_count
@@ -13,6 +13,9 @@ def render_sidebar() -> None:
     """Barra lateral com o estado da experiência atual: dataset, tarefa, modelo e resultado."""
     dataset = current_dataset()
     preparation = current_preparation()
+    model = chosen_model()
+    result = last_result()
+    primary = result.primary if result else None
     fields = {
         "Dataset": (
             f"{dataset.name} ({format_count(dataset.n_rows)} × {dataset.n_columns})"
@@ -20,8 +23,10 @@ def render_sidebar() -> None:
             else "—"
         ),
         "Tarefa": preparation.summary.task_type.label if preparation else "—",
-        "Modelo": "—",
-        "Último resultado": "—",
+        "Modelo": model.display_name if model else "—",
+        "Último resultado": (
+            f"{primary.display_name} no teste: {primary.formatted}" if primary else "—"
+        ),
     }
     with st.sidebar:
         st.subheader("Experiência atual")

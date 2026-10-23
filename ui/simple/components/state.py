@@ -2,7 +2,8 @@
 
 O Streamlit volta a correr o script a cada interação, por isso tudo o que tem de
 sobreviver entre interações vive em ``st.session_state``: o ``Lab`` com os
-serviços (um por sessão), o dataset escolhido e a última preparação feita.
+serviços (um por sessão), o dataset escolhido, a última preparação feita, o modelo
+escolhido e o resultado do último treino.
 """
 
 from dataclasses import dataclass
@@ -12,8 +13,10 @@ import streamlit as st
 
 from ml_lab.core.services import (
     DatasetSummary,
+    ExperimentResult,
     Lab,
     MLLabError,
+    ModelCard,
     PreparationConfig,
     PreparationSummary,
 )
@@ -21,6 +24,8 @@ from ml_lab.core.services import (
 _LAB: Final = "lab"
 _DATASET: Final = "dataset_id"
 _PREPARATION: Final = "preparation"
+_MODEL: Final = "model"
+_RESULT: Final = "result"
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,3 +88,25 @@ def save_preparation(preparation: Preparation) -> None:
 def clear_preparation() -> None:
     """Esquece a preparação (por exemplo, quando a configuração deixa de ser válida)."""
     st.session_state.pop(_PREPARATION, None)
+
+
+def chosen_model() -> ModelCard | None:
+    """O modelo escolhido no ecrã Modelo, se houver."""
+    card: ModelCard | None = st.session_state.get(_MODEL)
+    return card
+
+
+def choose_model(card: ModelCard) -> None:
+    """Guarda o modelo escolhido."""
+    st.session_state[_MODEL] = card
+
+
+def last_result() -> ExperimentResult | None:
+    """O resultado do último treino, se houver."""
+    result: ExperimentResult | None = st.session_state.get(_RESULT)
+    return result
+
+
+def save_result(result: ExperimentResult) -> None:
+    """Guarda o resultado de um treino."""
+    st.session_state[_RESULT] = result
