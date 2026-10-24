@@ -26,6 +26,8 @@ from ml_lab.core.services import (
     EvaluationCharts,
     EvaluationReport,
     ExperimentResult,
+    LinearWeights,
+    Matrix,
     MLLabError,
     Partition,
     TaskType,
@@ -35,28 +37,6 @@ from ml_lab.formatting import format_number, format_percent
 # Quantas métricas aparecem em destaque, no topo. Num ecrã, um texto solto (mesmo uma
 # docstring de constante) é desenhado pela "magia" do Streamlit: daí o comentário.
 _CARDS = 4
-
-# O nome a mostrar das propriedades simples do estado dos modelos.
-_STATE_LABELS = {
-    "iterations": "Iterações (ou épocas) do treino",
-    "converged": "Convergiu",
-    "inertia": "Inércia (soma das distâncias ao quadrado)",
-    "n_support": "Vetores de suporte",
-    "n_clusters": "Grupos",
-    "n_noise": "Pontos de ruído",
-    "n_core": "Pontos núcleo",
-    "depth": "Profundidade da árvore",
-    "n_leaves": "Folhas",
-    "n_trees": "Árvores",
-    "n_stages": "Etapas",
-    "oob_score": "Pontuação fora do saco (OOB)",
-    "threshold": "Limiar de anomalia",
-    "kl_divergence": "Divergência KL final",
-    "log_likelihood": "Log-verosimilhança média",
-    "n_terms": "Termos do polinómio",
-    "degree": "Grau",
-    "n_train": "Exemplos guardados",
-}
 
 
 def main() -> None:
@@ -142,7 +122,7 @@ def _tabs(result: ExperimentResult, charts: EvaluationCharts | None) -> dict[str
         tabs["Treino vs. teste"] = lambda: _compare(result)
     if task.requires_target:
         tabs["Validação cruzada"] = lambda: _validation(result)
-    tabs["O que o modelo aprendeu"] = lambda: _learned(result, charts)
+    tabs["O que o modelo aprendeu"] = lambda: _learned(result)
     return tabs
 
 
@@ -389,112 +369,66 @@ def _validation(result: ExperimentResult) -> None:
     render_notices([*validation.notices, *curve.notices], notes_title="Leitura")
 
 
-def _learned(result: ExperimentResult, charts: EvaluationCharts | None) -> None:
-    state = result.model_state
-    shown = _coefficients(result)
-    importances = state.get("feature_importances")
-    if importances and len(importances) == len(result.feature_names):
-        pairs = sorted(
-            zip(result.feature_names, importances, strict=True), key=lambda pair: -pair[1]
-        )[:20]
+def _learned(result: ExperimentResult) -> None:
+    learned = result.learned
+    if learned.weights is not None:
+        _weights(learned.weights)
+    for note in learned.notes:
+        st.caption(note)
+    if learned.importances:
         st.markdown("**Importância de cada feature (pelas impurezas das árvores)**")
-        st.plotly_chart(bars_chart(pairs, x_title="Importância"), width="stretch")
+        st.plotly_chart(
+            bars_chart(list(learned.importances[:20]), x_title="Importância"), width="stretch"
+        )
         st.caption(
             "Quanto cada feature reduziu a impureza nas divisões das árvores. Favorece features "
             "com muitos valores: a importância por permutação (ecrã Explicar) é mais honesta."
         )
-        shown = True
-    if charts is not None and charts.tree_rules:
+    if learned.tree_rules:
         st.markdown("**As regras da árvore** (limiares na escala depois da preparação)")
-        st.code("\n".join(charts.tree_rules), language=None)
-        shown = True
-    shown = _rows_table(result, "centers", "Centros (médias) de cada grupo ou classe") or shown
-    shown = _rows_table(result, "components", "Peso de cada feature em cada componente") or shown
-    scalars = {
-        _STATE_LABELS.get(name, name): _written(value)
-        for name, value in state.items()
-        if isinstance(value, bool | int | float) or name == "n_support"
-    }
-    if scalars:
+        st.code("\n".join(learned.tree_rules), language=None)
+    for matrix in learned.tables:
+        _matrix(matrix)
+    if learned.properties:
         st.dataframe(
-            {"Propriedade": list(scalars), "Valor": list(scalars.values())},
+            {
+                "Propriedade": [prop.label for prop in learned.properties],
+                "Valor": [_written(prop.value) for prop in learned.properties],
+            },
             hide_index=True,
             width="stretch",
         )
-        shown = True
-    if not shown:
+    if learned.is_empty:
         st.info("Este modelo não mostra o que aprendeu.", icon=":material/info:")
     with st.expander("Estado completo, em JSON"):
-        st.json(state, expanded=False)
+        st.json(result.model_state, expanded=False)
 
 
-def _coefficients(result: ExperimentResult) -> bool:
-    """A tabela dos pesos de um modelo linear (se os pesos corresponderem às features)."""
-    state = result.model_state
-    coefficients: list[Any] | None = state.get("coefficients")
-    if not coefficients:
-        return False
-    intercept = state.get("intercept", [])
-    intercepts = intercept if isinstance(intercept, list) else [intercept]
-    if not isinstance(coefficients[0], list):  # regressão: um só vetor de pesos
-        rows: list[list[float]] = [coefficients]
-        names = ["Peso"]
-        meaning = "Cada peso é quanto a previsão muda quando a feature sobe uma unidade."
-    else:
-        rows = coefficients
-        labels = result.class_labels
-        classes = state.get("classes", list(range(len(labels))))
-        # Na classificação binária há um só vetor de pesos: o da classe positiva.
-        chosen = [labels[-1]] if len(rows) == 1 else [labels[int(code)] for code in classes]
-        names = [f"Peso para «{label}»" for label in chosen]
-        meaning = "Um peso positivo empurra para a classe, um negativo afasta."
-    if any(len(row) != len(result.feature_names) for row in rows):
-        st.caption(
-            f"O modelo tem {len(rows[0])} pesos, um por termo (não por feature): por exemplo, as "
-            "potências da regressão polinomial."
-        )
-        return False
-    table: dict[str, Any] = {"Feature": list(result.feature_names)}
-    for name, weights in zip(names, rows, strict=True):
-        table[name] = [format_number(weight, 3) for weight in weights]
+def _weights(weights: LinearWeights) -> None:
+    """A tabela dos pesos de um modelo linear: uma coluna por saída."""
+    table: dict[str, Any] = {"Feature": list(weights.features)}
+    for output, row in zip(weights.outputs, weights.weights, strict=True):
+        name = f"Peso para «{output}»" if weights.codes else "Peso"
+        table[name] = [format_number(weight, 3) for weight in row]
     st.dataframe(table, hide_index=True, width="stretch")
-    written = ", ".join(format_number(value, 3) for value in intercepts)
-    st.caption(
-        f"Ordenada (b): {written}. {meaning} Com as features padronizadas, os pesos comparam-se "
-        "entre si: os maiores (em valor absoluto) são as features que mais pesam na previsão."
-    )
-    return True
+    written = ", ".join(format_number(value, 3) for value in weights.intercepts)
+    st.caption(f"Ordenada (b): {written}. {weights.how_to_read}")
 
 
-def _rows_table(result: ExperimentResult, key: str, title: str) -> bool:
-    """Uma tabela com uma linha por grupo (ou componente) e uma coluna por feature."""
-    rows = result.model_state.get(key)
-    if not rows or len(rows[0]) != len(result.feature_names):
-        return False
-    if key == "components":
-        names = [f"Componente {number}" for number in range(1, len(rows) + 1)]
-    elif result.task_type.is_classification:
-        classes = result.model_state.get("classes", list(range(len(rows))))
-        names = [result.class_labels[int(code)] for code in classes]
-    else:
-        names = [f"Grupo {number}" for number in range(1, len(rows) + 1)]
-    table: dict[str, Any] = {"": names}
-    for column, feature in enumerate(result.feature_names):
-        table[feature] = [format_number(row[column], 3) for row in rows]
-    st.markdown(f"**{title}** (na escala depois da preparação)")
+def _matrix(matrix: Matrix) -> None:
+    """Uma tabela com uma linha por grupo, classe ou componente e uma coluna por feature."""
+    table: dict[str, Any] = {"": list(matrix.rows)}
+    for column, feature in enumerate(matrix.columns):
+        table[feature] = [format_number(row[column], 3) for row in matrix.values]
+    st.markdown(f"**{matrix.title}** (na escala depois da preparação)")
     st.dataframe(table, hide_index=True, width="stretch")
-    return True
 
 
-def _written(value: Any) -> str:
+def _written(value: bool | int | float | str) -> str:
     if isinstance(value, bool):
         return "sim" if value else "não"
-    if isinstance(value, int):
-        return str(value)
     if isinstance(value, float):
         return format_number(value, 4)
-    if isinstance(value, list):
-        return " + ".join(str(item) for item in value) + f" = {sum(value)}"
     return str(value)
 
 

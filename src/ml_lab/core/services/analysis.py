@@ -37,6 +37,7 @@ from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import MODEL_SEED, ExperimentService
 from ml_lab.core.visualization_data.evaluation import EvaluationCharts, evaluation_charts
+from ml_lab.core.visualization_data.learned import linear_weights
 from ml_lab.formatting import format_number
 
 CACHE_SIZE: Final = 50
@@ -185,14 +186,25 @@ class AnalysisService:
             )
         actual = None if test.y is None else _written(dataset, test.y[row])
         classification = dataset.task_type.is_classification
-        state = model.state()
-        linear = _linear_weights(state, dataset, int(predicted))
+        weights = linear_weights(
+            model.state(),
+            task_type=dataset.task_type,
+            feature_names=dataset.feature_names,
+            class_labels=dataset.class_labels,
+            target_name=dataset.target_name,
+        )
+        output = None  # a linha de pesos que explica esta previsão (a classe prevista)
+        if weights is not None:
+            output = weights.row_for(int(predicted)) if classification else 0
         method: Literal["weights", "replace"]
         base: float | None = None
-        if linear is not None:  # modelo linear: pesos × valores, a decomposição exata
-            vector, label = linear
-            effects = vector * x[0]
-            base = _intercept(state, int(predicted))
+        if weights is not None and output is not None:  # pesos × valores: a decomposição exata
+            effects = np.asarray(weights.weights[output]) * x[0]
+            base = weights.intercept_for(output)
+            if classification:
+                label = f"Contributo para a pontuação de «{weights.outputs[output]}»"
+            else:
+                label = f"Contributo para a previsão de {dataset.target_name or 'alvo'}"
             method = "weights"
         else:
             chosen = int(predicted) if classification else None
@@ -256,52 +268,6 @@ def _written(dataset: Dataset, value: Any) -> str:
     if dataset.task_type.is_classification:
         return dataset.class_labels[int(value)]
     return format_number(float(value), 3)
-
-
-def _linear_weights(
-    state: dict[str, Any], dataset: Dataset, predicted: int
-) -> tuple[NDArray[np.float64], str] | None:
-    """O vetor de pesos que explica a previsão (e em que unidades), se o modelo for linear.
-
-    Nos modelos lineares, a previsão (ou a pontuação de uma classe) é a ordenada mais a soma
-    de peso × valor de cada feature: cada parcela é o contributo exato da feature.
-    """
-    weights = state.get("coefficients")
-    if weights is None:
-        return None
-    matrix = np.asarray(weights, dtype=np.float64)
-    if matrix.ndim == 1 and matrix.shape[0] == dataset.n_features:  # regressão
-        target = dataset.target_name or "alvo"
-        return matrix, f"Contributo para a previsão de {target}"
-    if matrix.ndim != 2 or matrix.shape[1] != dataset.n_features:
-        return None  # por exemplo, os pesos das potências da regressão polinomial
-    if len(matrix) == 1:  # binária: um só vetor, o da classe positiva
-        positive = dataset.class_labels[1]
-        return matrix[0], f"Contributo para a pontuação de «{positive}»"
-    row = _row_of(state, predicted)
-    if row is None or row >= len(matrix):
-        return None
-    label = dataset.class_labels[predicted]
-    return matrix[row], f"Contributo para a pontuação de «{label}»"
-
-
-def _intercept(state: dict[str, Any], predicted: int) -> float | None:
-    intercept = state.get("intercept")
-    if intercept is None:
-        return None
-    values = np.atleast_1d(np.asarray(intercept, dtype=np.float64))
-    if len(values) == 1:
-        return float(values[0])
-    row = _row_of(state, predicted)
-    return None if row is None or row >= len(values) else float(values[row])
-
-
-def _row_of(state: dict[str, Any], predicted: int) -> int | None:
-    """A linha dos pesos de uma classe: a posição dela nas classes que o modelo viu."""
-    seen = list(state.get("classes", []))
-    if not seen:
-        return predicted
-    return seen.index(predicted) if predicted in seen else None
 
 
 def _replacement_effects(

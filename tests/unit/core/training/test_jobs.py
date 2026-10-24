@@ -109,6 +109,25 @@ def test_the_progress_comes_from_the_recorder() -> None:
     assert training.planned_steps == 100
 
 
+def test_the_state_is_one_plain_picture_of_the_job() -> None:
+    def broken(control: TrainingControl) -> str:
+        raise ValueError("partiu")
+
+    running = job(until_stopped, planned_steps=10)
+    running.recorder.receive(StepCompleted(run_id="run-1", step=1, loss=0.5))
+    failed = job(broken).start()
+    with pytest.raises(ValueError, match="partiu"):
+        failed.wait(5)
+
+    state = running.state()
+
+    assert (state.run_id, state.status, state.planned_steps) == ("run-1", JobStatus.PENDING, 10)
+    assert state.progress.steps == 1
+    assert state.error is None
+    assert failed.state().status is JobStatus.FAILED
+    assert failed.state().error == "partiu"
+
+
 def test_the_statuses_have_portuguese_names() -> None:
     assert [status.label for status in JobStatus] == [
         "À espera",

@@ -9,6 +9,7 @@ resultado fica com o que o modelo já tinha aprendido.
 
 import threading
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Final, Self
@@ -41,6 +42,25 @@ _STATUS_LABELS: Final[Mapping[JobStatus, str]] = MappingProxyType(
         JobStatus.FAILED: "Falhou",
     }
 )
+
+
+@dataclass(frozen=True, slots=True)
+class JobState:
+    """Um retrato do treino em segundo plano, em valores simples (o que a API devolve).
+
+    Attributes:
+        run_id: O run que o trabalho produz.
+        status: O estado.
+        progress: Os passos dados, a última loss e as fotografias tiradas.
+        planned_steps: O máximo de passos, se se souber.
+        error: Se falhou, a explicação do erro.
+    """
+
+    run_id: str
+    status: JobStatus
+    progress: Progress
+    planned_steps: int | None = None
+    error: str | None = None
 
 
 class TrainingJob[T]:
@@ -96,6 +116,16 @@ class TrainingJob[T]:
     def progress(self) -> Progress:
         """O progresso até agora (passos, última loss, snapshots)."""
         return self.recorder.progress()
+
+    def state(self) -> JobState:
+        """O estado agora, em valores simples: é o que se mostra enquanto o treino decorre."""
+        return JobState(
+            run_id=self.run_id,
+            status=self.status,
+            progress=self.progress,
+            planned_steps=self.planned_steps,
+            error=None if self._error is None else str(self._error),
+        )
 
     @property
     def result(self) -> T | None:

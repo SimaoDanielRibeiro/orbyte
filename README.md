@@ -164,6 +164,9 @@ A árvore completa, com o papel de cada ficheiro, está em
 - Ramo `main` sempre a funcionar; trabalho em ramos `feat/...` e `fix/...`.
 - Mensagens de commit no formato Conventional Commits (`feat: adiciona k-means didático`).
 - Cada decisão que não seja óbvia fica registada numa ADR em `docs/adr/`.
+- O backend escreve-se pronto para o frontend: os serviços devolvem dados simples que
+  passam a JSON, e as regras de domínio ficam no backend. As regras completas estão em
+  [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Para acrescentar um algoritmo, uma métrica, uma fonte de dados ou um tipo de tarefa, segue
 [Manutenção: como adicionar componentes](docs/architecture.md#manutenção-como-adicionar-componentes).

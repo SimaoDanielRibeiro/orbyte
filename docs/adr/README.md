@@ -23,6 +23,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0016](0016-validacao-cruzada-com-a-preparacao-em-cada-fold.md) | Validação cruzada com as transformações aprendidas de novo em cada fold | Proposta |
 | [0017](0017-modelos-do-scikit-learn-que-crescem.md) | Modelos do scikit-learn que se mostram a crescer, com o mesmo resultado final | Proposta |
 | [0018](0018-explicacoes-independentes-do-modelo.md) | Explicações independentes do modelo, escritas em NumPy | Proposta |
+| [0019](0019-fronteira-dos-servicos-pronta-para-a-api.md) | A fronteira dos serviços pronta para a API: dados simples, JSON verificado | Proposta |
 
 ## Como escrever uma ADR
 

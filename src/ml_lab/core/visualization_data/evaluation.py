@@ -26,7 +26,6 @@ from ml_lab.core.evaluation.clustering import NOISE_LABEL, group_name
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import LabModel, class_probabilities
 from ml_lab.core.visualization_data.animation import MAX_POINTS, PointCloud
-from ml_lab.formatting import format_number, format_percent
 
 CURVE_POINTS: Final = 200
 """Pontos de cada curva ROC ou PR, no máximo."""
@@ -37,9 +36,6 @@ SILHOUETTE_SAMPLE: Final = 2_000
 
 DENDROGRAM_LEAVES: Final = 30
 """O dendrograma mostra só as últimas junções: os grupos mais pequenos ficam numa folha."""
-
-TREE_RULES_DEPTH: Final = 4
-"""Níveis da árvore escritos como regras (os mais fundos ficam resumidos)."""
 
 CORRECT, WRONG = "Certo", "Errado"
 
@@ -141,7 +137,6 @@ class EvaluationCharts:
     threshold: float | None = None
     test_points: PointCloud | None = None
     axis_labels: tuple[str, str] = ("", "")
-    tree_rules: tuple[str, ...] = ()
 
 
 def evaluation_charts(model: LabModel[Any], dataset: Dataset) -> EvaluationCharts:
@@ -178,7 +173,6 @@ def _classification(
         pr=pr,
         test_points=_plane(dataset, partition, labels=marks),
         axis_labels=_axes(dataset),
-        tree_rules=tree_rules(model.state(), dataset),
     )
 
 
@@ -191,7 +185,6 @@ def _regression(model: LabModel[Any], dataset: Dataset, partition: Partition) ->
         residuals=residuals(actual, predicted),
         test_points=_plane(dataset, partition, values=np.abs(actual - predicted)),
         axis_labels=_axes(dataset),
-        tree_rules=tree_rules(model.state(), dataset),
     )
 
 
@@ -352,56 +345,6 @@ def dendrogram(
         below, above = merges[n_points - n_clusters - 1, 2], merges[n_points - n_clusters, 2]
         cut = float((below + above) / 2)
     return Dendrogram(tuple(segments), tuple(leaf_positions), tuple(leaf_labels), cut)
-
-
-def tree_rules(
-    state: dict[str, Any], dataset: Dataset, max_depth: int = TREE_RULES_DEPTH
-) -> tuple[str, ...]:
-    """A árvore de decisão escrita como regras "se … senão …", até ``max_depth`` níveis.
-
-    Os limiares estão na escala depois da preparação (padronizados, se a preparação os
-    padronizou). Devolve um tuplo vazio se o modelo não for uma árvore.
-    """
-    tree = state.get("tree")
-    if not tree:
-        return ()
-    lines: list[str] = []
-
-    def outcome(node: int) -> str:
-        values = tree["value"][node]
-        samples = tree["samples"][node]
-        if dataset.task_type.is_classification:
-            classes = state.get("classes", list(range(len(values))))
-            best = int(np.argmax(values))
-            label = dataset.class_labels[int(classes[best])]
-            return f"→ {label} ({format_percent(float(values[best]))} de {samples} exemplos)"
-        return f"→ {format_number(float(values[0]), 3)} (média de {samples} exemplos)"
-
-    def visit(node: int, depth: int) -> None:
-        indent = "    " * depth
-        left, right = tree["left"][node], tree["right"][node]
-        if left == -1:  # folha
-            lines.append(f"{indent}{outcome(node)}")
-            return
-        if depth >= max_depth:
-            lines.append(f"{indent}… (mais {_count_leaves(tree, node)} folhas)")
-            return
-        name = dataset.feature_names[tree["feature"][node]]
-        threshold = format_number(float(tree["threshold"][node]), 3)
-        lines.append(f"{indent}se {name} ≤ {threshold}:")
-        visit(left, depth + 1)
-        lines.append(f"{indent}senão ({name} > {threshold}):")
-        visit(right, depth + 1)
-
-    visit(0, 0)
-    return tuple(lines)
-
-
-def _count_leaves(tree: dict[str, Any], node: int) -> int:
-    left, right = tree["left"][node], tree["right"][node]
-    if left == -1:
-        return 1
-    return _count_leaves(tree, left) + _count_leaves(tree, right)
 
 
 def _roc(truth: NDArray[np.int64], scores: NDArray[np.float64], label: str) -> Curve:

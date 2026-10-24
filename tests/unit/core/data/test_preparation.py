@@ -5,7 +5,7 @@ import pytest
 from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.io.base import LoadedTable, SourceSpec
 from ml_lab.core.data.lineage import Stage
-from ml_lab.core.data.preparation import PreparationConfig, prepare
+from ml_lab.core.data.preparation import PreparationConfig, prepare, task_options
 from ml_lab.core.data.splitting.base import SplitConfig, SplitStrategy
 from ml_lab.core.data.transforms.pipeline_builder import TransformConfig
 from ml_lab.core.foundation.errors import DataError, InvalidParameterError
@@ -190,6 +190,21 @@ def test_a_reference_column_stratifies_like_a_target(passengers: pd.DataFrame) -
     assert clustering.task_type is TaskType.CLUSTERING
     assert np.array_equal(clustering.test.rows, supervised.test.rows)
     assert "Survived" not in clustering.feature_names
+
+
+def test_task_options_say_what_the_chosen_task_changes() -> None:
+    clustering = task_options(TaskType.CLUSTERING, "species")
+    regression = task_options(TaskType.REGRESSION, "price")
+    without_target = task_options(TaskType.CLUSTERING, None)
+
+    assert clustering.reference == "species"
+    assert clustering.reference_note is not None
+    assert "não entra no treino" in clustering.reference_note
+    assert clustering.split_strategies[0] is SplitStrategy.STRATIFIED  # há classes
+    assert regression.reference is None
+    assert SplitStrategy.STRATIFIED not in regression.split_strategies
+    assert without_target.reference_note is None
+    assert SplitStrategy.STRATIFIED not in without_target.split_strategies
 
 
 def test_in_anomaly_detection_the_rarest_reference_class_is_number_one() -> None:

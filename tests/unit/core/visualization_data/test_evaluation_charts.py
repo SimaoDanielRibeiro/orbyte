@@ -50,16 +50,6 @@ def test_classification_charts_have_one_roc_curve_per_class() -> None:
     assert set(charts.test_points.labels) <= {"Certo", "Errado"}
 
 
-def test_a_tree_is_written_as_rules_with_the_feature_names() -> None:
-    iris = prepared(IRIS, PreparationConfig(target="species"))
-
-    rules = evaluation_charts(trained("decision_tree", iris, max_depth=2), iris).tree_rules
-
-    assert rules[0].startswith("se petal")
-    assert any(line.strip().startswith("→ setosa") for line in rules)
-    assert any(line.startswith("senão") for line in rules)
-
-
 def test_regression_charts_show_the_residuals() -> None:
     line = prepared(
         SourceSpec("synthetic", {"generator": "regression", "seed": 0, "parameters": {}}),

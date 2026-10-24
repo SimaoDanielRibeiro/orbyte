@@ -21,7 +21,7 @@ import time
 import uuid
 from collections import OrderedDict
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Final
 
 from ml_lab.core.data.dataset import Dataset
@@ -41,6 +41,7 @@ from ml_lab.core.foundation.random import SeedManager
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import MODELS, LabModel
 from ml_lab.core.schemas.experiment import ExperimentConfig
+from ml_lab.core.schemas.serialization import internal, to_json
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.training.context import SnapshotSampler
 from ml_lab.core.training.control import TrainingControl
@@ -50,6 +51,7 @@ from ml_lab.core.training.trainer import Trainer, TrainingOutcome
 from ml_lab.core.visualization_data.animation import TrainingAnimation, build_animation
 from ml_lab.core.visualization_data.embedding import Embedding, embedding_map
 from ml_lab.core.visualization_data.grid import ProbeGrid, probe_grid
+from ml_lab.core.visualization_data.learned import LearnedView, learned_view
 from ml_lab.formatting import format_count
 from ml_lab.logging import get_logger
 
@@ -84,6 +86,8 @@ class ExperimentResult:
         stopped_early: Se o treino foi interrompido a pedido.
         animation: A fronteira (ou a reta) em cada snapshot, para rever o treino.
         training_notices: Só os avisos do treino (não convergiu, explodiu, foi parado).
+        embedding: Na redução de dimensionalidade, o mapa dos pontos de treino.
+        learned: O que o modelo aprendeu, pronto a mostrar (pesos, regras, centros…).
     """
 
     run_id: str
@@ -104,6 +108,7 @@ class ExperimentResult:
     animation: TrainingAnimation | None = None
     training_notices: tuple[Notice, ...] = ()
     embedding: Embedding | None = None
+    learned: LearnedView = field(default_factory=LearnedView)
 
     @property
     def seed(self) -> int:
@@ -229,8 +234,9 @@ class ExperimentService:
             classes=plan.model.classes(),
         )
 
+    @internal
     def artifacts(self, run_id: str) -> RunArtifacts:
-        """O modelo e os dados de um run recente.
+        """O modelo e os dados de um run recente (para o serviço de análise).
 
         Raises:
             ModelError: Se o run já não estiver em memória.
@@ -297,8 +303,8 @@ class ExperimentService:
             self._bus.publish(
                 EvaluationCompleted(
                     run_id=plan.run_id,
-                    train_report=reports[Partition.TRAIN].to_dict(),
-                    test_report=reports[Partition.TEST].to_dict(),
+                    train_report=to_json(reports[Partition.TRAIN]),
+                    test_report=to_json(reports[Partition.TEST]),
                 )
             )
             result = self._result(plan, outcome, reports, duration)
@@ -352,6 +358,7 @@ class ExperimentService:
         duration: float,
     ) -> ExperimentResult:
         model, dataset = plan.model, plan.dataset
+        state = model.state()
         history = plan.recorder.steps()
         animation = None
         if plan.grid is not None:
@@ -368,7 +375,7 @@ class ExperimentService:
         embedding = None
         if dataset.task_type is TaskType.DIMENSIONALITY_REDUCTION:
             # Na PCA, os eixos são as componentes que aprendeu; no t-SNE, não têm significado.
-            axis = "Componente" if "components" in model.state() else "Dimensão"
+            axis = "Componente" if "components" in state else "Dimensão"
             embedding = embedding_map(dataset, model.transform(dataset.train.X), axis)
         training = list(model.notices)
         if outcome.stopped_early:
@@ -391,7 +398,7 @@ class ExperimentService:
             feature_names=dataset.feature_names,
             class_labels=dataset.class_labels,
             reports=reports,
-            model_state=model.state(),
+            model_state=state,
             notices=(*training, *compare_train_and_test(reports)),
             duration_seconds=duration,
             history=history,
@@ -399,6 +406,13 @@ class ExperimentService:
             animation=animation,
             training_notices=tuple(training),
             embedding=embedding,
+            learned=learned_view(
+                state,
+                task_type=dataset.task_type,
+                feature_names=dataset.feature_names,
+                class_labels=dataset.class_labels,
+                target_name=dataset.target_name,
+            ),
         )
 
     def _keep(self, run_id: str, artifacts: RunArtifacts) -> None:

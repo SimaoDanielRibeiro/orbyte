@@ -24,6 +24,7 @@ from ml_lab.core.models.base import (
     Target,
 )
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
+from ml_lab.core.schemas.serialization import to_json
 from ml_lab.core.training.context import TrainingContext
 
 
@@ -105,7 +106,8 @@ def test_reports_find_metrics_and_become_plain_json() -> None:
 
     assert result.metric("accuracy").value == 0.8
     assert result.values() == {"accuracy": 0.8}
-    json.dumps(result.to_dict())
+    assert to_json(result)["partition"] == "train"
+    json.dumps(to_json(result), allow_nan=False)
     with pytest.raises(ComponentNotFoundError, match="Querias dizer 'accuracy'"):
         result.metric("acuracy")
 

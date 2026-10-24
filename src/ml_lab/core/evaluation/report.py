@@ -1,12 +1,11 @@
 """Relatório de avaliação: as métricas de uma parte dos dados, a matriz de confusão e os avisos.
 
 São estruturas simples (números, texto, tuplos), prontas a mostrar na interface e a
-guardar em JSON com a experiência.
+passar a JSON com ``schemas.serialization.to_json`` (para os eventos e para a API).
 """
 
 import math
 from dataclasses import dataclass
-from typing import Any
 
 from ml_lab.core.foundation.errors import ComponentNotFoundError
 from ml_lab.core.foundation.notices import Notice
@@ -109,19 +108,3 @@ class EvaluationReport:
     def values(self) -> dict[str, float | None]:
         """O valor de cada métrica, pelo nome."""
         return {result.name: result.value for result in self.metrics}
-
-    def to_dict(self) -> dict[str, Any]:
-        """O relatório em valores simples, para eventos e JSON."""
-        return {
-            "partition": self.partition.value,
-            "task_type": self.task_type.value,
-            "n_samples": self.n_samples,
-            "metrics": self.values(),
-            "confusion_matrix": None
-            if self.confusion_matrix is None
-            else {
-                "labels": list(self.confusion_matrix.labels),
-                "columns": list(self.confusion_matrix.columns),
-                "counts": [list(row) for row in self.confusion_matrix.counts],
-            },
-        }

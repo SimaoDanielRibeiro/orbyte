@@ -13,7 +13,9 @@ pronto para os modelos:
 A mesma tabela, a mesma configuração e a mesma seed dão sempre o mesmo ``Dataset``.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Final
 
 import numpy as np
@@ -162,6 +164,53 @@ def prepare_folds(
         dataset, _, _ = _assemble(table.name, selected, parts, config, lineage)
         datasets.append(dataset)
     return tuple(datasets)
+
+
+REFERENCE_USES: Final[Mapping[TaskType, str]] = MappingProxyType(
+    {
+        TaskType.CLUSTERING: "por exemplo, os grupos do k-means com as espécies do Iris",
+        TaskType.DIMENSIONALITY_REDUCTION: (
+            "por exemplo, se as espécies do Iris ficam separadas no mapa"
+        ),
+        TaskType.ANOMALY_DETECTION: (
+            "as anomalias marcadas com as verdadeiras; com duas classes, a mais rara conta "
+            "como anomalia"
+        ),
+    }
+)
+"""O que a coluna de referência deixa comparar no fim, em cada tarefa sem alvo."""
+
+
+@dataclass(frozen=True, slots=True)
+class TaskOptions:
+    """O que muda com a tarefa escolhida para um alvo (o ecrã Preparar mostra-o).
+
+    Attributes:
+        reference: Nas tarefas sem alvo, a coluna-alvo que fica só como referência.
+        reference_note: O que essa referência deixa comparar no fim.
+        split_strategies: As divisões possíveis; a primeira é a sugerida (a estratificada,
+            sempre que há classes).
+    """
+
+    reference: str | None
+    reference_note: str | None
+    split_strategies: tuple[SplitStrategy, ...]
+
+
+def task_options(task_type: TaskType, target: str | None) -> TaskOptions:
+    """O que muda com ``task_type`` para o alvo ``target``: a referência e as divisões."""
+    reference = target if target is not None and not task_type.requires_target else None
+    note = None
+    if reference is not None:
+        note = (
+            f"Com {task_type.label.lower()}, a coluna {reference} não entra no treino: fica "
+            "como **referência**, para no fim comparares o que o modelo encontrou com ela "
+            f"({REFERENCE_USES[task_type]})."
+        )
+    strategies = [SplitStrategy.RANDOM, SplitStrategy.TIME]
+    if _class_column(task_type, target) is not None:
+        strategies.insert(0, SplitStrategy.STRATIFIED)
+    return TaskOptions(reference, note, tuple(strategies))
 
 
 @dataclass(frozen=True, slots=True, eq=False)

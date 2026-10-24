@@ -13,7 +13,7 @@ from ml_lab.core.data.cleaning.suggestions import CleaningSuggestion
 from ml_lab.core.data.explanations import Explanation
 from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.lineage import LineageStep, Stage
-from ml_lab.core.data.preparation import PreparationConfig
+from ml_lab.core.data.preparation import PreparationConfig, TaskOptions
 from ml_lab.core.data.profiling.column_profile import ColumnProfile, Histogram, ValueCount
 from ml_lab.core.data.profiling.dataset_profile import (
     ClassBalance,
@@ -69,7 +69,7 @@ from ml_lab.core.services.laboratory import (
     Points,
     RegularizationDemo,
 )
-from ml_lab.core.training.jobs import JobStatus, TrainingJob
+from ml_lab.core.training.jobs import JobState, JobStatus, TrainingJob
 from ml_lab.core.training.recorder import Progress, StepRecord
 from ml_lab.core.visualization_data.animation import (
     FieldFrame,
@@ -87,6 +87,7 @@ from ml_lab.core.visualization_data.evaluation import (
     Silhouette,
     SilhouetteGroup,
 )
+from ml_lab.core.visualization_data.learned import LearnedView, LinearWeights, Matrix, Property
 
 __all__ = [
     "AnalysisService",
@@ -123,15 +124,19 @@ __all__ = [
     "Histogram",
     "Implementation",
     "ImputationStrategy",
+    "JobState",
     "JobStatus",
     "KnnDemo",
     "Lab",
     "LaboratoryService",
+    "LearnedView",
     "LearningCurve",
     "LearningRateDemo",
     "LineageStep",
+    "LinearWeights",
     "LossCurve",
     "MLLabError",
+    "Matrix",
     "MetricResult",
     "MissingMap",
     "ModelCard",
@@ -153,6 +158,7 @@ __all__ = [
     "Progress",
     "ProjectionConfig",
     "ProjectionPoints",
+    "Property",
     "RegularizationDemo",
     "Residuals",
     "RowExplanation",
@@ -166,6 +172,7 @@ __all__ = [
     "Stage",
     "StepRecord",
     "TablePreview",
+    "TaskOptions",
     "TaskSuggestion",
     "TaskType",
     "TrainingAnimation",

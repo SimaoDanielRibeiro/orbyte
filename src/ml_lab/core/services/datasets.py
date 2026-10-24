@@ -33,8 +33,10 @@ from ml_lab.core.data.lineage import LineageStep
 from ml_lab.core.data.preparation import (
     PreparationConfig,
     PreparedData,
+    TaskOptions,
     prepare,
     prepare_folds,
+    task_options,
 )
 from ml_lab.core.data.profiling.column_profile import ValueCount
 from ml_lab.core.data.profiling.dataset_profile import DatasetProfile, profile_dataset
@@ -52,6 +54,7 @@ from ml_lab.core.foundation.errors import DataValidationError, InvalidParameterE
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.random import SeedManager
 from ml_lab.core.foundation.types import Partition, TaskType
+from ml_lab.core.schemas.serialization import internal
 
 MAX_PROJECTION_POINTS: Final = 3_000
 """Pontos mostrados no gráfico da projeção 2D; com mais, o gráfico fica lento."""
@@ -355,8 +358,13 @@ class DatasetService:
         """Uma receita de limpeza sugerida a partir do perfil."""
         return suggest_cleaning(self.profile(dataset_id), target)
 
+    def task_options(self, task_type: TaskType, target: str | None) -> TaskOptions:
+        """O que muda com a tarefa escolhida: a coluna de referência e as divisões possíveis."""
+        return task_options(task_type, target)
+
     # --- preparar --------------------------------------------------------------------
 
+    @internal
     def prepared(self, spec: SourceSpec, config: PreparationConfig, seed: int) -> PreparedData:
         """Os dados preparados, para os outros serviços (com ``Dataset`` e DataFrames).
 
@@ -375,6 +383,7 @@ class DatasetService:
             entry.prepared = {key: result}  # só a última: as preparações ocupam memória
         return result
 
+    @internal
     def folds(
         self, spec: SourceSpec, config: PreparationConfig, seed: int, k: int
     ) -> tuple[Dataset, ...]:
@@ -421,6 +430,7 @@ class DatasetService:
             notices=result.notices,
         )
 
+    @internal
     def table(self, dataset_id: str) -> LoadedTable:
         """A tabela carregada (para outros serviços; a interface usa ``preview``)."""
         return self._entry(dataset_id).table

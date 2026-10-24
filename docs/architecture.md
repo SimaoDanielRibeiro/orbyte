@@ -536,11 +536,13 @@ ml-lab/
 │   │   │   ├── grid.py       # a grelha da sonda, no plano da projeção 2D
 │   │   │   ├── animation.py  # TrainingAnimation: o campo do modelo em cada snapshot
 │   │   │   ├── embedding.py  # o mapa da redução de dimensionalidade
-│   │   │   └── evaluation.py # os gráficos do ecrã Avaliar (ROC, resíduos, silhueta…)
+│   │   │   ├── evaluation.py # os gráficos do ecrã Avaliar (ROC, resíduos, silhueta…)
+│   │   │   └── learned.py    # o que o modelo aprendeu: pesos, regras, centros, com nomes
 │   │   ├── tracking/         # registo de experiências, base de dados, artefactos
 │   │   ├── schemas/          # esquemas Pydantic partilhados
 │   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação)
 │   │   │   ├── experiment.py # ExperimentConfig: dados, preparação, modelo e seed
+│   │   │   ├── serialization.py  # a fronteira em JSON: to_json, json_schema, @internal
 │   │   │   └── validation.py # erros do Pydantic explicados em português
 │   │   ├── services/         # casos de uso: a única porta de entrada do núcleo
 │   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1 a 3)
@@ -582,6 +584,9 @@ ml-lab/
   trabalho da interface, para que os mesmos dados sirvam a versão simples e a aprimorada.
 - `services/` é a única porta de entrada do núcleo: a interface simples chama-a
   diretamente; a API chama-a para a interface aprimorada.
+- Os métodos públicos dos serviços devolvem só dados simples, que passam a JSON, e as
+  regras de domínio ficam no backend: a interface só desenha (ADR 0019, `CONTRIBUTING.md`). O
+  teste de contrato da fronteira (`tests/contract/test_service_boundary.py`) verifica-o.
 - Um algoritmo novo = um ficheiro novo na pasta do seu paradigma. Nenhum ficheiro existente
   muda.
 
@@ -1172,3 +1177,32 @@ Decisões tomadas ao implementar (as não óbvias têm ADR própria):
   - confirma que a referência nunca chega ao modelo;
   - percorre na interface o clustering com referência, a validação cruzada, o Explicar e
     o Laboratório.
+
+### Revisão do fim da fase 4 e fronteira para o frontend
+
+Uma revisão de todo o código (fases 0 a 4) corrigiu dois erros na avaliação de anomalias:
+
+- a precisão e o recall davam 0% quando não havia nada para contar (sem anomalias
+  verdadeiras, ou sem pontos marcados): agora ficam indefinidas, como a ROC AUC;
+- a classe anómala era escolhida em cada parte dos dados. Agora é a preparação que dá o
+  número 1 à classe mais rara da referência, contada na tabela toda.
+
+A revisão também juntou código repetido:
+
+- `class_probabilities` em `models/base.py`, em vez de quatro cópias;
+- `undefined_notices` em `evaluation/base.py`, em vez de cinco;
+- `group_name` para os nomes dos grupos.
+
+Depois, a fronteira dos serviços ficou pronta para a API (ADR 0019):
+
+- a serialização única, com a marca `@internal` e o teste de contrato da fronteira;
+- o retrato do treino em segundo plano (`JobState`);
+- a vista do que o modelo aprendeu (`ExperimentResult.learned`), que a explicação de uma
+  previsão também usa;
+- as opções de cada tarefa no ecrã Preparar (`task_options`), que estavam na interface.
+
+As regras para o código novo estão em `CONTRIBUTING.md`.
+
+Ficou por decidir uma coisa: nas tarefas sem alvo, as linhas sem valor na coluna de
+referência saem da preparação, embora o modelo nunca use essa coluna. Mantê-las obrigaria
+a uma classe "sem referência" nos avaliadores.

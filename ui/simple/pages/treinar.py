@@ -49,8 +49,10 @@ def _live(job: TrainingJob[ExperimentResult]) -> None:
     """O treino a decorrer: só esta parte do ecrã se atualiza, a cada meio segundo."""
     if job.done:
         st.rerun()  # o ecrã inteiro volta a correr e mostra o resultado
+    # Um só retrato do treino (o mesmo que a API vai devolver ao frontend).
+    state = job.state()
     pause, stop, _ = st.columns([1, 1, 4])
-    if job.status is JobStatus.PAUSED:
+    if state.status is JobStatus.PAUSED:
         pause.button(
             "Retomar",
             icon=":material/play_arrow:",
@@ -77,17 +79,17 @@ def _live(job: TrainingJob[ExperimentResult]) -> None:
             "avaliado na mesma."
         ),
     )
-    progress = job.progress
-    text = f"{job.status.label} · passo {format_count(progress.steps)}"
-    if job.planned_steps:
-        text += f" de {format_count(job.planned_steps)}, no máximo"
+    progress, planned = state.progress, state.planned_steps
+    text = f"{state.status.label} · passo {format_count(progress.steps)}"
+    if planned:
+        text += f" de {format_count(planned)}, no máximo"
     if progress.last_loss is not None:
         text += f" · loss {format_significant(progress.last_loss)}"
-    if job.planned_steps:
-        st.progress(min(1.0, progress.steps / job.planned_steps), text=text)
+    if planned:
+        st.progress(min(1.0, progress.steps / planned), text=text)
     else:
         st.markdown(text)
-    preview = get_lab().experiments.preview(job.run_id)
+    preview = get_lab().experiments.preview(state.run_id)
     history = job.recorder.steps()
     boundary, curve = st.columns([3, 2])
     if preview is not None:
