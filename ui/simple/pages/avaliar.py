@@ -39,19 +39,22 @@ def main() -> None:
         column.metric(metric.display_name, metric.formatted, help=metric.what, border=True)
     render_notices([*result.notices, *test.notices], notes_title="Leitura dos resultados")
 
-    metrics_tab, confusion_tab, compare_tab, learned_tab = st.tabs(
-        ["Métricas", "Matriz de confusão", "Treino vs. teste", "O que o modelo aprendeu"]
-    )
-    with metrics_tab:
+    names = ["Métricas", "Treino vs. teste", "O que o modelo aprendeu"]
+    if result.task_type.is_classification:
+        names.insert(1, "Matriz de confusão")
+    tabs = dict(zip(names, st.tabs(names), strict=True))
+    with tabs["Métricas"]:
         for metric in test.metrics:
             with st.expander(f"{metric.display_name}: {metric.formatted}"):
                 st.markdown(f"**O que mede.** {metric.what}")
                 st.markdown(f"**Como se lê.** {metric.how_to_read}")
                 st.caption(f"No treino: {train.metric(metric.name).formatted}.")
-    with confusion_tab:
-        _confusion(result)
-    with compare_tab:
-        st.plotly_chart(train_test_chart(train, test), width="stretch")
+    if "Matriz de confusão" in tabs:
+        with tabs["Matriz de confusão"]:
+            _confusion(result)
+    with tabs["Treino vs. teste"]:
+        if any(metric.as_percent for metric in test.metrics):
+            st.plotly_chart(train_test_chart(train, test), width="stretch")
         table: dict[str, list[str]] = {"Métrica": [m.display_name for m in test.metrics]}
         for part, report in result.reports.items():
             table[part.label] = [report.metric(m.name).formatted for m in test.metrics]
@@ -60,7 +63,7 @@ def main() -> None:
             "O modelo aprendeu com o treino; o teste mostra como se sai com dados que nunca viu. "
             "Uma diferença grande a favor do treino é o sinal de overfitting."
         )
-    with learned_tab:
+    with tabs["O que o modelo aprendeu"]:
         _learned(result)
     with st.expander("Configuração do run (para o repetir)", icon=":material/settings:"):
         st.json(result.config.model_dump(mode="json"), expanded=False)
@@ -89,23 +92,32 @@ def _confusion(result: ExperimentResult) -> None:
 
 def _learned(result: ExperimentResult) -> None:
     state = result.model_state
-    coefficients: list[list[float]] | None = state.get("coefficients")
+    coefficients: list[Any] | None = state.get("coefficients")
     if not coefficients:
         st.info("Este modelo não mostra o que aprendeu.")
         return
-    labels = result.class_labels
-    # Na classificação binária há um só vetor de pesos: o da classe positiva.
-    names = [f"«{labels[-1]}»"] if len(coefficients) == 1 else [f"«{label}»" for label in labels]
+    intercept = state.get("intercept", [])
+    intercepts = intercept if isinstance(intercept, list) else [intercept]
+    if not isinstance(coefficients[0], list):  # regressão: um só vetor de pesos
+        rows: list[list[float]] = [coefficients]
+        names = ["Peso"]
+        meaning = "Cada peso é quanto a previsão muda quando a feature sobe uma unidade."
+    else:
+        rows = coefficients
+        labels = result.class_labels
+        # Na classificação binária há um só vetor de pesos: o da classe positiva.
+        classes = [labels[-1]] if len(rows) == 1 else list(labels)
+        names = [f"Peso para «{label}»" for label in classes]
+        meaning = "Um peso positivo empurra para a classe, um negativo afasta."
     table: dict[str, Any] = {"Feature": list(result.feature_names)}
-    for name, weights in zip(names, coefficients, strict=True):
-        table[f"Peso para {name}"] = [format_number(weight, 3) for weight in weights]
+    for name, weights in zip(names, rows, strict=True):
+        table[name] = [format_number(weight, 3) for weight in weights]
     st.dataframe(table, hide_index=True, width="stretch")
-    intercepts = ", ".join(format_number(value, 3) for value in state.get("intercept", []))
+    written = ", ".join(format_number(value, 3) for value in intercepts)
     st.caption(
-        f"Ordenada (b): {intercepts}. Iterações do otimizador: {state.get('iterations', '—')}. "
-        "Um peso positivo empurra para a classe, um negativo afasta. Com as features "
-        "padronizadas, os pesos comparam-se entre si: os maiores (em valor absoluto) são as "
-        "features que mais pesam na decisão."
+        f"Ordenada (b): {written}. Iterações do treino: {state.get('iterations', '—')}. "
+        f"{meaning} Com as features padronizadas, os pesos comparam-se entre si: os maiores (em "
+        "valor absoluto) são as features que mais pesam na previsão."
     )
 
 

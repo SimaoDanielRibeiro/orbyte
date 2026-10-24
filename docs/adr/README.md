@@ -17,6 +17,8 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0010](0010-datasets-de-exemplo-versionados.md) | Datasets de exemplo versionados, com descarga verificada | Proposta |
 | [0011](0011-configuracoes-em-dataclasses-pydantic-na-fronteira.md) | Configurações da preparação em dataclasses; o Pydantic valida-as na fronteira | Proposta |
 | [0012](0012-contrato-labmodel-e-avaliacao.md) | Contrato LabModel completo desde a fase 2, e avaliação por registos | Proposta |
+| [0013](0013-sonda-de-previsoes-e-snapshots-amostrados.md) | Sonda de previsões e snapshots amostrados | Proposta |
+| [0014](0014-treino-em-segundo-plano-com-fios-e-controlo.md) | Treino em segundo plano, com um fio de execução e um controlo | Proposta |
 
 ## Como escrever uma ADR
 

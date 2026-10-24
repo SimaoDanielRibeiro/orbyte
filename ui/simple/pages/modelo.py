@@ -7,7 +7,7 @@ import streamlit as st
 from components.forms import schema_form
 from components.layout import render_header
 from components.notices import render_error
-from components.state import choose_model, current_preparation, get_lab, save_result
+from components.state import choose_model, current_preparation, get_lab, save_job
 from ml_lab.core.services import ExperimentConfig, MLLabError, ModelCard, ModelSpec
 from ml_lab.formatting import format_count
 
@@ -62,9 +62,7 @@ def main() -> None:
         f"Seed da experiência: {preparation.seed}, a mesma da divisão dos dados. O modelo recebe "
         "uma seed derivada dela, por isso o resultado repete-se."
     )
-    if st.button(
-        "Treinar e avaliar", type="primary", icon=":material/play_arrow:", key="modelo.train"
-    ):
+    if st.button("Treinar", type="primary", icon=":material/play_arrow:", key="modelo.train"):
         config = ExperimentConfig(
             dataset=dataset.source,
             preparation=preparation.config,
@@ -72,13 +70,12 @@ def main() -> None:
             seed=preparation.seed,
         )
         try:
-            with st.spinner("A treinar e a avaliar…"):
-                result = lab.experiments.run(config)
-        except MLLabError as error:
+            job = lab.experiments.start(config)
+        except MLLabError as error:  # configuração inválida: o treino nem chega a começar
             render_error(error)
             return
-        save_result(result)
-        st.switch_page("pages/avaliar.py")
+        save_job(job)
+        st.switch_page("pages/treinar.py")
 
 
 def _catalog(cards: list[ModelCard]) -> None:

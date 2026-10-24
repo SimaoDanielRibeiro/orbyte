@@ -85,6 +85,8 @@ class ModelInfo:
         supports_proba: Se dá probabilidades (permite curvas ROC e a log-loss).
         hyperparameters: A classe dos hiperparâmetros.
         doc: A ficha didática, em ``docs/algorithms/``.
+        step_limit: Nos modelos iterativos, o hiperparâmetro que limita o número de passos
+            (por exemplo ``max_epochs``): é o que permite mostrar uma barra de progresso.
     """
 
     name: str
@@ -97,6 +99,7 @@ class ModelInfo:
     supports_proba: bool
     hyperparameters: type[Hyperparameters]
     doc: str
+    step_limit: str | None = None
 
 
 class LabModel[P: Hyperparameters](ABC):
@@ -187,6 +190,19 @@ class LabModel[P: Hyperparameters](ABC):
         """O que o modelo aprendeu, em valores simples (coeficientes, centróides...)."""
         return {}
 
+    def snapshot_state(self, probe: Features | None = None) -> dict[str, Any]:
+        """O estado agora, mais as previsões nos pontos da sonda (se houver).
+
+        Pode ser chamado a meio do treino, porque usa os métodos internos: é assim que um
+        modelo iterativo fotografa o seu estado em cada snapshot.
+        """
+        state = self.state()
+        if probe is not None:
+            values = self._probe_values(probe)
+            if values is not None:
+                state["probe"] = values
+        return state
+
     def _note(self, notice: Notice) -> None:
         """Guarda um aviso do treino."""
         self._notices.append(notice)
@@ -211,6 +227,12 @@ class LabModel[P: Hyperparameters](ABC):
 
     def _predict_proba(self, X: Features) -> NDArray[np.float64]:
         raise CapabilityError(f"'{self.info.display_name}' não implementa predict_proba.")
+
+    def _probe_values(self, probe: Features) -> NDArray[np.float64] | None:
+        """As previsões nos pontos da sonda: probabilidades, se as houver; senão, previsões."""
+        if self.info.supports_proba:
+            return np.asarray(self._predict_proba(probe), dtype=np.float64)
+        return np.asarray(self._predict(probe), dtype=np.float64)
 
 
 MODELS: Registry[type[LabModel[Any]]] = Registry(

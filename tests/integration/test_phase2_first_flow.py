@@ -1,7 +1,7 @@
 """Critério da fase 2: no Iris, escolher o modelo, treinar e ver as métricas na interface.
 
 Verifica-se nos serviços (o fluxo que a API também vai usar) e na interface simples,
-de ponta a ponta: Dados → Preparar → Modelo → Avaliar.
+de ponta a ponta: Dados → Preparar → Modelo → (Treinar, desde a fase 3) → Avaliar.
 """
 
 from pathlib import Path
@@ -33,12 +33,12 @@ def test_logistic_regression_learns_the_iris() -> None:
         ExperimentConfig(
             dataset=iris.source,
             preparation=preparation,
-            model=ModelSpec(name=cards[0].name),
+            model=ModelSpec(name="logistic_regression"),
             seed=42,
         )
     )
 
-    assert [card.name for card in cards] == ["logistic_regression"]
+    assert "logistic_regression" in [card.name for card in cards]
     assert result.task_type is TaskType.MULTICLASS_CLASSIFICATION
     test = result.reports[Partition.TEST]
     accuracy = test.metric("accuracy").value
@@ -56,6 +56,8 @@ def trained_app() -> AppTest:
     app.switch_page("pages/preparar.py").run()
     app.switch_page("pages/modelo.py").run()
     app.button(key="modelo.train").click().run()
+    app.session_state["job"].wait(timeout=60)  # o treino corre em segundo plano (fase 3)
+    app.switch_page("pages/avaliar.py").run()
     return app
 
 

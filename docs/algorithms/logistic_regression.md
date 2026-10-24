@@ -35,17 +35,51 @@ fronteira fica mais "cautelosa".
 Com mais de duas classes, há um vetor de pesos por classe, e a função **softmax** transforma as
 somas em probabilidades que somam 1: $p_k = e^{z_k} / \sum_j e^{z_j}$.
 
-Não há uma fórmula fechada para os melhores pesos: o scikit-learn usa o otimizador L-BFGS, que
-melhora os pesos passo a passo até o custo deixar de descer.
+Não há uma fórmula fechada para os melhores pesos: é preciso ir melhorando-os passo a passo até
+o custo deixar de descer. O laboratório tem duas versões que minimizam **o mesmo custo** (e por
+isso chegam aos mesmos pesos) por caminhos diferentes:
+
+- `logistic_regression` (scikit-learn) usa o otimizador L-BFGS, que aproveita a curvatura do
+  custo e chega lá em poucas dezenas de passos;
+- `logistic_regression_gd` (didática, em NumPy) usa **gradiente descendente**: começa com os
+  pesos a zero e, em cada **época** (uma passagem por todos os exemplos de treino), dá um passo
+  pequeno contra o gradiente do custo.
+
+O gradiente tem uma forma surpreendentemente simples: o erro de cada previsão, $p_i - y_i$,
+multiplicado pelas features do exemplo, em média, mais a parte da regularização. Dividindo o
+custo por $n$ (o que não muda o mínimo):
+
+$$\nabla_w = \frac{1}{n}\sum_i (p_i - y_i)\, x_i + \frac{w}{C\,n} \qquad \nabla_b = \frac{1}{n}\sum_i (p_i - y_i)$$
+
+$$w \leftarrow w - \eta\, \nabla_w \qquad b \leftarrow b - \eta\, \nabla_b$$
+
+onde $\eta$ é a **taxa de aprendizagem**. Os exemplos bem classificados com confiança quase não
+contribuem ($p_i \approx y_i$); são os mal classificados que empurram a fronteira. O treino pára
+quando o gradiente fica praticamente nulo (abaixo de `tol`): está no fundo do custo.
 
 ## Hiperparâmetros
+
+Nas duas versões:
 
 | Hiperparâmetro | O que controla | Omissão |
 |---|---|---|
 | `C` | Inverso da força da regularização: menor = pesos mais pequenos e fronteira mais simples | 1,0 |
+| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a fronteira passa pela origem) | sim |
+
+Só no scikit-learn:
+
+| Hiperparâmetro | O que controla | Omissão |
+|---|---|---|
 | `max_iter` | Máximo de passos do otimizador até convergir | 100 |
 | `class_weight` | Com `balanced`, os erros nas classes raras contam mais | `none` |
-| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a fronteira passa pela origem) | sim |
+
+Só no gradiente descendente:
+
+| Hiperparâmetro | O que controla | Omissão |
+|---|---|---|
+| `learning_rate` | Tamanho de cada passo: pequeno demais arrasta-se, grande demais salta de um lado para o outro | 1,0 |
+| `max_epochs` | Máximo de passagens pelos dados de treino | 2000 |
+| `tol` | Pára quando o gradiente fica abaixo disto: chegou ao mínimo | 1e-6 |
 
 ## Quando usar
 
@@ -66,13 +100,29 @@ melhora os pesos passo a passo até o custo deixar de descer.
   de se poder ler um a um, mesmo que as previsões continuem boas.
 - **Classes desequilibradas:** com 95% de uma classe, o modelo pode quase nunca prever a outra.
   Vê a exatidão equilibrada e a recall, e experimenta `class_weight = balanced`.
+- **"Os pesos não batem certo com o scikit-learn."** Por omissão, o scikit-learn pára cedo (passos
+  que melhoram menos de 1e-4, no máximo 100 iterações), por isso os pesos das duas versões
+  diferem lá para a terceira casa decimal. Com tolerâncias apertadas nas duas, coincidem até à
+  quinta casa: o custo é o mesmo, só o caminho muda.
+- **Taxa de aprendizagem grande demais** (só no gradiente descendente): a loss oscila em vez de
+  descer, ou explode (o treino pára com o aviso "a loss explodiu"). Com features padronizadas, 1
+  costuma servir; sem padronização, pode ser preciso 100 vezes menos.
 
 ## O que observar no treino
 
-Esta versão (scikit-learn) treina de uma vez: no ecrã **Avaliar** vês os pesos aprendidos, as
-métricas no treino e no teste e a matriz de confusão. Experimenta baixar o `C` e ver os pesos a
-encolher e a diferença entre treino e teste a mudar.
+A versão **scikit-learn** treina de uma vez: no ecrã **Treinar** vês só a fronteira final e, no
+**Avaliar**, os pesos aprendidos, as métricas no treino e no teste e a matriz de confusão.
+Experimenta baixar o `C` e ver os pesos a encolher e a diferença entre treino e teste a mudar.
 
-Na fase 3 chega a versão didática em NumPy, que treina por gradiente descendente e mostra, época
-a época, a loss a descer e a fronteira de decisão a mover-se até ficar parecida com a do
-scikit-learn.
+A versão **didática** treina época a época, e o ecrã **Treinar** fotografa-a pelo caminho:
+
+- a **curva da loss** desce depressa nas primeiras épocas e depois devagar, e a exatidão no
+  treino sobe aos saltos (cada salto é um exemplo que passou para o lado certo da fronteira);
+- a **fronteira de decisão** (onde a probabilidade é 50%) começa no sítio errado, roda e
+  desloca-se até separar as classes; as cores mostram a probabilidade, mais nítidas longe da
+  fronteira à medida que os pesos crescem.
+
+No fim, compara com a versão scikit-learn nos mesmos dados: a fronteira final e as métricas
+ficam praticamente iguais. Experimenta a taxa de aprendizagem nas luas: com 0,05 o treino
+arrasta-se e não chega ao mínimo nas 2000 épocas; com 20, a loss sobe e desce sem assentar;
+com 50, a fronteira salta de um lado para o outro entre fotografias.

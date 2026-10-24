@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 from ml_lab.core.evaluation.base import PRIMARY_METRIC, evaluator_for
 from ml_lab.core.evaluation.classification import DISPLAY_ORDER, ClassificationEvaluator
 from ml_lab.core.evaluation.diagnostics import compare_train_and_test
+from ml_lab.core.evaluation.regression import RegressionEvaluator
 from ml_lab.core.evaluation.report import EvaluationReport, MetricResult
 from ml_lab.core.foundation.errors import ComponentNotFoundError, ModelError
 from ml_lab.core.foundation.notices import NoticeLevel
@@ -170,9 +171,11 @@ def test_classification_needs_the_target_and_the_classes() -> None:
 
 def test_each_task_type_gets_its_evaluator() -> None:
     assert isinstance(evaluator_for(TaskType.BINARY_CLASSIFICATION), ClassificationEvaluator)
+    assert isinstance(evaluator_for(TaskType.REGRESSION), RegressionEvaluator)
     assert PRIMARY_METRIC[TaskType.MULTICLASS_CLASSIFICATION] == "accuracy"
+    assert PRIMARY_METRIC[TaskType.REGRESSION] == "r2"
     with pytest.raises(ModelError, match="fase 4"):
-        evaluator_for(TaskType.REGRESSION)
+        evaluator_for(TaskType.CLUSTERING)
 
 
 # --- diagnóstico ---------------------------------------------------------------------
@@ -206,7 +209,20 @@ def test_the_overfitting_warning_quotes_both_values() -> None:
     (notice,) = compare_train_and_test(reports)
 
     assert notice.level is NoticeLevel.WARNING
-    assert "99,0% no treino e 80,0% no teste: 19,0 pontos" in notice.message
+    assert notice.message.startswith("Exatidão: 99,0% no treino e 80,0% no teste, 19,0 pontos")
+
+
+def test_the_comparison_reads_well_for_any_primary_metric() -> None:
+    def r2(partition: Partition, value: float) -> EvaluationReport:
+        result = MetricResult("r2", "R²", value, True, False, "o quê", "como")
+        return EvaluationReport(partition, TaskType.REGRESSION, 10, (result,))
+
+    reports = {Partition.TRAIN: r2(Partition.TRAIN, 0.61), Partition.TEST: r2(Partition.TEST, 0.6)}
+
+    (notice,) = compare_train_and_test(reports)
+
+    assert notice.code == "no_overfitting"
+    assert notice.message.startswith("R²: 0,610 no treino e 0,600 no teste: valores próximos")
 
 
 def test_nothing_to_compare_gives_no_notices() -> None:

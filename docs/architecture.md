@@ -380,8 +380,10 @@ experiências) são usadas a pedido.
 8. A interface pede os dados dos gráficos (fronteira de decisão, curvas, projeção 2D) e
    desenha-os.
 
-Na fase 2, o `ExperimentService` faz os passos 1 a 7 sem o Trainer (fase 3) nem o registo
-de experiências (fase 5): anuncia o run no `EventBus`, treina, avalia e devolve o resultado.
+Na fase 2, o `ExperimentService` fazia os passos 1 a 7 sem o Trainer nem o registo de
+experiências: anunciava o run no `EventBus`, treinava, avaliava e devolvia o resultado.
+Desde a fase 3, os passos 4 e 5 são do Trainer e do gravador de snapshots, e o passo 8 usa
+a animação montada a partir dos snapshots. O registo de experiências chega na fase 5.
 
 ### Regra de dependências
 
@@ -488,9 +490,12 @@ ml-lab/
 │   │   │   ├── adapters/     # ligação ao scikit-learn e ao PyTorch
 │   │   │   │   └── sklearn_adapter.py    # SklearnModel: o contrato, uma vez, para o scikit-learn
 │   │   │   ├── supervised/
+│   │   │   │   ├── gradient_descent.py  # o que os modelos por gradiente descendente partilham
 │   │   │   │   ├── classification/  # logística, perceptron, KNN, árvore, RF, SVM, NB
-│   │   │   │   │   └── logistic_regression.py  # regressão logística (scikit-learn)
+│   │   │   │   │   ├── logistic_regression.py     # regressão logística (scikit-learn)
+│   │   │   │   │   └── logistic_regression_gd.py  # a mesma, didática, por gradiente descendente
 │   │   │   │   └── regression/      # linear (GD e OLS), Ridge, Lasso, polinomial, árvores
+│   │   │   │       └── linear_regression_gd.py    # regressão linear didática (gradiente)
 │   │   │   ├── ensemble/     # gradient boosting, AdaBoost (scikit-learn)
 │   │   │   ├── unsupervised/
 │   │   │   │   ├── clustering/      # k-means, DBSCAN, hierárquico, GMM
@@ -499,16 +504,24 @@ ml-lab/
 │   │   │   └── neural/       # redes PyTorch, captura de ativações e gradientes
 │   │   │
 │   │   ├── training/         # Trainer, callbacks, snapshots, jobs, validação cruzada
-│   │   │   └── context.py    # TrainingContext: o canal entre o modelo e o exterior
+│   │   │   ├── context.py    # TrainingContext (com a sonda) e a amostragem dos snapshots
+│   │   │   ├── control.py    # pedidos de pausa e de paragem, entre fios de execução
+│   │   │   ├── trainer.py    # Trainer: liga o modelo ao EventBus e fotografa o fim
+│   │   │   ├── recorder.py   # gravador de snapshots (subscritor do EventBus)
+│   │   │   ├── jobs.py       # TrainingJob: o treino em segundo plano
+│   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Treinar
 │   │   ├── evaluation/       # métricas, avaliadores por tarefa, diagnósticos, explicações
-│   │   │   ├── metrics/      # base.py (registo METRICS) e classification.py
+│   │   │   ├── metrics/      # base.py (registo METRICS), classification.py e regression.py
 │   │   │   ├── base.py       # contrato Evaluator, registo EVALUATORS, métrica principal
 │   │   │   ├── classification.py  # avaliador de classificação
+│   │   │   ├── regression.py      # avaliador de regressão (comparado com prever a média)
 │   │   │   ├── report.py     # EvaluationReport, MetricResult, ConfusionMatrix
 │   │   │   ├── explanations.py    # o que mede cada métrica e como se lê
 │   │   │   └── diagnostics.py     # comparação treino vs. teste (overfitting)
 │   │   ├── explainability/   # importância por permutação, dependência parcial
 │   │   ├── visualization_data/  # prepara DADOS para gráficos (sem desenhar)
+│   │   │   ├── grid.py       # a grelha da sonda, no plano da projeção 2D
+│   │   │   └── animation.py  # TrainingAnimation: o campo do modelo em cada snapshot
 │   │   ├── tracking/         # registo de experiências, base de dados, artefactos
 │   │   ├── schemas/          # esquemas Pydantic partilhados
 │   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação)
@@ -517,7 +530,8 @@ ml-lab/
 │   │   ├── services/         # casos de uso: a única porta de entrada do núcleo
 │   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1 a 3)
 │   │   │   ├── catalog.py    # catálogo de modelos (ecrã 4)
-│   │   │   ├── experiments.py  # treinar, avaliar e anunciar o run (ecrãs 4 e 6)
+│   │   │   ├── experiments.py  # treinar (também em segundo plano), avaliar, anunciar (4 a 6)
+│   │   │   ├── explanations.py # o painel "Porquê?": os temas de todas as camadas
 │   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
 │   │   └── rl/               # reservado (fase 8): ambiente em grelha, Q-learning, DQN
 │   │
@@ -799,7 +813,7 @@ cada vez.
 | 0 — Fundações ✅ | Repositório, configuração, logs, registo genérico, tipos, eventos, seeds; testes de arquitetura | Esqueleto com navegação entre ecrãs vazios | Python, uv, ruff, mypy, pytest, Streamlit | `pytest` e `mypy` passam; a app abre |
 | 1 — Camada de dados ✅ | As nove etapas: entrada, validação, perfil, limpeza, tarefa, divisão, transformação, projeção, saída; linhagem | Dados, Explorar, Preparar | pandas, NumPy, Plotly | Carregar o Titanic mostra perfil correto, avisos e a sugestão "classificação binária"; o teste de arquitetura confirma o pandas isolado |
 | 2 — Primeiro fluxo completo ✅ | Contrato de modelo, adaptador scikit-learn, regressão logística, avaliador de classificação, serviço de experiências | Modelo, Avaliar (básico) | scikit-learn, Pydantic | No Iris: escolher modelo, treinar e ver métricas na interface; testes de contrato a passar |
-| 3 — Eventos e snapshots | Contexto de treino, gravador de snapshots, regressões didáticas em NumPy, dados da fronteira de decisão | Treinar (com reprodução passo a passo) | — (gradiente descendente, padrão observer) | Ver a fronteira da regressão logística didática a mover-se; resultado final igual ao do scikit-learn |
+| 3 — Eventos e snapshots ✅ | Contexto de treino, gravador de snapshots, regressões didáticas em NumPy, dados da fronteira de decisão | Treinar (com reprodução passo a passo) | — (gradiente descendente, padrão observer) | Ver a fronteira da regressão logística didática a mover-se; resultado final igual ao do scikit-learn |
 | 4 — Catálogo clássico | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
 | 5 — Memória | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs | Experiências | SQLite (`sqlite3`), joblib | Fechar a app, reabrir e comparar dois runs |
 | 6 — Deep learning | Adaptador PyTorch, MLP, captura de ativações e gradientes, early stopping | Treinar mostra as camadas da rede | PyTorch | A MLP resolve "moons" e os snapshots mostram a fronteira a curvar |
@@ -991,3 +1005,58 @@ Decisões tomadas ao implementar (as não óbvias têm ADR própria):
   declarada, probabilidades, seed, ficha didática com todos os hiperparâmetros, métricas
   finitas, puras e explicadas); o teste de integração da fase 2 percorre o Iris pela
   interface, de Dados a Avaliar.
+
+### Fase 3
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Sonda e snapshots amostrados** (ADR 0013): cada snapshot leva as previsões do modelo
+  numa grelha do plano da projeção 2D, e por isso qualquer modelo mostra a sua fronteira. A
+  amostragem guarda no máximo 60 fotografias, espalhadas pelo treino, mais a do fim.
+- **Treino em segundo plano** (ADR 0014): `TrainingJob` (um fio de execução) e
+  `TrainingControl` (pausa e paragem no fim de cada passo). Parar não é um erro: o modelo é
+  avaliado com o que aprendeu, e o resultado leva um aviso.
+- **Modelos didáticos:** `logistic_regression_gd` e `linear_regression_gd`, em NumPy, por
+  gradiente descendente em lote (todos os exemplos em cada época). A logística minimiza o
+  mesmo custo que o scikit-learn: a penalização `w / (C·n)` é a do scikit-learn dividida por
+  `n`, o que não muda o mínimo. Com tolerâncias apertadas, os pesos coincidem até à quinta
+  casa decimal. O treino pára quando o gradiente fica abaixo de `tol` (na linear, medido na
+  escala do alvo), quando se pede, ou quando a loss explode: deixa de ser um número, ou fica
+  um milhão de vezes pior do que no início (`supervised/gradient_descent.py`). Sem isso, os
+  números transbordavam e o NumPy rebentava com avisos.
+- **`step_limit` na ficha técnica:** o hiperparâmetro que limita os passos (`max_epochs`). É
+  o que dá a barra de progresso; um teste de contrato confirma que o limite é respeitado.
+- **Avaliador de regressão antecipado** da fase 4, porque a regressão linear didática
+  precisava dele: R², RMSE, MAE e MSE (as siglas cabem nos cartões; as explicações dizem os
+  nomes por extenso), com a comparação com "prever sempre a média" (R² = 0). O diagnóstico
+  treino vs. teste deixou de usar artigo ("Exatidão: 96,7% no treino…"), para servir a
+  qualquer métrica principal.
+- **Geometria da projeção:** a `Projection` guarda o centro (a média do treino) e as
+  posições das colunas; `project` leva pontos das features para o plano e `to_features` faz
+  o caminho inverso.
+- **Serviço de experiências:** primeiro o plano (seed, modelo, hiperparâmetros, dados,
+  tarefa), que falha logo; depois o treino. `run` espera pelo resultado; `start` devolve um
+  `TrainingJob`; `preview(run_id)` dá a fronteira do último snapshot de um treino a decorrer.
+  O resultado ganhou `history`, `stopped_early`, `animation` e `training_notices`. Os
+  últimos cinco runs ficam em memória, com o modelo e os dados (`artifacts(run_id)`), para
+  as análises da fase 4.
+- **Painel "Porquê?":** cada camada escreve os seus temas (`core/data/explanations.py`,
+  `core/training/explanations.py`) e `services/explanations.py` junta-os.
+- **Números:** `format_scientific` (`1 × 10⁻⁶`, nos seletores logarítmicos) e
+  `format_significant` (quatro algarismos significativos, para uma loss que tanto pode ser
+  0,3209 como 4,662 × 10⁹).
+- **Interface:** no ecrã Modelo, "Treinar" lança o treino em segundo plano e abre o ecrã
+  Treinar. Enquanto o treino decorre, um `st.fragment` relê o progresso a cada meio
+  segundo: barra de progresso, Pausar/Retomar e Parar, a fronteira do último snapshot e a
+  loss. No fim, a animação corre no navegador (frames do Plotly, slider e botão de
+  reprodução), com a curva da loss e a exatidão no treino. O Avaliar passou a mostrar
+  regressões (sem matriz de confusão, com um só vetor de pesos).
+- **Testes:** unitários do controlo, do contexto, da amostragem, do gravador, do Trainer e
+  dos jobs. Os testes com fios de execução sincronizam-se com `threading.Event`, sem esperas
+  à sorte. Os dois modelos didáticos são comparados com o scikit-learn (pesos a menos de
+  10⁻⁴ na logística e de 10⁻⁶ na linear). O contrato ganhou o limite de passos, os snapshots
+  com a sonda e a paragem a pedido. O teste de integração da fase 3 treina nas luas: a
+  fronteira desloca-se (7% da grelha muda de classe entre a primeira e a última fotografia)
+  e o resultado final dá as mesmas previsões que o scikit-learn. No `AppTest`, um
+  `st.switch_page` feito pela própria app não muda a página que o teste volta a correr: o
+  teste muda-a à mão.

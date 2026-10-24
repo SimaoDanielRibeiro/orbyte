@@ -14,8 +14,9 @@ razões estão em [docs/adr/](docs/adr/).
 | 0 — Fundações | Repositório, configuração, logs, registo de componentes, tipos, eventos, seeds, testes de arquitetura, esqueleto da interface | ✅ concluída |
 | 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Dados, Explorar e Preparar | ✅ concluída |
 | 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação de classificação, serviço de experiências; ecrãs Modelo e Avaliar | ✅ concluída |
-| 3 — Eventos e snapshots | Contexto de treino, snapshots, regressões didáticas em NumPy; ecrã Treinar | próxima |
-| 4 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+| 3 — Eventos e snapshots | Contexto de treino, snapshots com a fronteira de decisão, treino em segundo plano, regressões didáticas em NumPy, avaliação de regressão; ecrã Treinar | ✅ concluída |
+| 4 — Catálogo clássico | Todos os modelos supervisionados e não supervisionados, avaliadores, diagnósticos, validação cruzada, importância das features; ecrãs Avaliar (completo), Explicar e Laboratório | próxima |
+| 5 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
 
 ## Requisitos
 
@@ -54,9 +55,17 @@ Um percurso para começar: em **Dados**, carrega o exemplo Titanic; em **Explora
 perfil das colunas e os avisos (77% de nulos em `Cabin`, `PassengerId` é um identificador);
 em **Preparar**, escolhe o alvo `Survived`, aceita as limpezas sugeridas e vê a linhagem, a
 divisão e a projeção 2D; em **Modelo**, lê a ficha da regressão logística, ajusta os
-hiperparâmetros e carrega em "Treinar e avaliar"; em **Avaliar**, vê as métricas (cada uma com
-a sua explicação), a matriz de confusão, o treino contra o teste e os pesos que o modelo
-aprendeu. Experimenta baixar o `C` e treinar outra vez.
+hiperparâmetros e carrega em "Treinar"; em **Treinar**, vês a fronteira de decisão no plano
+da projeção; em **Avaliar**, vês as métricas (cada uma com a sua explicação), a matriz de
+confusão, o treino contra o teste e os pesos que o modelo aprendeu. Experimenta baixar o `C`
+e treinar outra vez.
+
+Para ver o treino passo a passo: em **Dados**, gera as "Luas" (separador Sintéticos); em
+**Modelo**, escolhe a "Regressão logística (gradiente descendente)" e carrega em "Treinar".
+No ecrã **Treinar**, carrega em "▶ Reproduzir" e vê a fronteira a mover-se época a época, com
+a loss a descer. Experimenta taxas de aprendizagem diferentes: com 0,05 o treino arrasta-se;
+com 50 a fronteira salta de um lado para o outro. Com treinos longos (California Housing com
+a regressão linear e 20 000 épocas), o ecrã mostra o progresso ao vivo, com Pausar e Parar.
 
 ## Testes e verificações
 

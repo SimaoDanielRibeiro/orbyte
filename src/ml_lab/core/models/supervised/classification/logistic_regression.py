@@ -5,7 +5,8 @@ transforma-a numa probabilidade com a função logística, ``p = 1 / (1 + e^-z)`
 mais de duas classes, usa uma soma por classe e a função softmax. Ficha didática:
 ``docs/algorithms/logistic_regression.md``.
 
-A versão didática em NumPy, que mostra os pesos a mudar época a época, chega na fase 3.
+A versão didática em NumPy, que mostra os pesos a mudar época a época, está em
+``logistic_regression_gd.py``.
 """
 
 from typing import Any, Literal, override

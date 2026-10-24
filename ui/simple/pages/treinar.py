@@ -1,6 +1,166 @@
-"""Ecrã 5 · Treinar: acompanhar o treino passo a passo."""
+"""Ecrã 5 · Treinar: acompanhar o treino a decorrer e revê-lo passo a passo."""
 
-from components.layout import render_placeholder
-from components.screens import get_screen
+import streamlit as st
 
-render_placeholder(get_screen("treinar"))
+from charts.training import animation_chart, loss_chart
+from components.layout import render_header, render_why
+from components.notices import render_error, render_notices
+from components.state import current_job, get_lab, last_result
+from ml_lab.core.services import (
+    ExperimentResult,
+    JobStatus,
+    Partition,
+    TrainingAnimation,
+    TrainingJob,
+)
+from ml_lab.formatting import format_count, format_number, format_significant
+
+# De quanto em quanto tempo (em segundos) o ecrã volta a ler o progresso do treino.
+_REFRESH_SECONDS = 0.5
+
+
+def main() -> None:
+    """Desenha o ecrã."""
+    render_header("treinar")
+    job = current_job()
+    if job is not None and not job.done:
+        _live(job)
+        return
+    if job is not None and job.error is not None:
+        render_error(job.error)
+        st.page_link("pages/modelo.py", label="Voltar ao ecrã Modelo", icon=":material/arrow_back:")
+        return
+    result = last_result()
+    if result is None:
+        st.info(
+            "Ainda não treinaste nenhum modelo: escolhe-o no ecrã Modelo e carrega em Treinar.",
+            icon=":material/model_training:",
+        )
+        st.page_link(
+            "pages/modelo.py", label="Ir para o ecrã Modelo", icon=":material/arrow_forward:"
+        )
+        return
+    _replay(result)
+    render_why("loss", "gradient_descent", "snapshots", "decision_boundary")
+
+
+@st.fragment(run_every=_REFRESH_SECONDS)
+def _live(job: TrainingJob[ExperimentResult]) -> None:
+    """O treino a decorrer: só esta parte do ecrã se atualiza, a cada meio segundo."""
+    if job.done:
+        st.rerun()  # o ecrã inteiro volta a correr e mostra o resultado
+    pause, stop, _ = st.columns([1, 1, 4])
+    if job.status is JobStatus.PAUSED:
+        pause.button(
+            "Retomar",
+            icon=":material/play_arrow:",
+            on_click=job.resume,
+            key="treinar.resume",
+            width="stretch",
+        )
+    else:
+        pause.button(
+            "Pausar",
+            icon=":material/pause:",
+            on_click=job.pause,
+            key="treinar.pause",
+            width="stretch",
+        )
+    stop.button(
+        "Parar",
+        icon=":material/stop:",
+        on_click=job.cancel,
+        key="treinar.stop",
+        width="stretch",
+        help=(
+            "O treino pára no fim do passo atual; o modelo fica com o que já aprendeu e é "
+            "avaliado na mesma."
+        ),
+    )
+    progress = job.progress
+    text = f"{job.status.label} · passo {format_count(progress.steps)}"
+    if job.planned_steps:
+        text += f" de {format_count(job.planned_steps)}, no máximo"
+    if progress.last_loss is not None:
+        text += f" · loss {format_significant(progress.last_loss)}"
+    if job.planned_steps:
+        st.progress(min(1.0, progress.steps / job.planned_steps), text=text)
+    else:
+        st.markdown(text)
+    preview = get_lab().experiments.preview(job.run_id)
+    history = job.recorder.steps()
+    boundary, curve = st.columns([3, 2])
+    if preview is not None:
+        boundary.plotly_chart(animation_chart(preview), width="stretch", key="treinar.preview")
+    if history:
+        curve.plotly_chart(loss_chart(history), width="stretch", key="treinar.live_loss")
+
+
+def _replay(result: ExperimentResult) -> None:
+    """O treino terminado: a animação dos snapshots e a curva da loss."""
+    st.markdown(
+        f"**{result.model_display_name}** em **{result.dataset_name}** · "
+        f"{result.task_type.label.lower()} · seed {result.seed} · run `{result.run_id}`"
+    )
+    if result.steps:
+        st.caption(
+            f"Treinou em {format_count(result.steps)} passos "
+            f"({format_number(result.duration_seconds, 2)} s, com a avaliação)."
+        )
+    else:
+        st.caption("Este modelo treina de uma vez (não há passos para rever): vês o modelo final.")
+    render_notices(result.training_notices, notes_title="Notas do treino")
+    animation = result.animation
+    if animation is not None:
+        st.plotly_chart(animation_chart(animation), width="stretch", key="treinar.animation")
+        st.caption(_how_to_read(animation))
+    else:
+        st.info(
+            "Não há como desenhar o modelo: os dados não têm uma projeção 2D (escolhe uma no "
+            "ecrã Preparar).",
+            icon=":material/visibility_off:",
+        )
+    if result.history:
+        train = result.reports[Partition.TRAIN]
+        percent = {
+            metric.name: metric.display_name for metric in train.metrics if metric.as_percent
+        }
+        st.subheader("Loss ao longo do treino")
+        st.plotly_chart(
+            loss_chart(result.history, percent_metrics=percent),
+            width="stretch",
+            key="treinar.loss",
+        )
+    st.page_link("pages/avaliar.py", label="Ver a avaliação", icon=":material/analytics:")
+
+
+def _how_to_read(animation: TrainingAnimation) -> str:
+    replay = (
+        " Carrega em «▶ Reproduzir» para ver o treino desde o primeiro passo, ou arrasta o slider."
+        if animation.animated
+        else ""
+    )
+    if animation.value_kind == "probability" and animation.dimensions == 2:
+        return (
+            "As cores são a probabilidade que o modelo dá a cada classe em cada ponto do plano; a "
+            "linha preta é a fronteira de decisão (50%). Os pontos são o treino." + replay
+        )
+    if animation.value_kind == "probability":
+        return (
+            "A curva é a probabilidade da classe positiva ao longo da feature; a fronteira de "
+            "decisão é onde a curva corta os 50% (a linha tracejada)." + replay
+        )
+    if animation.value_kind == "class":
+        return (
+            "Cada cor é a classe que o modelo prevê nessa zona do plano: as fronteiras de decisão "
+            "são as mudanças de cor. Os pontos são o treino." + replay
+        )
+    if animation.dimensions == 1:
+        return "A linha é a previsão do modelo; os pontos são o treino." + replay
+    return (
+        "As cores são o valor que o modelo prevê em cada ponto do plano; os pontos são o treino, "
+        "pintados com o valor real na mesma escala." + replay
+    )
+
+
+main()

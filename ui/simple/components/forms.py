@@ -18,7 +18,7 @@ from typing import Any
 
 import streamlit as st
 
-from ml_lab.formatting import format_number
+from ml_lab.formatting import format_number, format_scientific
 
 _LOG_STEPS = (1.0, 2.0, 5.0)
 
@@ -155,4 +155,6 @@ def _nice_step(minimum: float, maximum: float) -> float:
 def _format_option(value: float) -> str:
     if float(value).is_integer():
         return format_number(value, 0)
+    if abs(value) < 0.001:  # a tolerância de paragem (1 × 10⁻⁶) ficaria "0"
+        return format_scientific(value)
     return format_number(value, 4).rstrip("0").rstrip(",")

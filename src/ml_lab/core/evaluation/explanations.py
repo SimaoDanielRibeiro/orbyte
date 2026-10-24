@@ -56,6 +56,29 @@ METRIC_EXPLANATIONS: Final[Mapping[str, MetricExplanation]] = MappingProxyType(
             "previsões erradas feitas com confiança. Só existe para modelos que dão "
             "probabilidades.",
         ),
+        "r2": MetricExplanation(
+            "A proporção da variação do alvo que o modelo explica.",
+            "1 é perfeito; 0 é o mesmo que prever sempre a média; abaixo de 0, o modelo é pior "
+            "do que isso. Não tem unidades, por isso compara modelos em alvos diferentes.",
+        ),
+        "rmse": MetricExplanation(
+            "A raiz do erro quadrático médio (RMSE, do inglês *root mean squared error*): um "
+            "erro típico das previsões, nas unidades do alvo.",
+            "Menor é melhor. Como os erros entram ao quadrado, poucos erros grandes pesam muito: "
+            "compara-a com o erro absoluto médio para ver se há previsões muito falhadas.",
+        ),
+        "mae": MetricExplanation(
+            "O erro absoluto médio (MAE, do inglês *mean absolute error*): a distância média "
+            "entre a previsão e o valor real, nas unidades do alvo.",
+            "Menor é melhor. Lê-se diretamente: «em média, o modelo falha por tanto». Todos os "
+            "erros pesam o mesmo, grandes ou pequenos.",
+        ),
+        "mse": MetricExplanation(
+            "O erro quadrático médio (MSE, do inglês *mean squared error*): a média dos erros "
+            "ao quadrado, a loss que a regressão linear minimiza.",
+            "Menor é melhor, mas as unidades são as do alvo ao quadrado, o que a torna difícil "
+            "de ler; para interpretar, usa a raiz (RMSE).",
+        ),
         "roc_auc": MetricExplanation(
             "A probabilidade de o modelo dar mais pontuação a um exemplo da classe positiva do "
             "que a um da negativa.",

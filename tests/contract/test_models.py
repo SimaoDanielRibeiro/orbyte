@@ -120,6 +120,52 @@ def test_iterative_models_announce_their_steps(name: str, task_type: TaskType) -
         assert fitted.is_fitted  # aceita o contexto, mesmo sem nada para anunciar
 
 
+@pytest.mark.parametrize(("name", "task_type"), CASES)
+def test_iterative_models_stop_when_asked(name: str, task_type: TaskType) -> None:
+    X, y, _ = tiny_dataset(task_type)
+    context = RecordingTrainingContext(stop_after=3)
+
+    fitted = model(name).fit(X, y, context)
+
+    assert fitted.is_fitted
+    if fitted.info.iterative:
+        assert len(context.steps) <= 3
+
+
+@pytest.mark.parametrize(("name", "task_type"), CASES)
+def test_snapshots_carry_the_predictions_on_the_probe(name: str, task_type: TaskType) -> None:
+    X, y, new = tiny_dataset(task_type)
+    context = RecordingTrainingContext(probe=new)
+
+    fitted = model(name).fit(X, y, context)
+    final = fitted.snapshot_state(new)  # o que o Trainer usa no fim, iterativo ou não
+
+    states = [state for _, state in context.snapshots] + [final]
+    if not fitted.info.iterative:
+        assert context.snapshots == []
+    for state in states:
+        assert np.asarray(state["probe"]).shape[0] == len(new)
+        json.dumps({key: value for key, value in state.items() if key != "probe"})
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_the_step_limit_is_a_hyperparameter_that_caps_the_steps(name: str) -> None:
+    info = MODELS.get(name).info
+    if info.step_limit is None:
+        return
+    assert info.iterative, "só os modelos iterativos têm um limite de passos"
+    assert info.step_limit in info.hyperparameters.model_fields
+    lowest = info.hyperparameters.form_schema()["properties"][info.step_limit]["minimum"]
+    hyperparameters = info.hyperparameters.parse({info.step_limit: lowest})
+    task_type = sorted(info.task_types)[0]
+    X, y, _ = tiny_dataset(task_type)
+    context = RecordingTrainingContext()
+
+    MODELS.get(name)(hyperparameters).fit(X, y, context)
+
+    assert 0 < len(context.steps) <= lowest
+
+
 @pytest.mark.parametrize("name", NAMES)
 def test_default_hyperparameters_are_valid_and_described(name: str) -> None:
     hyperparameters = MODELS.get(name).info.hyperparameters

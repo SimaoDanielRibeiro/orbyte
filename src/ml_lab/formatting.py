@@ -19,6 +19,11 @@ import math
 _GROUPING_THRESHOLD = 10_000
 """Em português, só se separam os milhares a partir de cinco algarismos (1234, mas 12 345)."""
 
+_SUPERSCRIPTS = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+_SCIENTIFIC_FROM = 6
+"""Ordem de grandeza a partir da qual ``format_significant`` passa a potência de 10."""
+
 
 def format_number(value: float, decimals: int = 2) -> str:
     """Escreve ``value`` com ``decimals`` casas decimais e vírgula decimal.
@@ -43,6 +48,40 @@ def format_count(value: int) -> str:
 def format_percent(ratio: float, decimals: int = 1) -> str:
     """Escreve uma proporção como percentagem: ``0.1987`` dá ``19,9%``."""
     return f"{format_number(ratio * 100, decimals)}%"
+
+
+def format_scientific(value: float, digits: int = 3) -> str:
+    """Escreve ``value`` como potência de 10: para números muito pequenos ou muito grandes.
+
+    >>> format_scientific(0.000001)
+    '1 × 10⁻⁶'
+    >>> format_scientific(0.000025)
+    '2,5 × 10⁻⁵'
+    """
+    if value == 0 or not math.isfinite(value):
+        return format_number(value, 0)
+    mantissa, exponent = f"{value:.{digits - 1}e}".split("e")
+    mantissa = mantissa.rstrip("0").rstrip(".").replace(".", ",")
+    return f"{mantissa} × 10{str(int(exponent)).translate(_SUPERSCRIPTS)}"
+
+
+def format_significant(value: float, digits: int = 4) -> str:
+    """Escreve ``value`` com ``digits`` algarismos significativos (uma loss, por exemplo).
+
+    Os números muito grandes (a partir de um milhão) ou muito pequenos ficam em potência
+    de 10, para não encherem o ecrã de algarismos.
+
+    >>> format_significant(0.320912)
+    '0,3209'
+    >>> format_significant(4661704537.05)
+    '4,662 × 10⁹'
+    """
+    if value == 0 or not math.isfinite(value):
+        return format_number(value, 0)
+    magnitude = math.floor(math.log10(abs(value)))
+    if magnitude >= _SCIENTIFIC_FROM or magnitude < -3:
+        return format_scientific(value, digits)
+    return format_number(value, max(0, digits - 1 - magnitude))
 
 
 def format_quantity(count: int, singular: str, plural: str) -> str:

@@ -5,12 +5,15 @@ todas as métricas registadas para o seu tipo, por isso uma métrica nova aparec
 relatórios sem mexer no avaliador.
 """
 
+import math
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import Any, ClassVar, Final
 
-from ml_lab.core.evaluation.report import EvaluationReport
+from ml_lab.core.evaluation.explanations import METRIC_EXPLANATIONS
+from ml_lab.core.evaluation.metrics.base import METRICS, MetricInputs
+from ml_lab.core.evaluation.report import EvaluationReport, MetricResult
 from ml_lab.core.foundation.errors import ModelError
 from ml_lab.core.foundation.registry import Registry
 from ml_lab.core.foundation.types import Partition, TaskType
@@ -20,6 +23,7 @@ PRIMARY_METRIC: Final[Mapping[TaskType, str]] = MappingProxyType(
     {
         TaskType.BINARY_CLASSIFICATION: "accuracy",
         TaskType.MULTICLASS_CLASSIFICATION: "accuracy",
+        TaskType.REGRESSION: "r2",
     }
 )
 """A métrica que resume cada tipo de tarefa (a do "último resultado" e a do overfitting)."""
@@ -77,3 +81,46 @@ def evaluator_for(task_type: TaskType) -> Evaluator:
             f"Ainda não há avaliador para {task_type.label.lower()}: chega na fase 4 do roadmap."
         )
     return next(iter(found.values()))()
+
+
+def measure(
+    task_type: TaskType, inputs: MetricInputs, *, order: Sequence[str] = ()
+) -> tuple[tuple[MetricResult, ...], tuple[str, ...]]:
+    """Calcula todas as métricas registadas para ``task_type``, cada uma com a sua explicação.
+
+    As métricas que precisam de probabilidades ficam de fora quando o modelo não as dá.
+
+    Args:
+        task_type: O tipo de tarefa.
+        inputs: O que as métricas recebem.
+        order: A ordem em que aparecem; as que faltarem na lista vêm depois, por nome.
+
+    Returns:
+        Os resultados e os nomes (a mostrar) das métricas que não ficaram definidas.
+    """
+
+    def rank(name: str) -> tuple[int, str]:
+        return (list(order).index(name) if name in order else len(order), name)
+
+    results: list[MetricResult] = []
+    undefined: list[str] = []
+    for name in sorted(METRICS.for_task(task_type), key=rank):
+        metric = METRICS.get(name)
+        if metric.needs_proba and inputs.y_proba is None:
+            continue
+        value = metric(inputs)
+        if math.isnan(value):
+            undefined.append(metric.display_name)
+        explanation = METRIC_EXPLANATIONS[name]
+        results.append(
+            MetricResult(
+                name=name,
+                display_name=metric.display_name,
+                value=None if math.isnan(value) else value,
+                higher_is_better=metric.higher_is_better,
+                as_percent=metric.as_percent,
+                what=explanation.what,
+                how_to_read=explanation.how_to_read,
+            )
+        )
+    return tuple(results), tuple(undefined)

@@ -47,7 +47,7 @@ class ProjectionConfig:
 
 @dataclass(frozen=True, slots=True, eq=False)
 class Projection:
-    """As coordenadas 2D de cada parte dos dados.
+    """As coordenadas 2D de cada parte dos dados, e a forma de ir e voltar do plano.
 
     Attributes:
         method: ``"pca"`` ou ``"columns"``.
@@ -56,6 +56,9 @@ class Projection:
         explained_variance_ratio: Na PCA, a proporção da variância explicada por cada eixo.
         loadings: Na PCA, o peso de cada feature em cada eixo, ``(2, n_features)``.
         feature_names: As features a que os pesos se referem.
+        center: A média de cada feature no treino: o ponto do espaço das features que fica
+            na origem do plano (na PCA) ou que dá o valor das features fora do plano.
+        column_positions: Na projeção por colunas, a posição das duas features nos dados.
     """
 
     method: Literal["pca", "columns"]
@@ -64,6 +67,36 @@ class Projection:
     explained_variance_ratio: tuple[float, float] | None = None
     loadings: NDArray[np.float64] | None = None
     feature_names: tuple[str, ...] = ()
+    center: NDArray[np.float64] | None = None
+    column_positions: tuple[int, int] | None = None
+
+    def project(self, points: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Leva pontos do espaço das features para o plano (por exemplo, centróides)."""
+        if self.method == "columns" and self.column_positions is not None:
+            result: NDArray[np.float64] = points[:, list(self.column_positions)]
+            return result
+        if self.loadings is None or self.center is None:
+            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+        projected: NDArray[np.float64] = (points - self.center) @ self.loadings.T
+        return projected
+
+    def to_features(self, plane: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Leva pontos do plano para o espaço das features.
+
+        Na PCA, o ponto ``(a, b)`` do plano é ``centro + a·PC1 + b·PC2``; na projeção por
+        colunas, é o centro com as duas features escolhidas trocadas por ``a`` e ``b``. As
+        outras direções ficam na média do treino: o plano é um "corte" pelo meio dos dados.
+        """
+        if self.center is None:
+            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+        if self.method == "columns" and self.column_positions is not None:
+            points = np.tile(self.center, (len(plane), 1))
+            points[:, list(self.column_positions)] = plane
+            return points
+        if self.loadings is None:
+            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+        mapped: NDArray[np.float64] = self.center + plane @ self.loadings
+        return mapped
 
 
 def project_2d(
@@ -97,7 +130,14 @@ def project_2d(
                 raise ColumnNotFoundError(name, feature_names)
             positions.append(feature_names.index(name))
         coordinates = {part: values[:, positions] for part, values in matrices.items()}
-        projection = Projection("columns", (first, second), coordinates)
+        projection = Projection(
+            "columns",
+            (first, second),
+            coordinates,
+            feature_names=feature_names,
+            center=train.mean(axis=0),
+            column_positions=(positions[0], positions[1]),
+        )
         description = f"Projeção 2D nas colunas {first} e {second}."
     else:
         pca = fit_pca(train, n_components=2)
@@ -109,6 +149,7 @@ def project_2d(
             explained_variance_ratio=(ratios[0], ratios[1]),
             loadings=pca.components,
             feature_names=feature_names,
+            center=pca.mean,
         )
         description = (
             f"Projeção 2D com PCA aprendida no treino: PC1 explica {format_percent(ratios[0])} "

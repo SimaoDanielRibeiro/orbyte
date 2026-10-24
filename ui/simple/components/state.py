@@ -3,7 +3,7 @@
 O Streamlit volta a correr o script a cada interação, por isso tudo o que tem de
 sobreviver entre interações vive em ``st.session_state``: o ``Lab`` com os
 serviços (um por sessão), o dataset escolhido, a última preparação feita, o modelo
-escolhido e o resultado do último treino.
+escolhido, o treino em curso e o resultado do último treino.
 """
 
 from dataclasses import dataclass
@@ -19,12 +19,14 @@ from ml_lab.core.services import (
     ModelCard,
     PreparationConfig,
     PreparationSummary,
+    TrainingJob,
 )
 
 _LAB: Final = "lab"
 _DATASET: Final = "dataset_id"
 _PREPARATION: Final = "preparation"
 _MODEL: Final = "model"
+_JOB: Final = "job"
 _RESULT: Final = "result"
 
 
@@ -101,12 +103,24 @@ def choose_model(card: ModelCard) -> None:
     st.session_state[_MODEL] = card
 
 
+def current_job() -> TrainingJob[ExperimentResult] | None:
+    """O último treino lançado no ecrã Modelo (a decorrer ou já terminado), se houver."""
+    job: TrainingJob[ExperimentResult] | None = st.session_state.get(_JOB)
+    return job
+
+
+def save_job(job: TrainingJob[ExperimentResult]) -> None:
+    """Guarda o treino lançado; se outro ainda estiver a decorrer, manda-o parar."""
+    previous = current_job()
+    if previous is not None and not previous.done:
+        previous.cancel()
+    st.session_state[_JOB] = job
+
+
 def last_result() -> ExperimentResult | None:
-    """O resultado do último treino, se houver."""
+    """O resultado do último treino, se houver (incluindo o de um treino que acabou agora)."""
+    job = current_job()
+    if job is not None and job.result is not None:
+        st.session_state[_RESULT] = job.result
     result: ExperimentResult | None = st.session_state.get(_RESULT)
     return result
-
-
-def save_result(result: ExperimentResult) -> None:
-    """Guarda o resultado de um treino."""
-    st.session_state[_RESULT] = result

@@ -37,29 +37,31 @@ def compare_train_and_test(reports: Mapping[Partition, EvaluationReport]) -> tup
     gap = train_result.value - test_result.value
     if not train_result.higher_is_better:
         gap = -gap
-    label = train_result.display_name.lower()
-    values = f"{train_result.formatted} no treino e {test_result.formatted} no teste"
+    # Sem artigo ("a exatidão", "o R²"): a frase serve a qualquer métrica principal.
+    values = (
+        f"{train_result.display_name}: {train_result.formatted} no treino e "
+        f"{test_result.formatted} no teste"
+    )
     points = format_number(abs(gap) * 100, 1)
     if gap >= OVERFITTING_GAP:
         return (
             Notice.warning(
                 "overfitting",
-                f"A {label} é {values}: {points} pontos de diferença. O modelo parece ter "
-                "decorado o treino (overfitting). Experimenta mais regularização ou um modelo "
-                "mais simples.",
+                f"{values}, {points} pontos de diferença. O modelo parece ter decorado o treino "
+                "(overfitting). Experimenta mais regularização ou um modelo mais simples.",
             ),
         )
     if gap <= -LUCKY_TEST_GAP:
         return (
             Notice.info(
                 "lucky_test",
-                f"A {label} é {values}: o teste saiu melhor do que o treino. Com poucas linhas de "
-                "teste, a sorte da divisão pesa; experimenta outra seed.",
+                f"{values}: o teste saiu melhor do que o treino. Com poucas linhas de teste, a "
+                "sorte da divisão pesa; experimenta outra seed.",
             ),
         )
     return (
         Notice.info(
             "no_overfitting",
-            f"A {label} é {values}: valores próximos, sem sinais de overfitting.",
+            f"{values}: valores próximos, sem sinais de overfitting.",
         ),
     )

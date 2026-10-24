@@ -1,4 +1,4 @@
-"""Regressão: linear (gradiente e mínimos quadrados), Ridge, Lasso, polinomial e árvores.
+"""Regressão: linear (gradiente descendente e mínimos quadrados), Ridge, Lasso, árvores...
 
 Fases 3 e 4.
 """

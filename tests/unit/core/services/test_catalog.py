@@ -13,11 +13,24 @@ def catalog() -> CatalogService:
 
 
 def test_the_catalog_is_filtered_by_task(catalog: CatalogService) -> None:
-    assert [card.name for card in catalog.models(TaskType.BINARY_CLASSIFICATION)] == [
-        "logistic_regression"
-    ]
-    assert catalog.models(TaskType.REGRESSION) == []
-    assert [card.name for card in catalog.models()] == ["logistic_regression"]
+    binary = [card.name for card in catalog.models(TaskType.BINARY_CLASSIFICATION)]
+    regression = [card.name for card in catalog.models(TaskType.REGRESSION)]
+    everything = [card.name for card in catalog.models()]
+
+    assert "logistic_regression" in binary
+    assert "logistic_regression" not in regression
+    assert "linear_regression_gd" in regression
+    assert set(everything) >= set(binary) | set(regression)
+    assert all(
+        TaskType.REGRESSION in card.task_types for card in catalog.models(TaskType.REGRESSION)
+    )
+
+
+def test_the_catalog_groups_the_models_by_family(catalog: CatalogService) -> None:
+    cards = catalog.models()
+
+    keys = [(card.family, card.display_name) for card in cards]
+    assert keys == sorted(keys)
 
 
 def test_a_card_has_everything_the_model_screen_shows(catalog: CatalogService) -> None:

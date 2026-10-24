@@ -5,17 +5,15 @@ sempre a classe mais frequente. Um modelo que não bate essa referência não ap
 nada de útil, por mais alta que pareça a exatidão.
 """
 
-import math
 from typing import Any, Final, override
 
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.metrics import confusion_matrix
 
-from ml_lab.core.evaluation.base import EVALUATORS, Evaluator
-from ml_lab.core.evaluation.explanations import METRIC_EXPLANATIONS
-from ml_lab.core.evaluation.metrics.base import METRICS, MetricInputs
-from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport, MetricResult
+from ml_lab.core.evaluation.base import EVALUATORS, Evaluator, measure
+from ml_lab.core.evaluation.metrics.base import MetricInputs
+from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport
 from ml_lab.core.foundation.errors import ModelError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import Partition, TaskType
@@ -61,26 +59,7 @@ class ClassificationEvaluator(Evaluator):
         y_proba = _probabilities(model, X, n_classes) if model.info.supports_proba else None
         inputs = MetricInputs(y_true, y_pred, y_proba, n_classes)
 
-        results: list[MetricResult] = []
-        undefined: list[str] = []
-        for name, metric in sorted(METRICS.for_task(task_type).items(), key=_display_rank):
-            if metric.needs_proba and y_proba is None:
-                continue
-            value = metric(inputs)
-            explanation = METRIC_EXPLANATIONS[name]
-            if math.isnan(value):
-                undefined.append(metric.display_name)
-            results.append(
-                MetricResult(
-                    name=name,
-                    display_name=metric.display_name,
-                    value=None if math.isnan(value) else value,
-                    higher_is_better=metric.higher_is_better,
-                    as_percent=metric.as_percent,
-                    what=explanation.what,
-                    how_to_read=explanation.how_to_read,
-                )
-            )
+        results, undefined = measure(task_type, inputs, order=DISPLAY_ORDER)
         counts = confusion_matrix(y_true, y_pred, labels=list(range(n_classes)))
         matrix = ConfusionMatrix(class_labels, tuple(tuple(int(c) for c in row) for row in counts))
         notices = [_baseline_notice(y_true, y_pred, class_labels, partition)]
@@ -111,11 +90,6 @@ def _probabilities(model: LabModel[Any], X: Features, n_classes: int) -> NDArray
     full = np.zeros((proba.shape[0], n_classes))
     full[:, seen] = proba
     return full
-
-
-def _display_rank(item: tuple[str, object]) -> tuple[int, str]:
-    name = item[0]
-    return (DISPLAY_ORDER.index(name) if name in DISPLAY_ORDER else len(DISPLAY_ORDER), name)
 
 
 def _baseline_notice(

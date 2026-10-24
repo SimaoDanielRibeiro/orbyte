@@ -36,7 +36,7 @@ def test_the_classification_metrics_are_registered() -> None:
         "log_loss",
         "roc_auc",
     }
-    assert METRICS.for_task(TaskType.REGRESSION) == {}
+    assert set(METRICS.for_task(TaskType.REGRESSION)) == {"r2", "rmse", "mae", "mse"}
 
 
 def test_binary_metrics_measure_the_positive_class() -> None:

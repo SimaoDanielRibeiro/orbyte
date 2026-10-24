@@ -133,7 +133,8 @@ def test_capture_warnings_returns_the_result_and_the_warnings() -> None:
 def test_models_are_discovered_and_filtered_by_task() -> None:
     assert MODELS.get("logistic_regression") is LogisticRegression
     assert "logistic_regression" in MODELS.for_task(TaskType.MULTICLASS_CLASSIFICATION)
-    assert MODELS.for_task(TaskType.REGRESSION) == {}
+    assert "logistic_regression" not in MODELS.for_task(TaskType.REGRESSION)
+    assert "linear_regression_gd" in MODELS.for_task(TaskType.REGRESSION)
 
 
 # --- regressão logística -------------------------------------------------------------

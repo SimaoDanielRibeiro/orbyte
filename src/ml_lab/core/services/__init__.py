@@ -10,7 +10,7 @@ devolvem, as configurações que recebem e o erro base do ML Lab.
 from ml_lab.core.data.boundary import TablePreview
 from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.cleaning.suggestions import CleaningSuggestion
-from ml_lab.core.data.explanations import Explanation, explain
+from ml_lab.core.data.explanations import Explanation
 from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.lineage import LineageStep, Stage
 from ml_lab.core.data.preparation import PreparationConfig
@@ -49,7 +49,11 @@ from ml_lab.core.services.datasets import (
     SampleSummary,
 )
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService
+from ml_lab.core.services.explanations import explain
 from ml_lab.core.services.lab import Lab
+from ml_lab.core.training.jobs import JobStatus, TrainingJob
+from ml_lab.core.training.recorder import Progress, StepRecord
+from ml_lab.core.visualization_data.animation import FieldFrame, PointCloud, TrainingAnimation
 
 __all__ = [
     "CatalogService",
@@ -69,11 +73,13 @@ __all__ = [
     "ExperimentResult",
     "ExperimentService",
     "Explanation",
+    "FieldFrame",
     "GeneratorSummary",
     "GroupMeans",
     "Histogram",
     "Implementation",
     "ImputationStrategy",
+    "JobStatus",
     "Lab",
     "LineageStep",
     "MLLabError",
@@ -87,8 +93,10 @@ __all__ = [
     "OperationSummary",
     "Partition",
     "PartitionSummary",
+    "PointCloud",
     "PreparationConfig",
     "PreparationSummary",
+    "Progress",
     "ProjectionConfig",
     "ProjectionPoints",
     "SampleSummary",
@@ -97,9 +105,12 @@ __all__ = [
     "SplitConfig",
     "SplitStrategy",
     "Stage",
+    "StepRecord",
     "TablePreview",
     "TaskSuggestion",
     "TaskType",
+    "TrainingAnimation",
+    "TrainingJob",
     "TransformConfig",
     "ValidationReport",
     "ValueCount",
