@@ -29,8 +29,17 @@ def test_the_catalog_is_filtered_by_task(catalog: CatalogService) -> None:
 def test_the_catalog_groups_the_models_by_family(catalog: CatalogService) -> None:
     cards = catalog.models()
 
-    keys = [(card.family, card.display_name) for card in cards]
+    keys = [(card.family.order, card.display_name) for card in cards]
     assert keys == sorted(keys)
+    assert cards[0].family is ModelFamily.LINEAR  # pela ordem do enum, não do nome
+
+
+def test_every_task_has_a_suggested_first_model(catalog: CatalogService) -> None:
+    for task_type in TaskType:
+        suggested = catalog.suggested_model(task_type)
+
+        assert suggested is not None
+        assert suggested in [card.name for card in catalog.models(task_type)]
 
 
 def test_a_card_has_everything_the_model_screen_shows(catalog: CatalogService) -> None:

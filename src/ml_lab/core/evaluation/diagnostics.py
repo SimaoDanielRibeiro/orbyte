@@ -31,8 +31,12 @@ def compare_train_and_test(reports: Mapping[Partition, EvaluationReport]) -> tup
     name = PRIMARY_METRIC.get(train.task_type)
     if name is None:
         return ()
-    train_result, test_result = train.metric(name), test.metric(name)
+    train_result, test_result = train.find(name), test.find(name)
+    if train_result is None or test_result is None:
+        return ()
     if train_result.value is None or test_result.value is None:
+        return ()
+    if train_result.higher_is_better is None:  # só descreve (a proporção de anomalias)
         return ()
     gap = train_result.value - test_result.value
     if not train_result.higher_is_better:

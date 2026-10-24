@@ -67,7 +67,8 @@ EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "Divisão",
             "O modelo aprende com o **treino** e é avaliado no **teste**, em linhas que nunca "
             "viu: é a única forma honesta de saber se generaliza ou se só decorou. A divisão "
-            "**estratificada** mantém a proporção das classes em todas as partes; a "
+            "**estratificada** mantém a proporção das classes em todas as partes (as do alvo "
+            "ou, nas tarefas sem alvo, as da coluna de referência); a "
             "**temporal** treina com o passado e testa com o futuro. A seed torna a divisão "
             "repetível.",
         ),

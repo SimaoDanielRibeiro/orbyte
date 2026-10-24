@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from charts.training import animation_chart, loss_chart
+from charts.training import animation_chart, embedding_chart, loss_chart
 from components.layout import render_header, render_why
 from components.notices import render_error, render_notices
 from components.state import current_job, get_lab, last_result
@@ -111,7 +111,14 @@ def _replay(result: ExperimentResult) -> None:
         st.caption("Este modelo treina de uma vez (não há passos para rever): vês o modelo final.")
     render_notices(result.training_notices, notes_title="Notas do treino")
     animation = result.animation
-    if animation is not None:
+    if result.embedding is not None:  # redução de dimensionalidade: o resultado é o mapa
+        st.plotly_chart(embedding_chart(result.embedding), width="stretch", key="treinar.map")
+        st.caption(
+            "Cada ponto é uma linha de treino nas novas coordenadas. Se escolheste uma coluna de "
+            "referência no ecrã Preparar, as cores são as suas classes: classes bem separadas "
+            "querem dizer que a redução guardou o que as distingue."
+        )
+    elif animation is not None:
         st.plotly_chart(animation_chart(animation), width="stretch", key="treinar.animation")
         st.caption(_how_to_read(animation))
     else:
@@ -150,10 +157,28 @@ def _how_to_read(animation: TrainingAnimation) -> str:
             "A curva é a probabilidade da classe positiva ao longo da feature; a fronteira de "
             "decisão é onde a curva corta os 50% (a linha tracejada)." + replay
         )
+    if animation.value_kind == "class" and animation.field_labels != animation.class_labels:
+        noise = (
+            " As zonas cinzentas são ruído (não pertencem a nenhum grupo)."
+            if animation.noise
+            else ""
+        )
+        return (
+            "Cada cor é o grupo que o modelo daria a um ponto nessa zona do plano; as cruzes são "
+            "os centros e as linhas pontilhadas as elipses das nuvens, se o modelo os tiver. Os "
+            "pontos são o treino, com o símbolo da coluna de referência (se a escolheste)."
+            + noise
+            + replay
+        )
     if animation.value_kind == "class":
         return (
             "Cada cor é a classe que o modelo prevê nessa zona do plano: as fronteiras de decisão "
             "são as mudanças de cor. Os pontos são o treino." + replay
+        )
+    if animation.value_kind == "score":
+        return (
+            "As cores são a pontuação de anomalia em cada ponto do plano: quanto mais escuro, mais "
+            "estranho seria um ponto ali. Os pontos são o treino." + replay
         )
     if animation.dimensions == 1:
         return "A linha é a previsão do modelo; os pontos são o treino." + replay

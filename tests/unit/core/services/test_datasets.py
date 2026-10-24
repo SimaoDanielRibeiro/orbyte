@@ -32,7 +32,13 @@ def test_catalogs_list_samples_generators_and_operations(service: DatasetService
         "titanic",
         "wine",
     ]
-    assert {g.name for g in service.generators()} == {"blobs", "circles", "moons", "regression"}
+    assert {g.name for g in service.generators()} == {
+        "anomalies",
+        "blobs",
+        "circles",
+        "moons",
+        "regression",
+    }
     assert "drop_duplicates" in {operation.name for operation in service.cleaning_operations()}
 
 

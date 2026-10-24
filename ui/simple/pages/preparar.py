@@ -30,6 +30,18 @@ from ml_lab.core.services import (
 )
 from ml_lab.formatting import format_count, format_number, format_percent
 
+# O que a coluna de referência deixa comparar no fim, em cada tarefa sem alvo.
+_REFERENCE_USES = {
+    TaskType.CLUSTERING: "por exemplo, os grupos do k-means com as espécies do Iris",
+    TaskType.DIMENSIONALITY_REDUCTION: (
+        "por exemplo, se as espécies do Iris ficam separadas no mapa"
+    ),
+    TaskType.ANOMALY_DETECTION: (
+        "as anomalias marcadas com as verdadeiras; com duas classes, a mais rara conta "
+        "como anomalia"
+    ),
+}
+
 
 def main() -> None:
     """Desenha o ecrã."""
@@ -48,7 +60,7 @@ def main() -> None:
     st.subheader("2. Limpeza")
     steps, dropped = _cleaning(dataset, key, target)
     st.subheader("3. Divisão")
-    split, seed = _split(dataset, key, task_type)
+    split, seed = _split(dataset, key, task_type, target)
     st.subheader("4. Transformações")
     transforms = _transforms(dataset, key, target, dropped)
 
@@ -96,6 +108,13 @@ def _task(dataset: DatasetSummary, key: str) -> tuple[str | None, TaskType | Non
         persist_state="session",
         help="A sugestão vem primeiro; podes escolher outra das que fazem sentido para este alvo.",
     )
+    if target is not None and not task_type.requires_target:
+        st.info(
+            f"Com {task_type.label.lower()}, a coluna {target} não entra no treino: fica como "
+            "**referência**, para no fim comparares o que o modelo encontrou com ela "
+            f"({_REFERENCE_USES[task_type]}).",
+            icon=":material/compare_arrows:",
+        )
     return target, task_type
 
 
@@ -173,11 +192,12 @@ def _cleaning(
 
 
 def _split(
-    dataset: DatasetSummary, key: str, task_type: TaskType
+    dataset: DatasetSummary, key: str, task_type: TaskType, target: str | None
 ) -> tuple[Callable[[], SplitConfig], int]:
     """Os controlos da divisão; devolve como criar a configuração (pode ser inválida) e a seed."""
     strategies = [SplitStrategy.RANDOM, SplitStrategy.TIME]
-    if task_type.is_classification:
+    # Estratificar precisa de classes: as do alvo ou, nas tarefas sem alvo, as da referência.
+    if target is not None and (task_type.is_classification or not task_type.requires_target):
         strategies.insert(0, SplitStrategy.STRATIFIED)
     strategy = st.segmented_control(
         "Estratégia",
@@ -185,7 +205,7 @@ def _split(
         default=strategies[0],
         required=True,
         format_func=lambda option: option.label,
-        key=f"{key}.strategy.{task_type}",
+        key=f"{key}.strategy.{task_type}.{target}",
         persist_state="session",
     )
     test, validation, seed_column = st.columns(3)

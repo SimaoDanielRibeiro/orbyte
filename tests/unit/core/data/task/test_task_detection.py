@@ -8,6 +8,9 @@ from ml_lab.core.data.task.task_detection import UNSUPERVISED_TASKS, suggest_tas
 from ml_lab.core.foundation.errors import ColumnNotFoundError
 from ml_lab.core.foundation.types import TaskType
 
+# Um alvo com classes também pode servir de referência às tarefas sem alvo.
+REFERENCE_TASKS = UNSUPERVISED_TASKS
+
 
 def suggest(values: Sequence[object]) -> tuple[TaskType | None, tuple[TaskType, ...], list[str]]:
     suggestion = suggest_task(pd.DataFrame({"alvo": values}), "alvo")
@@ -40,19 +43,19 @@ def test_titanic_survived_suggests_binary_classification(passengers: pd.DataFram
         pytest.param(
             ["setosa", "versicolor", "virginica"] * 3,
             TaskType.MULTICLASS_CLASSIFICATION,
-            (TaskType.MULTICLASS_CLASSIFICATION,),
+            (TaskType.MULTICLASS_CLASSIFICATION, *REFERENCE_TASKS),
             id="text",
         ),
         pytest.param(
             [True, False] * 3,
             TaskType.BINARY_CLASSIFICATION,
-            (TaskType.BINARY_CLASSIFICATION,),
+            (TaskType.BINARY_CLASSIFICATION, *REFERENCE_TASKS),
             id="bool",
         ),
         pytest.param(
             [1, 2, 3] * 3,
             TaskType.MULTICLASS_CLASSIFICATION,
-            (TaskType.MULTICLASS_CLASSIFICATION, TaskType.REGRESSION),
+            (TaskType.MULTICLASS_CLASSIFICATION, TaskType.REGRESSION, *REFERENCE_TASKS),
             id="few-ints",
         ),
         pytest.param(

@@ -11,13 +11,13 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn.metrics import confusion_matrix
 
-from ml_lab.core.evaluation.base import EVALUATORS, Evaluator, measure
+from ml_lab.core.evaluation.base import EVALUATORS, Evaluator, measure, undefined_notices
 from ml_lab.core.evaluation.metrics.base import MetricInputs
 from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport
 from ml_lab.core.foundation.errors import ModelError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import Partition, TaskType
-from ml_lab.core.models.base import Features, LabModel, Target
+from ml_lab.core.models.base import Features, LabModel, Target, class_probabilities
 from ml_lab.formatting import format_percent
 
 DISPLAY_ORDER: Final = (
@@ -56,21 +56,16 @@ class ClassificationEvaluator(Evaluator):
         n_classes = len(class_labels)
         y_true = y.astype(np.int64)
         y_pred = np.asarray(model.predict(X), dtype=np.int64)
-        y_proba = _probabilities(model, X, n_classes) if model.info.supports_proba else None
+        y_proba = class_probabilities(model, X, n_classes) if model.info.supports_proba else None
         inputs = MetricInputs(y_true, y_pred, y_proba, n_classes)
 
         results, undefined = measure(task_type, inputs, order=DISPLAY_ORDER)
         counts = confusion_matrix(y_true, y_pred, labels=list(range(n_classes)))
         matrix = ConfusionMatrix(class_labels, tuple(tuple(int(c) for c in row) for row in counts))
-        notices = [_baseline_notice(y_true, y_pred, class_labels, partition)]
-        if undefined:
-            notices.append(
-                Notice.info(
-                    "undefined_metric",
-                    f"{', '.join(undefined)}: não está definida no {partition.label.lower()}, "
-                    "porque falta pelo menos uma classe nas linhas avaliadas.",
-                )
-            )
+        notices = [
+            _baseline_notice(y_true, y_pred, class_labels, partition),
+            *undefined_notices(undefined, partition, "falta pelo menos uma classe"),
+        ]
         return EvaluationReport(
             partition=partition,
             task_type=task_type,
@@ -79,17 +74,6 @@ class ClassificationEvaluator(Evaluator):
             confusion_matrix=matrix,
             notices=tuple(notices),
         )
-
-
-def _probabilities(model: LabModel[Any], X: Features, n_classes: int) -> NDArray[np.float64]:
-    """As probabilidades de todas as classes, mesmo das que não apareceram no treino (zero)."""
-    proba = model.predict_proba(X)
-    seen = model.classes()
-    if seen is None or proba.shape[1] == n_classes:
-        return proba
-    full = np.zeros((proba.shape[0], n_classes))
-    full[:, seen] = proba
-    return full
 
 
 def _baseline_notice(

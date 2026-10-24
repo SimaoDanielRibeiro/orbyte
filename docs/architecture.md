@@ -223,7 +223,9 @@ A arquitetura não precisa de mudanças para receber, mais tarde:
 2. Alvo categórico (texto, booleano, ou inteiro com poucos valores distintos) →
    classificação (binária ou multiclasse).
 3. Alvo numérico contínuo → regressão.
-4. O utilizador pode sempre forçar o tipo; a deteção é só uma sugestão.
+4. O utilizador pode sempre forçar o tipo; a deteção é só uma sugestão. Com um alvo
+   categórico, pode escolher também uma tarefa sem alvo: a coluna fica como referência,
+   só para comparar no fim (ADR 0015).
 
 ## Processamento de dados com pandas
 
@@ -450,7 +452,7 @@ ml-lab/
 │   │   │   │   ├── base.py               # contrato DataSource
 │   │   │   │   ├── file_source.py        # CSV e Excel carregados pelo utilizador
 │   │   │   │   ├── builtin_source.py     # Iris, Wine, Titanic, California Housing
-│   │   │   │   └── synthetic_source.py   # moons, blobs, circles, regressão sintética
+│   │   │   │   └── synthetic_source.py   # moons, blobs, circles, regressão, anomalias
 │   │   │   ├── validation/   # 2. VALIDAÇÃO
 │   │   │   │   ├── checks.py             # vazio, colunas repetidas, tamanho, codificação
 │   │   │   │   └── schemas.py            # regras esperadas por coluna
@@ -487,41 +489,54 @@ ml-lab/
 │   │   │
 │   │   ├── models/           # algoritmos (um ficheiro = um modelo)
 │   │   │   ├── base.py       # contrato LabModel + ficha técnica do modelo + registo MODELS
+│   │   │   ├── distances.py  # distâncias aos blocos (KNN, DBSCAN, hierárquico)
 │   │   │   ├── adapters/     # ligação ao scikit-learn e ao PyTorch
-│   │   │   │   └── sklearn_adapter.py    # SklearnModel: o contrato, uma vez, para o scikit-learn
+│   │   │   │   ├── sklearn_adapter.py    # SklearnModel: o contrato, uma vez, para o scikit-learn
+│   │   │   │   └── growth.py             # modelos do scikit-learn que crescem passo a passo
 │   │   │   ├── supervised/
 │   │   │   │   ├── gradient_descent.py  # o que os modelos por gradiente descendente partilham
-│   │   │   │   ├── classification/  # logística, perceptron, KNN, árvore, RF, SVM, NB
-│   │   │   │   │   ├── logistic_regression.py     # regressão logística (scikit-learn)
-│   │   │   │   │   └── logistic_regression_gd.py  # a mesma, didática, por gradiente descendente
-│   │   │   │   └── regression/      # linear (GD e OLS), Ridge, Lasso, polinomial, árvores
-│   │   │   │       └── linear_regression_gd.py    # regressão linear didática (gradiente)
-│   │   │   ├── ensemble/     # gradient boosting, AdaBoost (scikit-learn)
+│   │   │   │   ├── trees.py      # o que as árvores de classificação e de regressão partilham
+│   │   │   │   ├── forests.py    # o mesmo, para as Random Forests
+│   │   │   │   ├── kernels.py    # o mesmo, para o SVM e o SVR (o kernel)
+│   │   │   │   ├── classification/  # logística (sklearn e gradiente), perceptron, KNN (sklearn
+│   │   │   │   │                    # e NumPy), Naive Bayes, árvore, Random Forest, SVM
+│   │   │   │   └── regression/      # linear (OLS e gradiente), Ridge, Lasso, polinomial,
+│   │   │   │                        # árvore, Random Forest, SVR
+│   │   │   ├── ensemble/     # gradient boosting e AdaBoost, de classificação e de regressão
 │   │   │   ├── unsupervised/
-│   │   │   │   ├── clustering/      # k-means, DBSCAN, hierárquico, GMM
-│   │   │   │   ├── dimensionality/  # PCA, t-SNE
-│   │   │   │   └── anomaly/         # Isolation Forest, One-Class SVM, LOF
-│   │   │   └── neural/       # redes PyTorch, captura de ativações e gradientes
+│   │   │   │   ├── clustering/      # k-means (NumPy e sklearn), DBSCAN, hierárquico, GMM
+│   │   │   │   ├── dimensionality/  # PCA (NumPy e sklearn), t-SNE
+│   │   │   │   └── anomaly/         # detectors.py: Isolation Forest, One-Class SVM, LOF
+│   │   │   └── neural/       # redes PyTorch, captura de ativações e gradientes (fase 6)
 │   │   │
-│   │   ├── training/         # Trainer, callbacks, snapshots, jobs, validação cruzada
+│   │   ├── training/         # Trainer, snapshots, treino em segundo plano
 │   │   │   ├── context.py    # TrainingContext (com a sonda) e a amostragem dos snapshots
 │   │   │   ├── control.py    # pedidos de pausa e de paragem, entre fios de execução
 │   │   │   ├── trainer.py    # Trainer: liga o modelo ao EventBus e fotografa o fim
 │   │   │   ├── recorder.py   # gravador de snapshots (subscritor do EventBus)
 │   │   │   ├── jobs.py       # TrainingJob: o treino em segundo plano
 │   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Treinar
-│   │   ├── evaluation/       # métricas, avaliadores por tarefa, diagnósticos, explicações
-│   │   │   ├── metrics/      # base.py (registo METRICS), classification.py e regression.py
+│   │   ├── evaluation/       # métricas, avaliadores por tarefa, diagnósticos, validação
+│   │   │   ├── metrics/      # base.py (registo METRICS) e um ficheiro por tipo de tarefa
 │   │   │   ├── base.py       # contrato Evaluator, registo EVALUATORS, métrica principal
 │   │   │   ├── classification.py  # avaliador de classificação
 │   │   │   ├── regression.py      # avaliador de regressão (comparado com prever a média)
+│   │   │   ├── clustering.py      # avaliador de clustering (e a comparação com a referência)
+│   │   │   ├── dimensionality.py  # avaliador de redução de dimensionalidade
+│   │   │   ├── anomaly.py         # avaliador de deteção de anomalias
 │   │   │   ├── report.py     # EvaluationReport, MetricResult, ConfusionMatrix
 │   │   │   ├── explanations.py    # o que mede cada métrica e como se lê
-│   │   │   └── diagnostics.py     # comparação treino vs. teste (overfitting)
-│   │   ├── explainability/   # importância por permutação, dependência parcial
+│   │   │   ├── topics.py          # temas do painel "Porquê?" de Avaliar, Explicar e Laboratório
+│   │   │   ├── diagnostics.py     # comparação treino vs. teste (overfitting)
+│   │   │   └── validation.py      # validação cruzada e curva de aprendizagem
+│   │   ├── explainability/   # explicações que servem a qualquer modelo
+│   │   │   ├── permutation.py          # importância por permutação
+│   │   │   └── partial_dependence.py   # dependência parcial e curvas ICE
 │   │   ├── visualization_data/  # prepara DADOS para gráficos (sem desenhar)
 │   │   │   ├── grid.py       # a grelha da sonda, no plano da projeção 2D
-│   │   │   └── animation.py  # TrainingAnimation: o campo do modelo em cada snapshot
+│   │   │   ├── animation.py  # TrainingAnimation: o campo do modelo em cada snapshot
+│   │   │   ├── embedding.py  # o mapa da redução de dimensionalidade
+│   │   │   └── evaluation.py # os gráficos do ecrã Avaliar (ROC, resíduos, silhueta…)
 │   │   ├── tracking/         # registo de experiências, base de dados, artefactos
 │   │   ├── schemas/          # esquemas Pydantic partilhados
 │   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação)
@@ -531,6 +546,8 @@ ml-lab/
 │   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1 a 3)
 │   │   │   ├── catalog.py    # catálogo de modelos (ecrã 4)
 │   │   │   ├── experiments.py  # treinar (também em segundo plano), avaliar, anunciar (4 a 6)
+│   │   │   ├── analysis.py   # depois do treino: gráficos, validação cruzada, explicações (6 e 7)
+│   │   │   ├── laboratory.py # as demonstrações do ecrã Laboratório (9)
 │   │   │   ├── explanations.py # o painel "Porquê?": os temas de todas as camadas
 │   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
 │   │   └── rl/               # reservado (fase 8): ambiente em grelha, Q-learning, DQN
@@ -583,11 +600,11 @@ adicionar algoritmos sem mexer no código existente.
 | DataSource | Obter dados de uma origem | Referência (ficheiro, nome de exemplo, parâmetros do gerador) | DataFrame + metadados | `data/io/` |
 | Transform | Uma transformação de dados que aprende com o treino | Dados de treino (para aprender), depois quaisquer dados | Dados transformados | `data/transforms/` |
 | Dataset | O objeto que sai da camada de dados | — | Arrays NumPy, nomes das features, esquema, linhagem | `data/` |
-| LabModel | Um algoritmo de ML | Hiperparâmetros validados, seed, dados, contexto de treino | Previsões; opcionalmente probabilidades e estado interno | `models/` |
+| LabModel | Um algoritmo de ML | Hiperparâmetros validados, seed, dados, contexto de treino | Previsões (classe, valor, grupo ou anomalia); conforme a tarefa, probabilidades, coordenadas novas (`transform`) ou pontuações de anomalia; estado interno | `models/` |
 | TrainingContext | Canal entre o modelo e o exterior durante o treino | Pedidos do modelo para emitir um passo | Eventos publicados; ordem de parar | `training/` |
 | EventBus | Distribuir eventos de treino a quem os subscreve | Eventos | Entrega a cada subscritor | `foundation/` |
 | Evaluator | Avaliar um modelo para um tipo de tarefa | Modelo, dados, partição (treino/teste) | Relatório com métricas, artefactos e avisos | `evaluation/` |
-| Metric | Uma métrica isolada | Valores reais e previstos | Um número + se "maior é melhor" | `evaluation/metrics/` |
+| Metric | Uma métrica isolada | O que declara precisar (`needs`): valores reais e previstos, probabilidades, features, coordenadas ou pontuações | Um número + se "maior é melhor" (nenhum sentido, nas que só descrevem) | `evaluation/metrics/` |
 | ExperimentStore | Guardar e consultar experiências | Configuração, eventos, relatórios, modelos | Runs guardados, comparações | `tracking/` |
 
 ### Ficha técnica de cada modelo
@@ -606,6 +623,8 @@ catálogo, filtrar por tarefa e gerar formulários sem código específico por a
 | Probabilidades | Sim | Permite curva ROC |
 | Hiperparâmetros | número de vizinhos (1 a 100, omissão 5); ponderação (uniforme ou por distância) | Validar e gerar sliders e menus |
 | Ficha didática | `docs/algorithms/knn.md` | Texto explicativo na interface |
+| Limite de passos | — (não treina por passos) | Nos iterativos, o hiperparâmetro que dá a barra de progresso (`max_epochs`) |
+| Prevê linhas novas | Sim | O t-SNE não: só coloca no mapa os pontos do treino |
 
 ### Regras de comportamento
 
@@ -814,7 +833,7 @@ cada vez.
 | 1 — Camada de dados ✅ | As nove etapas: entrada, validação, perfil, limpeza, tarefa, divisão, transformação, projeção, saída; linhagem | Dados, Explorar, Preparar | pandas, NumPy, Plotly | Carregar o Titanic mostra perfil correto, avisos e a sugestão "classificação binária"; o teste de arquitetura confirma o pandas isolado |
 | 2 — Primeiro fluxo completo ✅ | Contrato de modelo, adaptador scikit-learn, regressão logística, avaliador de classificação, serviço de experiências | Modelo, Avaliar (básico) | scikit-learn, Pydantic | No Iris: escolher modelo, treinar e ver métricas na interface; testes de contrato a passar |
 | 3 — Eventos e snapshots ✅ | Contexto de treino, gravador de snapshots, regressões didáticas em NumPy, dados da fronteira de decisão | Treinar (com reprodução passo a passo) | — (gradiente descendente, padrão observer) | Ver a fronteira da regressão logística didática a mover-se; resultado final igual ao do scikit-learn |
-| 4 — Catálogo clássico | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
+| 4 — Catálogo clássico ✅ | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
 | 5 — Memória | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs | Experiências | SQLite (`sqlite3`), joblib | Fechar a app, reabrir e comparar dois runs |
 | 6 — Deep learning | Adaptador PyTorch, MLP, captura de ativações e gradientes, early stopping | Treinar mostra as camadas da rede | PyTorch | A MLP resolve "moons" e os snapshots mostram a fronteira a curvar |
 | 7 — API | Rotas de dados, catálogo e experiências; treino em background; WebSocket | — (a simples continua a usar os serviços) | FastAPI, Uvicorn | Pela documentação em `/docs`: carregar CSV, lançar treino e receber snapshots |
@@ -1060,3 +1079,96 @@ Decisões tomadas ao implementar (as não óbvias têm ADR própria):
   e o resultado final dá as mesmas previsões que o scikit-learn. No `AppTest`, um
   `st.switch_page` feito pela própria app não muda a página que o teste volta a correr: o
   teste muda-a à mão.
+
+### Fase 4
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Catálogo:** 32 modelos em 10 famílias (`ModelFamily`, pela ordem do catálogo) e 21
+  fichas didáticas. A versão didática e a do scikit-learn de um algoritmo partilham a ficha,
+  tal como a classificação e a regressão do mesmo algoritmo. Seis modelos são didáticos,
+  em NumPy: os dois por gradiente descendente da fase 3, o perceptron, o KNN, o k-means e a
+  PCA. Os quatro últimos dão exatamente o mesmo que o scikit-learn, e os testes
+  comparam-nos. Cada tarefa tem um modelo sugerido, que o ecrã Modelo escolhe primeiro
+  (`SUGGESTED_MODELS`).
+- **Tarefas sem alvo** (ADR 0015): o mesmo contrato, com `transform` (redução de
+  dimensionalidade) e `anomaly_scores`, e `supports_new_data` para o t-SNE. A coluna de
+  referência não entra no treino, só na avaliação, e pode estratificar a divisão: no ecrã
+  Preparar, a estratificada vem escolhida sempre que há classes.
+- **Modelos do scikit-learn que crescem** (ADR 0017): as árvores crescem por
+  profundidade, as florestas por árvores (com o erro OOB), o boosting por etapas e a
+  mistura de gaussianas por iteração do EM. Sem ninguém a ver, treinam de uma vez, com o
+  mesmo resultado (um teste de contrato confirma-o).
+- **Validação cruzada** (ADR 0016): `prepare_folds` repete as transformações em cada fold,
+  só com o treino desse fold, e o teste fica de fora. A curva de aprendizagem usa os
+  mesmos folds.
+- **Explicações** (ADR 0018): importância por permutação, dependência parcial com curvas
+  ICE e a explicação de uma previsão, em NumPy, para qualquer modelo.
+- **Métricas:** 22, todas com explicação. Cada uma declara o que precisa (`needs`) e fica
+  de fora do relatório quando falta alguma coisa: um clustering sem referência não tem
+  Rand ajustado.
+  - Clustering: silhueta (sem os pontos de ruído, numa amostra de até 2000),
+    Davies-Bouldin, Calinski-Harabasz, número de grupos, proporção de ruído e Rand
+    ajustado.
+  - Redução de dimensionalidade: a confiança dos vizinhos (5 vizinhos, amostra de 1000).
+  - Anomalias: proporção marcada, precisão, recall e ROC AUC da pontuação.
+
+  As métricas principais são a exatidão, o R², a silhueta, a confiança dos vizinhos e a
+  proporção de anomalias marcadas. As métricas que só descrevem têm
+  `higher_is_better = None`: o diagnóstico ignora-as, e as contagens aparecem sem casas
+  decimais ("3", não "3,000").
+- **scikit-learn 1.9:** o `SVC(probability=True)` está descontinuado. O SVM dá
+  probabilidades com `CalibratedClassifierCV`, com o método sigmoide e
+  `ensemble=False`. Há um só SVM, treinado com todos os dados, e a calibração aprende-se
+  por validação cruzada: até 5 folds, sem passar o número de linhas da classe mais rara. O
+  `criterion` do gradient boosting também está descontinuado e não se passa.
+- **Previsões que o scikit-learn não dá:**
+  - DBSCAN: um ponto novo fica no grupo do núcleo mais próximo, se estiver a menos de
+    `eps`; senão, é ruído.
+  - Clustering hierárquico: um ponto novo fica no grupo do ponto de treino mais próximo.
+    Só aceita até 5000 linhas de treino, porque guarda as distâncias entre todos os
+    pares.
+  - LOF: usa `novelty=True`, e as pontuações do treino vêm do `negative_outlier_factor_`.
+
+  A pontuação de anomalia é `-score_samples` (maior = mais anómalo). As distâncias
+  calculam-se aos blocos (`models/distances.py`), para a memória ficar controlada.
+- **Diferenças para o catálogo inicial:**
+  - O t-SNE não mostra o mapa ao longo das iterações, porque o scikit-learn não dá as
+    posições intermédias. Mostra o mapa final, e só do treino.
+  - O dendrograma do clustering hierárquico aparece no ecrã Avaliar, e não junção a
+    junção no Treinar.
+  - O perceptron mostra a fronteira época a época, e não a cada correção.
+- **Gerador sintético "anomalias":** duas nuvens de pontos normais e alguns pontos
+  espalhados ao acaso à volta delas. A coluna `target` (normal/anomalia) serve de
+  referência.
+- **Gráficos:**
+  - A animação do Treinar serve a todas as tarefas. Mostra a probabilidade, a classe, o
+    valor ou a pontuação de anomalia em cada ponto do plano, os centros dos grupos e as
+    suas elipses (a dois desvios), e os pontos com o símbolo da classe da referência.
+  - A redução de dimensionalidade tem o seu mapa (`visualization_data/embedding.py`).
+  - O ecrã Avaliar tem os gráficos de cada tarefa (`visualization_data/evaluation.py`):
+    curvas ROC e PR, resíduos, perfil de silhueta, dendrograma, variância explicada e o
+    histograma das pontuações com o limiar. Com referência, o histograma é pintado com
+    as anomalias verdadeiras: vê-se o que escapa ao limiar e os falsos alarmes.
+- **Serviços:**
+  - `AnalysisService` (ecrãs Avaliar e Explicar) usa o modelo e os dados dos últimos runs
+    e guarda os cálculos pesados de cada run.
+  - `LaboratoryService` faz as quatro demonstrações do Laboratório (overfitting, taxa de
+    aprendizagem, o k do KNN, regularização), em dados pequenos feitos para mostrar cada
+    ideia.
+- **Interface:**
+  - O ecrã Avaliar tem separadores conforme a tarefa: métricas, matriz de confusão,
+    curvas, onde erra, grupos, silhueta, referência, mapa, pontuações, treino vs. teste,
+    validação cruzada e o que o modelo aprendeu (a árvore aparece escrita como regras).
+  - O Explicar calcula a importância a pedido, a dependência parcial de uma feature e a
+    explicação de uma linha do teste.
+  - O Laboratório tem quatro separadores, cada um com um controlo e o seu efeito
+    imediato.
+- **Testes:** os testes de contrato percorrem os 32 modelos e as 22 métricas. Nos modelos,
+  verificam cada tarefa declarada, a seed, as probabilidades, o treino com e sem
+  observador, o limite de passos, a paragem a pedido e a ficha. O teste de integração da
+  fase 4:
+  - treina todos os modelos de ponta a ponta em dados reais;
+  - confirma que a referência nunca chega ao modelo;
+  - percorre na interface o clustering com referência, a validação cruzada, o Explicar e
+    o Laboratório.

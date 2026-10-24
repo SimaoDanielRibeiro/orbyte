@@ -15,6 +15,7 @@ from ml_lab.core.evaluation.explanations import METRIC_EXPLANATIONS
 from ml_lab.core.evaluation.metrics.base import METRICS, MetricInputs
 from ml_lab.core.evaluation.report import EvaluationReport, MetricResult
 from ml_lab.core.foundation.errors import ModelError
+from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.registry import Registry
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import Features, LabModel, Target
@@ -24,6 +25,9 @@ PRIMARY_METRIC: Final[Mapping[TaskType, str]] = MappingProxyType(
         TaskType.BINARY_CLASSIFICATION: "accuracy",
         TaskType.MULTICLASS_CLASSIFICATION: "accuracy",
         TaskType.REGRESSION: "r2",
+        TaskType.CLUSTERING: "silhouette",
+        TaskType.DIMENSIONALITY_REDUCTION: "trustworthiness",
+        TaskType.ANOMALY_DETECTION: "anomaly_rate",
     }
 )
 """A métrica que resume cada tipo de tarefa (a do "último resultado" e a do overfitting)."""
@@ -77,9 +81,7 @@ def evaluator_for(task_type: TaskType) -> Evaluator:
     """
     found = EVALUATORS.for_task(task_type)
     if not found:
-        raise ModelError(
-            f"Ainda não há avaliador para {task_type.label.lower()}: chega na fase 4 do roadmap."
-        )
+        raise ModelError(f"Ainda não há avaliador para {task_type.label.lower()}.")
     return next(iter(found.values()))()
 
 
@@ -88,7 +90,8 @@ def measure(
 ) -> tuple[tuple[MetricResult, ...], tuple[str, ...]]:
     """Calcula todas as métricas registadas para ``task_type``, cada uma com a sua explicação.
 
-    As métricas que precisam de probabilidades ficam de fora quando o modelo não as dá.
+    As métricas a que falta alguma coisa (as probabilidades de um modelo que não as dá, a
+    coluna de referência de um clustering) ficam de fora.
 
     Args:
         task_type: O tipo de tarefa.
@@ -106,7 +109,7 @@ def measure(
     undefined: list[str] = []
     for name in sorted(METRICS.for_task(task_type), key=rank):
         metric = METRICS.get(name)
-        if metric.needs_proba and inputs.y_proba is None:
+        if not metric.applies_to(inputs):
             continue
         value = metric(inputs)
         if math.isnan(value):
@@ -124,3 +127,17 @@ def measure(
             )
         )
     return tuple(results), tuple(undefined)
+
+
+def undefined_notices(undefined: Sequence[str], partition: Partition, reason: str) -> list[Notice]:
+    """O aviso das métricas que ficaram por definir numa parte dos dados (se houver alguma).
+
+    Args:
+        undefined: Os nomes das métricas indefinidas (o segundo valor de ``measure``).
+        partition: A parte avaliada.
+        reason: Porque é que, nesta tarefa, uma métrica fica por definir.
+    """
+    if not undefined:
+        return []
+    message = f"{', '.join(undefined)}: não está definida no {partition.label.lower()} ({reason})."
+    return [Notice.info("undefined_metric", message)]

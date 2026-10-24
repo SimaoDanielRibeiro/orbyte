@@ -31,11 +31,20 @@ from ml_lab.core.data.transforms.pipeline_builder import TransformConfig
 from ml_lab.core.data.transforms.scaling import ScalingMethod
 from ml_lab.core.data.validation.checks import ValidationReport
 from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport, MetricResult
+from ml_lab.core.evaluation.validation import (
+    CrossValidation,
+    CurvePoint,
+    FoldScore,
+    LearningCurve,
+)
+from ml_lab.core.explainability.partial_dependence import PartialDependence
+from ml_lab.core.explainability.permutation import FeatureImportance, PermutationImportance
 from ml_lab.core.foundation.errors import MLLabError
 from ml_lab.core.foundation.notices import Notice, NoticeLevel
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.services.analysis import AnalysisService, Contribution, RowExplanation
 from ml_lab.core.services.catalog import CatalogService, ModelCard
 from ml_lab.core.services.datasets import (
     ColumnInfo,
@@ -51,11 +60,36 @@ from ml_lab.core.services.datasets import (
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService
 from ml_lab.core.services.explanations import explain
 from ml_lab.core.services.lab import Lab
+from ml_lab.core.services.laboratory import (
+    KnnDemo,
+    LaboratoryService,
+    LearningRateDemo,
+    LossCurve,
+    OverfittingDemo,
+    Points,
+    RegularizationDemo,
+)
 from ml_lab.core.training.jobs import JobStatus, TrainingJob
 from ml_lab.core.training.recorder import Progress, StepRecord
-from ml_lab.core.visualization_data.animation import FieldFrame, PointCloud, TrainingAnimation
+from ml_lab.core.visualization_data.animation import (
+    FieldFrame,
+    Outline,
+    PointCloud,
+    TrainingAnimation,
+)
+from ml_lab.core.visualization_data.embedding import Embedding
+from ml_lab.core.visualization_data.evaluation import (
+    Curve,
+    Dendrogram,
+    Distribution,
+    EvaluationCharts,
+    Residuals,
+    Silhouette,
+    SilhouetteGroup,
+)
 
 __all__ = [
+    "AnalysisService",
     "CatalogService",
     "ClassBalance",
     "CleaningStep",
@@ -64,24 +98,39 @@ __all__ = [
     "ColumnKind",
     "ColumnProfile",
     "ConfusionMatrix",
+    "Contribution",
     "CorrelationMatrix",
+    "CrossValidation",
+    "Curve",
+    "CurvePoint",
     "DatasetProfile",
     "DatasetService",
     "DatasetSummary",
+    "Dendrogram",
+    "Distribution",
+    "Embedding",
+    "EvaluationCharts",
     "EvaluationReport",
     "ExperimentConfig",
     "ExperimentResult",
     "ExperimentService",
     "Explanation",
+    "FeatureImportance",
     "FieldFrame",
+    "FoldScore",
     "GeneratorSummary",
     "GroupMeans",
     "Histogram",
     "Implementation",
     "ImputationStrategy",
     "JobStatus",
+    "KnnDemo",
     "Lab",
+    "LaboratoryService",
+    "LearningCurve",
+    "LearningRateDemo",
     "LineageStep",
+    "LossCurve",
     "MLLabError",
     "MetricResult",
     "MissingMap",
@@ -91,16 +140,26 @@ __all__ = [
     "Notice",
     "NoticeLevel",
     "OperationSummary",
+    "Outline",
+    "OverfittingDemo",
+    "PartialDependence",
     "Partition",
     "PartitionSummary",
+    "PermutationImportance",
     "PointCloud",
+    "Points",
     "PreparationConfig",
     "PreparationSummary",
     "Progress",
     "ProjectionConfig",
     "ProjectionPoints",
+    "RegularizationDemo",
+    "Residuals",
+    "RowExplanation",
     "SampleSummary",
     "ScalingMethod",
+    "Silhouette",
+    "SilhouetteGroup",
     "SourceSpec",
     "SplitConfig",
     "SplitStrategy",

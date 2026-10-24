@@ -35,7 +35,13 @@ def test_generators_produce_usable_data_with_their_defaults(name: str) -> None:
 
     assert table.frame.notna().all().all()
     assert validate_table(table.frame).is_usable
-    assert suggest_task(table.frame, TARGET).task_type is info.task_type
+    suggestion = suggest_task(table.frame, TARGET)
+    # A tarefa para que os dados foram pensados é a sugerida (nas supervisionadas) ou uma
+    # das permitidas, com a coluna target como referência (nas anomalias, por exemplo).
+    if info.task_type.requires_target:
+        assert suggestion.task_type is info.task_type
+    else:
+        assert info.task_type in suggestion.allowed
     defaults = info.resolve({})
     assert len(table.frame) == defaults["n_samples"]
 

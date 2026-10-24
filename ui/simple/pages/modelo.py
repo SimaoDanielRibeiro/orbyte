@@ -44,12 +44,16 @@ def main() -> None:
 
     _catalog(cards)
     by_name = {card.name: card for card in cards}
+    names = list(by_name)
+    suggested = lab.catalog.suggested_model(summary.task_type)
     name = st.selectbox(
         "Modelo a treinar",
-        list(by_name),
+        names,
+        index=names.index(suggested) if suggested in names else 0,
         format_func=lambda option: by_name[option].display_name,
         key=f"modelo.{summary.task_type}",
         persist_state="session",
+        help="Começa pelo sugerido: é a referência que os modelos mais complexos têm de bater.",
     )
     card = by_name[name]
     choose_model(card)

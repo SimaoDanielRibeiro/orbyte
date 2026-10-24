@@ -26,12 +26,13 @@ errar por 1. É por isso que um único ponto muito fora da tendência consegue p
 
 Há duas maneiras de chegar aos melhores pesos.
 
-**De uma vez, pela fórmula dos mínimos quadrados.** O EQM é uma "taça" (uma função quadrática
-dos pesos), e o fundo da taça tem fórmula: $w = (X^\top X)^{-1} X^\top y$. É o que o scikit-learn
-calcula (de forma numericamente mais estável, sem inverter a matriz). Chega ao catálogo na
-fase 4.
+**De uma vez, pela fórmula dos mínimos quadrados** (`linear_regression`, do scikit-learn). O
+EQM é uma "taça" (uma função quadrática dos pesos), e o fundo da taça tem fórmula:
+$w = (X^\top X)^{-1} X^\top y$. O scikit-learn calcula-a de forma numericamente mais estável,
+sem inverter a matriz.
 
-**Aos poucos, por gradiente descendente** (a versão didática do laboratório). Começa com
+**Aos poucos, por gradiente descendente** (`linear_regression_gd`, a versão didática do
+laboratório). Começa com
 $w = 0$ e $b = 0$ e, em cada **época** (uma passagem por todos os exemplos de treino):
 
 1. calcula os resíduos com os pesos atuais: $r_i = \hat y_i - y_i$;
@@ -52,12 +53,19 @@ $R^2 = 0$; um modelo pior do que isso tem $R^2$ negativo.
 
 ## Hiperparâmetros
 
+Nas duas versões:
+
+| Hiperparâmetro | O que controla | Omissão |
+|---|---|---|
+| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a reta é obrigada a passar pela origem) | sim |
+
+Só no gradiente descendente:
+
 | Hiperparâmetro | O que controla | Omissão |
 |---|---|---|
 | `learning_rate` | Tamanho de cada passo do gradiente descendente: pequeno demais arrasta-se, grande demais explode | 0,1 |
 | `max_epochs` | Máximo de passagens pelos dados de treino | 1000 |
 | `tol` | Pára quando o gradiente (medido na escala do alvo) fica abaixo disto: chegou ao fundo | 1e-6 |
-| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a reta é obrigada a passar pela origem) | sim |
 
 ## Quando usar
 
@@ -94,4 +102,9 @@ No ecrã **Treinar**, a versão didática mostra, época a época:
 
 Experimenta a taxa de aprendizagem nos dados sintéticos de regressão: com 0,01 o treino
 arrasta-se e não chega ao fundo nas 1000 épocas; com 0,5 chega lá em pouco mais de 20; com 3
-explode logo nas primeiras épocas, e o treino pára com o aviso "a loss explodiu".
+explode logo nas primeiras épocas, e o treino pára com o aviso "a loss explodiu". A
+demonstração "Taxa de aprendizagem" do ecrã Laboratório desenha o caminho dos pesos na própria
+taça.
+
+A versão do scikit-learn treina de uma vez: compara os pesos das duas no ecrã **Avaliar**. Quando
+o gradiente descendente converge, coincidem.

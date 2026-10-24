@@ -374,3 +374,49 @@ def regression(
         f"(desvio padrão {format_number(noise, 1)})."
     )
     return Generated(_table(points, target, rng), details)
+
+
+@generator(
+    "anomalies",
+    title="Anomalias",
+    description=(
+        "Pontos normais em duas nuvens e alguns pontos espalhados ao acaso à volta delas. A "
+        "coluna target diz quais são as anomalias: escolhe-a como referência, com a tarefa "
+        "deteção de anomalias, para ver se o detetor as encontra sem a ter visto."
+    ),
+    task_type=TaskType.ANOMALY_DETECTION,
+    parameters=(
+        _N_SAMPLES,
+        ParameterSpec(
+            "contamination",
+            "Proporção de anomalias",
+            "number",
+            0.05,
+            0.01,
+            0.3,
+            "Que fração dos pontos são anomalias.",
+        ),
+        ParameterSpec("n_features", "Número de features", "integer", 2, 2, 10),
+    ),
+)
+def anomalies(
+    rng: np.random.Generator, *, n_samples: int, contamination: float, n_features: int
+) -> Generated:
+    """Duas nuvens normais e anomalias uniformes numa caixa um pouco maior do que elas."""
+    n_outliers = max(1, round(n_samples * contamination))
+    n_normal = n_samples - n_outliers
+    centers = rng.uniform(-4, 4, size=(2, n_features))
+    sizes = (n_normal // 2, n_normal - n_normal // 2)
+    normal = np.vstack(
+        [
+            rng.normal(loc=center, scale=0.8, size=(size, n_features))
+            for center, size in zip(centers, sizes, strict=True)
+        ]
+    )
+    outliers = rng.uniform(normal.min(axis=0) - 3, normal.max(axis=0) + 3, (n_outliers, n_features))
+    target = np.array(["normal"] * n_normal + ["anomalia"] * n_outliers)
+    details = (
+        f"{n_outliers} anomalias espalhadas ao acaso; algumas podem cair dentro de uma nuvem, e "
+        "aí nenhum detetor as distingue."
+    )
+    return Generated(_table(np.vstack([normal, outliers]), target, rng), details)

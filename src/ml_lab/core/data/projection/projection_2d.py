@@ -98,6 +98,21 @@ class Projection:
         mapped: NDArray[np.float64] = self.center + plane @ self.loadings
         return mapped
 
+    def project_covariance(self, covariance: NDArray[np.float64]) -> NDArray[np.float64]:
+        """A forma de uma nuvem (a sua matriz de covariância) vista no plano, ``(2, 2)``.
+
+        Na PCA é ``L Σ Lᵀ`` (``L`` são os pesos dos dois eixos); na projeção por colunas, é a
+        parte da matriz que diz respeito às duas features escolhidas.
+        """
+        if self.method == "columns" and self.column_positions is not None:
+            positions = list(self.column_positions)
+            selected: NDArray[np.float64] = covariance[np.ix_(positions, positions)]
+            return selected
+        if self.loadings is None:
+            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+        projected: NDArray[np.float64] = self.loadings @ covariance @ self.loadings.T
+        return projected
+
 
 def project_2d(
     matrices: Mapping[Partition, NDArray[np.float64]],

@@ -21,24 +21,24 @@ REGRESSION = (TaskType.REGRESSION,)
 @metric("r2", display_name="R²", task_types=REGRESSION, higher_is_better=True)
 def r2(inputs: MetricInputs) -> float:
     """Proporção da variação do alvo que o modelo explica (1 é perfeito, 0 é prever a média)."""
-    if len(inputs.y_true) < 2 or float(np.var(inputs.y_true)) == 0.0:
+    if len(inputs.truth) < 2 or float(np.var(inputs.truth)) == 0.0:
         return math.nan  # com um só valor (ou todos iguais), não há variação para explicar
-    return float(sk.r2_score(inputs.y_true, inputs.y_pred))
+    return float(sk.r2_score(inputs.truth, inputs.predicted))
 
 
 @metric("rmse", display_name="RMSE", task_types=REGRESSION, higher_is_better=False)
 def rmse(inputs: MetricInputs) -> float:
     """Raiz do MSE: um erro "típico", nas unidades do alvo."""
-    return float(np.sqrt(sk.mean_squared_error(inputs.y_true, inputs.y_pred)))
+    return float(np.sqrt(sk.mean_squared_error(inputs.truth, inputs.predicted)))
 
 
 @metric("mae", display_name="MAE", task_types=REGRESSION, higher_is_better=False)
 def mae(inputs: MetricInputs) -> float:
     """Média do valor absoluto dos erros, nas unidades do alvo."""
-    return float(sk.mean_absolute_error(inputs.y_true, inputs.y_pred))
+    return float(sk.mean_absolute_error(inputs.truth, inputs.predicted))
 
 
 @metric("mse", display_name="MSE", task_types=REGRESSION, higher_is_better=False)
 def mse(inputs: MetricInputs) -> float:
     """Média dos erros ao quadrado: a loss que a regressão linear minimiza."""
-    return float(sk.mean_squared_error(inputs.y_true, inputs.y_pred))
+    return float(sk.mean_squared_error(inputs.truth, inputs.predicted))

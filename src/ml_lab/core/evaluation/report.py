@@ -22,7 +22,7 @@ class MetricResult:
         name: Identificador da métrica.
         display_name: Nome a mostrar.
         value: O valor; ``None`` se não estiver definido para estes dados.
-        higher_is_better: Se maior é melhor.
+        higher_is_better: Se maior é melhor; ``None`` nas métricas que só descrevem.
         as_percent: Se se mostra como percentagem.
         what: O que mede.
         how_to_read: Como se lê.
@@ -31,7 +31,7 @@ class MetricResult:
     name: str
     display_name: str
     value: float | None
-    higher_is_better: bool
+    higher_is_better: bool | None
     as_percent: bool
     what: str
     how_to_read: str
@@ -41,7 +41,11 @@ class MetricResult:
         """O valor escrito à portuguesa (``96,7%``, ``0,12``) ou ``—`` se não existir."""
         if self.value is None or math.isnan(self.value):
             return "—"
-        return format_percent(self.value) if self.as_percent else format_number(self.value, 3)
+        if self.as_percent:
+            return format_percent(self.value)
+        if self.value.is_integer() and self.higher_is_better is None:  # contagens: 3 grupos
+            return format_number(self.value, 0)
+        return format_number(self.value, 3)
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,13 +53,22 @@ class ConfusionMatrix:
     """Quantos exemplos de cada classe real foram previstos como cada classe.
 
     Attributes:
-        labels: As classes, pela mesma ordem nas linhas e nas colunas.
+        labels: As classes reais (as linhas) e, se ``column_labels`` estiver vazio, também as
+            previstas (as colunas).
         counts: ``counts[i][j]`` exemplos da classe real ``labels[i]`` previstos como
-            ``labels[j]``. A diagonal são os acertos.
+            a coluna ``j``. Com as mesmas classes nos dois lados, a diagonal são os acertos.
+        column_labels: Os nomes das colunas, quando não são as mesmas classes (no
+            clustering, os grupos encontrados contra as classes da coluna de referência).
     """
 
     labels: tuple[str, ...]
     counts: tuple[tuple[int, ...], ...]
+    column_labels: tuple[str, ...] = ()
+
+    @property
+    def columns(self) -> tuple[str, ...]:
+        """Os nomes das colunas."""
+        return self.column_labels or self.labels
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,10 +97,14 @@ class EvaluationReport:
         Raises:
             ComponentNotFoundError: Se a métrica não fizer parte do relatório.
         """
-        for result in self.metrics:
-            if result.name == name:
-                return result
-        raise ComponentNotFoundError("metrics", name, [m.name for m in self.metrics])
+        result = self.find(name)
+        if result is None:
+            raise ComponentNotFoundError("metrics", name, [m.name for m in self.metrics])
+        return result
+
+    def find(self, name: str) -> MetricResult | None:
+        """O resultado de uma métrica, ou ``None`` se ficou de fora do relatório."""
+        return next((result for result in self.metrics if result.name == name), None)
 
     def values(self) -> dict[str, float | None]:
         """O valor de cada métrica, pelo nome."""
@@ -104,6 +121,7 @@ class EvaluationReport:
             if self.confusion_matrix is None
             else {
                 "labels": list(self.confusion_matrix.labels),
+                "columns": list(self.confusion_matrix.columns),
                 "counts": [list(row) for row in self.confusion_matrix.counts],
             },
         }

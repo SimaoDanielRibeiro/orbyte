@@ -5,8 +5,10 @@ implementação, capacidades, o JSON Schema dos hiperparâmetros (de onde as int
 geram o formulário) e o texto da ficha didática.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final
 
 from ml_lab.config import Settings, get_settings
@@ -14,6 +16,18 @@ from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.models.base import MODELS, Implementation, LabModel, ModelFamily
 
 DOCS_FOLDER: Final = Path("docs") / "algorithms"
+
+SUGGESTED_MODELS: Final[Mapping[TaskType, str]] = MappingProxyType(
+    {
+        TaskType.BINARY_CLASSIFICATION: "logistic_regression",
+        TaskType.MULTICLASS_CLASSIFICATION: "logistic_regression",
+        TaskType.REGRESSION: "linear_regression",
+        TaskType.CLUSTERING: "kmeans",
+        TaskType.DIMENSIONALITY_REDUCTION: "pca",
+        TaskType.ANOMALY_DETECTION: "isolation_forest",
+    }
+)
+"""O primeiro modelo a experimentar em cada tarefa: a referência que os outros têm de bater."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,10 +72,15 @@ class CatalogService:
         self._docs = (settings or get_settings()).home / DOCS_FOLDER
 
     def models(self, task_type: TaskType | None = None) -> list[ModelCard]:
-        """Os modelos (só os que resolvem ``task_type``, se for dado), pelo nome a mostrar."""
+        """Os modelos (só os que resolvem ``task_type``, se for dado), por família e nome."""
         found = MODELS.for_task(task_type) if task_type is not None else dict(MODELS.items())
         cards = [self._card(model) for model in found.values()]
-        return sorted(cards, key=lambda card: (card.family, card.display_name))
+        return sorted(cards, key=lambda card: (card.family.order, card.display_name))
+
+    def suggested_model(self, task_type: TaskType) -> str | None:
+        """O primeiro modelo a experimentar para ``task_type`` (o mais simples que funciona bem)."""
+        name = SUGGESTED_MODELS.get(task_type)
+        return name if name in MODELS.for_task(task_type) else None
 
     def model(self, name: str) -> ModelCard:
         """O cartão de um modelo.

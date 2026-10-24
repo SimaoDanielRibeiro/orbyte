@@ -93,6 +93,13 @@ def test_results_are_formatted_the_portuguese_way() -> None:
     assert MetricResult("d", "D", float("nan"), True, False, "", "").formatted == "—"
 
 
+def test_counts_are_shown_without_decimals() -> None:
+    # Uma métrica que só descreve (o número de grupos) é uma contagem: "3", não "3,000".
+    assert MetricResult("n", "N", 3.0, None, False, "", "").formatted == "3"
+    assert MetricResult("s", "S", 3.0, True, False, "", "").formatted == "3,000"
+    assert MetricResult("r", "R", 0.25, None, False, "", "").formatted == "0,250"
+
+
 def test_reports_find_metrics_and_become_plain_json() -> None:
     result = report(Partition.TRAIN, 0.8)
 
@@ -174,8 +181,9 @@ def test_each_task_type_gets_its_evaluator() -> None:
     assert isinstance(evaluator_for(TaskType.REGRESSION), RegressionEvaluator)
     assert PRIMARY_METRIC[TaskType.MULTICLASS_CLASSIFICATION] == "accuracy"
     assert PRIMARY_METRIC[TaskType.REGRESSION] == "r2"
-    with pytest.raises(ModelError, match="fase 4"):
-        evaluator_for(TaskType.CLUSTERING)
+    for task_type in TaskType:  # desde a fase 4, todos os tipos de tarefa têm avaliador
+        assert task_type in evaluator_for(task_type).task_types
+        assert task_type in PRIMARY_METRIC
 
 
 # --- diagnóstico ---------------------------------------------------------------------

@@ -95,4 +95,4 @@ def test_the_training_screen_replays_the_boundary() -> None:
     animation, loss = (json.loads(chart.proto.spec) for chart in app.get("plotly_chart"))
     assert len(animation["frames"]) > 1
     assert animation["layout"]["sliders"][0]["steps"]
-    assert loss["data"][0]["name"] == "Loss (treino)"
+    assert loss["data"][0]["name"] == "Loss"

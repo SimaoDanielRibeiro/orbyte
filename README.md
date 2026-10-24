@@ -15,8 +15,9 @@ razões estão em [docs/adr/](docs/adr/).
 | 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Dados, Explorar e Preparar | ✅ concluída |
 | 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação de classificação, serviço de experiências; ecrãs Modelo e Avaliar | ✅ concluída |
 | 3 — Eventos e snapshots | Contexto de treino, snapshots com a fronteira de decisão, treino em segundo plano, regressões didáticas em NumPy, avaliação de regressão; ecrã Treinar | ✅ concluída |
-| 4 — Catálogo clássico | Todos os modelos supervisionados e não supervisionados, avaliadores, diagnósticos, validação cruzada, importância das features; ecrãs Avaliar (completo), Explicar e Laboratório | próxima |
-| 5 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+| 4 — Catálogo clássico | 32 modelos supervisionados e não supervisionados, avaliadores de todas as tarefas, diagnósticos, validação cruzada, explicações das previsões; ecrãs Avaliar (completo), Explicar e Laboratório | ✅ concluída |
+| 5 — Memória | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs; ecrã Experiências | próxima |
+| 6 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
 
 ## Requisitos
 
@@ -66,6 +67,27 @@ No ecrã **Treinar**, carrega em "▶ Reproduzir" e vê a fronteira a mover-se �
 a loss a descer. Experimenta taxas de aprendizagem diferentes: com 0,05 o treino arrasta-se;
 com 50 a fronteira salta de um lado para o outro. Com treinos longos (California Housing com
 a regressão linear e 20 000 épocas), o ecrã mostra o progresso ao vivo, com Pausar e Parar.
+
+Para avaliar a fundo e explicar, treina um classificador e abre o ecrã **Avaliar**. Tens a
+matriz de confusão, as curvas ROC e de precisão-recall e os pontos onde o modelo erra, no
+plano. No separador "Validação cruzada", o botão "Calcular" treina o modelo 5 vezes e
+desenha a curva de aprendizagem. O ecrã **Explicar** mostra três coisas: que features o
+modelo usa (importância por permutação), como a previsão muda com cada uma (dependência
+parcial) e porque saiu uma previsão concreta.
+
+Para aprender sem alvo, carrega o Iris e, em **Preparar**, mantém o alvo `species` mas
+escolhe a tarefa "Clustering". A coluna deixa de entrar no treino e fica como referência.
+Treina a "Mistura de gaussianas" e vê as elipses a ajustarem-se, iteração a iteração; no
+**Avaliar**, o separador "Referência" mostra se os grupos encontrados correspondem às
+espécies. Para anomalias, gera o exemplo sintético "Anomalias", escolhe a tarefa "Deteção
+de anomalias" e treina o Isolation Forest. O separador "Pontuações" mostra as anomalias
+verdadeiras de um lado e do outro do limiar.
+
+O ecrã **Laboratório** tem quatro demonstrações, cada uma com um só controlo:
+- o grau do polinómio e o overfitting;
+- a taxa de aprendizagem do gradiente descendente;
+- o k do KNN;
+- a força da regularização na Ridge e no Lasso.
 
 ## Testes e verificações
 

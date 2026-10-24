@@ -173,11 +173,36 @@ def test_impossible_configurations_are_explained(
         prepare(table(frame), classification(**overrides), seeds=SeedManager(0))
 
 
-def test_stratification_is_only_for_classification(numbers: pd.DataFrame) -> None:
+def test_stratification_needs_classes(numbers: pd.DataFrame) -> None:
     config = PreparationConfig(target="y", split=SplitConfig(SplitStrategy.STRATIFIED))
 
-    with pytest.raises(InvalidParameterError, match="só serve para classificação"):
+    with pytest.raises(InvalidParameterError, match="precisa de classes"):
         prepare(table(numbers), config, seeds=SeedManager(0))
+
+
+def test_a_reference_column_stratifies_like_a_target(passengers: pd.DataFrame) -> None:
+    # A referência não entra no treino, mas reparte as linhas como o alvo repartiria.
+    supervised = prepare(table(passengers), classification(), seeds=SeedManager(0)).dataset
+    clustering = prepare(
+        table(passengers), classification(task_type=TaskType.CLUSTERING), seeds=SeedManager(0)
+    ).dataset
+
+    assert clustering.task_type is TaskType.CLUSTERING
+    assert np.array_equal(clustering.test.rows, supervised.test.rows)
+    assert "Survived" not in clustering.feature_names
+
+
+def test_in_anomaly_detection_the_rarest_reference_class_is_number_one() -> None:
+    # Por ordem alfabética, «anomalia» seria a classe 0; por ser a mais rara, fica com o 1
+    # em todas as partes, que é o que "1 = anomalia" quer dizer nos avaliadores.
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame({"x": rng.normal(size=40), "kind": ["anomalia"] * 6 + ["normal"] * 34})
+    config = PreparationConfig(target="kind", task_type=TaskType.ANOMALY_DETECTION)
+
+    dataset = prepare(table(frame), config, seeds=SeedManager(0)).dataset
+
+    assert dataset.class_labels == ("normal", "anomalia")
+    assert sum(int(split.y.sum()) for split in dataset.splits.values() if split.y is not None) == 6
 
 
 def test_regression_targets_stay_as_numbers(numbers: pd.DataFrame) -> None:

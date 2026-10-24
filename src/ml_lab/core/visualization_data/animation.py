@@ -1,10 +1,12 @@
-"""Animação do treino: a fronteira de decisão (ou a reta da regressão) em cada snapshot.
+"""Animação do treino: o campo do modelo (fronteira, grupos, previsão) em cada snapshot.
 
 Cada snapshot traz as previsões do modelo nos pontos da sonda. Aqui essas previsões
 viram "campos" prontos a desenhar, um por snapshot: a probabilidade da classe positiva
-(classificação binária), a classe prevista (multiclasse) ou o valor previsto
-(regressão). Junta-se a nuvem dos pontos de treino, para se ver a fronteira a
-separá-los. Só números: desenhar é com a interface (regra das duas interfaces).
+(classificação binária), a classe ou o grupo previsto (multiclasse, clustering), a
+pontuação de anomalia ou o valor previsto (regressão). Se o estado do modelo tiver
+centros (centróides, médias de cada classe) e covariâncias (as nuvens de uma mistura
+gaussiana), vão também para o plano, como pontos e elipses. Junta-se a nuvem dos pontos
+de treino. Só números: desenhar é com a interface (regra das duas interfaces).
 """
 
 from collections.abc import Mapping, Sequence
@@ -15,13 +17,32 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ml_lab.core.data.dataset import Dataset
-from ml_lab.core.foundation.types import Partition
+from ml_lab.core.data.projection.projection_2d import Projection
+from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.visualization_data.grid import ProbeGrid
 
-type ValueKind = Literal["probability", "class", "value"]
+type ValueKind = Literal["probability", "class", "value", "score"]
+"""O que os valores do campo são: probabilidade, classe (ou grupo), valor previsto ou
+pontuação de anomalia."""
 
 MAX_POINTS: Final = 800
 """Pontos de treino desenhados por baixo da fronteira, no máximo."""
+
+ELLIPSE_POINTS: Final = 60
+"""Pontos do contorno de cada elipse."""
+
+ELLIPSE_SIGMAS: Final = 2.0
+"""As elipses mostram a zona a dois desvios padrão do centro (cerca de 86% da nuvem, em 2D)."""
+
+NOISE_LABEL: Final = "Ruído"
+
+
+@dataclass(frozen=True, slots=True)
+class Outline:
+    """Um contorno fechado no plano (por exemplo, uma elipse), ponto a ponto."""
+
+    x: tuple[float, ...]
+    y: tuple[float, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,11 +53,15 @@ class FieldFrame:
         step: O passo (0 para o modelo final de um modelo que treina de uma vez).
         values: Os valores da grelha, por linhas (em 1D, uma só linha).
         loss: A loss nesse passo, se o modelo a anunciou.
+        centers: Os centros do modelo no plano (centróides, médias), se os tiver.
+        outlines: As elipses das nuvens do modelo, se as tiver.
     """
 
     step: int
     values: tuple[tuple[float, ...], ...]
     loss: float | None = None
+    centers: tuple[tuple[float, float], ...] = ()
+    outlines: tuple[Outline, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +71,7 @@ class PointCloud:
     Attributes:
         x: Coordenada horizontal.
         y: Coordenada vertical (em 1D, o alvo).
-        labels: Na classificação, a classe de cada ponto.
+        labels: A classe de cada ponto (do alvo, ou da coluna de referência).
         values: Na regressão, o valor do alvo de cada ponto.
     """
 
@@ -61,15 +86,18 @@ class TrainingAnimation:
     """Tudo o que é preciso para animar o treino.
 
     Attributes:
-        dimensions: 2 (fronteira no plano) ou 1 (curva ao longo de uma feature).
+        dimensions: 2 (campo no plano) ou 1 (curva ao longo de uma feature).
         value_kind: O que os valores do campo são.
         value_label: O nome a mostrar para os valores.
         xs: A grelha no eixo horizontal.
         ys: A grelha no eixo vertical (vazio em 1D).
         axis_labels: O nome de cada eixo.
-        class_labels: Na classificação, o nome de cada classe.
+        class_labels: O nome das classes dos pontos (do alvo ou da referência).
         frames: Um campo por snapshot, por ordem de passo.
         points: Os pontos de treino.
+        field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é
+            ``field_labels[k]``): as classes, ou os grupos do clustering.
+        noise: Se a última categoria do campo é o ruído (pontos sem grupo).
     """
 
     dimensions: int
@@ -81,6 +109,8 @@ class TrainingAnimation:
     class_labels: tuple[str, ...]
     frames: tuple[FieldFrame, ...]
     points: PointCloud
+    field_labels: tuple[str, ...] = ()
+    noise: bool = False
 
     @property
     def animated(self) -> bool:
@@ -109,23 +139,31 @@ def build_animation(
     Returns:
         A animação, ou ``None`` se nenhum snapshot tiver previsões na sonda.
     """
-    frames: list[FieldFrame] = []
+    fields: list[tuple[int, NDArray[np.float64], Mapping[str, Any]]] = []
     kind: ValueKind = "value"
     for step, state in snapshots:
         probe = state.get("probe")
         if probe is None:
             continue
         field, kind = _field(np.asarray(probe, dtype=np.float64), dataset, classes)
-        rows = field.reshape(grid.shape)
+        fields.append((step, field, state))
+    if not fields:
+        return None
+    field_labels, noise = _categories(kind, dataset, [field for _, field, _ in fields])
+    projection = dataset.projection if grid.dimensions == 2 else None
+    frames = []
+    for step, field, state in fields:
+        if noise:  # o ruído (-1) passa a ser a última categoria
+            field = np.where(field < 0, len(field_labels) - 1, field)
         frames.append(
             FieldFrame(
                 step=step,
-                values=tuple(tuple(float(v) for v in row) for row in rows),
+                values=tuple(tuple(float(v) for v in row) for row in field.reshape(grid.shape)),
                 loss=(losses or {}).get(step),
+                centers=_centers(state, projection),
+                outlines=_outlines(state, projection),
             )
         )
-    if not frames:
-        return None
     return TrainingAnimation(
         dimensions=grid.dimensions,
         value_kind=kind,
@@ -136,6 +174,8 @@ def build_animation(
         class_labels=dataset.class_labels,
         frames=tuple(frames),
         points=_points(dataset, grid),
+        field_labels=field_labels,
+        noise=noise,
     )
 
 
@@ -143,7 +183,15 @@ def _field(
     probe: NDArray[np.float64], dataset: Dataset, classes: NDArray[np.int64] | None
 ) -> tuple[NDArray[np.float64], ValueKind]:
     """Os valores a desenhar em cada ponto da sonda, e o que significam."""
-    if not dataset.task_type.is_classification:
+    task = dataset.task_type
+    if task is TaskType.CLUSTERING:
+        groups = (
+            np.argmax(probe, axis=1) if probe.ndim == 2 else probe
+        )  # a mistura dá probabilidades
+        return groups.astype(np.float64), "class"
+    if task is TaskType.ANOMALY_DETECTION:
+        return probe.reshape(-1), "score"
+    if not task.is_classification:
         return probe.reshape(-1), "value"
     if probe.ndim == 1:  # o modelo não dá probabilidades: só a classe prevista
         return probe, "class"
@@ -156,12 +204,63 @@ def _field(
     return seen[np.argmax(probe, axis=1)].astype(np.float64), "class"
 
 
+def _categories(
+    kind: ValueKind, dataset: Dataset, fields: Sequence[NDArray[np.float64]]
+) -> tuple[tuple[str, ...], bool]:
+    """O nome de cada valor do campo, quando são categorias, e se há ruído."""
+    if kind != "class":
+        return (), False
+    if dataset.task_type is not TaskType.CLUSTERING:
+        return dataset.class_labels, False
+    largest = max(int(field.max()) for field in fields)
+    names = tuple(f"Grupo {group + 1}" for group in range(largest + 1))
+    noise = any(bool((field < 0).any()) for field in fields)
+    return ((*names, NOISE_LABEL) if noise else names), noise
+
+
 def _value_label(kind: ValueKind, dataset: Dataset) -> str:
+    task = dataset.task_type
     if kind == "probability":
         return f"Probabilidade de «{dataset.class_labels[1]}»"
+    if task is TaskType.CLUSTERING:
+        return "Grupo previsto"
     if kind == "class":
         return "Classe prevista"
+    if task is TaskType.ANOMALY_DETECTION:
+        return "Pontuação de anomalia"
     return f"Previsão de {dataset.target_name}" if dataset.target_name else "Previsão"
+
+
+def _centers(
+    state: Mapping[str, Any], projection: Projection | None
+) -> tuple[tuple[float, float], ...]:
+    """Os centros do modelo (``state["centers"]``, no espaço das features) levados ao plano."""
+    centers = state.get("centers")
+    if projection is None or not centers:
+        return ()
+    plane = projection.project(np.asarray(centers, dtype=np.float64))
+    return tuple((float(x), float(y)) for x, y in plane)
+
+
+def _outlines(state: Mapping[str, Any], projection: Projection | None) -> tuple[Outline, ...]:
+    """As elipses das nuvens (``state["centers"]`` e ``state["covariances"]``) no plano."""
+    centers, covariances = state.get("centers"), state.get("covariances")
+    if projection is None or not centers or not covariances:
+        return ()
+    plane = projection.project(np.asarray(centers, dtype=np.float64))
+    angles = np.linspace(0, 2 * np.pi, ELLIPSE_POINTS)
+    circle = np.vstack([np.cos(angles), np.sin(angles)])
+    outlines = []
+    for center, covariance in zip(plane, covariances, strict=True):
+        shape = projection.project_covariance(np.asarray(covariance, dtype=np.float64))
+        values, vectors = np.linalg.eigh(shape)
+        # Cada direção própria esticada pelo desvio padrão nessa direção.
+        axes = vectors * (ELLIPSE_SIGMAS * np.sqrt(np.maximum(values, 0.0)))
+        contour = center[:, None] + axes @ circle
+        outlines.append(
+            Outline(tuple(float(v) for v in contour[0]), tuple(float(v) for v in contour[1]))
+        )
+    return tuple(outlines)
 
 
 def _points(dataset: Dataset, grid: ProbeGrid) -> PointCloud:

@@ -19,6 +19,10 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0012](0012-contrato-labmodel-e-avaliacao.md) | Contrato LabModel completo desde a fase 2, e avaliação por registos | Proposta |
 | [0013](0013-sonda-de-previsoes-e-snapshots-amostrados.md) | Sonda de previsões e snapshots amostrados | Proposta |
 | [0014](0014-treino-em-segundo-plano-com-fios-e-controlo.md) | Treino em segundo plano, com um fio de execução e um controlo | Proposta |
+| [0015](0015-tarefas-sem-alvo-e-coluna-de-referencia.md) | Tarefas sem alvo no mesmo contrato, com uma coluna de referência para comparar | Proposta |
+| [0016](0016-validacao-cruzada-com-a-preparacao-em-cada-fold.md) | Validação cruzada com as transformações aprendidas de novo em cada fold | Proposta |
+| [0017](0017-modelos-do-scikit-learn-que-crescem.md) | Modelos do scikit-learn que se mostram a crescer, com o mesmo resultado final | Proposta |
+| [0018](0018-explicacoes-independentes-do-modelo.md) | Explicações independentes do modelo, escritas em NumPy | Proposta |
 
 ## Como escrever uma ADR
 

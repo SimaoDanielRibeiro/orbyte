@@ -24,12 +24,18 @@ from ml_lab.config import Settings, get_settings
 from ml_lab.core.data.boundary import TablePreview, preview
 from ml_lab.core.data.cleaning.base import CLEANING
 from ml_lab.core.data.cleaning.suggestions import CleaningSuggestion, suggest_cleaning
+from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.data.io.base import LoadedTable, SourceSpec, open_source
 from ml_lab.core.data.io.builtin_source import SAMPLES
 from ml_lab.core.data.io.file_source import FileSource
 from ml_lab.core.data.io.synthetic_source import GENERATORS
 from ml_lab.core.data.lineage import LineageStep
-from ml_lab.core.data.preparation import PreparationConfig, PreparedData, prepare
+from ml_lab.core.data.preparation import (
+    PreparationConfig,
+    PreparedData,
+    prepare,
+    prepare_folds,
+)
 from ml_lab.core.data.profiling.column_profile import ValueCount
 from ml_lab.core.data.profiling.dataset_profile import DatasetProfile, profile_dataset
 from ml_lab.core.data.profiling.type_inference import infer_types
@@ -368,6 +374,17 @@ class DatasetService:
         with self._lock:
             entry.prepared = {key: result}  # só a última: as preparações ocupam memória
         return result
+
+    def folds(
+        self, spec: SourceSpec, config: PreparationConfig, seed: int, k: int
+    ) -> tuple[Dataset, ...]:
+        """Os dados preparados para a validação cruzada: um ``Dataset`` por fold.
+
+        O teste da divisão normal fica de fora; o treino parte-se em ``k`` folds, e as
+        transformações aprendem de novo em cada um (ver ``prepare_folds``).
+        """
+        summary = self.load(spec)
+        return prepare_folds(self._entry(summary.id).table, config, seeds=SeedManager(seed), k=k)
 
     def prepare(self, dataset_id: str, config: PreparationConfig, seed: int) -> PreparationSummary:
         """Prepara o dataset e resume o resultado para o ecrã Preparar.

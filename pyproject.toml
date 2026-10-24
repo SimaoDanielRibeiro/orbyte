@@ -71,8 +71,9 @@ ignore = [
     "D107", # os argumentos de __init__ documentam-se na docstring da classe
 ]
 
-# O sinal de multiplicação aparece nas dimensões das tabelas ("891 × 12"), de propósito.
-allowed-confusables = ["×"]
+# O sinal de multiplicação aparece nas dimensões das tabelas ("891 × 12") e o sinal de menos
+# tipográfico nas fórmulas dos eixos ("real − previsto"), de propósito.
+allowed-confusables = ["×", "−"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

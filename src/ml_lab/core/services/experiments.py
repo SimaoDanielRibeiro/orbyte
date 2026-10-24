@@ -48,6 +48,7 @@ from ml_lab.core.training.jobs import TrainingJob
 from ml_lab.core.training.recorder import SnapshotRecorder, StepRecord
 from ml_lab.core.training.trainer import Trainer, TrainingOutcome
 from ml_lab.core.visualization_data.animation import TrainingAnimation, build_animation
+from ml_lab.core.visualization_data.embedding import Embedding, embedding_map
 from ml_lab.core.visualization_data.grid import ProbeGrid, probe_grid
 from ml_lab.formatting import format_count
 from ml_lab.logging import get_logger
@@ -102,6 +103,7 @@ class ExperimentResult:
     stopped_early: bool = False
     animation: TrainingAnimation | None = None
     training_notices: tuple[Notice, ...] = ()
+    embedding: Embedding | None = None
 
     @property
     def seed(self) -> int:
@@ -119,7 +121,7 @@ class ExperimentResult:
         """A métrica principal no teste (por exemplo, a exatidão)."""
         name = PRIMARY_METRIC.get(self.task_type)
         test = self.reports.get(Partition.TEST)
-        return None if name is None or test is None else test.metric(name)
+        return None if name is None or test is None else test.find(name)
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -258,7 +260,10 @@ class ExperimentService:
             config=config,
             model=model_class(hyperparameters, seed=seeds.seed_for(MODEL_SEED)),
             dataset=dataset,
-            grid=probe_grid(dataset) if dataset.task_type.requires_target else None,
+            # A redução de dimensionalidade não tem campo para desenhar: o resultado é o mapa.
+            grid=None
+            if dataset.task_type is TaskType.DIMENSIONALITY_REDUCTION
+            else probe_grid(dataset),
             sampler=sampler,
             recorder=SnapshotRecorder(run_id, sampler),
         )
@@ -274,12 +279,14 @@ class ExperimentService:
                 n_features=dataset.n_features,
             )
         )
+        # Nas tarefas sem alvo, uma coluna-alvo é só referência: nunca chega ao treino.
+        target = dataset.train.y if dataset.task_type.requires_target else None
         start = time.perf_counter()
         try:
             outcome = Trainer(self._bus).train(
                 plan.model,
                 dataset.train.X,
-                dataset.train.y,
+                target,
                 run_id=plan.run_id,
                 sampler=plan.sampler,
                 probe=plan.grid.points if plan.grid is not None else None,
@@ -358,6 +365,11 @@ class ExperimentService:
                 losses={record.step: record.loss for record in history},
                 classes=model.classes(),
             )
+        embedding = None
+        if dataset.task_type is TaskType.DIMENSIONALITY_REDUCTION:
+            # Na PCA, os eixos são as componentes que aprendeu; no t-SNE, não têm significado.
+            axis = "Componente" if "components" in model.state() else "Dimensão"
+            embedding = embedding_map(dataset, model.transform(dataset.train.X), axis)
         training = list(model.notices)
         if outcome.stopped_early:
             training.insert(
@@ -386,6 +398,7 @@ class ExperimentService:
             stopped_early=outcome.stopped_early,
             animation=animation,
             training_notices=tuple(training),
+            embedding=embedding,
         )
 
     def _keep(self, run_id: str, artifacts: RunArtifacts) -> None:

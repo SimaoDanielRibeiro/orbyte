@@ -36,9 +36,13 @@ class TrainingContext(Protocol):
     Attributes:
         probe: Pontos (no espaço das features) onde se querem as previsões em cada
             snapshot, ou ``None``.
+        observed: Se alguém está a acompanhar o treino passo a passo. Um modelo que só
+            treina por passos para os mostrar (uma árvore a crescer por profundidade) pode
+            treinar de uma vez quando ninguém está a ver; o resultado tem de ser o mesmo.
     """
 
     probe: NDArray[np.float64] | None
+    observed: bool
 
     def report_step(
         self, step: int, *, loss: float | None = None, metrics: Mapping[str, float] | None = None
@@ -59,6 +63,7 @@ class NullTrainingContext:
     """Contexto que ignora tudo, não quer snapshots e nunca pede para parar."""
 
     probe: NDArray[np.float64] | None = None
+    observed: bool = False
 
     def report_step(
         self, step: int, *, loss: float | None = None, metrics: Mapping[str, float] | None = None
@@ -89,6 +94,7 @@ class RecordingTrainingContext(NullTrainingContext):
         self, probe: NDArray[np.float64] | None = None, *, stop_after: int | None = None
     ) -> None:
         self.probe = probe
+        self.observed = True
         self.steps: list[tuple[int, float | None, dict[str, float]]] = []
         self.snapshots: list[tuple[int, dict[str, Any]]] = []
         self._stop_after = stop_after
@@ -161,6 +167,7 @@ class EventTrainingContext:
         control: TrainingControl | None = None,
     ) -> None:
         self.probe = probe
+        self.observed = True
         self.last_step = 0
         self.last_snapshot_step: int | None = None
         self._bus = bus

@@ -40,14 +40,28 @@ type Target = NDArray[np.int64] | NDArray[np.float64]
 
 
 class ModelFamily(StrEnum):
-    """Família do modelo, para agrupar o catálogo. Cresce com os modelos da fase 4."""
+    """Família do modelo, para agrupar o catálogo (pela ordem em que aparecem aqui)."""
 
     LINEAR = "linear"
+    INSTANCE_BASED = "instance_based"
+    PROBABILISTIC = "probabilistic"
+    TREE = "tree"
+    ENSEMBLE = "ensemble"
+    KERNEL = "kernel"
+    CENTROID = "centroid"
+    DENSITY = "density"
+    HIERARCHICAL = "hierarchical"
+    PROJECTION = "projection"
 
     @property
     def label(self) -> str:
         """Nome a mostrar, em português."""
         return _FAMILY_LABELS[self]
+
+    @property
+    def order(self) -> int:
+        """A posição da família no catálogo."""
+        return list(ModelFamily).index(self)
 
 
 class Implementation(StrEnum):
@@ -63,7 +77,18 @@ class Implementation(StrEnum):
 
 
 _FAMILY_LABELS: Final[Mapping[ModelFamily, str]] = MappingProxyType(
-    {ModelFamily.LINEAR: "Modelos lineares"}
+    {
+        ModelFamily.LINEAR: "Modelos lineares",
+        ModelFamily.INSTANCE_BASED: "Baseados em instâncias",
+        ModelFamily.PROBABILISTIC: "Modelos probabilísticos",
+        ModelFamily.TREE: "Árvores de decisão",
+        ModelFamily.ENSEMBLE: "Ensembles (conjuntos de modelos)",
+        ModelFamily.KERNEL: "Métodos de kernel",
+        ModelFamily.CENTROID: "Baseados em centróides",
+        ModelFamily.DENSITY: "Baseados em densidade",
+        ModelFamily.HIERARCHICAL: "Hierárquicos",
+        ModelFamily.PROJECTION: "Projeções",
+    }
 )
 _IMPLEMENTATION_LABELS: Final[Mapping[Implementation, str]] = MappingProxyType(
     {Implementation.DIDACTIC: "Didática (NumPy)", Implementation.SKLEARN: "scikit-learn"}
@@ -87,6 +112,8 @@ class ModelInfo:
         doc: A ficha didática, em ``docs/algorithms/``.
         step_limit: Nos modelos iterativos, o hiperparâmetro que limita o número de passos
             (por exemplo ``max_epochs``): é o que permite mostrar uma barra de progresso.
+        supports_new_data: Se sabe prever (ou projetar) linhas que não viu no treino. O
+            t-SNE, por exemplo, só coloca no mapa os pontos com que treinou.
     """
 
     name: str
@@ -100,6 +127,7 @@ class ModelInfo:
     hyperparameters: type[Hyperparameters]
     doc: str
     step_limit: str | None = None
+    supports_new_data: bool = True
 
 
 class LabModel[P: Hyperparameters](ABC):
@@ -167,9 +195,44 @@ class LabModel[P: Hyperparameters](ABC):
         return self
 
     def predict(self, X: Features) -> NDArray[Any]:
-        """Previsões para ``X``: classes (0, 1, 2…) ou valores, conforme a tarefa."""
+        """Previsões para ``X``, conforme a tarefa.
+
+        Na classificação, a classe (0, 1, 2…); na regressão, o valor; no clustering, o grupo
+        (-1 para os pontos que não pertencem a nenhum); na deteção de anomalias, 1 para as
+        anomalias e 0 para os pontos normais.
+
+        Raises:
+            CapabilityError: Na redução de dimensionalidade, que não prevê (usa ``transform``).
+        """
+        if self.info.task_types == {TaskType.DIMENSIONALITY_REDUCTION}:
+            raise CapabilityError(
+                f"'{self.info.display_name}' reduz dimensões, não prevê: usa transform."
+            )
         self._check_ready(X)
         return np.asarray(self._predict(X))
+
+    def transform(self, X: Features) -> NDArray[np.float64]:
+        """Na redução de dimensionalidade, as novas coordenadas de cada linha ``(n_linhas, k)``.
+
+        Raises:
+            CapabilityError: Se o modelo não reduzir dimensões, ou não souber colocar linhas
+                que não viu no treino (``info.supports_new_data``).
+        """
+        if TaskType.DIMENSIONALITY_REDUCTION not in self.info.task_types:
+            raise CapabilityError(f"'{self.info.display_name}' não reduz dimensões.")
+        self._check_ready(X)
+        return np.asarray(self._transform(X), dtype=np.float64)
+
+    def anomaly_scores(self, X: Features) -> NDArray[np.float64]:
+        """Na deteção de anomalias, quão estranha é cada linha (maior = mais anómala).
+
+        Raises:
+            CapabilityError: Se o modelo não detetar anomalias.
+        """
+        if TaskType.ANOMALY_DETECTION not in self.info.task_types:
+            raise CapabilityError(f"'{self.info.display_name}' não deteta anomalias.")
+        self._check_ready(X)
+        return np.asarray(self._anomaly_scores(X), dtype=np.float64)
 
     def predict_proba(self, X: Features) -> NDArray[np.float64]:
         """Probabilidade de cada classe vista no treino (``classes()``), por linha.
@@ -221,15 +284,31 @@ class LabModel[P: Hyperparameters](ABC):
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         """Treina (as formas já foram confirmadas)."""
 
-    @abstractmethod
     def _predict(self, X: Features) -> NDArray[Any]:
         """Prevê (o modelo já treinou e ``X`` tem o número certo de features)."""
+        raise CapabilityError(f"'{self.info.display_name}' não implementa predict.")
 
     def _predict_proba(self, X: Features) -> NDArray[np.float64]:
         raise CapabilityError(f"'{self.info.display_name}' não implementa predict_proba.")
 
+    def _transform(self, X: Features) -> NDArray[np.float64]:
+        raise CapabilityError(f"'{self.info.display_name}' não implementa transform.")
+
+    def _anomaly_scores(self, X: Features) -> NDArray[np.float64]:
+        raise CapabilityError(f"'{self.info.display_name}' não implementa anomaly_scores.")
+
     def _probe_values(self, probe: Features) -> NDArray[np.float64] | None:
-        """As previsões nos pontos da sonda: probabilidades, se as houver; senão, previsões."""
+        """As previsões nos pontos da sonda, conforme a tarefa.
+
+        As probabilidades, se as houver; a pontuação de anomalia, na deteção de anomalias;
+        senão, as previsões. A redução de dimensionalidade (e um modelo que não sabe prever
+        linhas novas) não tem nada para mostrar numa grelha.
+        """
+        tasks = self.info.task_types
+        if TaskType.DIMENSIONALITY_REDUCTION in tasks or not self.info.supports_new_data:
+            return None
+        if TaskType.ANOMALY_DETECTION in tasks:
+            return np.asarray(self._anomaly_scores(probe), dtype=np.float64)
         if self.info.supports_proba:
             return np.asarray(self._predict_proba(probe), dtype=np.float64)
         return np.asarray(self._predict(probe), dtype=np.float64)
@@ -239,6 +318,21 @@ MODELS: Registry[type[LabModel[Any]]] = Registry(
     "models", task_types=lambda model: model.info.task_types, discover="ml_lab.core.models"
 )
 """Todos os modelos, pelo nome. A descoberta importa cada ficheiro de ``core/models/``."""
+
+
+def class_probabilities(model: LabModel[Any], X: Features, n_classes: int) -> NDArray[np.float64]:
+    """As probabilidades de todas as ``n_classes`` classes: a coluna ``k`` é a da classe ``k``.
+
+    Uma classe que não apareceu no treino não tem coluna em ``predict_proba``; aqui fica
+    com probabilidade zero.
+    """
+    proba = model.predict_proba(X)
+    seen = model.classes()
+    if seen is None or proba.shape[1] == n_classes:
+        return proba
+    full = np.zeros((len(X), n_classes))
+    full[:, seen] = proba
+    return full
 
 
 def capture_warnings[T](action: Callable[[], T]) -> tuple[T, list[warnings.WarningMessage]]:

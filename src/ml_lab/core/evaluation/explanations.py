@@ -79,6 +79,67 @@ METRIC_EXPLANATIONS: Final[Mapping[str, MetricExplanation]] = MappingProxyType(
             "Menor é melhor, mas as unidades são as do alvo ao quadrado, o que a torna difícil "
             "de ler; para interpretar, usa a raiz (RMSE).",
         ),
+        "silhouette": MetricExplanation(
+            "Para cada ponto, quão mais perto está dos pontos do seu grupo do que dos do grupo "
+            "vizinho, em média.",
+            "De -1 a 1. Perto de 1: grupos compactos e bem separados; perto de 0: grupos "
+            "encostados uns aos outros; negativa: há pontos no grupo errado. Serve para "
+            "comparar valores de k diferentes.",
+        ),
+        "davies_bouldin": MetricExplanation(
+            "Quão parecido é cada grupo com o seu vizinho mais próximo: a dispersão dentro dos "
+            "grupos sobre a distância entre eles.",
+            "Menor é melhor; 0 seria grupos infinitamente compactos e afastados. Como a "
+            "silhueta, prefere grupos redondos.",
+        ),
+        "calinski_harabasz": MetricExplanation(
+            "A variância entre os grupos sobre a variância dentro dos grupos.",
+            "Maior é melhor, mas não tem escala fixa: só compara agrupamentos dos mesmos dados "
+            "(por exemplo, k = 3 contra k = 4).",
+        ),
+        "n_clusters": MetricExplanation(
+            "Quantos grupos ficaram com pontos (o ruído não conta).",
+            "Não é bom nem mau: no k-means é o k que escolheste; no DBSCAN, é o que a "
+            "densidade dos dados ditou.",
+        ),
+        "noise_ratio": MetricExplanation(
+            "A proporção de pontos que não ficaram em nenhum grupo (só o DBSCAN tem ruído).",
+            "Muito ruído (mais de metade) quer dizer um raio pequeno demais; nenhum ruído pode "
+            "querer dizer um raio grande demais, com tudo num só grupo.",
+        ),
+        "adjusted_rand": MetricExplanation(
+            "O acordo entre os grupos encontrados e a coluna de referência, descontado o que se "
+            "esperava ao acaso.",
+            "1 é um acordo perfeito; 0 é o mesmo que agrupar ao acaso. Não importa o número que "
+            "cada grupo recebe, só quem fica com quem.",
+        ),
+        "trustworthiness": MetricExplanation(
+            "Se os vizinhos de cada ponto na projeção eram mesmo vizinhos nos dados originais "
+            "(os 5 mais próximos).",
+            "De 0% a 100%. Perto de 100%: o que está junto no gráfico está junto nos dados. Não "
+            "garante o contrário: pontos afastados no gráfico podem ser vizinhos nos dados.",
+        ),
+        "anomaly_rate": MetricExplanation(
+            "A proporção de pontos marcados como anomalias.",
+            "Não é boa nem má: anda perto da proporção esperada que escolheste nos "
+            "hiperparâmetros (no treino, por construção).",
+        ),
+        "anomaly_precision": MetricExplanation(
+            "Dos pontos marcados como anomalias, quantos o eram de facto (segundo a coluna de "
+            "referência).",
+            "De 0% a 100%. Baixa quer dizer muitos falsos alarmes: o limiar está demasiado "
+            "baixo, ou as anomalias não se distinguem nas features.",
+        ),
+        "anomaly_recall": MetricExplanation(
+            "Das anomalias verdadeiras, quantas foram marcadas.",
+            "De 0% a 100%. Sobe se esperares mais anomalias (o limiar desce), à custa da precisão.",
+        ),
+        "anomaly_roc_auc": MetricExplanation(
+            "A probabilidade de uma anomalia verdadeira ter uma pontuação mais alta do que um "
+            "ponto normal.",
+            "De 0,5 (ao acaso) a 1 (separação perfeita). Não depende do limiar: diz se a "
+            "pontuação ordena bem os pontos, mesmo que o corte esteja no sítio errado.",
+        ),
         "roc_auc": MetricExplanation(
             "A probabilidade de o modelo dar mais pontuação a um exemplo da classe positiva do "
             "que a um da negativa.",

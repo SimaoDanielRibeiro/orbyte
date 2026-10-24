@@ -9,7 +9,7 @@ from typing import Any, Final, override
 
 import numpy as np
 
-from ml_lab.core.evaluation.base import EVALUATORS, Evaluator, measure
+from ml_lab.core.evaluation.base import EVALUATORS, Evaluator, measure, undefined_notices
 from ml_lab.core.evaluation.metrics.base import MetricInputs
 from ml_lab.core.evaluation.report import EvaluationReport
 from ml_lab.core.foundation.errors import ModelError
@@ -64,14 +64,9 @@ class RegressionEvaluator(Evaluator):
                     f"{format_number(r2 * 100, 1)}% da variação do alvo.",
                 )
             )
-        if undefined:
-            notices.append(
-                Notice.info(
-                    "undefined_metric",
-                    f"{', '.join(undefined)}: não está definida {where} (há poucas linhas, ou o "
-                    "alvo é sempre igual).",
-                )
-            )
+        notices += undefined_notices(
+            undefined, partition, "há poucas linhas, ou o alvo é sempre igual"
+        )
         return EvaluationReport(
             partition=partition,
             task_type=task_type,

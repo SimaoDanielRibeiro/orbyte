@@ -7,7 +7,9 @@ As regras (secção "Regras de deteção automática do tipo de tarefa" do plano
 2. alvo categórico (texto, booleano ou inteiro com poucos valores distintos):
    classificação, binária com duas classes, multiclasse com mais;
 3. alvo numérico contínuo: regressão;
-4. o utilizador pode sempre escolher outro tipo entre os permitidos.
+4. o utilizador pode sempre escolher outro tipo entre os permitidos. Com um alvo
+   categórico, também as tarefas sem alvo: a coluna fica como referência, só para
+   comparar no fim (por exemplo, os grupos do k-means com as espécies do Iris).
 """
 
 from dataclasses import dataclass
@@ -143,6 +145,9 @@ def _classification(
             "(e não categorias), escolhe regressão."
         )
     allowed = (task, TaskType.REGRESSION) if kind is ColumnKind.NUMERIC else (task,)
+    # Um alvo com classes também serve de referência às tarefas sem alvo: não entra no
+    # treino, mas diz se os grupos (ou as anomalias) encontrados correspondem às classes.
+    allowed = (*allowed, *UNSUPERVISED_TASKS)
     counts = present.astype(str).value_counts()
     tiny = [str(value) for value, count in counts.items() if count < 2]
     if tiny:
