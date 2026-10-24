@@ -49,6 +49,10 @@ scikit-learn) e à classificação e à regressão, quando o algoritmo faz as du
 - [One-Class SVM](one_class_svm.md)
 - [Local Outlier Factor (LOF)](lof.md)
 
+**Redes neuronais**
+
+- [Rede neuronal (MLP)](mlp.md): PyTorch, de classificação e de regressão
+
 ## Modelo
 
 ````markdown

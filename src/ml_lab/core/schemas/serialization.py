@@ -9,6 +9,8 @@ onde isso se faz (ADR 0019):
 - ``to_json`` passa um resultado a valores de JSON. Os números que não são finitos (NaN,
   infinito: uma loss que explodiu) passam a ``None``, porque o JSON não os tem e o
   navegador rejeita-os; os números do NumPy passam a números simples.
+- ``from_json`` faz o caminho inverso: valores de JSON de volta ao tipo (por exemplo, um
+  resultado guardado no registo de experiências, ou um pedido que chega à API).
 - ``json_schema`` descreve um tipo devolvido pelos serviços.
 - ``@internal`` marca os métodos dos serviços que só servem outros serviços, porque
   devolvem DataFrames, matrizes ou o modelo treinado: a API não os expõe, e o teste de
@@ -35,6 +37,16 @@ def to_json(value: Any) -> Any:
             (por exemplo, um DataFrame).
     """
     return json.loads(_adapter(type(value)).dump_json(value, fallback=_plain))
+
+
+def from_json[T](kind: type[T], data: Any) -> T:
+    """Os valores de JSON ``data`` de volta ao tipo ``kind`` (o caminho inverso de ``to_json``).
+
+    Raises:
+        pydantic.ValidationError: Se os valores não corresponderem ao tipo.
+    """
+    value: T = _adapter(kind).validate_python(data)
+    return value
 
 
 def json_schema(kind: Any) -> dict[str, Any]:

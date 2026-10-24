@@ -115,6 +115,18 @@ def loss_chart(
             hovertemplate="passo %{x}: loss %{y:.4~g}<extra></extra>",
         )
     )
+    validation = [record.metrics.get("val_loss") for record in history]
+    if any(value is not None for value in validation):  # redes com early stopping
+        figure.add_trace(
+            go.Scatter(
+                x=steps,
+                y=validation,
+                mode="lines",
+                name="Loss na validação",
+                line={"color": CATEGORY_COLORS[4], "width": 2, "dash": "dash"},
+                hovertemplate="passo %{x}: loss na validação %{y:.4~g}<extra></extra>",
+            )
+        )
     for number, (name, label) in enumerate((percent_metrics or {}).items(), start=1):
         values = [record.metrics.get(name) for record in history]
         if all(value is None for value in values):

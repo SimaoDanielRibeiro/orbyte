@@ -46,6 +46,13 @@ PROPERTY_LABELS: Final[Mapping[str, str]] = MappingProxyType(
         "n_terms": "Termos do polinómio",
         "degree": "Grau",
         "n_train": "Exemplos guardados",
+        "architecture": "Arquitetura (neurónios por camada)",
+        "activation": "Ativação das camadas escondidas",
+        "n_parameters": "Parâmetros (pesos e ordenadas)",
+        "best_epoch": "Melhor época (na validação)",
+        "early_stopped": "Parou cedo (early stopping)",
+        "target_mean": "Média do alvo (para o padronizar)",
+        "target_std": "Desvio padrão do alvo",
     }
 )
 """O nome a mostrar dos números simples do estado (os outros aparecem pelo nome técnico)."""
@@ -310,7 +317,7 @@ def _properties(state: Mapping[str, Any]) -> tuple[Property, ...]:
     found = []
     for name, value in state.items():
         label = PROPERTY_LABELS.get(name, name)
-        if isinstance(value, bool | int | float):
+        if isinstance(value, bool | int | float | str):
             found.append(Property(name, label, value))
         elif name == "n_support" and isinstance(value, list):  # o SVM, por classe
             counts = [int(count) for count in value]

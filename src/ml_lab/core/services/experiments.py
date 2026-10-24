@@ -52,6 +52,7 @@ from ml_lab.core.visualization_data.animation import TrainingAnimation, build_an
 from ml_lab.core.visualization_data.embedding import Embedding, embedding_map
 from ml_lab.core.visualization_data.grid import ProbeGrid, probe_grid
 from ml_lab.core.visualization_data.learned import LearnedView, learned_view
+from ml_lab.core.visualization_data.network import NetworkTrace, network_trace
 from ml_lab.formatting import format_count
 from ml_lab.logging import get_logger
 
@@ -88,6 +89,10 @@ class ExperimentResult:
         training_notices: Só os avisos do treino (não convergiu, explodiu, foi parado).
         embedding: Na redução de dimensionalidade, o mapa dos pontos de treino.
         learned: O que o modelo aprendeu, pronto a mostrar (pesos, regras, centros…).
+        main_partition: A parte dos dados cujo relatório resume o run: o teste, ou o
+            treino num modelo que só conhece os pontos com que treinou (o t-SNE).
+        network: Numa rede neuronal, o que cada camada fez em cada snapshot (as ativações
+            dos neurónios e os gradientes).
     """
 
     run_id: str
@@ -109,6 +114,8 @@ class ExperimentResult:
     training_notices: tuple[Notice, ...] = ()
     embedding: Embedding | None = None
     learned: LearnedView = field(default_factory=LearnedView)
+    main_partition: Partition = Partition.TEST
+    network: NetworkTrace | None = None
 
     @property
     def seed(self) -> int:
@@ -122,20 +129,25 @@ class ExperimentResult:
         return self.history[-1].step if self.history else 0
 
     @property
+    def main_report(self) -> EvaluationReport:
+        """O relatório que resume o run (o da parte ``main_partition``)."""
+        return self.reports[self.main_partition]
+
+    @property
     def primary(self) -> MetricResult | None:
-        """A métrica principal no teste (por exemplo, a exatidão)."""
+        """A métrica principal no relatório principal (por exemplo, a exatidão no teste)."""
         name = PRIMARY_METRIC.get(self.task_type)
-        test = self.reports.get(Partition.TEST)
-        return None if name is None or test is None else test.find(name)
+        return None if name is None else self.main_report.find(name)
 
 
 @dataclass(frozen=True, slots=True, eq=False)
 class RunArtifacts:
-    """O modelo treinado e os dados de um run, para análises depois do treino."""
+    """O modelo treinado, os dados e o resultado de um run, para o que vem depois do treino."""
 
     model: LabModel[Any]
     dataset: Dataset
     config: ExperimentConfig
+    result: ExperimentResult
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -247,6 +259,11 @@ class ExperimentService:
             raise ModelError(f"O run {run_id} já não está em memória: treina o modelo outra vez.")
         return artifacts
 
+    @internal
+    def remember(self, artifacts: RunArtifacts) -> None:
+        """Volta a pôr em memória um run (um run guardado que se reabre do histórico)."""
+        self._keep(artifacts.result.run_id, artifacts)
+
     def _plan(self, config: ExperimentConfig) -> _Plan:
         seeds = SeedManager.create(config.seed)
         config = config.model_copy(update={"seed": seeds.seed})
@@ -317,7 +334,7 @@ class ExperimentService:
             plan.recorder.detach(self._bus)
             with self._lock:
                 self._active.pop(plan.run_id, None)
-        self._keep(plan.run_id, RunArtifacts(plan.model, dataset, plan.config))
+        self._keep(plan.run_id, RunArtifacts(plan.model, dataset, plan.config, result))
         primary = result.primary
         summary: dict[str, Any] = {} if primary is None else {primary.name: primary.value}
         summary["steps"] = outcome.steps
@@ -413,10 +430,22 @@ class ExperimentService:
                 class_labels=dataset.class_labels,
                 target_name=dataset.target_name,
             ),
+            main_partition=_main_partition(reports),
+            network=network_trace(
+                dataset.n_features,
+                [(record.step, record.state) for record in plan.recorder.snapshots()],
+            ),
         )
 
     def _keep(self, run_id: str, artifacts: RunArtifacts) -> None:
         with self._lock:
             self._runs[run_id] = artifacts
+            self._runs.move_to_end(run_id)
             while len(self._runs) > KEPT_RUNS:
                 self._runs.popitem(last=False)
+
+
+def _main_partition(reports: Mapping[Partition, EvaluationReport]) -> Partition:
+    """O teste, se tiver métricas; senão (um modelo que só conhece o treino), o treino."""
+    test = reports.get(Partition.TEST)
+    return Partition.TEST if test is not None and test.metrics else Partition.TRAIN

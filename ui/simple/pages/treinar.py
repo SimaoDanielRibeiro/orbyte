@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from charts.network import activations_chart, gradients_chart, network_chart, stuck_chart
 from charts.training import animation_chart, embedding_chart, loss_chart
 from components.layout import render_header, render_why
 from components.notices import render_error, render_notices
@@ -12,6 +13,7 @@ from ml_lab.core.services import (
     Partition,
     TrainingAnimation,
     TrainingJob,
+    explain,
 )
 from ml_lab.formatting import format_count, format_number, format_significant
 
@@ -41,7 +43,11 @@ def main() -> None:
         )
         return
     _replay(result)
-    render_why("loss", "gradient_descent", "snapshots", "decision_boundary")
+    if result.network is not None:
+        _network(result)
+        render_why("neural_network", "backpropagation", "early_stopping", "loss", "snapshots")
+    else:
+        render_why("loss", "gradient_descent", "snapshots", "decision_boundary")
 
 
 @st.fragment(run_every=_REFRESH_SECONDS)
@@ -124,11 +130,7 @@ def _replay(result: ExperimentResult) -> None:
         st.plotly_chart(animation_chart(animation), width="stretch", key="treinar.animation")
         st.caption(_how_to_read(animation))
     else:
-        st.info(
-            "Não há como desenhar o modelo: os dados não têm uma projeção 2D (escolhe uma no "
-            "ecrã Preparar).",
-            icon=":material/visibility_off:",
-        )
+        st.info(_without_animation(result), icon=":material/visibility_off:")
     if result.history:
         train = result.reports[Partition.TRAIN]
         percent = {
@@ -141,6 +143,45 @@ def _replay(result: ExperimentResult) -> None:
             key="treinar.loss",
         )
     st.page_link("pages/avaliar.py", label="Ver a avaliação", icon=":material/analytics:")
+
+
+def _network(result: ExperimentResult) -> None:
+    """As camadas da rede: o diagrama, os gradientes, os neurónios parados e as ativações."""
+    trace = result.network
+    assert trace is not None  # quem chama confirmou que é uma rede
+    st.subheader("As camadas da rede")
+    steps = [frame.step for frame in trace.frames]
+    step = st.select_slider(
+        "Passo do treino",
+        options=steps,
+        value=steps[-1],
+        key=f"treinar.network_step.{result.run_id}",
+    )
+    index = steps.index(step)
+    st.plotly_chart(network_chart(trace, index), width="stretch", key="treinar.network")
+    st.caption(explain("network_diagram").text)
+    gradients, stuck = st.columns(2)
+    gradients.plotly_chart(gradients_chart(trace), width="stretch", key="treinar.gradients")
+    gradients.caption(explain("network_gradients").text)
+    stuck.plotly_chart(stuck_chart(trace), width="stretch", key="treinar.stuck")
+    stuck.caption(explain("network_stuck").text)
+    st.plotly_chart(activations_chart(trace, index), width="stretch", key="treinar.activations")
+    st.caption(explain("network_activations").text)
+
+
+def _without_animation(result: ExperimentResult) -> str:
+    """Porque é que não há animação: o run veio do histórico sem ser guardado, ou não há plano."""
+    job = current_job()
+    if job is None or job.run_id != result.run_id:  # abriu-se do histórico
+        return (
+            "Este run abriu do histórico sem o treino passo a passo (a animação e, numa rede, "
+            "as camadas): só fica nos runs guardados («Guardar experiência»). Para o voltar a "
+            "ver, reproduz o run no ecrã Experiências."
+        )
+    return (
+        "Não há como desenhar o modelo: os dados não têm uma projeção 2D (escolhe uma no ecrã "
+        "Preparar)."
+    )
 
 
 def _how_to_read(animation: TrainingAnimation) -> str:

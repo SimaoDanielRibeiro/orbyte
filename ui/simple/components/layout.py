@@ -3,9 +3,15 @@
 import streamlit as st
 
 from components.screens import SCREENS, Screen, get_screen
-from components.state import chosen_model, current_dataset, current_preparation, last_result
+from components.state import (
+    chosen_model,
+    current_dataset,
+    current_preparation,
+    get_lab,
+    last_result,
+)
 from ml_lab import __version__
-from ml_lab.core.services import DatasetSummary, explain
+from ml_lab.core.services import DatasetSummary, ExperimentResult, MLLabError, explain
 from ml_lab.formatting import format_count
 
 
@@ -16,6 +22,7 @@ def render_sidebar() -> None:
     model = chosen_model()
     result = last_result()
     primary = result.primary if result else None
+    where = result.main_partition.label.lower() if result else ""
     fields = {
         "Dataset": (
             f"{dataset.name} ({format_count(dataset.n_rows)} × {dataset.n_columns})"
@@ -25,21 +32,51 @@ def render_sidebar() -> None:
         "Tarefa": preparation.summary.task_type.label if preparation else "—",
         "Modelo": model.display_name if model else "—",
         "Último resultado": (
-            f"{primary.display_name} no teste: {primary.formatted}" if primary else "—"
+            f"{primary.display_name} no {where}: {primary.formatted}" if primary else "—"
         ),
     }
     with st.sidebar:
         st.subheader("Experiência atual")
         for field, value in fields.items():
             st.markdown(f"**{field}:** {value}")
-        st.button(
-            "Guardar experiência",
-            icon=":material/save:",
-            disabled=True,
-            width="stretch",
-            help="Disponível a partir da fase 5 (Memória).",
-        )
+        _save_button(result)
         st.caption(f"ML Lab {__version__}")
+
+
+def _save_button(result: ExperimentResult | None) -> None:
+    """Guardar experiência: junta ao histórico o modelo e o treino passo a passo do último run."""
+    known = saved = False
+    if result is not None:
+        try:
+            saved = get_lab().history.entry(result.run_id).saved
+            known = True
+        except MLLabError:  # o run não ficou no histórico (por exemplo, foi apagado)
+            pass
+    st.button(
+        "Experiência guardada" if saved else "Guardar experiência",
+        icon=":material/check:" if saved else ":material/save:",
+        disabled=not known or saved,
+        width="stretch",
+        on_click=_save,
+        args=(None if result is None else result.run_id,),
+        key="sidebar.save",
+        help=(
+            "Cada run já fica no histórico (ecrã Experiências). Guardar junta-lhe o modelo "
+            "treinado e o treino passo a passo (a animação e, numa rede, as camadas): volta a "
+            "abrir com tudo, mesmo depois de fechar a app."
+        ),
+    )
+
+
+def _save(run_id: str | None) -> None:
+    if run_id is None:
+        return
+    try:
+        get_lab().history.save(run_id)
+    except MLLabError as error:
+        st.toast(str(error), icon=":material/error:")
+    else:
+        st.toast("Experiência guardada: está no ecrã Experiências.", icon=":material/save:")
 
 
 def render_header(slug: str) -> Screen:

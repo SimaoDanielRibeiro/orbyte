@@ -46,6 +46,12 @@ from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.services.analysis import AnalysisService, Contribution, RowExplanation
 from ml_lab.core.services.catalog import CatalogService, ModelCard
+from ml_lab.core.services.comparison import (
+    ConfigDifference,
+    LossSeries,
+    MetricComparison,
+    RunComparison,
+)
 from ml_lab.core.services.datasets import (
     ColumnInfo,
     DatasetService,
@@ -59,6 +65,7 @@ from ml_lab.core.services.datasets import (
 )
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService
 from ml_lab.core.services.explanations import explain
+from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.services.laboratory import (
     KnnDemo,
@@ -69,6 +76,7 @@ from ml_lab.core.services.laboratory import (
     Points,
     RegularizationDemo,
 )
+from ml_lab.core.tracking.store import RunEntry
 from ml_lab.core.training.jobs import JobState, JobStatus, TrainingJob
 from ml_lab.core.training.recorder import Progress, StepRecord
 from ml_lab.core.visualization_data.animation import (
@@ -88,6 +96,12 @@ from ml_lab.core.visualization_data.evaluation import (
     SilhouetteGroup,
 )
 from ml_lab.core.visualization_data.learned import LearnedView, LinearWeights, Matrix, Property
+from ml_lab.core.visualization_data.network import (
+    LayerFrame,
+    LayerInfo,
+    NetworkFrame,
+    NetworkTrace,
+)
 
 __all__ = [
     "AnalysisService",
@@ -98,6 +112,7 @@ __all__ = [
     "ColumnInfo",
     "ColumnKind",
     "ColumnProfile",
+    "ConfigDifference",
     "ConfusionMatrix",
     "Contribution",
     "CorrelationMatrix",
@@ -122,6 +137,7 @@ __all__ = [
     "GeneratorSummary",
     "GroupMeans",
     "Histogram",
+    "HistoryService",
     "Implementation",
     "ImputationStrategy",
     "JobState",
@@ -129,19 +145,25 @@ __all__ = [
     "KnnDemo",
     "Lab",
     "LaboratoryService",
+    "LayerFrame",
+    "LayerInfo",
     "LearnedView",
     "LearningCurve",
     "LearningRateDemo",
     "LineageStep",
     "LinearWeights",
     "LossCurve",
+    "LossSeries",
     "MLLabError",
     "Matrix",
+    "MetricComparison",
     "MetricResult",
     "MissingMap",
     "ModelCard",
     "ModelFamily",
     "ModelSpec",
+    "NetworkFrame",
+    "NetworkTrace",
     "Notice",
     "NoticeLevel",
     "OperationSummary",
@@ -162,6 +184,8 @@ __all__ = [
     "RegularizationDemo",
     "Residuals",
     "RowExplanation",
+    "RunComparison",
+    "RunEntry",
     "SampleSummary",
     "ScalingMethod",
     "Silhouette",

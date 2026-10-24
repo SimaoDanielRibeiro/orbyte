@@ -20,6 +20,7 @@ CORE = PACKAGE / "core"
 FOUNDATION = CORE / "foundation"
 DATA = CORE / "data"
 SERVICES = CORE / "services"
+TRACKING = CORE / "tracking"
 API = PACKAGE / "api"
 UI = ROOT / "ui"
 UI_SIMPLE = UI / "simple"
@@ -202,6 +203,32 @@ def test_pandas_is_only_used_in_the_data_layer() -> None:
 
     assert not violations, report(
         "O pandas só pode ser importado em core/data/; o resto do sistema usa NumPy:", violations
+    )
+
+
+def test_the_database_and_the_saved_files_belong_to_the_tracking_layer() -> None:
+    # O registo de experiências é trocável (regra 6 dos contratos): quem o usa só conhece o
+    # ExperimentStore, nunca o SQLite nem o formato dos ficheiros.
+    violations = find_violations(
+        python_files(PACKAGE, UI, exclude=[TRACKING]),
+        lambda name: is_within(name, "sqlite3") or is_within(name, "joblib"),
+    )
+
+    assert not violations, report(
+        "O SQLite e o joblib só se usam em core/tracking/, atrás do ExperimentStore:", violations
+    )
+
+
+def test_pytorch_is_only_used_by_the_neural_models() -> None:
+    # Tal como o pandas fica na camada de dados, o PyTorch fica nas redes: o resto do sistema
+    # só conhece o contrato LabModel e recebe NumPy.
+    neural = [CORE / "models" / "neural", CORE / "models" / "adapters" / "torch_adapter.py"]
+    violations = find_violations(
+        python_files(PACKAGE, UI, exclude=neural), lambda name: is_within(name, "torch")
+    )
+
+    assert not violations, report(
+        "O PyTorch só se usa em core/models/neural/ e no adaptador torch_adapter.py:", violations
     )
 
 

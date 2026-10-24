@@ -1,6 +1,10 @@
 """Configuração partilhada dos testes."""
 
+from collections.abc import Iterator
+
 import pytest
+
+from ml_lab.config import get_settings
 
 # Os testes destas pastas são mais lentos e correm antes de cada push. O marcador
 # deixa excluí-los no ciclo rápido: uv run pytest -m "not integration and not api"
@@ -19,3 +23,20 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         marker = _FOLDER_MARKERS.get(item.path.relative_to(tests_dir).parts[0])
         if marker is not None:
             item.add_marker(marker)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _isolated_folders(tmp_path_factory: pytest.TempPathFactory) -> Iterator[None]:
+    """Os testes nunca escrevem na base de dados, nos artefactos nem nos uploads verdadeiros.
+
+    Cada ``Lab.create()`` sem definições explícitas lê o ambiente; aqui, o ambiente aponta
+    para uma pasta temporária, a mesma em toda a sessão de testes.
+    """
+    folder = tmp_path_factory.mktemp("ml_lab")
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv("ML_LAB_UPLOADS_DIR", str(folder / "uploads"))
+        patch.setenv("ML_LAB_ARTIFACTS_DIR", str(folder / "artifacts"))
+        patch.setenv("ML_LAB_DATABASE_PATH", str(folder / "artifacts" / "ml_lab.db"))
+        get_settings.cache_clear()
+        yield
+    get_settings.cache_clear()

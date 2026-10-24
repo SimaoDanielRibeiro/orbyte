@@ -24,7 +24,6 @@ from components.notices import render_error, render_notices
 from components.state import get_lab, last_result
 from ml_lab.core.services import (
     EvaluationCharts,
-    EvaluationReport,
     ExperimentResult,
     LinearWeights,
     Matrix,
@@ -54,7 +53,7 @@ def main() -> None:
         f"{result.task_type.label.lower()} · seed {result.seed} · "
         f"{format_number(result.duration_seconds, 2)} s · run `{result.run_id}`"
     )
-    report = _main_report(result)
+    report = result.main_report
     if report.partition is Partition.TEST:
         st.caption("No teste, com linhas que o modelo nunca viu:")
     else:
@@ -72,14 +71,6 @@ def main() -> None:
     with st.expander("Configuração do run (para o repetir)", icon=":material/settings:"):
         st.json(result.config.model_dump(mode="json"), expanded=False)
     render_why(*_topics(result.task_type))
-
-
-def _main_report(result: ExperimentResult) -> EvaluationReport:
-    """O relatório do teste ou, se ele não tiver métricas (t-SNE), o do treino."""
-    test = result.reports.get(Partition.TEST)
-    if test is not None and test.metrics:
-        return test
-    return result.reports[Partition.TRAIN]
 
 
 def _charts(result: ExperimentResult) -> EvaluationCharts | None:
@@ -145,7 +136,7 @@ def _gone() -> None:
 
 
 def _metrics(result: ExperimentResult) -> None:
-    report = _main_report(result)
+    report = result.main_report
     train = result.reports[Partition.TRAIN]
     for metric in report.metrics:
         with st.expander(f"{metric.display_name}: {metric.formatted}"):

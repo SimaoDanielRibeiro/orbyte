@@ -72,7 +72,7 @@ Sete regiões, 28 etapas, 2 ciclos:
 | 3 · Modelação | **Catálogo** (modelos filtrados pelo `TaskType`) → **Configurar** (hiperparâmetros validados) → **Treinar** (o Trainer chama fit passo a passo) → **Prever** (previsões em treino e teste) | `core/models` · `core/training` |
 | 4 · Observação do treino | **Eventos** (o modelo anuncia cada passo) → **Snapshots** (estado do modelo a cada N passos) → **Progresso** (loss por época, logs estruturados) → **Controlo** (parar, pausar, early stopping) | EventBus · `core/training` |
 | 5 · Avaliação | **Métricas** (por tipo de tarefa) → **Diagnósticos** (overfitting, desequilíbrio) → **Robustez** (validação cruzada, learning curves) → **Explicar** (importância de features) | `core/evaluation` · explainability |
-| 6 · Memória | **Registar** (run, métricas, configuração) → **Guardar** (modelo treinado e snapshots) → **Comparar** (2 ou 3 runs lado a lado) → **Reproduzir** (mesma configuração e mesma seed) | `core/tracking` · SQLite |
+| 6 · Memória | **Registar** (run, métricas, configuração) → **Guardar** (modelo treinado e snapshots, a pedido) → **Comparar** (2 a 5 runs lado a lado) → **Reproduzir** (mesma configuração e mesma seed) | `core/tracking` · SQLite |
 | 7 · Apresentação | **Serviços** (única porta do núcleo) → **Gráficos** (fronteiras, curvas, projeções 2D) → **UI simples** (Streamlit + Plotly, todas as funções) → **UI aprimorada** (React + API, WebSocket) | services · visualization_data · ui |
 
 - **Ciclo de aprendizagem:** a avaliação volta à preparação para ajustar dados ou
@@ -200,7 +200,7 @@ implementação oficial.
 | Não supervisionada | Redução de dimensionalidade | PCA | Didático + sklearn | Componentes, variância explicada |
 | Não supervisionada | Redução de dimensionalidade | t-SNE | sklearn | Embedding ao longo das iterações |
 | Não supervisionada | Deteção de anomalias | Isolation Forest, One-Class SVM, LOF | sklearn | Pontuação de anomalia por ponto |
-| Deep learning | Classificação / Regressão | MLP (rede densa) | PyTorch | Loss, pesos, gradientes, ativações e fronteira por época |
+| Deep learning | Classificação / Regressão | MLP (rede densa) | PyTorch | Loss no treino e na validação, fronteira, gradientes, ativações e neurónios parados por época |
 | Deep learning (extensão) | Classificação de imagem | CNN pequena | PyTorch | Filtros e mapas de ativação |
 | Reinforcement learning (fase 8) | Controlo | Q-learning tabular, DQN | Didático (NumPy) / PyTorch | Recompensa por episódio, tabela Q, política |
 
@@ -385,7 +385,9 @@ experiências) são usadas a pedido.
 Na fase 2, o `ExperimentService` fazia os passos 1 a 7 sem o Trainer nem o registo de
 experiências: anunciava o run no `EventBus`, treinava, avaliava e devolvia o resultado.
 Desde a fase 3, os passos 4 e 5 são do Trainer e do gravador de snapshots, e o passo 8 usa
-a animação montada a partir dos snapshots. O registo de experiências chega na fase 5.
+a animação montada a partir dos snapshots. Desde a fase 5, o registo de experiências
+subscreve o fim de cada run (`RunFinished`) e regista-o sozinho. No passo 7, o modelo e
+os snapshots só se guardam quando se pede (ADR 0020).
 
 ### Regra de dependências
 
@@ -395,7 +397,7 @@ a animação montada a partir dos snapshots. O registo de experiências chega na
 | Interface aprimorada | API (por HTTP e WebSocket) | Nada do Python diretamente |
 | API | `services`, `schemas` | Modelos, dados, treino ou base de dados diretamente |
 | Serviços | Todo o `core` | `api`, `ui` |
-| Núcleo | Fundação, bibliotecas de ML; pandas só em `core/data/` | `api`, `ui`, `services` |
+| Núcleo | Fundação, bibliotecas de ML; pandas só em `core/data/`; SQLite e joblib só em `core/tracking/`; PyTorch só nas redes (`models/neural/` e o seu adaptador) | `api`, `ui`, `services` |
 | Fundação | Biblioteca padrão, Pydantic | Qualquer outra camada |
 
 Estas regras são verificadas em `tests/architecture/test_dependency_rules.py`.
@@ -492,7 +494,9 @@ ml-lab/
 │   │   │   ├── distances.py  # distâncias aos blocos (KNN, DBSCAN, hierárquico)
 │   │   │   ├── adapters/     # ligação ao scikit-learn e ao PyTorch
 │   │   │   │   ├── sklearn_adapter.py    # SklearnModel: o contrato, uma vez, para o scikit-learn
-│   │   │   │   └── growth.py             # modelos do scikit-learn que crescem passo a passo
+│   │   │   │   ├── growth.py             # modelos do scikit-learn que crescem passo a passo
+│   │   │   │   └── torch_adapter.py      # TorchModel: o ciclo de treino das redes, early
+│   │   │   │                             # stopping e a fotografia das camadas
 │   │   │   ├── supervised/
 │   │   │   │   ├── gradient_descent.py  # o que os modelos por gradiente descendente partilham
 │   │   │   │   ├── trees.py      # o que as árvores de classificação e de regressão partilham
@@ -507,7 +511,7 @@ ml-lab/
 │   │   │   │   ├── clustering/      # k-means (NumPy e sklearn), DBSCAN, hierárquico, GMM
 │   │   │   │   ├── dimensionality/  # PCA (NumPy e sklearn), t-SNE
 │   │   │   │   └── anomaly/         # detectors.py: Isolation Forest, One-Class SVM, LOF
-│   │   │   └── neural/       # redes PyTorch, captura de ativações e gradientes (fase 6)
+│   │   │   └── neural/       # redes PyTorch: mlp.py, a rede densa (classificação e regressão)
 │   │   │
 │   │   ├── training/         # Trainer, snapshots, treino em segundo plano
 │   │   │   ├── context.py    # TrainingContext (com a sonda) e a amostragem dos snapshots
@@ -537,8 +541,13 @@ ml-lab/
 │   │   │   ├── animation.py  # TrainingAnimation: o campo do modelo em cada snapshot
 │   │   │   ├── embedding.py  # o mapa da redução de dimensionalidade
 │   │   │   ├── evaluation.py # os gráficos do ecrã Avaliar (ROC, resíduos, silhueta…)
-│   │   │   └── learned.py    # o que o modelo aprendeu: pesos, regras, centros, com nomes
-│   │   ├── tracking/         # registo de experiências, base de dados, artefactos
+│   │   │   ├── learned.py    # o que o modelo aprendeu: pesos, regras, centros, com nomes
+│   │   │   └── network.py    # NetworkTrace: as camadas de uma rede em cada snapshot
+│   │   ├── tracking/         # MEMÓRIA: o registo de experiências e os ficheiros dos runs
+│   │   │   ├── store.py      # contrato ExperimentStore, RunEntry e o registo em memória
+│   │   │   ├── sqlite_store.py  # o registo em SQLite, com migrações (user_version)
+│   │   │   ├── artifacts.py  # o modelo (joblib) e o treino passo a passo (JSON) guardados
+│   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Experiências
 │   │   ├── schemas/          # esquemas Pydantic partilhados
 │   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação)
 │   │   │   ├── experiment.py # ExperimentConfig: dados, preparação, modelo e seed
@@ -549,6 +558,8 @@ ml-lab/
 │   │   │   ├── catalog.py    # catálogo de modelos (ecrã 4)
 │   │   │   ├── experiments.py  # treinar (também em segundo plano), avaliar, anunciar (4 a 6)
 │   │   │   ├── analysis.py   # depois do treino: gráficos, validação cruzada, explicações (6 e 7)
+│   │   │   ├── history.py    # o histórico: registar, guardar, abrir, comparar, reproduzir (8)
+│   │   │   ├── comparison.py # a comparação de runs lado a lado
 │   │   │   ├── laboratory.py # as demonstrações do ecrã Laboratório (9)
 │   │   │   ├── explanations.py # o painel "Porquê?": os temas de todas as camadas
 │   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
@@ -791,7 +802,7 @@ navegação.
 | 5 | Treinar | Inicia, pausa, cancela; percorre o treino passo a passo | Barra de progresso, loss em tempo real, animação dos snapshots com controlos de reprodução, fronteira de decisão / centróides / árvore | 3 |
 | 6 | Avaliar | Lê os resultados | Cartões de métricas com explicação, matriz de confusão, ROC e PR, resíduos, silhouette, comparação treino vs. teste, diagnósticos | 2, 4 |
 | 7 | Explicar | Escolhe uma previsão ou o modelo inteiro | Importância de features, gráficos de dependência parcial | 4 |
-| 8 | Experiências | Filtra o histórico, escolhe 2 ou 3 runs, reproduz um run | Tabela de runs, comparação lado a lado de métricas e gráficos | 5 |
+| 8 | Experiências | Filtra o histórico, escolhe de 2 a 5 runs, abre, guarda ou reproduz um run | Tabela de runs, comparação lado a lado de métricas, escolhas diferentes e curvas da loss | 5 |
 | 9 | Laboratório | Mexe num controlo e vê o efeito imediato | Demos de conceitos: overfitting (complexidade do modelo), taxa de aprendizagem, k do KNN, regularização | 4 |
 | 10 | Reinforcement learning | Escolhe ambiente e agente, inicia o treino | Recompensa por episódio, tabela Q, política aprendida | 8 |
 
@@ -839,8 +850,8 @@ cada vez.
 | 2 — Primeiro fluxo completo ✅ | Contrato de modelo, adaptador scikit-learn, regressão logística, avaliador de classificação, serviço de experiências | Modelo, Avaliar (básico) | scikit-learn, Pydantic | No Iris: escolher modelo, treinar e ver métricas na interface; testes de contrato a passar |
 | 3 — Eventos e snapshots ✅ | Contexto de treino, gravador de snapshots, regressões didáticas em NumPy, dados da fronteira de decisão | Treinar (com reprodução passo a passo) | — (gradiente descendente, padrão observer) | Ver a fronteira da regressão logística didática a mover-se; resultado final igual ao do scikit-learn |
 | 4 — Catálogo clássico ✅ | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
-| 5 — Memória | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs | Experiências | SQLite (`sqlite3`), joblib | Fechar a app, reabrir e comparar dois runs |
-| 6 — Deep learning | Adaptador PyTorch, MLP, captura de ativações e gradientes, early stopping | Treinar mostra as camadas da rede | PyTorch | A MLP resolve "moons" e os snapshots mostram a fronteira a curvar |
+| 5 — Memória ✅ | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs | Experiências | SQLite (`sqlite3`), joblib | Fechar a app, reabrir e comparar dois runs |
+| 6 — Deep learning ✅ | Adaptador PyTorch, MLP, captura de ativações e gradientes, early stopping | Treinar mostra as camadas da rede | PyTorch | A MLP resolve "moons" e os snapshots mostram a fronteira a curvar |
 | 7 — API | Rotas de dados, catálogo e experiências; treino em background; WebSocket | — (a simples continua a usar os serviços) | FastAPI, Uvicorn | Pela documentação em `/docs`: carregar CSV, lançar treino e receber snapshots |
 | 8 — Reinforcement learning (opcional) | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
 | 9 — Interface aprimorada | Ajustes à API que a interface pedir | Todos os ecrãs refeitos em React com design próprio | React, TypeScript, Vite, Tailwind CSS, D3.js, Plotly.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real |
@@ -1206,3 +1217,133 @@ As regras para o código novo estão em `CONTRIBUTING.md`.
 Ficou por decidir uma coisa: nas tarefas sem alvo, as linhas sem valor na coluna de
 referência saem da preparação, embora o modelo nunca use essa coluna. Mantê-las obrigaria
 a uma classe "sem referência" nos avaliadores.
+
+### Fase 5
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Registar sempre, guardar a pedido** (ADR 0020):
+  - cada run que termina entra sozinho no registo, porque o `Lab` liga
+    `HistoryService.record` ao evento `RunFinished`. Grava-se o resultado em JSON, sem o
+    treino passo a passo;
+  - "Guardar experiência" junta o modelo (`model.joblib`) e o treino passo a passo
+    (`animation.json` e, numa rede, `network.json`) em `artifacts/runs/<run_id>/`.
+- **O registo é um contrato** (`ExperimentStore`), com duas implementações que passam os
+  mesmos testes: em memória, para os testes, e em SQLite (`SqliteStore`), para a app.
+  - Duas tabelas: `runs`, com o documento de cada run, e `metrics`, com uma linha por
+    métrica.
+  - As migrações contam-se com `PRAGMA user_version`. Uma base de dados de uma versão mais
+    nova do ML Lab não abre, e a mensagem diz para atualizar.
+  - Cada operação abre a sua ligação, porque o registo é chamado no fio do treino.
+  - Os erros do `sqlite3` passam a `TrackingError`. Um run que não existe dá
+    `RunNotFoundError`, que também é um `LookupError` (a API da fase 7 vai responder 404).
+- **Reabrir um run guardado devolve tudo.** O modelo vem do ficheiro e os dados preparam-se
+  outra vez, com a mesma configuração e a mesma seed. O run volta à memória do serviço de
+  experiências, por isso o Avaliar e o Explicar funcionam depois de fechar a app. Se o
+  modelo não abrir, o resultado abre na mesma, com o aviso `not_restored`.
+- **Comparar** (`services/comparison.py`) aceita de 2 a 5 runs e mostra:
+  - as métricas lado a lado, com a melhor marcada (quando não há empate);
+  - as escolhas que mudam: o modelo, a seed, cada hiperparâmetro (com o título do
+    formulário) e cada passo da preparação;
+  - as curvas da loss, com até 300 pontos cada;
+  - uma leitura: reproduziu-se, só mudou a seed (é o acaso), mudaram várias coisas ao
+    mesmo tempo, ou as tarefas são diferentes e não se comparam.
+- **Reproduzir** volta a treinar a configuração registada, em segundo plano. O run novo
+  entra no histórico, e a comparação com o original confirma que as métricas são iguais.
+- **A partição principal** (`ExperimentResult.main_partition`) é o teste, ou o treino
+  quando o modelo não tem métricas no teste. A barra lateral e o histórico dizem de que
+  partição é a métrica ("no teste").
+- **Os testes nunca tocam na base de dados verdadeira.** O `tests/conftest.py` aponta os
+  uploads, os artefactos e a base de dados para uma pasta temporária, durante toda a
+  sessão de testes.
+- **Interface:**
+  - o botão "Guardar experiência" fica na barra lateral;
+  - o ecrã Experiências filtra o histórico por tarefa, dataset e modelo;
+  - compara runs com uma tabela de métricas, um gráfico de barras, as escolhas diferentes
+    e as curvas da loss;
+  - abre, reproduz, guarda, muda o nome ou apaga um run.
+
+  Um run aberto do histórico sem ter sido guardado mostra no Treinar porque não tem o
+  treino passo a passo.
+- **Testes:**
+  - os dois registos passam os mesmos testes de contrato. O SQLite tem ainda testes do
+    esquema, das migrações, de uma base de dados mais nova e de registos vindos de outro
+    fio;
+  - o teste de integração da fase 5 treina dois runs num `Lab` e guarda um. Depois abre
+    outro `Lab` na mesma base de dados, como quem reabre a app: os dois runs estão no
+    histórico e comparam-se, e o guardado reabre com o modelo (as curvas ROC voltam). Na
+    interface, guarda pela barra lateral e compara no ecrã Experiências;
+  - no browser: dois runs do Iris (C = 1, guardado, e C = 10⁻⁴), comparados e reabertos
+    depois de reiniciar a app.
+
+### Fase 6
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **O PyTorch fica atrás de um adaptador** (ADR 0021). `TorchModel` escreve uma vez o
+  ciclo de treino e fotografa as camadas:
+  - mini-lotes, Adam ou SGD com momento, regularização L2;
+  - early stopping que fica com os pesos da melhor época;
+  - a seed passa por um `torch.Generator` próprio.
+
+  Duas bases dizem a loss e como se lê a saída:
+  - `TorchClassifier`: softmax, cross-entropy e a exatidão em cada época;
+  - `TorchRegressor`: alvo padronizado e erro quadrático médio.
+- **MLP** (`models/neural/mlp.py`): `mlp` e `mlp_regression`, na família "Redes
+  neuronais". Tem onze hiperparâmetros:
+  - oito do treino: otimizador, taxa de aprendizagem, tamanho do lote, máximo de épocas,
+    regularização L2, early stopping, paciência e fração para validação;
+  - três da forma da rede: camadas escondidas (1 a 4), neurónios por camada (2 a 128) e a
+    ativação (ReLU, tanh ou sigmoide).
+
+  Por omissão, são duas camadas de 16 neurónios com ReLU, treinadas com Adam a 0,01. O
+  catálogo tem agora 34 modelos em 11 famílias, e 22 fichas.
+- **O que cada snapshot mostra da rede.** Em todas as camadas, o tamanho do gradiente
+  (média na época). Nas camadas escondidas, medidas numa amostra de até 256 linhas de
+  treino:
+  - a ativação média de cada neurónio;
+  - os neurónios parados;
+  - um histograma das ativações.
+
+  `visualization_data/network.py` junta os snapshots num `NetworkTrace`
+  (`ExperimentResult.network`), com a proporção de neurónios parados já contada. A loss
+  na validação entra nas métricas de cada época (`val_loss`), e o gráfico da loss
+  desenha-a a tracejado.
+- **O rasto da rede guarda-se como a animação** (ADRs 0020 e 0021). Numa rede grande pesa
+  mais de 800 KB, por isso fica fora do registo automático e vai para `network.json` quando
+  se guarda o run.
+- **Detalhes que os testes apanharam:**
+  - o softmax em float32 dava probabilidades que só somavam 1 a menos de 10⁻⁷, e o
+    scikit-learn avisava na log-loss. Agora calcula-se em float64;
+  - as matrizes do `Dataset` são só de leitura, e um tensor criado a partir delas sem
+    cópia fazia o PyTorch avisar. As features copiam-se para float32;
+  - com as luas por omissão (ruído 0,2), nenhum modelo passa muito dos 95% num teste de
+    40 pontos: a rede fica nos 94,6% em média e a regressão logística nos 86%. Por isso, o
+    teste da fase 6 usa ruído 0,1.
+- **Interface:** no Treinar, depois da animação e da loss, vem a secção "As camadas da
+  rede". Escolhe-se um passo do treino num slider, e vê-se:
+  - o diagrama da rede: cada neurónio pintado com a sua ativação média, os parados
+    esbatidos, até 24 neurónios por camada;
+  - os gradientes por camada, em escala logarítmica;
+  - a percentagem de neurónios parados ao longo do treino;
+  - os histogramas das ativações.
+
+  O painel "Porquê?" ganhou a rede neuronal, a retropropagação, o early stopping e a
+  leitura de cada gráfico.
+- **Testes:**
+  - os testes de contrato percorrem as duas redes: a seed, o treino observado ou não, a
+    paragem a pedido e o estado em JSON. Desta fase em diante, verificam também que todos
+    os modelos se gravam com o joblib e reabrem a responder o mesmo;
+  - os unitários da MLP confirmam que:
+    - a rede resolve as luas;
+    - a regressão aprende uma curva na escala original;
+    - o early stopping fica com a melhor época;
+    - uma ReLU que nunca liga conta como parada;
+  - o teste de integração da fase 6 treina nas luas com ruído 0,1:
+    - a rede passa os 97% de exatidão no teste, mais de 5 pontos acima da regressão
+      logística;
+    - mais de 10% da grelha muda de classe entre a primeira e a última fotografia;
+    - uma reta não reproduz a fronteira final (acerta em menos de 90% da grelha);
+  - no browser, com as luas de ruído 0,1, a rede chegou aos 100% no teste. O early
+    stopping parou na época 121 com os pesos da 101. A fronteira ainda mal curvava no passo
+    24 e contornava as luas no fim.

@@ -142,3 +142,21 @@ class HyperparameterError(ModelError, ValueError):
 
 class CapabilityError(ModelError):
     """O modelo não tem a capacidade pedida (por exemplo, não dá probabilidades)."""
+
+
+class TrackingError(MLLabError):
+    """Erro no registo de experiências: a base de dados ou os ficheiros de um run."""
+
+
+class RunNotFoundError(TrackingError, LookupError):
+    """Não há nenhum run com o identificador pedido no registo.
+
+    Args:
+        run_id: O identificador pedido.
+    """
+
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+        super().__init__(
+            f"Não há nenhum run '{run_id}' no registo de experiências: pode ter sido apagado."
+        )

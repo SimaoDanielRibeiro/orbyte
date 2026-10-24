@@ -16,8 +16,10 @@ razões estão em [docs/adr/](docs/adr/).
 | 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação de classificação, serviço de experiências; ecrãs Modelo e Avaliar | ✅ concluída |
 | 3 — Eventos e snapshots | Contexto de treino, snapshots com a fronteira de decisão, treino em segundo plano, regressões didáticas em NumPy, avaliação de regressão; ecrã Treinar | ✅ concluída |
 | 4 — Catálogo clássico | 32 modelos supervisionados e não supervisionados, avaliadores de todas as tarefas, diagnósticos, validação cruzada, explicações das previsões; ecrãs Avaliar (completo), Explicar e Laboratório | ✅ concluída |
-| 5 — Memória | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs; ecrã Experiências | próxima |
-| 6 a 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+| 5 — Memória | Registo de experiências em SQLite, runs guardados com o modelo, comparação e reprodução de runs; ecrã Experiências | ✅ concluída |
+| 6 — Deep learning | Adaptador PyTorch, rede neuronal (MLP) de classificação e de regressão, early stopping, gradientes e ativações de cada camada; o ecrã Treinar mostra as camadas da rede | ✅ concluída |
+| 7 — API | Rotas HTTP e WebSocket com FastAPI, para a interface aprimorada | próxima |
+| 8 e 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
 
 ## Requisitos
 
@@ -33,7 +35,8 @@ uv sync
 Este comando cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em
 `uv.lock` (as bibliotecas do pacote, as ferramentas de desenvolvimento, o Streamlit e o
 Plotly) e instala o pacote `ml_lab` em modo editável: as alterações em `src/` ficam ativas sem
-reinstalar.
+reinstalar. A biblioteca mais pesada é o PyTorch (as redes neuronais, desde a fase 6): no
+Windows vem a versão só para CPU, que chega para as redes do laboratório.
 
 Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no repositório, em
 `data/samples/`. Para os voltar a descarregar das origens, com verificação SHA-256:
@@ -88,6 +91,33 @@ O ecrã **Laboratório** tem quatro demonstrações, cada uma com um só control
 - a taxa de aprendizagem do gradiente descendente;
 - o k do KNN;
 - a força da regularização na Ridge e no Lasso.
+
+Cada treino fica registado sozinho no ecrã **Experiências**. Para comparar dois runs:
+
+1. treina o Iris duas vezes, com valores de `C` diferentes;
+2. num deles, carrega em "Guardar experiência", na barra lateral;
+3. no ecrã Experiências, escolhe os dois runs. Vês as métricas lado a lado, só as escolhas
+   que mudaram e as curvas da loss.
+
+Fecha a app e abre-a outra vez: os runs continuam lá, e o guardado volta a abrir com o
+modelo (os gráficos do Avaliar funcionam). "Reproduzir" treina outra vez a mesma
+configuração, e a comparação confirma que as métricas são iguais.
+
+Para ver uma rede neuronal por dentro:
+
+1. em **Dados**, gera as "Luas" com ruído 0,1;
+2. em **Modelo**, escolhe a "Rede neuronal (MLP)" e treina.
+
+No **Treinar**, a fronteira curva-se à volta das luas, o que a regressão logística não
+consegue. A secção "As camadas da rede" mostra, passo a passo, a ativação de cada
+neurónio, o tamanho dos gradientes de cada camada e os neurónios parados. Duas
+experiências para fazer aí:
+
+- a sigmoide com 4 camadas: o gradiente encolhe de camada para camada, e na primeira é
+  dezenas de vezes menor do que na saída (o gradiente que desaparece). Com a ReLU, fica
+  parecido em todas as camadas;
+- a ReLU com uma taxa de aprendizagem de 0,5: mais de metade dos neurónios acabam
+  parados, e a exatidão cai.
 
 ## Testes e verificações
 

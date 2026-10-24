@@ -52,6 +52,7 @@ class ModelFamily(StrEnum):
     DENSITY = "density"
     HIERARCHICAL = "hierarchical"
     PROJECTION = "projection"
+    NEURAL = "neural"
 
     @property
     def label(self) -> str:
@@ -69,6 +70,7 @@ class Implementation(StrEnum):
 
     DIDACTIC = "didactic"
     SKLEARN = "sklearn"
+    PYTORCH = "pytorch"
 
     @property
     def label(self) -> str:
@@ -88,10 +90,15 @@ _FAMILY_LABELS: Final[Mapping[ModelFamily, str]] = MappingProxyType(
         ModelFamily.DENSITY: "Baseados em densidade",
         ModelFamily.HIERARCHICAL: "Hierárquicos",
         ModelFamily.PROJECTION: "Projeções",
+        ModelFamily.NEURAL: "Redes neuronais",
     }
 )
 _IMPLEMENTATION_LABELS: Final[Mapping[Implementation, str]] = MappingProxyType(
-    {Implementation.DIDACTIC: "Didática (NumPy)", Implementation.SKLEARN: "scikit-learn"}
+    {
+        Implementation.DIDACTIC: "Didática (NumPy)",
+        Implementation.SKLEARN: "scikit-learn",
+        Implementation.PYTORCH: "PyTorch",
+    }
 )
 
 

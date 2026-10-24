@@ -15,6 +15,7 @@ from numpy.typing import NDArray
 from ml_lab.core.foundation.errors import CapabilityError, ModelError, NotFittedError
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.models.base import MODELS, LabModel
+from ml_lab.core.tracking.artifacts import ArtifactStore
 from ml_lab.core.training.context import RecordingTrainingContext
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "algorithms"
@@ -289,3 +290,21 @@ def test_the_learned_state_is_plain_json(name: str, task_type: TaskType) -> None
     state = model(name).fit(X, y).state()
 
     json.dumps(state)
+
+
+@pytest.mark.parametrize(("name", "task_type"), CASES)
+def test_a_saved_model_comes_back_the_same(name: str, task_type: TaskType, tmp_path: Path) -> None:
+    # "Guardar experiência" grava o modelo treinado com o joblib (fase 5): tem de dar com
+    # todos os modelos, e o que volta a abrir tem de responder o mesmo.
+    X, y, new = tiny_dataset(task_type)
+    fitted = model(name).fit(X, y)
+    files = ArtifactStore(tmp_path)
+
+    files.save("run-a", fitted)
+    reopened = files.model("run-a")
+
+    points = unseen(fitted, X, new)
+    assert np.array_equal(output(reopened, points), output(fitted, points))
+    assert json.dumps(reopened.state(), sort_keys=True) == json.dumps(
+        fitted.state(), sort_keys=True
+    )

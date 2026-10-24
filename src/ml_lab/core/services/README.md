@@ -23,6 +23,7 @@ ou o modelo) levam `@internal`, e as regras de domínio ficam aqui, não na inte
 | `experiments.py` · `ExperimentService` | Corre uma experiência (`ExperimentConfig`), também em segundo plano: prepara, treina, avalia, compara treino e teste e anuncia o run no `EventBus` | 2 |
 | `analysis.py` · `AnalysisService` | Depois do treino: gráficos do Avaliar, validação cruzada, importância, dependência parcial, explicação de uma previsão | 4 |
 | `laboratory.py` · `LaboratoryService` | As quatro demonstrações do Laboratório | 4 |
+| `history.py` · `HistoryService` | O histórico (ADR 0020): regista cada run sozinho, guarda o modelo e o treino passo a passo a pedido, reabre, compara (`comparison.py`) e reproduz runs | 5 |
 | `lab.py` · `Lab` | Os serviços de uma sessão, ligados entre si | 1 |
 
 ## Exemplo

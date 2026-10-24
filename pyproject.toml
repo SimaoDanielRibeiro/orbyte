@@ -7,13 +7,15 @@ requires-python = ">=3.12"
 authors = [{ name = "Simão" }]
 # As bibliotecas de dados e ML entram fase a fase (ver docs/architecture.md, secção Roadmap):
 # fase 1: numpy, pandas (+ openpyxl para Excel), plotly · fase 2: scikit-learn, pydantic
-# fase 6: torch · fase 7: fastapi
+# fase 5: joblib (já vinha com o scikit-learn) · fase 6: torch · fase 7: fastapi
 dependencies = [
+    "joblib>=1.6.0",
     "numpy>=2.5.4",
     "openpyxl>=3.1.5",
     "pandas>=3.1.0",
     "pydantic>=2.14.1",
     "scikit-learn>=1.9.1",
+    "torch>=2.14.1",
 ]
 
 [build-system]
@@ -107,9 +109,10 @@ pretty = true
 # O plugin do Pydantic ensina o mypy a ler os modelos (campos, valores por omissão, Field).
 plugins = ["pydantic.mypy"]
 
-# O Plotly e o scikit-learn não trazem anotações de tipos: os seus objetos ficam com o tipo Any.
+# O Plotly, o scikit-learn e o joblib não trazem anotações de tipos: os seus objetos ficam
+# com o tipo Any.
 [[tool.mypy.overrides]]
-module = ["plotly", "plotly.*", "sklearn", "sklearn.*"]
+module = ["plotly", "plotly.*", "sklearn", "sklearn.*", "joblib", "joblib.*"]
 ignore_missing_imports = true
 
 # --- pytest: testes ---------------------------------------------------------------

@@ -24,6 +24,8 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0017](0017-modelos-do-scikit-learn-que-crescem.md) | Modelos do scikit-learn que se mostram a crescer, com o mesmo resultado final | Proposta |
 | [0018](0018-explicacoes-independentes-do-modelo.md) | Explicações independentes do modelo, escritas em NumPy | Proposta |
 | [0019](0019-fronteira-dos-servicos-pronta-para-a-api.md) | A fronteira dos serviços pronta para a API: dados simples, JSON verificado | Proposta |
+| [0020](0020-registar-sempre-guardar-a-pedido.md) | Registo de experiências: registar sempre, guardar a pedido | Proposta |
+| [0021](0021-redes-pytorch-com-ciclo-de-treino-observavel.md) | Redes neuronais em PyTorch: um ciclo de treino próprio, que se pode observar | Proposta |
 
 ## Como escrever uma ADR
 

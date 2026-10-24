@@ -117,6 +117,12 @@ def save_job(job: TrainingJob[ExperimentResult]) -> None:
     st.session_state[_JOB] = job
 
 
+def training_in_progress() -> bool:
+    """Se há um treino desta sessão a decorrer (ou em pausa)."""
+    job = current_job()
+    return job is not None and not job.done
+
+
 def last_result() -> ExperimentResult | None:
     """O resultado do último treino, se houver (incluindo o de um treino que acabou agora)."""
     job = current_job()
@@ -124,3 +130,13 @@ def last_result() -> ExperimentResult | None:
         st.session_state[_RESULT] = job.result
     result: ExperimentResult | None = st.session_state.get(_RESULT)
     return result
+
+
+def show_result(result: ExperimentResult) -> None:
+    """Põe um run do histórico como o resultado atual (o que Treinar, Avaliar e Explicar mostram).
+
+    Quem chama confirma antes que não há um treino a decorrer: o treino terminado deixa de
+    ser o resultado atual.
+    """
+    st.session_state.pop(_JOB, None)
+    st.session_state[_RESULT] = result
