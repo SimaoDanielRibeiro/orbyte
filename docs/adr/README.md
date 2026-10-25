@@ -30,6 +30,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0023](0023-o-processo-pede-para-nao-ser-travado.md) | O processo pede ao Windows para não ser travado | Proposta |
 | [0024](0024-reinforcement-learning-com-os-mesmos-contratos.md) | Reinforcement learning: um paradigma novo, com a mesma maquinaria de treino | Proposta |
 | [0025](0025-agentes-de-automl-deterministas.md) | Agentes de AutoML deterministas, por cima dos serviços | Proposta |
+| [0026](0026-contrato-com-o-frontend.md) | O contrato com o frontend: tipos exatos, um vocabulário e o OpenAPI guardado | Proposta |
 
 ## Como escrever uma ADR
 

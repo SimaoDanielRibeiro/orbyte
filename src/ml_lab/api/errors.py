@@ -65,8 +65,12 @@ ERROR_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
     404: {"model": ApiError, "description": "O identificador não existe."},
     409: {"model": ApiError, "description": "O treino ainda decorre, ou falhou."},
     422: {"model": ApiError, "description": "Os valores do pedido não servem."},
+    500: {
+        "model": ApiError,
+        "description": "O registo de experiências falhou, ou um erro inesperado.",
+    },
 }
-"""As respostas de erro, para o OpenAPI as descrever em cada rota."""
+"""As respostas de erro, para o OpenAPI as descrever em cada rota (todas com um ``ApiError``)."""
 
 _SOURCES: Final = frozenset({"body", "query", "path", "header", "cookie"})
 

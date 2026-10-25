@@ -49,6 +49,20 @@ class AgentRole(StrEnum):
     COORDINATOR = "coordinator"
     MODEL = "model"
 
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em português."""
+        return _ROLE_LABELS[self]
+
+
+_ROLE_LABELS: Final[Mapping[AgentRole, str]] = MappingProxyType(
+    {
+        AgentRole.DATA: "Agente de dados",
+        AgentRole.COORDINATOR: "Coordenador",
+        AgentRole.MODEL: "Agente de modelo",
+    }
+)
+
 
 DATA_AGENT: Final = "Agente de dados"
 COORDINATOR: Final = "Coordenador"

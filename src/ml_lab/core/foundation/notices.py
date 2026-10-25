@@ -12,10 +12,11 @@ Exemplo:
     'Age'
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Self
+from types import MappingProxyType
+from typing import Final, Self
 
 
 class NoticeLevel(StrEnum):
@@ -29,6 +30,16 @@ class NoticeLevel(StrEnum):
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em português."""
+        return _LEVEL_LABELS[self]
+
+
+_LEVEL_LABELS: Final[Mapping[NoticeLevel, str]] = MappingProxyType(
+    {NoticeLevel.INFO: "Nota", NoticeLevel.WARNING: "Aviso", NoticeLevel.ERROR: "Erro"}
+)
 
 
 @dataclass(frozen=True, slots=True)

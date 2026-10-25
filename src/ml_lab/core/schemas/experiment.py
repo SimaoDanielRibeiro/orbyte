@@ -25,11 +25,31 @@ Exemplo:
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, with_config
 
+from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.preparation import PreparationConfig
+from ml_lab.core.data.projection.projection_2d import ProjectionConfig
+from ml_lab.core.data.splitting.base import SplitConfig
+from ml_lab.core.data.transforms.pipeline_builder import TransformConfig
 from ml_lab.core.foundation.random import MAX_SEED
+
+# As dataclasses da camada de dados não conhecem o Pydantic (ADR 0011): é aqui, na fronteira,
+# que se diz como as validar. Sem uma configuração própria, cada uma herdava a do modelo onde
+# aparece: recusava campos a mais dentro de um ExperimentConfig e aceitava-os dentro de uma
+# CleaningSuggestion devolvida pelo serviço. O OpenAPI ficava então com duas versões de cada
+# uma ("CleaningStep-Input" e "CleaningStep-Output"), que dariam dois tipos no TypeScript do
+# frontend (ADR 0026).
+for _dataclass in (
+    SourceSpec,
+    PreparationConfig,
+    CleaningStep,
+    SplitConfig,
+    TransformConfig,
+    ProjectionConfig,
+):
+    with_config(ConfigDict(extra="forbid"))(_dataclass)
 
 
 class ModelSpec(BaseModel):

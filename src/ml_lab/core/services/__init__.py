@@ -85,7 +85,7 @@ from ml_lab.core.services.datasets import (
     SampleSummary,
 )
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService, TrainingUpdate
-from ml_lab.core.services.explanations import explain
+from ml_lab.core.services.explanations import explain, topics
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.services.laboratory import (
@@ -104,6 +104,7 @@ from ml_lab.core.services.reinforcement import (
     ReinforcementService,
     ReinforcementUpdate,
 )
+from ml_lab.core.services.vocabulary import TaskInfo, Vocabulary, vocabulary
 from ml_lab.core.tracking.store import RunEntry
 from ml_lab.core.training.jobs import JobState, JobStatus, TrainingJob
 from ml_lab.core.training.recorder import Progress, StepRecord
@@ -255,6 +256,7 @@ __all__ = [
     "Stage",
     "StepRecord",
     "TablePreview",
+    "TaskInfo",
     "TaskOptions",
     "TaskSuggestion",
     "TaskType",
@@ -266,5 +268,8 @@ __all__ = [
     "TransformConfig",
     "ValidationReport",
     "ValueCount",
+    "Vocabulary",
     "explain",
+    "topics",
+    "vocabulary",
 ]

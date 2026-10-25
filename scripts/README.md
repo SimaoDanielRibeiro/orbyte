@@ -6,5 +6,6 @@ Utilitários de linha de comandos. Correm-se a partir da raiz com
 | Script | O que faz | Fase |
 |---|---|---|
 | `download_samples.py` | Descarrega os datasets de exemplo para `data/samples/` e confirma o SHA-256 (`--force` volta a descarregar todos) | 1 |
+| `export_openapi.py` | Guarda o OpenAPI da API em `ui/web/openapi.json`, de onde o frontend gera os tipos TypeScript (um teste avisa quando fica desatualizado) | 10 |
 
 Previsto: recriar a base de dados (fase 5).

@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ml_lab import __version__
+from ml_lab.api import openapi
 from ml_lab.api.errors import add_error_handlers
 from ml_lab.api.routes import ROUTERS
 from ml_lab.api.routing import operation_id
@@ -39,6 +40,10 @@ acompanhar o treino, avaliar, explicar e comparar runs.
 os agentes a procurar o melhor modelo. `GET /automl/{search_id}/updates` traz a conversa
 dos agentes e os candidatos novos, e `GET /automl/{search_id}/result` o quadro final, com o
 `run_id` do vencedor.
+
+**Para o frontend arrancar:** `GET /vocabulary` dá o nome a mostrar de cada valor (as
+tarefas, as famílias, os estados) e `GET /explanations` os textos do painel «Porquê?». Pede-se
+uma vez e guarda-se.
 
 Os erros vêm sempre com um `code` estável e uma `message` em português que diz o que fazer.
 """
@@ -70,7 +75,13 @@ TAGS = [
             "escolhem o melhor para o pedido, com a razão de cada decisão."
         ),
     },
-    {"name": "explanations", "description": "Os textos do painel «Porquê?»."},
+    {
+        "name": "explanations",
+        "description": (
+            "Os textos das interfaces, para o frontend pedir uma vez: o vocabulário (o nome a "
+            "mostrar de cada valor) e os temas do painel «Porquê?»."
+        ),
+    },
     {"name": "meta", "description": "Sobre a própria API."},
 ]
 
@@ -107,4 +118,5 @@ def create_app(lab: Lab | None = None, *, settings: Settings | None = None) -> F
     add_error_handlers(app)
     for router in ROUTERS:
         app.include_router(router)
+    openapi.install(app)  # as respostas com todos os campos obrigatórios (ver api/openapi.py)
     return app

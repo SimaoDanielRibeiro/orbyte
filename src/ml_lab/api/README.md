@@ -27,10 +27,14 @@ endereço, a porta e as origens do CORS mudam-se nas definições (`ML_LAB_API_*
 | `errors.py` | O código HTTP de cada categoria de erro e o corpo `ApiError` |
 | `requests.py` | Os corpos dos pedidos que juntam vários valores |
 | `stream.py` | O WebSocket: o mesmo `updates` dos serviços, de 0,25 em 0,25 s |
-| `routes/` | Uma rota por método público de cada serviço, com o nome do método |
+| `openapi.py` | O OpenAPI com as respostas completas: nos tipos que só se recebem, todos os campos são obrigatórios (ADR 0026) |
+| `routes/` | Uma rota por método público de cada serviço, com o nome do método, e os textos (`/vocabulary`, `/explanations`) |
 
 Para expor um método novo de um serviço, escreve a rota em `routes/<serviço>.py` com o nome
-do método. `tests/api/test_contract.py` falha enquanto faltar.
+do método. `tests/api/test_contract.py` falha enquanto faltar. Depois, volta a gerar o
+contrato do frontend (`uv run python scripts/export_openapi.py`):
+`tests/api/test_openapi_file.py` falha enquanto `ui/web/openapi.json` estiver desatualizado.
+O guia do contrato, para quem faz o frontend, está em `ui/web/README.md`.
 
 ## Treinar e acompanhar o treino
 
@@ -74,6 +78,6 @@ nome do erro em `snake_case`), e a `message` diz em português o que fazer.
 |---|---|---|
 | `TrainingStateError` | 409 | `training_in_progress`: o resultado ainda não existe |
 | `DataError`, `ValueError` | 422 | `hyperparameter`, `column_not_found`, `invalid_request` |
-| `LookupError` | 404 | `run_not_found`, `dataset_not_found`, `job_not_found`, `search_not_found` |
+| `LookupError` | 404 | `run_not_found`, `dataset_not_found`, `job_not_found`, `search_not_found`, `candidate_not_found` |
 | `TrackingError` | 500 | O registo de experiências falhou |
 | outro `MLLabError` | 400 | `model`: a pergunta não serve para esta tarefa |

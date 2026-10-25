@@ -153,6 +153,27 @@ def test_a_stopped_search_still_names_a_winner(lab: Lab) -> None:
     assert "stopped_early" in [notice.code for notice in result.notices]
 
 
+def test_a_running_search_is_never_forgotten(lab: Lab) -> None:
+    # O serviço esquece os planos mais antigos, mas nunca o de uma procura que decorre:
+    # sem ele, quem a acompanha deixava de ver a conversa e os candidatos.
+    longer = REQUEST.model_copy(update={"settings": SearchSettings(budget=200, folds=3)})
+    tiny = REQUEST.model_copy(
+        update={
+            "families": (ModelFamily.TREE,),
+            "settings": SearchSettings(budget=1, folds=2),
+        }
+    )
+    running = lab.automl.start(longer)
+    lab.automl.pause(running.run_id)
+
+    for _ in range(12):  # mais do que os planos que o serviço guarda
+        lab.automl.run(tiny)
+
+    assert lab.automl.updates(running.run_id).state.status is JobStatus.PAUSED
+    lab.automl.cancel(running.run_id)
+    assert running.wait(timeout=120).stopped_early
+
+
 def test_an_unknown_search_is_not_found(lab: Lab) -> None:
     with pytest.raises(SearchNotFoundError, match="search-nada"):
         lab.automl.job("search-nada")

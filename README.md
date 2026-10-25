@@ -176,6 +176,16 @@ também, em `/automl` (`POST /automl` com o dataset e o alvo; os `updates` traze
 dos agentes e os candidatos novos). Os pormenores estão em
 [src/ml_lab/api/README.md](src/ml_lab/api/README.md).
 
+Para o frontend (fase 10), o contrato da API fica guardado em `ui/web/openapi.json`, de
+onde se geram os tipos TypeScript, e o guia do contrato está em
+[ui/web/README.md](ui/web/README.md): as rotas de cada ecrã, o vocabulário
+(`GET /vocabulary`), o acompanhamento do treino e os códigos de erro. Depois de mudar um
+serviço, uma rota ou um tipo devolvido, volta a gerar o contrato:
+
+```bash
+uv run python scripts/export_openapi.py
+```
+
 ## Testes e verificações
 
 Uma fase só termina quando estas quatro verificações passam (corre-as antes de cada push):

@@ -535,9 +535,23 @@ class AutoMLService:
         )
         with self._lock:
             self._searches[search_id] = plan
-            while len(self._searches) > 2 * KEPT_SEARCHES:
-                self._searches.popitem(last=False)
+            self._forget_old_searches(keep=search_id)
         return plan
+
+    def _forget_old_searches(self, *, keep: str) -> None:
+        """Esquece os planos mais antigos, mas nunca o de uma procura que ainda decorre.
+
+        O plano tem a conversa e os candidatos: sem ele, quem acompanha uma procura em curso
+        deixava de a ver. Por isso só saem os planos de procuras que já acabaram.
+        """
+        excess = len(self._searches) - 2 * KEPT_SEARCHES
+        finished = [
+            search_id
+            for search_id in self._searches
+            if search_id != keep and ((job := self._jobs.find(search_id)) is None or job.done)
+        ]
+        for search_id in finished[: max(0, excess)]:
+            del self._searches[search_id]
 
     def _decide(
         self, request: AutoMLRequest

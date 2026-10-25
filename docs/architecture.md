@@ -573,6 +573,7 @@ ml-lab/
 │   │   │   ├── laboratory.py # as demonstrações do ecrã Laboratório (10)
 │   │   │   ├── reinforcement.py  # treinar agentes num ambiente e avaliá-los (11)
 │   │   │   ├── explanations.py # o painel "Porquê?": os temas de todas as camadas
+│   │   │   ├── vocabulary.py # o nome a mostrar de cada valor e o que muda com cada tarefa
 │   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
 │   │   ├── rl/               # REINFORCEMENT LEARNING: aprender num ambiente, sem dataset
 │   │   │   ├── environments/ # contrato Environment, registo ENVIRONMENTS e a grelha
@@ -594,6 +595,7 @@ ml-lab/
 │       ├── routing.py        # ServiceRouter: respostas pelo to_json, ids serviço_método
 │       ├── errors.py         # o código HTTP de cada categoria de erro (ApiError)
 │       ├── stream.py         # o WebSocket: o mesmo updates dos serviços, de 0,25 em 0,25 s
+│       ├── openapi.py        # o OpenAPI com as respostas completas (ADR 0026)
 │       ├── requests.py       # corpos dos pedidos que juntam vários valores
 │       └── routes/           # uma rota por método público de cada serviço
 │
@@ -603,7 +605,8 @@ ml-lab/
 │   │   ├── pages/            # um ecrã por etapa (Dados, Agentes, Explorar, Preparar…)
 │   │   ├── components/       # blocos reutilizáveis: cartão de métrica, formulário
 │   │   └── charts/           # desenha com Plotly os dados de visualization_data
-│   └── web/                  # INTERFACE APRIMORADA (React + TypeScript), fase final
+│   └── web/                  # INTERFACE APRIMORADA (React + TypeScript), fase 10: o guia do
+│                             # contrato (README.md) e o OpenAPI guardado (openapi.json)
 │
 └── tests/
     ├── unit/                 # espelha src/ml_lab/
@@ -1615,3 +1618,34 @@ A fase dos agentes entrou no roadmap antes da interface aprimorada, que passou p
       `x-labels`;
     - as linhas e os textos dos gráficos perdiam-se no tema escuro;
     - os cartões do vencedor ficavam cortados.
+
+### Preparação da fase 10
+
+Antes de começar o frontend, uma revisão do código e do contrato pela perspetiva de quem o vai
+consumir, com os tipos TypeScript gerados do OpenAPI (ADR 0026). O que mudou:
+
+- **Um esquema por tipo.** As dataclasses dos pedidos (`SourceSpec`, `PreparationConfig`,
+  `CleaningStep`, `SplitConfig`, `TransformConfig`, `ProjectionConfig`) têm agora a sua
+  própria configuração do Pydantic, dada na fronteira. Antes, herdavam a do modelo onde
+  apareciam, e o OpenAPI tinha `ExperimentConfig-Input` e `ExperimentConfig-Output`.
+- **As respostas prometem todos os campos.** `api/openapi.py` marca como obrigatórios todos
+  os campos dos tipos que só aparecem em respostas (o `to_json` manda-os sempre); os tipos
+  que também se enviam ficam com os seus opcionais.
+- **O vocabulário** (`GET /vocabulary`): o nome a mostrar de cada valor de cada enum
+  devolvido, e o que muda com cada tarefa. `Paradigm`, `NoticeLevel`, `CellKind` e
+  `AgentRole` ganharam nomes. `GET /explanations` dá todos os temas de uma vez.
+- **As regras de domínio viajam**: `ValidationReport.is_usable` passou de propriedade a campo;
+  a métrica principal de cada tarefa está no vocabulário.
+- **O contrato guardado**: `ui/web/openapi.json` (`scripts/export_openapi.py`), com um teste
+  que falha quando fica desatualizado, e o guia do contrato em `ui/web/README.md` (as rotas
+  de cada ecrã, os cursores do acompanhamento, os WebSockets, os códigos de erro, a
+  formatação dos números e o que se calcula com o que já vem).
+- **Erros 500 descritos**: as respostas de erro de todas as rotas, incluindo a 500, são um
+  `ApiError` no OpenAPI.
+- **Um erro corrigido nos agentes**: o serviço guardava o plano das últimas 10 procuras e
+  esquecia o resto, mesmo o de uma procura ainda a correr (quem a acompanhava perdia-a, com
+  "procura não encontrada"). Agora só esquece os planos de procuras que já acabaram.
+- **Verificado sem mudar nada**: o registo em SQLite abre uma ligação por operação (aguenta
+  pedidos em paralelo), a cache da análise só pode calcular duas vezes a mesma coisa, e 31
+  resultados reais, de todas as tarefas, passam a JSON e voltam a validar contra o próprio
+  tipo (nenhum `null` onde o esquema promete um número).

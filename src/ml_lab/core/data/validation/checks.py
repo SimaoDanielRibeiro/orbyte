@@ -47,14 +47,17 @@ class ValidationReport:
 
     Attributes:
         notices: Avisos e erros encontrados, do mais grave para o menos grave.
+        is_usable: Se não há erros: os dados podem seguir para as etapas seguintes. Calcula-se
+            sempre a partir dos avisos (o valor dado ao construtor não conta). É um campo, e não
+            uma propriedade, para ir no JSON: é uma regra de domínio, que o frontend lê em vez
+            de a decidir.
     """
 
     notices: tuple[Notice, ...] = ()
+    is_usable: bool = True
 
-    @property
-    def is_usable(self) -> bool:
-        """Se não há erros: os dados podem seguir para as etapas seguintes."""
-        return not has_errors(self.notices)
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "is_usable", not has_errors(self.notices))
 
     @property
     def errors(self) -> tuple[Notice, ...]:

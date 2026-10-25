@@ -18,9 +18,11 @@ decorada com ``@ENVIRONMENTS.register("nome")``.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, cast
+from types import MappingProxyType
+from typing import Any, ClassVar, Final, cast
 
 import numpy as np
 
@@ -55,6 +57,22 @@ class CellKind(StrEnum):
     START = "start"
     GOAL = "goal"
     TRAP = "trap"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em português."""
+        return _CELL_LABELS[self]
+
+
+_CELL_LABELS: Final[Mapping[CellKind, str]] = MappingProxyType(
+    {
+        CellKind.EMPTY: "Livre",
+        CellKind.WALL: "Parede",
+        CellKind.START: "Partida",
+        CellKind.GOAL: "Objetivo",
+        CellKind.TRAP: "Armadilha",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)

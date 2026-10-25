@@ -30,6 +30,11 @@ EXPLANATIONS: Final[Mapping[str, Explanation]] = ChainMap(
 )
 
 
+def topics() -> dict[str, Explanation]:
+    """Todos os temas, pelo nome (o frontend pede-os uma vez, em vez de um a um)."""
+    return dict(EXPLANATIONS)
+
+
 def explain(topic: str) -> Explanation:
     """A explicação de um tema (``"split"``, ``"loss"``...).
 

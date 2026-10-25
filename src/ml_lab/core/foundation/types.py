@@ -27,6 +27,11 @@ class Paradigm(StrEnum):
     UNSUPERVISED = "unsupervised"
     REINFORCEMENT = "reinforcement"
 
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em português."""
+        return _PARADIGM_LABELS[self]
+
 
 class TaskType(StrEnum):
     """Lista fechada dos tipos de tarefa que o ML Lab sabe resolver.
@@ -90,6 +95,14 @@ class Partition(StrEnum):
 
 _PARTITION_LABELS: Final[Mapping[Partition, str]] = MappingProxyType(
     {Partition.TRAIN: "Treino", Partition.VALIDATION: "Validação", Partition.TEST: "Teste"}
+)
+
+_PARADIGM_LABELS: Final[Mapping[Paradigm, str]] = MappingProxyType(
+    {
+        Paradigm.SUPERVISED: "Supervisionada",
+        Paradigm.UNSUPERVISED: "Não supervisionada",
+        Paradigm.REINFORCEMENT: "Reinforcement learning",
+    }
 )
 
 _LABELS: Final[Mapping[TaskType, str]] = MappingProxyType(

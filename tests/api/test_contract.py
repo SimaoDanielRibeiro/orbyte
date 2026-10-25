@@ -7,6 +7,7 @@ nunca fica sem acesso a uma coisa que a interface simples já usa.
 
 import inspect
 import math
+import re
 from dataclasses import dataclass
 from typing import Any, get_type_hints
 
@@ -95,3 +96,41 @@ def test_answers_go_through_the_project_serializer() -> None:
     assert response.json() == {"loss": None, "state": {"weights": [1.5, None]}}
     assert "NaN" not in response.text
     assert "Infinity" not in response.text
+
+
+def schemas(client: TestClient) -> dict[str, Any]:
+    components: dict[str, Any] = client.get("/openapi.json").json()["components"]["schemas"]
+    return components
+
+
+def test_every_type_has_one_schema_with_a_plain_name(client: TestClient) -> None:
+    # Um nome como "ExperimentConfig-Input" quer dizer dois esquemas para o mesmo tipo, e dois
+    # tipos no TypeScript do frontend (ADR 0026).
+    odd = [name for name in schemas(client) if not re.fullmatch(r"[A-Z][A-Za-z0-9_]*", name)]
+
+    assert not odd
+
+
+def test_responses_promise_every_field_and_requests_only_the_needed_ones(
+    client: TestClient,
+) -> None:
+    # O to_json manda sempre todos os campos: nos tipos que só se recebem, nenhum é opcional.
+    # Nos que também se enviam, um campo com valor por omissão pode faltar no pedido.
+    components = schemas(client)
+
+    result = components["ExperimentResult"]
+    assert set(result["required"]) == set(result["properties"])
+    assert "history" in result["required"]
+    request = components["ExperimentConfig"]
+    assert set(request["required"]) == {"dataset", "model"}
+    assert "required" not in components["SearchSettings"]
+
+
+def test_every_error_answer_is_an_api_error(client: TestClient) -> None:
+    operation = client.get("/openapi.json").json()["paths"]["/experiments"]["post"]
+    errors = {code: answer for code, answer in operation["responses"].items() if code >= "400"}
+
+    assert set(errors) == {"400", "404", "409", "422", "500"}
+    for answer in errors.values():
+        schema = answer["content"]["application/json"]["schema"]
+        assert schema["$ref"].endswith("/ApiError")

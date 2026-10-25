@@ -31,6 +31,12 @@ ou o modelo) levam `@internal`, e as regras de domínio ficam aqui, não na inte
 Cada método público tem a sua rota na API (`ml_lab/api/routes/<serviço>.py`), com o nome do
 método (ADR 0022).
 
+Os textos das interfaces não são um serviço do `Lab`, mas funções: `explain(tema)` e
+`topics()` (`explanations.py`), com os temas do painel "Porquê?" de todas as camadas, e
+`vocabulary()` (`vocabulary.py`), com o nome a mostrar de cada valor de cada enum e o que muda
+com cada tarefa. O frontend pede-os uma vez, ao arrancar (`GET /explanations` e
+`GET /vocabulary`, ADR 0026).
+
 ## Exemplo
 
 ```python

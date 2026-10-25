@@ -20,7 +20,8 @@ from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.models.base import ModelFamily
 from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
-from ml_lab.core.schemas.serialization import is_internal, json_schema, to_json
+from ml_lab.core.schemas.serialization import from_json, is_internal, json_schema, to_json
+from ml_lab.core.services import vocabulary
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.training.jobs import TrainingJob
 
@@ -106,7 +107,14 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
         lab.analysis.partial_dependence(result.run_id, result.feature_names[0]),
         lab.analysis.explain_row(result.run_id, 0),
         lab.laboratory.knn(5),
+        vocabulary(),
     ]
 
     for output in outputs:
-        json.dumps(to_json(output), allow_nan=False)
+        data = to_json(output)
+        json.dumps(data, allow_nan=False)
+        # E o JSON cumpre o próprio esquema: um NaN que passou a null num campo que o esquema
+        # diz ser um número mentia aos tipos TypeScript do frontend.
+        items, documents = (output, data) if isinstance(output, list) else ([output], [data])
+        for item, document in zip(items, documents, strict=True):
+            from_json(type(item), document)

@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from ml_lab.core.data.validation.checks import (
+    ValidationReport,
     check_header,
     decode_text,
     file_format,
@@ -14,6 +15,7 @@ from ml_lab.core.data.validation.checks import (
 from ml_lab.core.data.validation.schemas import ColumnRule, check_rules
 from ml_lab.core.foundation.errors import DataSourceError
 from ml_lab.core.foundation.notices import Notice, NoticeLevel
+from ml_lab.core.schemas.serialization import from_json, to_json
 
 
 def codes(notices: tuple[Notice, ...]) -> list[str]:
@@ -95,6 +97,17 @@ def test_empty_tables_are_errors(frame: pd.DataFrame, expected: list[str]) -> No
 
     assert not report.is_usable
     assert codes(report.errors) == expected
+
+
+def test_whether_the_data_can_go_on_travels_in_the_json() -> None:
+    # É uma regra de domínio: o frontend lê-a em vez de a decidir (ADR 0026).
+    report = validate_table(pd.DataFrame())
+
+    data = to_json(report)
+
+    assert data["is_usable"] is False
+    lying = from_json(ValidationReport, {**data, "is_usable": True})
+    assert not lying.is_usable  # calcula-se sempre a partir dos avisos
 
 
 def test_suspicious_tables_get_warnings() -> None:
