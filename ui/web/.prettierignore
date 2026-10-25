@@ -1,0 +1,8 @@
+dist
+src/api/generated
+src/routeTree.gen.ts
+openapi.json
+package-lock.json
+playwright-report
+test-results
+*.md

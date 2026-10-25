@@ -14,7 +14,13 @@ import pytest
 from ml_lab.core.automl.coordinator import Coordinator, SearchOutcome
 from ml_lab.core.automl.model_agent import ModelAgent, model_agents
 from ml_lab.core.automl.objective import objective_for
-from ml_lab.core.automl.search_log import AgentRole, Candidate, SearchLog, SearchPhase
+from ml_lab.core.automl.search_log import (
+    AgentRole,
+    Candidate,
+    SearchLog,
+    SearchPhase,
+    WorkInProgress,
+)
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.preparation import PreparationConfig
@@ -222,3 +228,37 @@ def test_the_conversation_tells_the_story_of_the_search() -> None:
     assert all(m.candidate is not None for m in agents)
     assert [m.number for m in messages] == list(range(1, len(messages) + 1))
     assert {m.phase for m in messages} == {SearchPhase.SCREENING, SearchPhase.TUNING}
+
+
+class FoldWatcher(SearchLog):
+    """Uma conversa que fotografa o trabalho em curso a cada fold (como o fluxograma o vê)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.seen: list[WorkInProgress] = []
+
+    def progress(self, fold: int) -> None:
+        super().progress(fold)
+        assert self.working is not None
+        self.seen.append(self.working)
+
+
+def test_whoever_follows_sees_which_agent_works_and_on_which_fold() -> None:
+    log = FoldWatcher()
+
+    outcome, _ = search(budget=2, log=log)
+
+    assert [(work.candidate, work.fold) for work in log.seen] == [
+        (1, 1),
+        (1, 2),
+        (1, 3),
+        (2, 1),
+        (2, 2),
+        (2, 3),
+    ]
+    assert {work.folds for work in log.seen} == {3}
+    first, second = outcome.candidates
+    assert log.seen[0].model == first.model
+    assert log.seen[0].author == "Agente · Modelos lineares"
+    assert log.seen[3].model == second.model
+    assert log.working is None  # entre candidatos (e no fim) não há trabalho em curso

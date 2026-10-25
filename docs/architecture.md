@@ -138,7 +138,7 @@ módulo `logging`), sem dependências extra.
 | Tecnologia | O que é | Para que serve no projeto | Fase |
 |---|---|---|---|
 | Streamlit | Transforma scripts Python em aplicações web, sem HTML nem JavaScript | Todos os ecrãs da interface simples, construídos a par do backend | 0 |
-| Plotly | Gráficos interativos (zoom, hover, animação) | Gráficos da interface simples; o Plotly.js dá os mesmos gráficos no React | 1 |
+| Plotly | Gráficos interativos (zoom, hover, animação) | Gráficos da interface simples (a aprimorada desenha os seus com o D3) | 1 |
 
 ### API e interface aprimorada (fases 7 e 10)
 
@@ -147,10 +147,16 @@ módulo `logging`), sem dependências extra.
 | FastAPI | Framework web assíncrona baseada em Pydantic, com WebSockets incluídos | Expor os serviços por HTTP e transmitir o treino em tempo real; documentação automática em `/docs` | 7 |
 | Uvicorn | Servidor que corre a aplicação FastAPI | Correr a API localmente | 7 |
 | React | Biblioteca para interfaces feitas de componentes | Interface aprimorada e personalizada | 10 |
-| TypeScript | JavaScript com tipos | Evitar erros; tipos gerados a partir da documentação da API | 10 |
-| Vite | Ferramenta de desenvolvimento e build para front-end | Servidor local rápido e build final | 10 |
-| Tailwind CSS | CSS por classes utilitárias | Sistema de design próprio (cores, tipografia, modo escuro) | 10 |
-| D3.js (+ Plotly.js) | Visualização de baixo nível | Animações feitas à medida: fronteiras a mover-se, redes neuronais, centróides | 10 |
+| TypeScript | JavaScript com tipos | Evitar erros; tipos gerados a partir do contrato da API (`openapi.json`) | 10 |
+| Vite | Ferramenta de desenvolvimento e build para front-end | Servidor local rápido, o proxy para a API e o build final | 10 |
+| Tailwind CSS | CSS por classes utilitárias | Sistema de design próprio: os tokens de cor, tipo e raio (ADR 0029) | 10 |
+| shadcn/ui (com o Radix) | Componentes acessíveis cujo código fica no projeto | A barra lateral, as gavetas, as dicas, os botões | 10 |
+| Motion | Animações para React | Transições que respondem a uma ação e o fluxograma dos agentes | 10 |
+| TanStack Router e Query | Rotas tipadas e cache dos pedidos | Um ficheiro por ecrã; os dados da API pedidos uma vez e guardados | 10 |
+| D3.js | Visualização de baixo nível | Gráficos feitos à medida: fronteiras a mover-se, redes neuronais, centróides | 10 |
+
+As peças à volta (o gerador do cliente, o Zustand, o KaTeX, o ESLint, o Vitest e o
+Playwright) e as razões de cada escolha estão na ADR 0027.
 
 A fase 9 (os agentes) não traz tecnologias novas: usa o scikit-learn, o PyTorch e a validação
 cruzada que já existem.
@@ -605,8 +611,17 @@ ml-lab/
 │   │   ├── pages/            # um ecrã por etapa (Dados, Agentes, Explorar, Preparar…)
 │   │   ├── components/       # blocos reutilizáveis: cartão de métrica, formulário
 │   │   └── charts/           # desenha com Plotly os dados de visualization_data
-│   └── web/                  # INTERFACE APRIMORADA (React + TypeScript), fase 10: o guia do
-│                             # contrato (README.md) e o OpenAPI guardado (openapi.json)
+│   └── web/                  # INTERFACE APRIMORADA (React + TypeScript), fase 10
+│       ├── README.md         # como correr e o guia do contrato com o backend
+│       ├── openapi.json      # o contrato, gerado pelo Python (o cliente gera-se daqui)
+│       ├── e2e/              # testes de ponta a ponta (Playwright), com a API numa pasta temporária
+│       └── src/
+│           ├── api/          # o cliente gerado, os erros, a cache e o vocabulário
+│           ├── components/   # ui/ (shadcn), shell/ (a moldura), notices/
+│           ├── lib/          # format.ts: os números à portuguesa, como no Python
+│           ├── routes/       # um ficheiro por ecrã (TanStack Router)
+│           ├── state/        # o pouco estado do cliente (Zustand)
+│           └── styles/       # globals.css: os tokens do sistema visual (ADR 0029)
 │
 └── tests/
     ├── unit/                 # espelha src/ml_lab/
@@ -729,9 +744,14 @@ verificam o novo componente automaticamente.
 
 1. Escrever uma função pura em `evaluation/metrics/<tipo>.py`.
 2. Decorar com `@metric("balanced_accuracy", task_types={...}, higher_is_better=True)`.
-3. Juntar a explicação em `evaluation/explanations.py`.
+3. Juntar a explicação em `evaluation/explanations.py`: o que mede, como se lê, a fórmula
+   em LaTeX e o significado de cada símbolo.
+4. Se a métrica for uma conta com quantidades que se contam (os verdadeiros positivos, a
+   soma dos erros), dar também os termos da fórmula: `@metric(..., breakdown=...)`, com os
+   símbolos escritos como na fórmula (ADR 0028).
 
-A métrica aparece em todos os relatórios dos tipos de tarefa indicados.
+A métrica aparece em todos os relatórios dos tipos de tarefa indicados, e no catálogo das
+métricas (`CatalogService.metrics`).
 
 ### Adicionar uma fonte de dados
 
@@ -877,7 +897,7 @@ um run como os outros, e qualquer candidato que eles experimentaram se pode trei
 
 | Aspeto | Interface simples | Interface aprimorada |
 |---|---|---|
-| Tecnologia | Streamlit + Plotly (só Python) | React + TypeScript + Vite + Tailwind CSS + Plotly.js/D3 |
+| Tecnologia | Streamlit + Plotly (só Python) | React + TypeScript + Vite + Tailwind CSS + shadcn/ui + Motion + D3 |
 | Ligação ao backend | Chama a camada de serviços diretamente, no mesmo processo Python | Através da API (HTTP para pedidos, WebSocket para o treino) |
 | Tempo real | Atualização periódica do ecrã de treino | Snapshots chegam em fluxo contínuo |
 | Animações | Slider para percorrer snapshots | Animações suaves, transições entre estados |
@@ -914,7 +934,7 @@ cada vez.
 | 7 — API ✅ | Rotas de dados, catálogo e experiências; treino em background; WebSocket | — (a simples continua a usar os serviços) | FastAPI, Uvicorn | Pela documentação em `/docs`: carregar CSV, lançar treino e receber snapshots |
 | 8 — Reinforcement learning ✅ | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
 | 9 — Agentes (AutoML) ✅ | Agente de dados (limpeza, tarefa, divisão e transformações, cada decisão com a razão); um agente por família de modelos; coordenador com triagem e procura aleatória, escolhidas por validação cruzada só com o treino; orçamento, pausa e paragem; o vencedor treina como um run normal | Agentes (o modo automático, ao lado do manual) | — (procura de hiperparâmetros, validação cruzada para escolher) | No Titanic, os agentes preparam os dados, experimentam uma família de cada vez e afinam os finalistas sem tocar no teste; o vencedor usa o teste uma só vez, fica no histórico e abre-se no Avaliar |
-| 10 — Interface aprimorada | Ajustes à API que a interface pedir | Todos os ecrãs refeitos em React com design próprio | React, TypeScript, Vite, Tailwind CSS, D3.js, Plotly.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real |
+| 10 — Interface aprimorada | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
 
 ### Ordem de leitura recomendada para aprender
 
@@ -1649,3 +1669,100 @@ consumir, com os tipos TypeScript gerados do OpenAPI (ADR 0026). O que mudou:
   pedidos em paralelo), a cache da análise só pode calcular duas vezes a mesma coisa, e 31
   resultados reais, de todas as tarefas, passam a JSON e voltam a validar contra o próprio
   tipo (nenhum `null` onde o esquema promete um número).
+
+### Fase 10
+
+A interface aprimorada, em `ui/web`. O pedido: tons escuros, uma barra lateral que se
+recolhe em vez da barra no topo, um painel inicial para escolher entre testar um modelo à
+mão e deixar os agentes procurar, os agentes a trabalhar à vista, uma página por modelo que
+explique como ele funciona (com exemplos visuais e os hiperparâmetros), e o ecrã Treinar com
+as avaliações e uma explicação visual de cada métrica.
+
+**O desenho** (ADR 0029): "ardósia e giz". A interface é o quadro onde o laboratório
+desenha: fundo de ardósia, texto a giz, a cor só para os dados e um giz amarelo que marca o
+agora (o passo atual, o agente que trabalha, o foco do teclado). O que se lê é serifado
+(Literata); o que se usa é sem serifa (Atkinson Hyperlegible Next). O plano passou pelo
+processo do skill `frontend-design`, com uma revisão contra o que qualquer interface escura
+de ML teria.
+
+**As etapas**, cada uma com o seu "Pronto quando":
+
+| Etapa | O quê | Estado |
+|---|---|---|
+| 10.1 | A base: o projeto, os tokens, as fontes, o cliente gerado, a verificação e os testes | ✅ |
+| 10.2 | A moldura: a barra lateral, as rotas, o painel inicial, o telemóvel e a acessibilidade | ✅ |
+| 10.3 | O backend que a interface pede: o agente que trabalha, as demonstrações, as fórmulas | ✅ |
+| 10.4 | Início (com o campo ao vivo), Dados, Explorar e Preparar | |
+| 10.5 | Modelos: a lista, a transição do nome e a página de cada modelo | |
+| 10.6 | Treinar e avaliar: o treino ao vivo e a gaveta de cada métrica | |
+| 10.7 | Agentes: o fluxograma ao vivo, a conversa e a classificação | |
+| 10.8 | Explicar, Experiências, Laboratório, RL, o glossário das métricas e o acabamento | |
+
+O ecrã Avaliar deixa de existir à parte: entra em "Treinar e avaliar". A interface Streamlit
+continua a funcionar até à 10.8.
+
+**10.1, a base** (ADR 0027):
+
+- React 19, TypeScript 6.0, Vite 8, Tailwind CSS 4, shadcn/ui (com o Radix) e Motion;
+  TanStack Router e TanStack Query; Zustand para o pouco estado do cliente.
+- **TypeScript 6 e não o 7**: o 7.0 é o mais recente, mas o `typescript-eslint` só aceita até
+  ao 6.0.
+- **O cliente gera-se do contrato** com o `@hey-api/openapi-ts`: os tipos, uma função por
+  operação e as opções do TanStack Query, a partir do `openapi.json`. Não vai para o Git e
+  volta a gerar-se antes de cada comando.
+- **A mesma origem**: os pedidos vão para `/api`, e o Vite passa-os à API, com os WebSockets,
+  no endereço de `ML_LAB_API_HOST` e `ML_LAB_API_PORT` (os mesmos do backend).
+- **Os números como no Python**: `lib/format.ts` segue `ml_lab/formatting.py` com o
+  arredondamento metade para o par. Sem isso, `0,8125` dava `81,3%` em vez de `81,2%`; os
+  testes usam os mesmos exemplos dos de Python.
+- **Os erros** chegam sempre como `ApiRequestError`, com o `code` da API. Um pedido sem
+  resposta tem o código `api_unreachable`, e a página diz como arrancar a API.
+- As fontes servem-se do próprio projeto, e as duas têm algarismos tabulares (confirmado no
+  browser), por isso as tabelas alinham os números sem uma monoespaçada.
+- Ficou no `launch.json` das pré-visualizações como `ml-lab-web`.
+
+**10.2, a moldura**:
+
+- A barra lateral tem 256 px aberta e 48 px recolhida. Abre e fecha com `Ctrl+B`, lembra-se
+  do estado e, no telemóvel, passa a gaveta (que se fecha ao escolher um ecrã).
+- Mostra os passos do caminho escolhido, numerados porque são uma sequência:
+  - à mão: Dados, Explorar, Preparar, Modelo, Treinar e avaliar, Explicar;
+  - com os agentes: Dados, Agentes, Treinar e avaliar, Explicar.
+- Mostra também "Aprender", o RL, as Experiências e o estado da API. Um ecrã aparece uma só
+  vez: no caminho à mão, os Modelos são o passo 4.
+- As páginas reorganizam-se pela largura que têm (*container queries*). Com a barra
+  recolhida, o início passa de uma para duas colunas a 1024 px.
+- Os ecrãs que ainda não existem dizem em que etapa chegam.
+- **Os testes de ponta a ponta** (Playwright) correm sobre o build final, com a API na porta
+  8001 e os dados numa pasta temporária. Testam:
+  - o teclado e o `Ctrl+B` a 1440 e 1024 px, com o conteúdo a ganhar o espaço sem cortes;
+  - a gaveta a 390 px e a troca de caminho;
+  - a acessibilidade com o axe, em três páginas.
+- Correr sobre o build evita as recargas do servidor de desenvolvimento, que fazia falhar o
+  primeiro teste ao otimizar as dependências. O axe apanhou o cabeçalho e o rodapé da barra
+  fora do `nav`, e a barra passou a ser toda a navegação.
+
+**10.3, o backend que a interface pede**:
+
+- **O agente que trabalha** (`AutoMLUpdate.working`): o candidato que um agente está a
+  medir, o que muda nele e o fold em que vai. A `cross_validate` avisa a cada fold, e o
+  coordenador anuncia o candidato antes de o medir. Antes disto, um candidato só aparecia
+  depois de medido, e o fluxograma não sabia quem estava a trabalhar.
+- **As demonstrações dos modelos** (`CatalogService.demo`, ADR 0028):
+  - cada modelo treina num conjunto de exemplo pequeno da sua tarefa (luas, círculos, nuvens,
+    uma onda…), num serviço de experiências só seu, sem ninguém a registar: nada vai para o
+    histórico;
+  - as 34 demonstrações de omissão demoram 4,6 s ao todo, e as últimas ficam guardadas;
+  - a regressão ganhou um gerador, a **onda** (um seno com ruído);
+  - o cartão do modelo ganhou a ficha por secções, as demonstrações do Laboratório que se
+    aplicam e os conjuntos de exemplo;
+  - o `LearnedView` ganhou a árvore como estrutura, para a desenhar.
+- **As fórmulas das métricas** (ADR 0028):
+  - cada uma das 22 tem a fórmula em LaTeX e o significado de cada símbolo
+    (`CatalogService.metrics`);
+  - 14 dão os termos da fórmula com os números do run (`MetricResult.terms`), por classe na
+    multiclasse.
+- O contrato tem agora 72 operações. Os testes de contrato confirmam que:
+  - cada modelo tem demonstração e a ficha com as seis secções do modelo;
+  - cada métrica tem fórmula, e cada símbolo explicado está nela;
+  - cada termo é um símbolo da fórmula, e os termos dão o valor da métrica.

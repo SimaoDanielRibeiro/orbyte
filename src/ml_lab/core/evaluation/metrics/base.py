@@ -5,8 +5,13 @@ probabilidades) e devolve um número. Não guarda estado: o mesmo input dá semp
 mesmo resultado (regra 4 dos contratos).
 
 Para acrescentar uma métrica: uma função em ``metrics/<tipo>.py`` decorada com
-``@metric(...)``, e a sua explicação em ``evaluation/explanations.py``. Aparece
-sozinha em todos os relatórios dos tipos de tarefa indicados.
+``@metric(...)``, e a sua explicação (com a fórmula) em ``evaluation/explanations.py``.
+Aparece sozinha em todos os relatórios dos tipos de tarefa indicados.
+
+Uma métrica que é uma conta com quantidades que se contam (os verdadeiros positivos, a
+soma dos erros…) pode dar também essas quantidades (``breakdown``): a interface mostra a
+fórmula com os números dos dados avaliados, sem ter de decidir qual é a classe positiva ou
+como se faz a média (ADR 0026).
 
 Cada métrica declara o que precisa de receber (``needs``): os valores reais, as
 probabilidades, as features… Quando falta alguma coisa (um modelo sem probabilidades,
@@ -77,7 +82,26 @@ def _required(values: NDArray[Any] | None, name: str) -> NDArray[Any]:
     return values
 
 
+@dataclass(frozen=True, slots=True)
+class MetricTerm:
+    r"""Uma quantidade da fórmula de uma métrica, com o valor nos dados avaliados.
+
+    Attributes:
+        symbol: O símbolo, como aparece na fórmula (em LaTeX), por exemplo ``\mathrm{VP}``.
+        label: O nome a mostrar ("Verdadeiros positivos").
+        value: O valor.
+        group: Numa métrica que é a média de uma conta por classe, o número da classe deste
+            termo; ``None`` nos termos da métrica inteira.
+    """
+
+    symbol: str
+    label: str
+    value: float
+    group: int | None = None
+
+
 type MetricFunction = Callable[[MetricInputs], float]
+type TermsFunction = Callable[[MetricInputs], tuple[MetricTerm, ...]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +117,8 @@ class Metric:
             descrevem (o número de grupos, a proporção de anomalias).
         needs: O que precisa de receber (nomes de ``INPUT_NAMES``).
         as_percent: Se se mostra como percentagem (proporções entre 0 e 1).
+        breakdown: Se a métrica é uma conta com quantidades que se contam, a função que as
+            dá (os termos da fórmula); ``None`` nas outras.
     """
 
     name: str
@@ -102,6 +128,7 @@ class Metric:
     higher_is_better: bool | None
     needs: frozenset[str] = frozenset({"y_true", "y_pred"})
     as_percent: bool = False
+    breakdown: TermsFunction | None = None
 
     @property
     def needs_proba(self) -> bool:
@@ -115,6 +142,10 @@ class Metric:
     def __call__(self, inputs: MetricInputs) -> float:
         """Calcula a métrica."""
         return float(self.function(inputs))
+
+    def terms(self, inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+        """Os termos da fórmula nos dados ``inputs`` (vazio se a métrica não os der)."""
+        return () if self.breakdown is None else self.breakdown(inputs)
 
 
 METRICS: Registry[Metric] = Registry(
@@ -134,6 +165,7 @@ def metric(
     needs: Iterable[str] = ("y_true", "y_pred"),
     needs_proba: bool = False,
     as_percent: bool = False,
+    breakdown: TermsFunction | None = None,
 ) -> Callable[[MetricFunction], MetricFunction]:
     """Decorador que regista uma função como métrica.
 
@@ -145,6 +177,8 @@ def metric(
         needs: O que precisa de receber; por omissão, os valores reais e os previstos.
         needs_proba: Atalho para juntar as probabilidades a ``needs``.
         as_percent: Se se mostra como percentagem.
+        breakdown: A função que dá os termos da fórmula, se a métrica for uma conta com
+            quantidades que se contam.
     """
     required = frozenset(needs) | ({"y_proba"} if needs_proba else set())
     unknown = required - set(INPUT_NAMES)
@@ -162,6 +196,7 @@ def metric(
                 higher_is_better,
                 required,
                 as_percent,
+                breakdown,
             ),
         )
         return function

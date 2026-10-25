@@ -2,13 +2,14 @@
 
 A procura corre num fio de execução próprio e quem a acompanha (a interface, a API) lê
 noutro. O ``SearchLog`` é o sítio onde os agentes escrevem e de onde os outros leem: as
-mensagens (com a razão de cada decisão), os candidatos já medidos e a fase em que vai.
-Cada mensagem e cada candidato têm um número, para quem acompanha pedir só o que é novo.
+mensagens (com a razão de cada decisão), os candidatos já medidos, o que está a ser medido
+agora (e em que fold) e a fase em que vai. Cada mensagem e cada candidato têm um número,
+para quem acompanha pedir só o que é novo.
 """
 
 import threading
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Any, Final
@@ -137,6 +138,36 @@ class Candidate:
         return self.error is not None
 
 
+@dataclass(frozen=True, slots=True)
+class WorkInProgress:
+    """O que está a ser feito agora: um agente a medir um candidato, fold a fold.
+
+    Um candidato só entra no quadro depois de medido; até lá, quem acompanha a procura sabe
+    por aqui que agente trabalha, em quê, e em que fold vai (o fluxograma dos agentes).
+
+    Attributes:
+        candidate: O número que o candidato vai ter.
+        phase: A ronda: a triagem ou a afinação.
+        family: A família do modelo (o agente que trabalha).
+        author: O nome a mostrar do agente que trabalha.
+        model: O modelo, no registo.
+        model_display_name: O nome a mostrar do modelo.
+        changes: Os hiperparâmetros que mudam em relação aos valores por omissão.
+        fold: O fold que está a treinar (1, 2…), ou 0 antes do primeiro.
+        folds: Quantos folds há.
+    """
+
+    candidate: int
+    phase: SearchPhase
+    family: ModelFamily
+    author: str
+    model: str
+    model_display_name: str
+    changes: dict[str, Any]
+    fold: int
+    folds: int
+
+
 class SearchLog:
     """O que a procura vai dizendo e encontrando (seguro entre fios de execução).
 
@@ -149,6 +180,7 @@ class SearchLog:
         self._messages: list[AgentMessage] = []
         self._candidates: list[Candidate] = []
         self._phase = SearchPhase.DATA
+        self._working: WorkInProgress | None = None
         self._lock = threading.Lock()
 
     @property
@@ -185,10 +217,28 @@ class SearchLog:
             self._messages.append(message)
         return message
 
+    def start(self, work: WorkInProgress) -> None:
+        """Anuncia o candidato que um agente começa a medir."""
+        with self._lock:
+            self._working = work
+
+    def progress(self, fold: int) -> None:
+        """O candidato em curso passou ao fold ``fold``."""
+        with self._lock:
+            if self._working is not None:
+                self._working = replace(self._working, fold=fold)
+
+    @property
+    def working(self) -> WorkInProgress | None:
+        """O que está a ser medido agora (``None`` entre candidatos)."""
+        with self._lock:
+            return self._working
+
     def add(self, candidate: Candidate) -> None:
-        """Junta um candidato medido."""
+        """Junta um candidato medido (e o trabalho em curso acaba)."""
         with self._lock:
             self._candidates.append(candidate)
+            self._working = None
         if self._on_candidate is not None:
             self._on_candidate(candidate)
 

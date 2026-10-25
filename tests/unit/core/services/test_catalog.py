@@ -3,8 +3,22 @@ from pathlib import Path
 import pytest
 
 from ml_lab.config import Settings
-from ml_lab.core.foundation.errors import ComponentNotFoundError, HyperparameterError
-from ml_lab.core.services import CatalogService, Implementation, ModelFamily, TaskType
+from ml_lab.core.foundation.errors import (
+    ComponentNotFoundError,
+    HyperparameterError,
+    InvalidParameterError,
+)
+from ml_lab.core.foundation.types import Partition
+from ml_lab.core.services import (
+    CatalogService,
+    Implementation,
+    Lab,
+    LaboratoryDemo,
+    ModelFamily,
+    TaskType,
+)
+from ml_lab.core.services.catalog import INTRO, doc_sections
+from ml_lab.core.tracking.store import InMemoryStore
 
 
 @pytest.fixture
@@ -84,4 +98,118 @@ def test_unknown_models_get_a_suggestion(catalog: CatalogService) -> None:
 def test_a_missing_didactic_card_gives_an_empty_text(tmp_path: Path) -> None:
     catalog = CatalogService(Settings.from_env({}, home=tmp_path))
 
-    assert catalog.model("logistic_regression").doc == ""
+    card = catalog.model("logistic_regression")
+    assert card.doc == ""
+    assert card.sections == ()
+
+
+# --- a ficha por secções -----------------------------------------------------------------
+
+
+def test_the_didactic_card_also_comes_split_in_its_sections(catalog: CatalogService) -> None:
+    card = catalog.model("knn")
+
+    first = card.sections[0]
+    assert (first.key, first.title) == ("intuicao", "Intuição")
+    assert first.text.startswith('"Diz-me com quem andas')
+    assert "## " not in "".join(section.text for section in card.sections)
+    assert card.sections[1].key == "matematica-essencial"
+
+
+def test_text_before_the_first_section_is_the_intro_and_the_title_is_left_out() -> None:
+    sections = doc_sections("# KNN\n\nUma frase de entrada.\n\n## Intuição\n\nVizinhos.\n")
+
+    assert [(s.key, s.title, s.text) for s in sections] == [
+        (INTRO, "", "Uma frase de entrada."),
+        ("intuicao", "Intuição", "Vizinhos."),
+    ]
+
+
+# --- as ligações da página do modelo -----------------------------------------------------
+
+
+def test_a_card_points_to_its_laboratory_demos_and_its_examples(catalog: CatalogService) -> None:
+    knn, ridge, kmeans = (catalog.model(name) for name in ("knn", "ridge", "kmeans"))
+
+    assert knn.laboratory == (LaboratoryDemo.KNN,)
+    assert [example.name for example in knn.examples] == ["moons", "circles", "blobs"]
+    assert ridge.laboratory == (LaboratoryDemo.REGULARIZATION,)
+    assert [example.name for example in ridge.examples] == ["wave", "line"]
+    assert kmeans.laboratory == ()
+    assert {example.task_type for example in kmeans.examples} == {TaskType.CLUSTERING}
+
+
+# --- a demonstração -----------------------------------------------------------------------
+
+
+def test_a_demo_shows_the_model_learning_on_its_first_example(catalog: CatalogService) -> None:
+    demo = catalog.demo("logistic_regression_gd")
+
+    assert demo.example.name == "moons"
+    assert demo.task_type is TaskType.BINARY_CLASSIFICATION
+    assert demo.animation is not None
+    assert len(demo.animation.frames) > 1  # treina por passos: vê-se a fronteira a mexer
+    assert demo.history
+    assert demo.learned.weights is not None
+    assert demo.reports[Partition.TEST].metrics
+    assert demo.charts.roc
+
+
+def test_the_example_decides_the_task(catalog: CatalogService) -> None:
+    assert catalog.demo("knn", example="blobs").task_type is TaskType.MULTICLASS_CLASSIFICATION
+    assert catalog.demo("kmeans").task_type is TaskType.CLUSTERING
+    assert catalog.demo("pca").embedding is not None
+
+
+def test_a_hyperparameter_changes_what_the_demo_shows(catalog: CatalogService) -> None:
+    one = catalog.demo("knn", {"n_neighbors": 1})
+    many = catalog.demo("knn", {"n_neighbors": 50})
+
+    # Com um só vizinho, cada ponto de treino é o seu próprio vizinho: acerta-os todos.
+    assert one.reports[Partition.TRAIN].metric("accuracy").value == 1.0
+    smoothed = many.reports[Partition.TRAIN].metric("accuracy").value
+    assert smoothed is not None
+    assert smoothed < 1.0
+    assert one.hyperparameters["n_neighbors"] == 1
+
+
+def test_the_same_demo_is_trained_only_once(catalog: CatalogService) -> None:
+    first = catalog.demo("decision_tree")
+
+    # Os valores por omissão escritos à mão são a mesma demonstração.
+    assert catalog.demo("decision_tree", catalog.model("decision_tree").defaults) is first
+
+
+def test_an_example_of_another_task_is_refused_with_the_choices(catalog: CatalogService) -> None:
+    with pytest.raises(InvalidParameterError, match="moons, circles, blobs"):
+        catalog.demo("knn", example="wave")
+
+
+def test_invalid_hyperparameters_are_refused_before_training(catalog: CatalogService) -> None:
+    with pytest.raises(HyperparameterError):
+        catalog.demo("knn", {"n_neighbors": 0})
+
+
+def test_the_metrics_catalog_explains_each_metric_with_its_formula(
+    catalog: CatalogService,
+) -> None:
+    everything = catalog.metrics()
+    regression = {card.name for card in catalog.metrics(TaskType.REGRESSION)}
+
+    assert len(everything) == len({card.name for card in everything}) >= 20
+    assert regression == {"r2", "rmse", "mae", "mse"}
+    precision = next(card for card in everything if card.name == "precision")
+    assert precision.as_percent
+    assert precision.higher_is_better
+    assert r"\mathrm{VP}" in precision.formula
+    assert [symbol.symbol for symbol in precision.symbols] == [r"\mathrm{VP}", r"\mathrm{FP}"]
+    assert next(card for card in everything if card.name == "roc_auc").needs_proba
+
+
+def test_a_demo_never_reaches_the_history() -> None:
+    lab = Lab.create(store=InMemoryStore())
+
+    lab.catalog.demo("logistic_regression")
+
+    assert not lab.history.runs()
+    assert not lab.datasets.loaded()

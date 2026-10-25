@@ -13,7 +13,7 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn import metrics as sk
 
-from ml_lab.core.evaluation.metrics.base import MetricInputs, metric
+from ml_lab.core.evaluation.metrics.base import MetricInputs, MetricTerm, metric
 from ml_lab.core.foundation.types import TaskType
 
 CLUSTERING = (TaskType.CLUSTERING,)
@@ -90,6 +90,14 @@ def n_clusters(inputs: MetricInputs) -> float:
     return float(len(set(np.asarray(inputs.predicted).tolist()) - {-1}))
 
 
+def _noise_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    labels = np.asarray(inputs.predicted)
+    return (
+        MetricTerm(r"n_{\text{ruído}}", "Pontos sem grupo", float(np.sum(labels == -1))),
+        MetricTerm("n", "Pontos avaliados", float(len(labels))),
+    )
+
+
 @metric(
     "noise_ratio",
     display_name="Ruído",
@@ -97,6 +105,7 @@ def n_clusters(inputs: MetricInputs) -> float:
     higher_is_better=None,
     needs=("y_pred",),
     as_percent=True,
+    breakdown=_noise_terms,
 )
 def noise_ratio(inputs: MetricInputs) -> float:
     """A proporção de pontos que não ficaram em nenhum grupo."""

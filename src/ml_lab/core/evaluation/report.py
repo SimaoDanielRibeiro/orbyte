@@ -7,6 +7,7 @@ passar a JSON com ``schemas.serialization.to_json`` (para os eventos e para a AP
 import math
 from dataclasses import dataclass
 
+from ml_lab.core.evaluation.metrics.base import MetricTerm
 from ml_lab.core.foundation.errors import ComponentNotFoundError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import Partition, TaskType
@@ -25,6 +26,9 @@ class MetricResult:
         as_percent: Se se mostra como percentagem.
         what: O que mede.
         how_to_read: Como se lê.
+        terms: Os termos da fórmula nestes dados (os verdadeiros positivos, a soma dos
+            erros…), nas métricas que são uma conta com quantidades que se contam. A fórmula
+            está no catálogo das métricas (``CatalogService.metrics``).
     """
 
     name: str
@@ -34,6 +38,7 @@ class MetricResult:
     as_percent: bool
     what: str
     how_to_read: str
+    terms: tuple[MetricTerm, ...] = ()
 
     @property
     def formatted(self) -> str:

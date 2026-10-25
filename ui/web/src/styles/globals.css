@@ -1,0 +1,168 @@
+/*
+ * O sistema visual do ML Lab: ardósia e giz (ADR 0029).
+ *
+ * A interface é o quadro onde o laboratório desenha. A moldura é ardósia e giz; a cor fica
+ * para os dados (as classes, as séries) e para o amarelo, que só marca o agora: o passo atual,
+ * o agente que trabalha, o foco do teclado e os avisos.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* A paleta. Os nomes são os da ADR 0029. */
+  --slate: #141a21; /* Ardósia: o fundo, onde se desenham os campos e os gráficos */
+  --slate-raised: #1c242d; /* Ardósia clara: a barra lateral, os painéis, as gavetas */
+  --slate-high: #232d38; /* Um passo acima: o que está por baixo do rato ou escolhido */
+  --graphite: #2a3440; /* Grafite: as divisórias */
+  --graphite-strong: #5b6876; /* O contorno dos controlos, com contraste de 3:1 */
+  --chalk: #ece7dd; /* Giz: o texto (14:1) */
+  --chalk-muted: #9aa3ad; /* Giz apagado: o texto secundário (6,8:1) */
+  --chalk-yellow: #f2c94c; /* Giz amarelo: só o agora (11:1) */
+  --chalk-red: #f0806e; /* Giz vermelho: os erros */
+
+  /* As cores dos dados (a paleta categórica validada, pela ordem das classes). */
+  --data-1: #3987e5;
+  --data-2: #d95926;
+  --data-3: #199e70;
+
+  /* Os papéis que os componentes do shadcn leem. */
+  --background: var(--slate);
+  --foreground: var(--chalk);
+  --card: var(--slate-raised);
+  --card-foreground: var(--chalk);
+  --popover: var(--slate-raised);
+  --popover-foreground: var(--chalk);
+  --primary: var(--chalk);
+  --primary-foreground: var(--slate);
+  --secondary: var(--slate-high);
+  --secondary-foreground: var(--chalk);
+  --muted: var(--slate-raised);
+  --muted-foreground: var(--chalk-muted);
+  --accent: var(--slate-high);
+  --accent-foreground: var(--chalk);
+  --destructive: var(--chalk-red);
+  --border: var(--graphite);
+  --input: var(--graphite-strong);
+  --ring: var(--chalk-yellow);
+  --now: var(--chalk-yellow);
+  --chart-1: var(--data-1);
+  --chart-2: var(--data-2);
+  --chart-3: var(--data-3);
+  --chart-4: var(--chalk-muted);
+  --chart-5: var(--graphite-strong);
+  --radius: 0.5rem;
+  --sidebar: var(--slate-raised);
+  --sidebar-foreground: var(--chalk);
+  --sidebar-primary: var(--chalk-yellow);
+  --sidebar-primary-foreground: var(--slate);
+  --sidebar-accent: var(--slate-high);
+  --sidebar-accent-foreground: var(--chalk);
+  --sidebar-border: var(--graphite);
+  --sidebar-ring: var(--chalk-yellow);
+}
+
+@theme inline {
+  /* O que se lê é serifado (Literata); o que se usa é sem serifa (Atkinson Hyperlegible). */
+  --font-sans: "Atkinson Hyperlegible Next Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Literata Variable", ui-serif, Georgia, serif;
+  --font-heading: var(--font-serif);
+
+  /* A escala de The Elements of Typographic Style: 12, 14, 16, 18, 21, 24, 36, 48, 60 px. */
+  --text-xl: 1.3125rem;
+  --text-xl--line-height: 1.4;
+  --text-reading: 1.0625rem;
+  --text-reading--line-height: 1.65;
+
+  --color-now: var(--now);
+  --color-data-1: var(--data-1);
+  --color-data-2: var(--data-2);
+  --color-data-3: var(--data-3);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* Raios com hierarquia: pequenos nos controlos (6 px), maiores nas superfícies (11 px). */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--now) 35%, transparent);
+  }
+}
+
+/* Com "reduzir movimento" ligado, tudo aparece já no estado final. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

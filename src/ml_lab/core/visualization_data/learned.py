@@ -112,6 +112,41 @@ class Property:
 
 
 @dataclass(frozen=True, slots=True)
+class TreeNode:
+    """Um nó da árvore de decisão, para a desenhar.
+
+    Um nó de decisão faz uma pergunta ("``feature`` ≤ ``threshold``?"): o "sim" vai para
+    ``left`` e o "não" para ``right``. Uma folha dá a previsão.
+
+    Attributes:
+        node: O número do nó (a raiz é o 0).
+        depth: A profundidade (a raiz tem 0).
+        samples: Quantos exemplos de treino chegam a este nó.
+        prediction: O que o nó prevê, já escrito: a classe mais comum, ou a média do alvo.
+        share: Na classificação, a parte dos exemplos do nó que são dessa classe (de 0 a 1).
+        code: Na classificação, o número dessa classe (para a cor).
+        feature: Num nó de decisão, a feature da pergunta.
+        threshold: Num nó de decisão, o limiar da pergunta.
+        left: O nó do "sim", se for mostrado.
+        right: O nó do "não", se for mostrado.
+        hidden_leaves: Quantas folhas ficam por baixo deste nó sem ser mostradas (a árvore
+            desenha-se até ``TREE_RULES_DEPTH`` níveis).
+    """
+
+    node: int
+    depth: int
+    samples: int
+    prediction: str
+    share: float | None = None
+    code: int | None = None
+    feature: str | None = None
+    threshold: float | None = None
+    left: int | None = None
+    right: int | None = None
+    hidden_leaves: int = 0
+
+
+@dataclass(frozen=True, slots=True)
 class LearnedView:
     """O que o modelo aprendeu, em partes prontas a mostrar (as que não se aplicam ficam vazias).
 
@@ -120,6 +155,8 @@ class LearnedView:
         importances: Nas árvores e nos ensembles, a importância de cada feature (pela
             redução da impureza), da maior para a menor.
         tree_rules: Numa árvore, as regras "se … senão …".
+        tree: Numa árvore, os nós até ``TREE_RULES_DEPTH`` níveis, para a desenhar (a raiz
+            primeiro).
         tables: Os centros dos grupos (ou das classes) e as componentes da PCA.
         properties: Os números simples do estado.
         notes: O que vale a pena saber sobre o que não se mostra.
@@ -128,6 +165,7 @@ class LearnedView:
     weights: LinearWeights | None = None
     importances: tuple[tuple[str, float], ...] = ()
     tree_rules: tuple[str, ...] = ()
+    tree: tuple[TreeNode, ...] = ()
     tables: tuple[Matrix, ...] = ()
     properties: tuple[Property, ...] = ()
     notes: tuple[str, ...] = ()
@@ -135,7 +173,14 @@ class LearnedView:
     @property
     def is_empty(self) -> bool:
         """Se não há nada para mostrar além do estado em bruto."""
-        parts = (self.importances, self.tree_rules, self.tables, self.properties, self.notes)
+        parts = (
+            self.importances,
+            self.tree_rules,
+            self.tree,
+            self.tables,
+            self.properties,
+            self.notes,
+        )
         return self.weights is None and not any(parts)
 
 
@@ -167,6 +212,9 @@ def learned_view(
         weights=weights,
         importances=_importances(state, feature_names),
         tree_rules=tree_rules(
+            state, task_type=task_type, feature_names=feature_names, class_labels=class_labels
+        ),
+        tree=tree_nodes(
             state, task_type=task_type, feature_names=feature_names, class_labels=class_labels
         ),
         tables=_tables(state, task_type, feature_names, class_labels),
@@ -261,6 +309,64 @@ def tree_rules(
 
     visit(0, 0)
     return tuple(lines)
+
+
+def tree_nodes(
+    state: Mapping[str, Any],
+    *,
+    task_type: TaskType,
+    feature_names: Sequence[str],
+    class_labels: Sequence[str],
+    max_depth: int = TREE_RULES_DEPTH,
+) -> tuple[TreeNode, ...]:
+    """Os nós da árvore até ``max_depth`` níveis, para a desenhar (vazio se não for uma árvore).
+
+    Os mesmos números das regras de ``tree_rules``: o que o desenho mostra e o que as regras
+    dizem é a mesma árvore.
+    """
+    tree = state.get("tree")
+    if not tree:
+        return ()
+    nodes: list[TreeNode] = []
+
+    def visit(node: int, depth: int) -> None:
+        values = tree["value"][node]
+        share: float | None = None
+        code: int | None = None
+        if task_type.is_classification:
+            classes = state.get("classes", list(range(len(values))))
+            best = int(np.argmax(values))
+            code = int(classes[best])
+            prediction, share = class_labels[code], float(values[best])
+        else:
+            prediction = format_number(float(values[0]), 3)
+        samples = int(tree["samples"][node])
+        left, right = tree["left"][node], tree["right"][node]
+        if left == -1:  # folha
+            nodes.append(TreeNode(node, depth, samples, prediction, share, code))
+            return
+        shown = depth < max_depth
+        nodes.append(
+            TreeNode(
+                node,
+                depth,
+                samples,
+                prediction,
+                share,
+                code,
+                feature=feature_names[tree["feature"][node]],
+                threshold=float(tree["threshold"][node]),
+                left=left if shown else None,
+                right=right if shown else None,
+                hidden_leaves=0 if shown else _count_leaves(tree, node),
+            )
+        )
+        if shown:
+            visit(left, depth + 1)
+            visit(right, depth + 1)
+
+    visit(0, 0)
+    return tuple(nodes)
 
 
 def _count_leaves(tree: Mapping[str, Any], node: int) -> int:

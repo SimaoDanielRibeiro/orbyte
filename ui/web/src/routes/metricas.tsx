@@ -1,0 +1,8 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+import { ScreenPlaceholder } from "@/components/shell/screen-placeholder";
+import { SCREENS } from "@/components/shell/screens";
+
+export const Route = createFileRoute("/metricas")({
+  component: () => <ScreenPlaceholder screen={SCREENS.metrics} milestone="10.8" />,
+});

@@ -14,7 +14,10 @@ ideia, e devolve os números dos gráficos:
 """
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
+from types import MappingProxyType
 from typing import Any, Final, Literal
 
 import numpy as np
@@ -43,6 +46,53 @@ MOONS: Final = SourceSpec(
     "synthetic", {"generator": "moons", "seed": 2, "parameters": {"n_samples": 500, "noise": 0.35}}
 )
 MOONS_SEED: Final = 2
+
+
+class LaboratoryDemo(StrEnum):
+    """Uma demonstração do Laboratório (o nome é o do método e o da rota)."""
+
+    OVERFITTING = "overfitting"
+    LEARNING_RATE = "learning_rate"
+    KNN = "knn"
+    REGULARIZATION = "regularization"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar, em português."""
+        return _DEMO_LABELS[self]
+
+    @property
+    def models(self) -> frozenset[str]:
+        """Os modelos cujo funcionamento a demonstração mostra (a página deles liga-se a ela)."""
+        return _DEMO_MODELS[self]
+
+
+_DEMO_LABELS: Final[Mapping[LaboratoryDemo, str]] = MappingProxyType(
+    {
+        LaboratoryDemo.OVERFITTING: "Complexidade e overfitting",
+        LaboratoryDemo.LEARNING_RATE: "Taxa de aprendizagem",
+        LaboratoryDemo.KNN: "O k do KNN",
+        LaboratoryDemo.REGULARIZATION: "Regularização",
+    }
+)
+
+_DEMO_MODELS: Final[Mapping[LaboratoryDemo, frozenset[str]]] = MappingProxyType(
+    {
+        # A demonstração muda o grau desta regressão.
+        LaboratoryDemo.OVERFITTING: frozenset({"polynomial_regression"}),
+        # O mesmo passo do gradiente descendente, numa taça com dois pesos.
+        LaboratoryDemo.LEARNING_RATE: frozenset(
+            {"linear_regression_gd", "logistic_regression_gd", "mlp", "mlp_regression"}
+        ),
+        LaboratoryDemo.KNN: frozenset({"knn", "knn_numpy"}),
+        LaboratoryDemo.REGULARIZATION: frozenset({"ridge", "lasso"}),
+    }
+)
+
+
+def demos_for(model: str) -> tuple[LaboratoryDemo, ...]:
+    """As demonstrações do Laboratório que mostram como ``model`` funciona."""
+    return tuple(demo for demo in LaboratoryDemo if model in demo.models)
 
 
 @dataclass(frozen=True, slots=True)

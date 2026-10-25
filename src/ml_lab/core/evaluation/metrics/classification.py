@@ -7,21 +7,122 @@ tanto como as frequentes.
 
 Quando a conta não é possível (por exemplo, a ROC AUC com uma só classe no teste), a
 métrica devolve NaN e o relatório explica porquê.
+
+Os termos de cada fórmula (``breakdown``) contam-se com as mesmas regras: na binária, os
+da classe positiva; na multiclasse, os de cada classe (a métrica é a média deles).
 """
 
 import math
 from typing import Final, Literal
 
+import numpy as np
 from sklearn import metrics as sk
 
-from ml_lab.core.evaluation.metrics.base import MetricInputs, metric
+from ml_lab.core.evaluation.metrics.base import MetricInputs, MetricTerm, metric
 from ml_lab.core.foundation.types import TaskType
 
 CLASSIFICATION: Final = (TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION)
 
+_TRUE_POSITIVES: Final = (r"\mathrm{VP}", "Verdadeiros positivos")
+_FALSE_POSITIVES: Final = (r"\mathrm{FP}", "Falsos positivos")
+_FALSE_NEGATIVES: Final = (r"\mathrm{FN}", "Falsos negativos")
+
 
 def _average(inputs: MetricInputs) -> Literal["binary", "macro"]:
     return "binary" if inputs.n_classes == 2 else "macro"
+
+
+# --- os termos das fórmulas ----------------------------------------------------------------
+
+
+def _classes(inputs: MetricInputs) -> list[int]:
+    """As classes em que se faz a conta: só a positiva (a 1) na binária, todas na multiclasse."""
+    return [1] if inputs.n_classes == 2 else inputs.labels
+
+
+def _group(inputs: MetricInputs, code: int) -> int | None:
+    """Na binária, os termos são da métrica inteira; na multiclasse, de cada classe."""
+    return None if inputs.n_classes == 2 else code
+
+
+def _counts(inputs: MetricInputs, code: int) -> tuple[int, int, int]:
+    """Os verdadeiros positivos, os falsos positivos e os falsos negativos da classe ``code``."""
+    truth, predicted = np.asarray(inputs.truth), np.asarray(inputs.predicted)
+    said, was = predicted == code, truth == code
+    return int(np.sum(said & was)), int(np.sum(said & ~was)), int(np.sum(~said & was))
+
+
+def _ratio(part: float, whole: float) -> float:
+    """``part / whole``, ou 0 sem nada a dividir (o ``zero_division=0`` do scikit-learn)."""
+    return part / whole if whole else 0.0
+
+
+def _accuracy_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    truth, predicted = np.asarray(inputs.truth), np.asarray(inputs.predicted)
+    return (
+        MetricTerm(r"\text{acertos}", "Previsões certas", float(np.sum(truth == predicted))),
+        MetricTerm("n", "Exemplos avaliados", float(len(truth))),
+    )
+
+
+def _balanced_accuracy_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    seen = set(np.asarray(inputs.truth).tolist())
+    terms = []
+    for code in inputs.labels:
+        if code in seen:  # as classes que não aparecem nos dados avaliados não entram na média
+            true_positives, _, false_negatives = _counts(inputs, code)
+            recall = _ratio(true_positives, true_positives + false_negatives)
+            terms.append(MetricTerm(r"\text{recall}_c", "Recall da classe", recall, code))
+    return tuple(terms)
+
+
+def _precision_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    terms = []
+    for code in _classes(inputs):
+        true_positives, false_positives, _ = _counts(inputs, code)
+        group = _group(inputs, code)
+        terms.append(MetricTerm(*_TRUE_POSITIVES, true_positives, group))
+        terms.append(MetricTerm(*_FALSE_POSITIVES, false_positives, group))
+    return tuple(terms)
+
+
+def _recall_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    terms = []
+    for code in _classes(inputs):
+        true_positives, _, false_negatives = _counts(inputs, code)
+        group = _group(inputs, code)
+        terms.append(MetricTerm(*_TRUE_POSITIVES, true_positives, group))
+        terms.append(MetricTerm(*_FALSE_NEGATIVES, false_negatives, group))
+    return tuple(terms)
+
+
+def _f1_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    terms = []
+    for code in _classes(inputs):
+        true_positives, false_positives, false_negatives = _counts(inputs, code)
+        group = _group(inputs, code)
+        precision = _ratio(true_positives, true_positives + false_positives)
+        recall = _ratio(true_positives, true_positives + false_negatives)
+        terms.append(MetricTerm("P", "Precisão", precision, group))
+        terms.append(MetricTerm("R", "Recall", recall, group))
+    return tuple(terms)
+
+
+def _log_loss_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
+    if inputs.y_proba is None:
+        return ()
+    truth = np.asarray(inputs.truth, dtype=np.int64)
+    # A probabilidade dada à classe certa; o mínimo evita log(0), como no scikit-learn.
+    right = np.clip(inputs.y_proba[np.arange(len(truth)), truth], np.finfo(np.float64).eps, 1.0)
+    return (
+        MetricTerm(
+            r"\sum_{i=1}^{n} -\log p_i", "Soma das penalizações", float(np.sum(-np.log(right)))
+        ),
+        MetricTerm("n", "Exemplos avaliados", float(len(truth))),
+    )
+
+
+# --- as métricas ---------------------------------------------------------------------------
 
 
 @metric(
@@ -30,6 +131,7 @@ def _average(inputs: MetricInputs) -> Literal["binary", "macro"]:
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
+    breakdown=_accuracy_terms,
 )
 def accuracy(inputs: MetricInputs) -> float:
     """Proporção de previsões certas."""
@@ -42,6 +144,7 @@ def accuracy(inputs: MetricInputs) -> float:
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
+    breakdown=_balanced_accuracy_terms,
 )
 def balanced_accuracy(inputs: MetricInputs) -> float:
     """Média da recall de cada classe: cada classe pesa o mesmo, seja rara ou frequente.
@@ -63,6 +166,7 @@ def balanced_accuracy(inputs: MetricInputs) -> float:
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
+    breakdown=_precision_terms,
 )
 def precision(inputs: MetricInputs) -> float:
     """Das previsões de uma classe, quantas estavam certas."""
@@ -83,6 +187,7 @@ def precision(inputs: MetricInputs) -> float:
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
+    breakdown=_recall_terms,
 )
 def recall(inputs: MetricInputs) -> float:
     """Dos exemplos de uma classe, quantos o modelo encontrou."""
@@ -103,6 +208,7 @@ def recall(inputs: MetricInputs) -> float:
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
+    breakdown=_f1_terms,
 )
 def f1(inputs: MetricInputs) -> float:
     """Média harmónica da precisão e da recall."""
@@ -123,6 +229,7 @@ def f1(inputs: MetricInputs) -> float:
     task_types=CLASSIFICATION,
     higher_is_better=False,
     needs_proba=True,
+    breakdown=_log_loss_terms,
 )
 def log_loss(inputs: MetricInputs) -> float:
     """Penaliza as probabilidades erradas, sobretudo as erradas e confiantes."""

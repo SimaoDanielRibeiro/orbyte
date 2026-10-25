@@ -1,4 +1,4 @@
-"""Dados sintéticos: moons, blobs, circles e regressão sintética.
+"""Dados sintéticos: moons, blobs, circles, anomalias, regressão sintética e uma onda.
 
 Os geradores estão escritos em NumPy, com a mesma geometria dos ``make_*`` do
 scikit-learn, para se ver como cada forma é construída. Cada gerador declara os
@@ -373,6 +373,29 @@ def regression(
         f"Regra usada: target = {terms} + {format_number(intercept, 1)} + ruído "
         f"(desvio padrão {format_number(noise, 1)})."
     )
+    return Generated(_table(points, target, rng), details)
+
+
+@generator(
+    "wave",
+    title="Onda",
+    description=(
+        "Um alvo que sobe e desce com a feature (um seno), mais ruído. Uma reta não o consegue "
+        "seguir: mostra o que os modelos de regressão não lineares fazem e um linear não."
+    ),
+    task_type=TaskType.REGRESSION,
+    parameters=(
+        _N_SAMPLES,
+        ParameterSpec(
+            "noise", "Ruído", "number", 0.3, 0.0, 2.0, "Desvio padrão do ruído somado ao alvo."
+        ),
+    ),
+)
+def wave(rng: np.random.Generator, *, n_samples: int, noise: float) -> Generated:
+    """``target = sen(x1) + ruído``, com ``x1`` uniforme em [-3, 3]: uma volta e meia do seno."""
+    points = rng.uniform(-3, 3, size=(n_samples, 1))
+    target = np.sin(points[:, 0]) + rng.normal(scale=noise, size=n_samples)
+    details = f"Regra usada: target = sen(x1) + ruído (desvio padrão {format_number(noise, 1)})."
     return Generated(_table(points, target, rng), details)
 
 

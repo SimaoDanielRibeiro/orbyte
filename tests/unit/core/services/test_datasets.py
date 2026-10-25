@@ -38,6 +38,7 @@ def test_catalogs_list_samples_generators_and_operations(service: DatasetService
         "circles",
         "moons",
         "regression",
+        "wave",
     }
     assert "drop_duplicates" in {operation.name for operation in service.cleaning_operations()}
 

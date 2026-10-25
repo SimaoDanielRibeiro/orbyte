@@ -16,7 +16,7 @@ agentes da fase 9 otimizam a que se lhes pede, como a F1 ou a ROC AUC).
 """
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -132,6 +132,7 @@ def cross_validate(
     seed: int,
     folds: Sequence[Dataset],
     metric: Metric | None = None,
+    on_fold: Callable[[int], None] | None = None,
 ) -> CrossValidation:
     """Treina e avalia em cada fold.
 
@@ -141,6 +142,8 @@ def cross_validate(
         seed: A seed do modelo.
         folds: Um ``Dataset`` por fold (de ``prepare_folds``): o "teste" é o fold de fora.
         metric: A métrica a medir; por omissão, a principal da tarefa.
+        on_fold: Chamado com o número de cada fold (1, 2…) antes de o treinar, para quem
+            acompanha saber em que fold vai (os agentes da fase 9).
 
     Raises:
         ModelError: Numa tarefa sem alvo (a validação cruzada mede previsões), ou com uma
@@ -158,6 +161,8 @@ def cross_validate(
         )
     results = []
     for number, dataset in enumerate(folds, start=1):
+        if on_fold is not None:
+            on_fold(number)
         model = model_class(hyperparameters, seed=seed).fit(dataset.train.X, dataset.train.y)
         train = _finite(score(model, dataset.train.X, _target(dataset.train.y), dataset, metric))
         test = _finite(score(model, dataset.test.X, _target(dataset.test.y), dataset, metric))

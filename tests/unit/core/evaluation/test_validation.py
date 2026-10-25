@@ -36,6 +36,21 @@ def test_cross_validation_trains_and_scores_every_fold() -> None:
     assert "cross_validation" in [notice.code for notice in result.notices]
 
 
+def test_whoever_follows_hears_each_fold_before_it_trains() -> None:
+    model = MODELS.get("knn")
+    heard: list[int] = []
+
+    cross_validate(
+        model,
+        model.info.hyperparameters(),
+        0,
+        folds(PreparationConfig("species"), k=3),
+        on_fold=heard.append,
+    )
+
+    assert heard == [1, 2, 3]
+
+
 def test_the_learning_curve_grows_the_training_set() -> None:
     model = MODELS.get("knn")
 

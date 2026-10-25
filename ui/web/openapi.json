@@ -1661,6 +1661,191 @@
         }
       }
     },
+    "/catalog/models/{name}/demo": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "O modelo a trabalhar num conjunto de exemplo pequeno, fora do histórico.",
+        "operationId": "catalog_demo",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelDemo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/metrics": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "As métricas (só as de ``task_type``, se for dada), com a fórmula e a explicação.",
+        "operationId": "catalog_metrics",
+        "parameters": [
+          {
+            "name": "task_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TaskType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetricCard"
+                  },
+                  "title": "Response Catalog Metrics"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/experiments": {
       "post": {
         "tags": [
@@ -6564,6 +6749,16 @@
                 "type": "null"
               }
             ]
+          },
+          "working": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkInProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6573,10 +6768,11 @@
           "objective",
           "candidates",
           "messages",
-          "leader"
+          "leader",
+          "working"
         ],
         "title": "AutoMLUpdate",
-        "description": "O que mudou numa procura desde a última pergunta (o que a API transmite).\n\nAttributes:\n    state: O retrato do trabalho agora (o progresso conta candidatos).\n    phase: A fase da procura.\n    objective: A métrica que os agentes otimizam (para mostrar os valores).\n    candidates: Os candidatos novos (depois de ``after_step``), pela ordem.\n    messages: As mensagens novas da conversa (depois de ``after_message``).\n    leader: O melhor candidato até agora."
+        "description": "O que mudou numa procura desde a última pergunta (o que a API transmite).\n\nAttributes:\n    state: O retrato do trabalho agora (o progresso conta candidatos).\n    phase: A fase da procura.\n    objective: A métrica que os agentes otimizam (para mostrar os valores).\n    candidates: Os candidatos novos (depois de ``after_step``), pela ordem.\n    messages: As mensagens novas da conversa (depois de ``after_message``).\n    leader: O melhor candidato até agora.\n    working: O candidato que um agente está a medir agora, e em que fold vai\n        (``None`` entre candidatos e fora das rondas)."
       },
       "Body_datasets_upload": {
         "properties": {
@@ -7410,6 +7606,58 @@
         "title": "DatasetSummary",
         "description": "Um dataset carregado.\n\nAttributes:\n    id: Identificador para os outros pedidos ao serviço.\n    name: Nome a mostrar.\n    description: O que os dados descrevem.\n    source: De onde vieram (para os voltar a obter).\n    n_rows: Linhas.\n    n_columns: Colunas.\n    columns: As colunas e os seus tipos.\n    suggested_target: A coluna-alvo habitual, se houver.\n    validation: Os erros e avisos da validação."
       },
+      "DemoExample": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "task_type": {
+            "$ref": "#/components/schemas/TaskType"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "title",
+          "description",
+          "task_type"
+        ],
+        "title": "DemoExample",
+        "description": "Um conjunto de exemplo para ver um modelo a trabalhar.\n\nAttributes:\n    name: O identificador (o que se pede em ``example``).\n    title: O nome a mostrar.\n    description: O que o conjunto tem de interessante, numa frase.\n    task_type: A tarefa que o modelo resolve nele."
+      },
+      "DemoRequest": {
+        "properties": {
+          "hyperparameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Hyperparameters"
+          },
+          "example": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Example"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DemoRequest",
+        "description": "Que hiperparâmetros usar, e em que conjunto de exemplo.\n\nAttributes:\n    hyperparameters: Os valores escolhidos; os que faltam ficam com o valor por omissão.\n    example: O conjunto de exemplo (um dos ``examples`` do cartão do modelo); ``None``\n        escolhe o primeiro da tarefa principal do modelo."
+      },
       "Dendrogram": {
         "properties": {
           "segments": {
@@ -7503,6 +7751,30 @@
         ],
         "title": "Distribution",
         "description": "Contagens por intervalo: ``edges`` tem mais um valor do que cada contagem."
+      },
+      "DocSection": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "text"
+        ],
+        "title": "DocSection",
+        "description": "Uma secção da ficha didática.\n\nAttributes:\n    key: Um nome estável, sem acentos (``intuicao``, ``matematica-essencial``): é com\n        ele que a interface põe cada secção no seu lugar da página.\n    title: O título, como está na ficha.\n    text: O texto, em Markdown (com as fórmulas em LaTeX)."
       },
       "Embedding": {
         "properties": {
@@ -8123,6 +8395,25 @@
         "title": "FoldScore",
         "description": "A métrica principal num fold: no treino desse fold e no fold deixado de fora."
       },
+      "FormulaSymbol": {
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "meaning": {
+            "type": "string",
+            "title": "Meaning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbol",
+          "meaning"
+        ],
+        "title": "FormulaSymbol",
+        "description": "Um símbolo da fórmula e o que quer dizer.\n\nAttributes:\n    symbol: O símbolo, em LaTeX.\n    meaning: O que é, em português (pode ter fórmulas curtas entre ``$``)."
+      },
       "GenerateRequest": {
         "properties": {
           "generator": {
@@ -8466,6 +8757,17 @@
         "title": "KnnDemo",
         "description": "A exatidão para cada k e a fronteira do k escolhido."
       },
+      "LaboratoryDemo": {
+        "type": "string",
+        "enum": [
+          "overfitting",
+          "learning_rate",
+          "knn",
+          "regularization"
+        ],
+        "title": "LaboratoryDemo",
+        "description": "Uma demonstração do Laboratório (o nome é o do método e o da rota)."
+      },
       "LayerFrame": {
         "properties": {
           "activations": {
@@ -8607,6 +8909,14 @@
             "title": "Tree Rules",
             "default": []
           },
+          "tree": {
+            "items": {
+              "$ref": "#/components/schemas/TreeNode"
+            },
+            "type": "array",
+            "title": "Tree",
+            "default": []
+          },
           "tables": {
             "items": {
               "$ref": "#/components/schemas/Matrix"
@@ -8634,11 +8944,12 @@
         },
         "type": "object",
         "title": "LearnedView",
-        "description": "O que o modelo aprendeu, em partes prontas a mostrar (as que não se aplicam ficam vazias).\n\nAttributes:\n    weights: Num modelo linear, os pesos de cada feature.\n    importances: Nas árvores e nos ensembles, a importância de cada feature (pela\n        redução da impureza), da maior para a menor.\n    tree_rules: Numa árvore, as regras \"se … senão …\".\n    tables: Os centros dos grupos (ou das classes) e as componentes da PCA.\n    properties: Os números simples do estado.\n    notes: O que vale a pena saber sobre o que não se mostra.",
+        "description": "O que o modelo aprendeu, em partes prontas a mostrar (as que não se aplicam ficam vazias).\n\nAttributes:\n    weights: Num modelo linear, os pesos de cada feature.\n    importances: Nas árvores e nos ensembles, a importância de cada feature (pela\n        redução da impureza), da maior para a menor.\n    tree_rules: Numa árvore, as regras \"se … senão …\".\n    tree: Numa árvore, os nós até ``TREE_RULES_DEPTH`` níveis, para a desenhar (a raiz\n        primeiro).\n    tables: Os centros dos grupos (ou das classes) e as componentes da PCA.\n    properties: Os números simples do estado.\n    notes: O que vale a pena saber sobre o que não se mostra.",
         "required": [
           "weights",
           "importances",
           "tree_rules",
+          "tree",
           "tables",
           "properties",
           "notes"
@@ -8996,6 +9307,78 @@
         "title": "Matrix",
         "description": "Uma tabela de números com nome nas linhas e nas colunas (os centros, as componentes)."
       },
+      "MetricCard": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "task_types": {
+            "items": {
+              "$ref": "#/components/schemas/TaskType"
+            },
+            "type": "array",
+            "title": "Task Types"
+          },
+          "higher_is_better": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Higher Is Better"
+          },
+          "as_percent": {
+            "type": "boolean",
+            "title": "As Percent"
+          },
+          "needs_proba": {
+            "type": "boolean",
+            "title": "Needs Proba"
+          },
+          "what": {
+            "type": "string",
+            "title": "What"
+          },
+          "how_to_read": {
+            "type": "string",
+            "title": "How To Read"
+          },
+          "formula": {
+            "type": "string",
+            "title": "Formula"
+          },
+          "symbols": {
+            "items": {
+              "$ref": "#/components/schemas/FormulaSymbol"
+            },
+            "type": "array",
+            "title": "Symbols"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "display_name",
+          "task_types",
+          "higher_is_better",
+          "as_percent",
+          "needs_proba",
+          "what",
+          "how_to_read",
+          "formula",
+          "symbols"
+        ],
+        "title": "MetricCard",
+        "description": "Uma métrica, pronta a explicar (o glossário e a explicação de cada métrica).\n\nOs valores de uma métrica num run vêm nos relatórios (``MetricResult``, com os termos\nda fórmula); o que não muda de run para run está aqui, e pede-se uma vez.\n\nAttributes:\n    name: O identificador (o mesmo dos relatórios).\n    display_name: O nome a mostrar.\n    task_types: As tarefas em que se mede.\n    higher_is_better: Se maior é melhor; ``None`` nas que só descrevem.\n    as_percent: Se se mostra como percentagem.\n    needs_proba: Se precisa das probabilidades (fica de fora nos modelos que não as dão).\n    what: O que mede.\n    how_to_read: Como se lê.\n    formula: A definição, em LaTeX.\n    symbols: O que quer dizer cada símbolo da fórmula."
+      },
       "MetricComparison": {
         "properties": {
           "name": {
@@ -9102,6 +9485,14 @@
           "how_to_read": {
             "type": "string",
             "title": "How To Read"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/MetricTerm"
+            },
+            "type": "array",
+            "title": "Terms",
+            "default": []
           }
         },
         "type": "object",
@@ -9112,10 +9503,47 @@
           "higher_is_better",
           "as_percent",
           "what",
-          "how_to_read"
+          "how_to_read",
+          "terms"
         ],
         "title": "MetricResult",
-        "description": "O valor de uma métrica, com o que é preciso para o mostrar e explicar.\n\nAttributes:\n    name: Identificador da métrica.\n    display_name: Nome a mostrar.\n    value: O valor; ``None`` se não estiver definido para estes dados.\n    higher_is_better: Se maior é melhor; ``None`` nas métricas que só descrevem.\n    as_percent: Se se mostra como percentagem.\n    what: O que mede.\n    how_to_read: Como se lê."
+        "description": "O valor de uma métrica, com o que é preciso para o mostrar e explicar.\n\nAttributes:\n    name: Identificador da métrica.\n    display_name: Nome a mostrar.\n    value: O valor; ``None`` se não estiver definido para estes dados.\n    higher_is_better: Se maior é melhor; ``None`` nas métricas que só descrevem.\n    as_percent: Se se mostra como percentagem.\n    what: O que mede.\n    how_to_read: Como se lê.\n    terms: Os termos da fórmula nestes dados (os verdadeiros positivos, a soma dos\n        erros…), nas métricas que são uma conta com quantidades que se contam. A fórmula\n        está no catálogo das métricas (``CatalogService.metrics``)."
+      },
+      "MetricTerm": {
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group"
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbol",
+          "label",
+          "value",
+          "group"
+        ],
+        "title": "MetricTerm",
+        "description": "Uma quantidade da fórmula de uma métrica, com o valor nos dados avaliados.\n\nAttributes:\n    symbol: O símbolo, como aparece na fórmula (em LaTeX), por exemplo ``\\mathrm{VP}``.\n    label: O nome a mostrar (\"Verdadeiros positivos\").\n    value: O valor.\n    group: Numa métrica que é a média de uma conta por classe, o número da classe deste\n        termo; ``None`` nos termos da métrica inteira."
       },
       "MissingMap": {
         "properties": {
@@ -9227,6 +9655,27 @@
           "doc": {
             "type": "string",
             "title": "Doc"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/DocSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "laboratory": {
+            "items": {
+              "$ref": "#/components/schemas/LaboratoryDemo"
+            },
+            "type": "array",
+            "title": "Laboratory"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/DemoExample"
+            },
+            "type": "array",
+            "title": "Examples"
           }
         },
         "type": "object",
@@ -9241,10 +9690,139 @@
           "supports_proba",
           "hyperparameters_schema",
           "defaults",
-          "doc"
+          "doc",
+          "sections",
+          "laboratory",
+          "examples"
         ],
         "title": "ModelCard",
-        "description": "Um modelo do catálogo, pronto a mostrar.\n\nAttributes:\n    name: Identificador no registo.\n    display_name: Nome a mostrar.\n    summary: O que faz, numa frase.\n    task_types: Tipos de tarefa que resolve.\n    family: Família (para agrupar os cartões).\n    implementation: Didática ou de uma biblioteca.\n    iterative: Se treina por passos.\n    supports_proba: Se dá probabilidades.\n    hyperparameters_schema: JSON Schema dos hiperparâmetros.\n    defaults: Os valores por omissão dos hiperparâmetros.\n    doc: O texto da ficha didática, em Markdown (vazio se o ficheiro faltar)."
+        "description": "Um modelo do catálogo, pronto a mostrar.\n\nAttributes:\n    name: Identificador no registo.\n    display_name: Nome a mostrar.\n    summary: O que faz, numa frase.\n    task_types: Tipos de tarefa que resolve.\n    family: Família (para agrupar os cartões).\n    implementation: Didática ou de uma biblioteca.\n    iterative: Se treina por passos.\n    supports_proba: Se dá probabilidades.\n    hyperparameters_schema: JSON Schema dos hiperparâmetros.\n    defaults: Os valores por omissão dos hiperparâmetros.\n    doc: O texto da ficha didática, em Markdown (vazio se o ficheiro faltar).\n    sections: A ficha dividida pelas suas secções (Intuição, Matemática essencial…).\n    laboratory: As demonstrações do Laboratório que mostram como o modelo funciona.\n    examples: Os conjuntos de exemplo da demonstração (``demo``), o de omissão primeiro."
+      },
+      "ModelDemo": {
+        "properties": {
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "model_display_name": {
+            "type": "string",
+            "title": "Model Display Name"
+          },
+          "example": {
+            "$ref": "#/components/schemas/DemoExample"
+          },
+          "task_type": {
+            "$ref": "#/components/schemas/TaskType"
+          },
+          "hyperparameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Hyperparameters"
+          },
+          "feature_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Feature Names"
+          },
+          "class_labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Class Labels"
+          },
+          "animation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrainingAnimation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/StepRecord"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "learned": {
+            "$ref": "#/components/schemas/LearnedView"
+          },
+          "network": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NetworkTrace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "embedding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Embedding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reports": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EvaluationReport"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/Partition"
+            },
+            "type": "object",
+            "title": "Reports"
+          },
+          "main_partition": {
+            "$ref": "#/components/schemas/Partition"
+          },
+          "charts": {
+            "$ref": "#/components/schemas/EvaluationCharts"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_name",
+          "model_display_name",
+          "example",
+          "task_type",
+          "hyperparameters",
+          "feature_names",
+          "class_labels",
+          "animation",
+          "history",
+          "learned",
+          "network",
+          "embedding",
+          "reports",
+          "main_partition",
+          "charts",
+          "notices",
+          "duration_seconds"
+        ],
+        "title": "ModelDemo",
+        "description": "Um modelo a trabalhar num conjunto de exemplo (o que a página do modelo mostra).\n\nAttributes:\n    model_name: O modelo, no registo.\n    model_display_name: O nome a mostrar.\n    example: O conjunto de exemplo usado.\n    task_type: A tarefa (a do conjunto de exemplo).\n    hyperparameters: Os hiperparâmetros usados, completos.\n    feature_names: As features que o modelo recebeu.\n    class_labels: Na classificação, as classes (no clustering e nas anomalias, as da\n        coluna de referência).\n    animation: O campo (ou a curva) em cada fotografia do treino; ``None`` na redução de\n        dimensionalidade, que mostra o mapa.\n    history: Cada passo do treino, com a loss (vazio nos modelos que treinam de uma vez).\n    learned: O que o modelo aprendeu: pesos, árvore, centros…\n    network: Numa rede neuronal, o que cada camada fez em cada fotografia.\n    embedding: Na redução de dimensionalidade, o mapa dos pontos.\n    reports: A avaliação no treino e no teste.\n    main_partition: A parte cujo relatório resume a demonstração.\n    charts: Os gráficos da avaliação (ROC, resíduos, silhueta…).\n    notices: Os avisos do treino e da comparação entre o treino e o teste.\n    duration_seconds: Quanto demorou a treinar e a avaliar."
       },
       "ModelFamily": {
         "type": "string",
@@ -11664,6 +12242,113 @@
         "title": "TransformConfig",
         "description": "Que transformações aplicar.\n\nAttributes:\n    numeric_imputation: Mediana, média ou ``None`` (não preencher os nulos numéricos).\n    categorical_imputation: Valor mais frequente ou ``None``.\n    scaling: Padronização, min-max ou ``None`` (não escalar).\n    date_features: Se as datas viram ano, mês, dia e dia da semana (senão, saem).\n    polynomial_degree: 1 (sem features polinomiais), 2 ou 3.\n    binned_columns: Colunas numéricas a dividir em intervalos.\n    n_bins: Número de intervalos."
       },
+      "TreeNode": {
+        "properties": {
+          "node": {
+            "type": "integer",
+            "title": "Node"
+          },
+          "depth": {
+            "type": "integer",
+            "title": "Depth"
+          },
+          "samples": {
+            "type": "integer",
+            "title": "Samples"
+          },
+          "prediction": {
+            "type": "string",
+            "title": "Prediction"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "feature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right"
+          },
+          "hidden_leaves": {
+            "type": "integer",
+            "title": "Hidden Leaves",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "node",
+          "depth",
+          "samples",
+          "prediction",
+          "share",
+          "code",
+          "feature",
+          "threshold",
+          "left",
+          "right",
+          "hidden_leaves"
+        ],
+        "title": "TreeNode",
+        "description": "Um nó da árvore de decisão, para a desenhar.\n\nUm nó de decisão faz uma pergunta (\"``feature`` ≤ ``threshold``?\"): o \"sim\" vai para\n``left`` e o \"não\" para ``right``. Uma folha dá a previsão.\n\nAttributes:\n    node: O número do nó (a raiz é o 0).\n    depth: A profundidade (a raiz tem 0).\n    samples: Quantos exemplos de treino chegam a este nó.\n    prediction: O que o nó prevê, já escrito: a classe mais comum, ou a média do alvo.\n    share: Na classificação, a parte dos exemplos do nó que são dessa classe (de 0 a 1).\n    code: Na classificação, o número dessa classe (para a cor).\n    feature: Num nó de decisão, a feature da pergunta.\n    threshold: Num nó de decisão, o limiar da pergunta.\n    left: O nó do \"sim\", se for mostrado.\n    right: O nó do \"não\", se for mostrado.\n    hidden_leaves: Quantas folhas ficam por baixo deste nó sem ser mostradas (a árvore\n        desenha-se até ``TREE_RULES_DEPTH`` níveis)."
+      },
       "ValidationReport": {
         "properties": {
           "notices": {
@@ -11748,6 +12433,59 @@
         ],
         "title": "Vocabulary",
         "description": "O vocabulário da interface.\n\nAttributes:\n    labels: Para cada enum, pelo nome do seu tipo (o mesmo do OpenAPI, como\n        ``TaskType``), o nome a mostrar de cada valor.\n    tasks: As tarefas, pela ordem do enum."
+      },
+      "WorkInProgress": {
+        "properties": {
+          "candidate": {
+            "type": "integer",
+            "title": "Candidate"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/SearchPhase"
+          },
+          "family": {
+            "$ref": "#/components/schemas/ModelFamily"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "model_display_name": {
+            "type": "string",
+            "title": "Model Display Name"
+          },
+          "changes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Changes"
+          },
+          "fold": {
+            "type": "integer",
+            "title": "Fold"
+          },
+          "folds": {
+            "type": "integer",
+            "title": "Folds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "candidate",
+          "phase",
+          "family",
+          "author",
+          "model",
+          "model_display_name",
+          "changes",
+          "fold",
+          "folds"
+        ],
+        "title": "WorkInProgress",
+        "description": "O que está a ser feito agora: um agente a medir um candidato, fold a fold.\n\nUm candidato só entra no quadro depois de medido; até lá, quem acompanha a procura sabe\npor aqui que agente trabalha, em quê, e em que fold vai (o fluxograma dos agentes).\n\nAttributes:\n    candidate: O número que o candidato vai ter.\n    phase: A ronda: a triagem ou a afinação.\n    family: A família do modelo (o agente que trabalha).\n    author: O nome a mostrar do agente que trabalha.\n    model: O modelo, no registo.\n    model_display_name: O nome a mostrar do modelo.\n    changes: Os hiperparâmetros que mudam em relação aos valores por omissão.\n    fold: O fold que está a treinar (1, 2…), ou 0 antes do primeiro.\n    folds: Quantos folds há."
       }
     }
   },

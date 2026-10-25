@@ -67,6 +67,7 @@ def test_updates_bring_only_the_new_candidates_and_messages(
     assert [candidate["number"] for candidate in later["candidates"]] == [4, 5]
     assert later["messages"][0]["number"] == 6
     assert later["phase"] == "done"
+    assert later["working"] is None  # acabou: nenhum agente está a medir um candidato
 
 
 def test_the_websocket_streams_the_conversation_until_the_end(client: TestClient) -> None:

@@ -96,3 +96,96 @@ def test_undefined_values_are_nan_instead_of_errors() -> None:
 def test_labels_cover_every_class() -> None:
     assert multiclass().labels == [0, 1, 2]
     assert MetricInputs(np.array([1.0]), np.array([1.0])).labels == []
+
+
+# --- os termos das fórmulas: dão o valor da métrica -----------------------------------------
+
+VP, FP, FN = r"\mathrm{VP}", r"\mathrm{FP}", r"\mathrm{FN}"
+
+
+def terms(name: str, inputs: MetricInputs) -> dict[str, float]:
+    """Os termos de uma métrica sem grupos (a binária, a regressão), pelo símbolo."""
+    found = METRICS.get(name).terms(inputs)
+    assert all(term.group is None for term in found)
+    return {term.symbol: term.value for term in found}
+
+
+def by_class(name: str, inputs: MetricInputs) -> dict[int, dict[str, float]]:
+    """Os termos de uma métrica feita por classe, pela classe e pelo símbolo."""
+    found: dict[int, dict[str, float]] = {}
+    for term in METRICS.get(name).terms(inputs):
+        assert term.group is not None
+        found.setdefault(term.group, {})[term.symbol] = term.value
+    return found
+
+
+def test_binary_terms_count_the_positive_class() -> None:
+    inputs = binary()
+
+    precision, recall = terms("precision", inputs), terms("recall", inputs)
+
+    assert precision == {VP: 2, FP: 1}
+    assert recall == {VP: 2, FN: 1}
+    assert precision[VP] / (precision[VP] + precision[FP]) == pytest.approx(
+        value("precision", inputs)
+    )
+    f1 = terms("f1", inputs)
+    assert 2 * f1["P"] * f1["R"] / (f1["P"] + f1["R"]) == pytest.approx(value("f1", inputs))
+    accuracy = terms("accuracy", inputs)
+    assert accuracy[r"\text{acertos}"] / accuracy["n"] == pytest.approx(value("accuracy", inputs))
+
+
+def test_multiclass_terms_come_per_class_and_average_to_the_metric() -> None:
+    inputs = multiclass()
+
+    precision = by_class("precision", inputs)
+    recalls = by_class("balanced_accuracy", inputs)
+
+    assert set(precision) == {0, 1, 2}
+    per_class = [c[VP] / (c[VP] + c[FP]) if c[VP] + c[FP] else 0.0 for c in precision.values()]
+    assert np.mean(per_class) == pytest.approx(value("precision", inputs))
+    mean_recall = np.mean([c[r"\text{recall}_c"] for c in recalls.values()])
+    assert mean_recall == pytest.approx(value("balanced_accuracy", inputs))
+
+
+def test_the_log_loss_terms_add_up_the_penalties() -> None:
+    proba = np.array([[0.9, 0.1], [0.6, 0.4], [0.65, 0.35], [0.2, 0.8]])
+    inputs = MetricInputs(np.array([0, 0, 1, 1]), np.array([0, 0, 0, 1]), proba, n_classes=2)
+
+    found = terms("log_loss", inputs)
+
+    total = found[r"\sum_{i=1}^{n} -\log p_i"]
+    assert total / found["n"] == pytest.approx(value("log_loss", inputs))
+
+
+def test_regression_terms_rebuild_each_error() -> None:
+    inputs = MetricInputs(np.array([1.0, 2.0, 3.0, 4.0]), np.array([1.5, 2.0, 2.0, 5.0]))
+    squares = r"\sum_{i=1}^{n} (y_i - \hat{y}_i)^2"
+
+    mae, mse = terms("mae", inputs), terms("mse", inputs)
+    r2 = terms("r2", inputs)
+
+    assert mae[r"\sum_{i=1}^{n} |y_i - \hat{y}_i|"] / mae["n"] == pytest.approx(
+        value("mae", inputs)
+    )
+    assert mse[squares] / mse["n"] == pytest.approx(value("mse", inputs))
+    assert math.sqrt(mse[squares] / mse["n"]) == pytest.approx(value("rmse", inputs))
+    residual, total = r2[r"\mathrm{SQ}_{\text{res}}"], r2[r"\mathrm{SQ}_{\text{tot}}"]
+    assert 1 - residual / total == pytest.approx(value("r2", inputs))
+
+
+def test_anomaly_and_noise_terms_count_the_points() -> None:
+    anomalies = MetricInputs(np.array([1, 1, 0, 0, 0]), np.array([1, 0, 1, 0, 0]))
+    clusters = MetricInputs(y_pred=np.array([0, 0, 1, -1, -1]))
+
+    assert terms("anomaly_precision", anomalies) == {VP: 1, FP: 1}
+    assert terms("anomaly_recall", anomalies) == {VP: 1, FN: 1}
+    assert terms("anomaly_rate", anomalies) == {r"n_{\text{marcados}}": 2, "n": 5}
+    assert terms("noise_ratio", clusters) == {r"n_{\text{ruído}}": 2, "n": 5}
+
+
+def test_metrics_without_counts_have_no_terms() -> None:
+    proba = np.array([[0.9, 0.1], [0.2, 0.8]])
+    inputs = MetricInputs(np.array([0, 1]), np.array([0, 1]), proba, n_classes=2)
+
+    assert METRICS.get("roc_auc").terms(inputs) == ()

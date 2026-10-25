@@ -4,10 +4,60 @@ Fase 10. As mesmas funcionalidades da interface simples, com design próprio, an
 suaves e treino em tempo real. Fala com o backend só através da API (HTTP para pedidos,
 WebSocket para o treino) e nunca importa código Python.
 
-Tecnologias: React, TypeScript, Vite, Tailwind CSS, D3.js e Plotly.js.
+Tecnologias: React 19, TypeScript 6, Vite 8, Tailwind CSS 4, shadcn/ui (com o Radix) e
+Motion; TanStack Router e TanStack Query; o cliente gerado pelo `@hey-api/openapi-ts`; D3 para
+os gráficos e KaTeX para as fórmulas. As razões estão na ADR 0027; o sistema visual, na
+ADR 0029.
 
-Este ficheiro é o **guia do contrato com o backend**: tudo o que o frontend precisa de saber
-para falar com a API sem adivinhar. As razões estão nas ADRs 0019, 0022 e 0026.
+Este ficheiro tem duas partes: como correr a interface e o **guia do contrato com o
+backend**, tudo o que o frontend precisa de saber para falar com a API sem adivinhar (as
+razões estão nas ADRs 0019, 0022 e 0026).
+
+## Como correr
+
+Precisa do Node 24 (traz o npm). Na primeira vez, nesta pasta:
+
+```bash
+npm install
+```
+
+Depois, a API e a interface, cada uma no seu terminal (a interface abre em
+<http://localhost:5173>):
+
+```bash
+uv run python -m ml_lab.api
+npm run dev
+```
+
+Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço de
+`ML_LAB_API_HOST` e `ML_LAB_API_PORT` (os mesmos do `.env` da raiz do projeto).
+
+| Comando | O que faz |
+|---|---|
+| `npm run api` | Gera o cliente (`src/api/generated/`) a partir do `openapi.json`. Corre sozinho antes dos outros |
+| `npm run dev` | O servidor de desenvolvimento, que recarrega ao gravar |
+| `npm run typecheck` | Os tipos (o "mypy" do frontend) |
+| `npm run lint` | O ESLint, sem avisos (o "ruff") |
+| `npm run format` | O Prettier, que também ordena as classes do Tailwind |
+| `npm test` | Os testes do Vitest (o "pytest") |
+| `npm run e2e` | Os testes de ponta a ponta, no Chromium, com a API numa pasta temporária |
+| `npm run build` | O build final, em `dist/` |
+
+Depois de mudar um serviço do backend: `uv run python scripts/export_openapi.py` na raiz e
+`npm run api` aqui. Os tipos que deixarem de bater certo aparecem no `npm run typecheck`.
+
+## Organização
+
+```
+src/
+├── api/         o cliente (gerado em generated/), os erros, a cache e o vocabulário
+├── components/  ui/ (os do shadcn, adaptados), shell/ (a moldura)
+├── hooks/       hooks partilhados
+├── lib/         format.ts (os números à portuguesa), utils.ts
+├── routes/      um ficheiro por ecrã (o TanStack Router gera routeTree.gen.ts)
+├── state/       o pouco estado do cliente (session.ts)
+└── styles/      globals.css: os tokens do sistema visual
+```
 
 ## A API
 
@@ -55,6 +105,11 @@ Os textos escrevem-se uma vez, no backend (regra 5 do `CONTRIBUTING.md`). Pede-s
     principal, o modelo sugerido, se os agentes trabalham nela).
 - `GET /explanations` dá todos os temas do painel "Porquê?" (`{tema: {title, text}}`), e
   `GET /explanations/{tema}` um só.
+- `GET /catalog/metrics` dá cada métrica com o que mede, como se lê, a **fórmula em LaTeX**
+  e o significado de cada símbolo. Não muda de run para run: pede-se uma vez. Os números de
+  um run vêm nos relatórios: cada `MetricResult` traz os `terms` da fórmula (os VP e os FP da
+  precisão, as somas do R²…), com o mesmo `symbol` que aparece na fórmula; na multiclasse,
+  cada termo tem o `group` (o número da classe), porque a métrica é a média das classes.
 
 Os textos vêm em Markdown simples (negrito, listas). As fichas didáticas (`doc` nos cartões do
 catálogo, dos agentes de RL e nas opções dos agentes) têm fórmulas em LaTeX (`$...$` e
@@ -83,6 +138,9 @@ maneira:
   `updates`, sozinhos, de 0,25 em 0,25 s, em mensagens `{"kind": "update", "data": ...}`
   (ou `{"kind": "error", "data": <ApiError>}`). A ligação fecha quando o trabalho termina;
   o resultado pede-se então por HTTP.
+- Na procura dos agentes, cada `updates` traz também o `working`: o candidato que um agente
+  está a medir agora, o que muda nele e o fold em que vai (`fold` de `folds`). É `null` entre
+  candidatos e fora das rondas. É o que acende o agente certo no fluxograma.
 - Pedir o resultado antes do fim responde 409 (`training_in_progress`).
 - `POST /automl/{search_id}/candidates/{number}/train` treina um candidato à mão: devolve o
   `JobState` de um treino normal, que se acompanha nas rotas de `/experiments`.
@@ -155,14 +213,21 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 | 2 · Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor abre-se com `history_open` |
 | 3 · Explorar | `datasets_profile` |
 | 4 · Preparar | `datasets_suggest_task`, `datasets_task_options`, `datasets_suggest_cleaning`, `datasets_cleaning_operations`, `datasets_prepare` |
-| 5 · Modelo | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `experiments_start` |
+| 5 · Modelo | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `catalog_demo`, `experiments_start` |
 | 6 · Treinar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` |
-| 7 · Avaliar | `experiments_result`, `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve` |
+| 7 · Avaliar | `experiments_result`, `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics` |
 | 8 · Explicar | `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
 | 9 · Experiências | `history_runs`, `history_entry`, `history_open`, `history_open_reinforcement`, `history_save`, `history_rename`, `history_delete`, `history_compare`, `history_reproduce` |
 | 10 · Laboratório | `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization` |
 | 11 · Reinforcement learning | `reinforcement_environments`, `reinforcement_agents`, `reinforcement_start`, `reinforcement_updates` (e o WebSocket), `reinforcement_pause`, `reinforcement_resume`, `reinforcement_cancel`, `reinforcement_job`, `reinforcement_result` |
 | Todos | `explanations_vocabulary`, `explanations_topics`, `explanations_explain`, `meta_health` |
+
+A página de cada modelo usa o cartão (`catalog_model`: a ficha já dividida em `sections`,
+as demonstrações do Laboratório que se aplicam em `laboratory` e os conjuntos de exemplo em
+`examples`) e a demonstração (`catalog_demo`). A demonstração devolve o mesmo que um run (o
+campo em cada fotografia, a loss, o que aprendeu, os relatórios e os gráficos), mas não é um
+run: não tem `run_id`, não vai para o histórico e não se abre nas rotas de `/experiments`.
+Pedir outra vez os mesmos valores é imediato (as últimas ficam guardadas).
 
 Os caminhos de cada operação estão no `openapi.json`. Os formulários (os hiperparâmetros de
 um modelo, os parâmetros de um gerador ou de um ambiente, o tamanho da procura dos agentes)

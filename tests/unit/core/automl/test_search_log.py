@@ -1,13 +1,28 @@
 """A conversa da procura: números seguidos, só o que é novo, e o passo de cada candidato."""
 
+from dataclasses import replace
+
 from ml_lab.core.automl.search_log import (
     AgentRole,
     Candidate,
     SearchLog,
     SearchPhase,
+    WorkInProgress,
     model_agent_name,
 )
 from ml_lab.core.models.base import ModelFamily
+
+WORK = WorkInProgress(
+    candidate=1,
+    phase=SearchPhase.SCREENING,
+    family=ModelFamily.TREE,
+    author="Agente · Árvores de decisão",
+    model="decision_tree",
+    model_display_name="Árvore de decisão",
+    changes={},
+    fold=0,
+    folds=5,
+)
 
 
 def candidate(number: int) -> Candidate:
@@ -55,6 +70,26 @@ def test_each_candidate_is_announced_as_it_arrives() -> None:
     log.add(candidate(2))
 
     assert seen == [1, 2]
+
+
+def test_the_work_in_progress_follows_the_folds_and_ends_with_the_candidate() -> None:
+    log = SearchLog()
+
+    log.start(WORK)
+    log.progress(2)
+    during = log.working
+    log.add(candidate(1))
+
+    assert during == replace(WORK, fold=2)
+    assert log.working is None
+
+
+def test_a_fold_without_work_in_progress_changes_nothing() -> None:
+    log = SearchLog()
+
+    log.progress(3)
+
+    assert log.working is None
 
 
 def test_a_model_agent_is_named_after_its_family() -> None:

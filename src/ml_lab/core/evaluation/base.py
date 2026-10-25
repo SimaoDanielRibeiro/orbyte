@@ -113,18 +113,20 @@ def measure(
         if not metric.applies_to(inputs):
             continue
         value = metric(inputs)
-        if math.isnan(value):
+        defined = not math.isnan(value)
+        if not defined:
             undefined.append(metric.display_name)
         explanation = METRIC_EXPLANATIONS[name]
         results.append(
             MetricResult(
                 name=name,
                 display_name=metric.display_name,
-                value=None if math.isnan(value) else value,
+                value=value if defined else None,
                 higher_is_better=metric.higher_is_better,
                 as_percent=metric.as_percent,
                 what=explanation.what,
                 how_to_read=explanation.how_to_read,
+                terms=metric.terms(inputs) if defined else (),
             )
         )
     return tuple(results), tuple(undefined)

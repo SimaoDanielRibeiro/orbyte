@@ -123,6 +123,30 @@ def test_every_explanation_belongs_to_a_metric() -> None:
     assert set(METRIC_EXPLANATIONS) == set(METRICS.names())
 
 
+@pytest.mark.parametrize("name", METRICS.names())
+def test_every_metric_has_a_formula_with_its_symbols_explained(name: str) -> None:
+    explanation = METRIC_EXPLANATIONS[name]
+
+    assert explanation.formula
+    assert explanation.symbols, f"diz o que quer dizer cada símbolo da fórmula de {name}"
+    for symbol in explanation.symbols:
+        assert symbol.symbol in explanation.formula, f"{symbol.symbol} não está na fórmula"
+        assert symbol.meaning
+
+
+@pytest.mark.parametrize(("name", "task_type"), CASES)
+def test_the_terms_of_a_metric_are_symbols_of_its_formula(name: str, task_type: TaskType) -> None:
+    # A interface mostra cada termo no sítio dele na fórmula: o símbolo tem de lá estar.
+    formula = METRIC_EXPLANATIONS[name].formula
+
+    terms = METRICS.get(name).terms(sample_inputs(task_type))
+
+    for term in terms:
+        assert term.symbol in formula, f"o termo {term.symbol} de {name} não está na fórmula"
+        assert term.label
+        assert math.isfinite(term.value)
+
+
 @pytest.mark.parametrize(
     "task_type",
     sorted({task for _, model in MODELS.items() for task in model.info.task_types}),

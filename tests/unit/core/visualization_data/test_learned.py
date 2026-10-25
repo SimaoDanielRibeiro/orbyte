@@ -45,6 +45,41 @@ def test_a_tree_is_written_as_rules_with_its_importances_and_numbers() -> None:
     assert ("Profundidade da árvore", 2) in [(p.label, p.value) for p in learned.properties]
 
 
+def test_a_tree_is_also_given_as_nodes_to_draw() -> None:
+    iris = prepared(IRIS, target="species")
+
+    learned = view("decision_tree", iris, max_depth=8)
+
+    nodes = {node.node: node for node in learned.tree}
+    root = learned.tree[0]
+    assert (root.node, root.depth, root.samples) == (0, 0, len(iris.train))
+    assert root.feature is not None
+    assert root.feature.startswith("petal")
+    for node in learned.tree:
+        if node.left is not None and node.right is not None:
+            # Cada exemplo do nó vai para um dos dois lados da pergunta.
+            assert nodes[node.left].samples + nodes[node.right].samples == node.samples
+            assert nodes[node.left].depth == node.depth + 1
+        elif node.feature is not None:
+            # Uma pergunta abaixo do 4.º nível fica resumida: conta as folhas que esconde.
+            assert node.depth == 4
+            assert node.hidden_leaves >= 2
+    assert max(node.depth for node in learned.tree) <= 4
+    leaves = [node for node in learned.tree if node.feature is None]
+    assert {node.prediction for node in leaves} <= {"setosa", "versicolor", "virginica"}
+    assert all(node.share is not None and 0 < node.share <= 1 for node in learned.tree)
+
+
+def test_a_regression_tree_predicts_numbers_without_classes() -> None:
+    line = prepared(LINE, target="target")
+
+    learned = view("decision_tree_regression", line, max_depth=2)
+
+    assert len(learned.tree) == 7  # 1 + 2 + 4 nós
+    assert all(node.share is None and node.code is None for node in learned.tree)
+    assert "," in learned.tree[-1].prediction  # um número à portuguesa
+
+
 def test_the_weights_name_what_each_row_explains() -> None:
     iris = prepared(IRIS, target="species")
     titanic = prepared(TITANIC, target="Survived", cleaning=())

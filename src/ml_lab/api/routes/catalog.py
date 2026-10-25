@@ -4,7 +4,8 @@ from typing import Any
 
 from ml_lab.api.errors import ERROR_RESPONSES
 from ml_lab.api.routing import LabDep, ServiceRouter
-from ml_lab.core.services import ModelCard, TaskType
+from ml_lab.core.schemas.catalog import DemoRequest
+from ml_lab.core.services import MetricCard, ModelCard, ModelDemo, TaskType
 
 router = ServiceRouter(prefix="/catalog", tags=["catalog"], responses=ERROR_RESPONSES)
 
@@ -31,3 +32,15 @@ def suggested_model(lab: LabDep, task_type: TaskType) -> str | None:
 def validate_hyperparameters(lab: LabDep, name: str, values: dict[str, Any]) -> dict[str, Any]:
     """Valida os hiperparâmetros e devolve-os completos (com os valores por omissão)."""
     return lab.catalog.validate_hyperparameters(name, values)
+
+
+@router.post("/models/{name}/demo")
+def demo(lab: LabDep, name: str, body: DemoRequest) -> ModelDemo:
+    """O modelo a trabalhar num conjunto de exemplo pequeno, fora do histórico."""
+    return lab.catalog.demo(name, body.hyperparameters, body.example)
+
+
+@router.get("/metrics")
+def metrics(lab: LabDep, task_type: TaskType | None = None) -> list[MetricCard]:
+    """As métricas (só as de ``task_type``, se for dada), com a fórmula e a explicação."""
+    return lab.catalog.metrics(task_type)

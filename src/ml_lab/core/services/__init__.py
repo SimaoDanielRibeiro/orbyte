@@ -9,7 +9,13 @@ devolvem, as configurações que recebem e o erro base do ML Lab.
 
 from ml_lab.core.automl.data_agent import DataDecision
 from ml_lab.core.automl.model_agent import SkippedModel
-from ml_lab.core.automl.search_log import AgentMessage, AgentRole, Candidate, SearchPhase
+from ml_lab.core.automl.search_log import (
+    AgentMessage,
+    AgentRole,
+    Candidate,
+    SearchPhase,
+    WorkInProgress,
+)
 from ml_lab.core.data.boundary import TablePreview
 from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.cleaning.suggestions import CleaningSuggestion
@@ -33,6 +39,8 @@ from ml_lab.core.data.transforms.imputation import ImputationStrategy
 from ml_lab.core.data.transforms.pipeline_builder import TransformConfig
 from ml_lab.core.data.transforms.scaling import ScalingMethod
 from ml_lab.core.data.validation.checks import ValidationReport
+from ml_lab.core.evaluation.explanations import FormulaSymbol
+from ml_lab.core.evaluation.metrics.base import MetricTerm
 from ml_lab.core.evaluation.report import ConfusionMatrix, EvaluationReport, MetricResult
 from ml_lab.core.evaluation.validation import (
     CrossValidation,
@@ -66,7 +74,7 @@ from ml_lab.core.services.automl import (
     ModelAgentCard,
     ObjectiveOption,
 )
-from ml_lab.core.services.catalog import CatalogService, ModelCard
+from ml_lab.core.services.catalog import CatalogService, DocSection, MetricCard, ModelCard
 from ml_lab.core.services.comparison import (
     ConfigDifference,
     LossSeries,
@@ -84,12 +92,14 @@ from ml_lab.core.services.datasets import (
     ProjectionPoints,
     SampleSummary,
 )
+from ml_lab.core.services.demos import DemoExample, ModelDemo
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService, TrainingUpdate
 from ml_lab.core.services.explanations import explain, topics
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.services.laboratory import (
     KnnDemo,
+    LaboratoryDemo,
     LaboratoryService,
     LearningRateDemo,
     LossCurve,
@@ -124,7 +134,13 @@ from ml_lab.core.visualization_data.evaluation import (
     Silhouette,
     SilhouetteGroup,
 )
-from ml_lab.core.visualization_data.learned import LearnedView, LinearWeights, Matrix, Property
+from ml_lab.core.visualization_data.learned import (
+    LearnedView,
+    LinearWeights,
+    Matrix,
+    Property,
+    TreeNode,
+)
 from ml_lab.core.visualization_data.network import (
     LayerFrame,
     LayerInfo,
@@ -167,8 +183,10 @@ __all__ = [
     "DatasetProfile",
     "DatasetService",
     "DatasetSummary",
+    "DemoExample",
     "Dendrogram",
     "Distribution",
+    "DocSection",
     "Embedding",
     "EnvironmentCard",
     "EnvironmentSpec",
@@ -181,6 +199,7 @@ __all__ = [
     "FeatureImportance",
     "FieldFrame",
     "FoldScore",
+    "FormulaSymbol",
     "GeneratorSummary",
     "GridLayout",
     "GroupMeans",
@@ -192,6 +211,7 @@ __all__ = [
     "JobStatus",
     "KnnDemo",
     "Lab",
+    "LaboratoryDemo",
     "LaboratoryService",
     "LayerFrame",
     "LayerInfo",
@@ -204,11 +224,14 @@ __all__ = [
     "LossSeries",
     "MLLabError",
     "Matrix",
+    "MetricCard",
     "MetricComparison",
     "MetricResult",
+    "MetricTerm",
     "MissingMap",
     "ModelAgentCard",
     "ModelCard",
+    "ModelDemo",
     "ModelFamily",
     "ModelSpec",
     "NetworkFrame",
@@ -266,9 +289,11 @@ __all__ = [
     "TrainingStateError",
     "TrainingUpdate",
     "TransformConfig",
+    "TreeNode",
     "ValidationReport",
     "ValueCount",
     "Vocabulary",
+    "WorkInProgress",
     "explain",
     "topics",
     "vocabulary",

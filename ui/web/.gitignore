@@ -1,0 +1,14 @@
+# Dependências e build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# O cliente gerado a partir do openapi.json (volta a gerar-se com `npm run api`)
+src/api/generated/
+
+# A pasta de trabalho do gerador das rotas do TanStack Router
+.tanstack/
+
+# Resultados dos testes de ponta a ponta
+test-results/
+playwright-report/

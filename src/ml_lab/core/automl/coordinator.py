@@ -36,6 +36,7 @@ from ml_lab.core.automl.search_log import (
     Candidate,
     SearchLog,
     SearchPhase,
+    WorkInProgress,
 )
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.evaluation.validation import cross_validate
@@ -250,11 +251,29 @@ class Coordinator:
             hyperparameters=values,
             changes={name: value for name, value in values.items() if defaults.get(name) != value},
         )
+        self._log.start(
+            WorkInProgress(
+                candidate=candidate.number,
+                phase=phase,
+                family=info.family,
+                author=agent.name,
+                model=info.name,
+                model_display_name=info.display_name,
+                changes=candidate.changes,
+                fold=0,
+                folds=len(self._folds),
+            )
+        )
         start = time.perf_counter()
         try:
             hyperparameters = info.hyperparameters.parse(values, model=info.name)
             cv = cross_validate(
-                model, hyperparameters, self._model_seed, self._folds, self._objective.metric
+                model,
+                hyperparameters,
+                self._model_seed,
+                self._folds,
+                self._objective.metric,
+                on_fold=self._log.progress,
             )
         except Exception as error:  # um candidato que falha não para a procura: fica com a razão
             logger.warning("o candidato falhou", extra={"model": info.name, "error": str(error)})

@@ -52,6 +52,7 @@ from ml_lab.core.automl.search_log import (
     Candidate,
     SearchLog,
     SearchPhase,
+    WorkInProgress,
 )
 from ml_lab.core.automl.search_space import search_space
 from ml_lab.core.data.preparation import PreparationConfig
@@ -229,6 +230,8 @@ class AutoMLUpdate:
         candidates: Os candidatos novos (depois de ``after_step``), pela ordem.
         messages: As mensagens novas da conversa (depois de ``after_message``).
         leader: O melhor candidato até agora.
+        working: O candidato que um agente está a medir agora, e em que fold vai
+            (``None`` entre candidatos e fora das rondas).
     """
 
     state: JobState
@@ -237,6 +240,7 @@ class AutoMLUpdate:
     candidates: tuple[Candidate, ...] = ()
     messages: tuple[AgentMessage, ...] = ()
     leader: Candidate | None = None
+    working: WorkInProgress | None = None
 
     @property
     def steps(self) -> tuple[StepRecord, ...]:
@@ -479,6 +483,7 @@ class AutoMLService:
             candidates=log.candidates(after_step),
             messages=log.messages(after_message),
             leader=ranked[0] if ranked else None,
+            working=log.working,
         )
 
     def result(self, search_id: str) -> AutoMLResult:
