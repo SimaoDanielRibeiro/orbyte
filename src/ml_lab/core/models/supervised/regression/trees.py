@@ -98,7 +98,8 @@ class RandomForestRegressionParams(ForestParams):
                 "sqrt": "Raiz quadrada do total",
                 "log2": "Logaritmo do total",
                 "all": "Todas",
-            }
+            },
+            "x-search": {"values": ["sqrt", "log2", "all"]},
         },
     )
 

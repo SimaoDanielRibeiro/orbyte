@@ -1,7 +1,8 @@
 """Catálogo dos ecrãs da interface, pela ordem natural de uma experiência.
 
 A lista é a mesma nas duas versões da interface (simples e aprimorada); só muda a
-apresentação.
+apresentação. Depois dos Dados há dois caminhos: o automático (Agentes) e o manual
+(Explorar, Preparar, Modelo, Treinar), que acabam nos mesmos ecrãs.
 """
 
 from dataclasses import dataclass
@@ -58,6 +59,21 @@ SCREENS: tuple[Screen, ...] = (
     ),
     Screen(
         number=2,
+        slug="agentes",
+        title="Agentes",
+        icon=":material/groups:",
+        phases=(9,),
+        does=(
+            "Pedir aos agentes o melhor modelo para um alvo: escolher a métrica a otimizar, os "
+            "agentes e o orçamento da procura."
+        ),
+        sees=(
+            "As decisões do agente de dados, a conversa dos agentes, o quadro dos candidatos "
+            "com a validação cruzada e o vencedor, com o teste dele."
+        ),
+    ),
+    Screen(
+        number=3,
         slug="explorar",
         title="Explorar",
         icon=":material/query_stats:",
@@ -69,7 +85,7 @@ SCREENS: tuple[Screen, ...] = (
         ),
     ),
     Screen(
-        number=3,
+        number=4,
         slug="preparar",
         title="Preparar",
         icon=":material/tune:",
@@ -84,7 +100,7 @@ SCREENS: tuple[Screen, ...] = (
         ),
     ),
     Screen(
-        number=4,
+        number=5,
         slug="modelo",
         title="Modelo",
         icon=":material/account_tree:",
@@ -95,7 +111,7 @@ SCREENS: tuple[Screen, ...] = (
         sees="Cartões por família, a ficha didática e o formulário gerado da ficha técnica.",
     ),
     Screen(
-        number=5,
+        number=6,
         slug="treinar",
         title="Treinar",
         icon=":material/model_training:",
@@ -107,7 +123,7 @@ SCREENS: tuple[Screen, ...] = (
         ),
     ),
     Screen(
-        number=6,
+        number=7,
         slug="avaliar",
         title="Avaliar",
         icon=":material/analytics:",
@@ -119,7 +135,7 @@ SCREENS: tuple[Screen, ...] = (
         ),
     ),
     Screen(
-        number=7,
+        number=8,
         slug="explicar",
         title="Explicar",
         icon=":material/lightbulb:",
@@ -128,16 +144,16 @@ SCREENS: tuple[Screen, ...] = (
         sees="Importância das features e gráficos de dependência parcial.",
     ),
     Screen(
-        number=8,
+        number=9,
         slug="experiencias",
         title="Experiências",
         icon=":material/history:",
         phases=(5,),
-        does="Filtrar o histórico, escolher 2 ou 3 runs e reproduzir um run.",
-        sees="Tabela de runs e comparação lado a lado de métricas e gráficos.",
+        does="Filtrar o histórico, comparar de 2 a 5 runs e abrir, guardar ou reproduzir um run.",
+        sees="Tabela de runs e comparação lado a lado de métricas, escolhas e curvas da loss.",
     ),
     Screen(
-        number=9,
+        number=10,
         slug="laboratorio",
         title="Laboratório",
         icon=":material/science:",
@@ -149,7 +165,7 @@ SCREENS: tuple[Screen, ...] = (
         ),
     ),
     Screen(
-        number=10,
+        number=11,
         slug="reinforcement",
         title="Reinforcement learning",
         icon=":material/smart_toy:",

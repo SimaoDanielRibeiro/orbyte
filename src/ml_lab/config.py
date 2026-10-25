@@ -1,4 +1,4 @@
-"""Definições do ML Lab: caminhos, base de dados e logs.
+"""Definições do ML Lab: caminhos, base de dados, logs e API.
 
 Usa só a biblioteca padrão. Cada valor vem do primeiro sítio onde estiver definido:
 
@@ -29,10 +29,25 @@ ARTIFACTS_DIR_VAR: Final = "ML_LAB_ARTIFACTS_DIR"
 DATABASE_PATH_VAR: Final = "ML_LAB_DATABASE_PATH"
 LOG_LEVEL_VAR: Final = "ML_LAB_LOG_LEVEL"
 LOG_FORMAT_VAR: Final = "ML_LAB_LOG_FORMAT"
+API_HOST_VAR: Final = "ML_LAB_API_HOST"
+API_PORT_VAR: Final = "ML_LAB_API_PORT"
+API_CORS_ORIGINS_VAR: Final = "ML_LAB_API_CORS_ORIGINS"
 
 KNOWN_VARIABLES: Final = frozenset(
-    {UPLOADS_DIR_VAR, ARTIFACTS_DIR_VAR, DATABASE_PATH_VAR, LOG_LEVEL_VAR, LOG_FORMAT_VAR}
+    {
+        UPLOADS_DIR_VAR,
+        ARTIFACTS_DIR_VAR,
+        DATABASE_PATH_VAR,
+        LOG_LEVEL_VAR,
+        LOG_FORMAT_VAR,
+        API_HOST_VAR,
+        API_PORT_VAR,
+        API_CORS_ORIGINS_VAR,
+    }
 )
+
+DEFAULT_CORS_ORIGINS: Final = ("http://localhost:5173", "http://127.0.0.1:5173")
+"""O servidor de desenvolvimento do Vite, onde corre a interface aprimorada (fase 10)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +62,10 @@ class Settings:
         database_path: Ficheiro SQLite do registo de experiências.
         log_level: Nível mínimo dos logs: DEBUG, INFO, WARNING, ERROR ou CRITICAL.
         log_format: ``"text"`` para ler no terminal, ``"json"`` para logs estruturados.
+        api_host: Onde a API escuta. ``127.0.0.1`` quer dizer só este computador: o ML Lab
+            não tem autenticação.
+        api_port: A porta da API.
+        api_cors_origins: As páginas que podem chamar a API a partir do navegador.
     """
 
     home: Path
@@ -56,6 +75,9 @@ class Settings:
     database_path: Path
     log_level: str = "INFO"
     log_format: LogFormat = "text"
+    api_host: str = "127.0.0.1"
+    api_port: int = 8000
+    api_cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
 
     @classmethod
     def from_env(
@@ -91,6 +113,9 @@ class Settings:
             database_path=database_path,
             log_level=_log_level(values.get(LOG_LEVEL_VAR, "INFO")),
             log_format=_log_format(values.get(LOG_FORMAT_VAR, "text")),
+            api_host=values.get(API_HOST_VAR, "").strip() or "127.0.0.1",
+            api_port=_port(values.get(API_PORT_VAR, "8000")),
+            api_cors_origins=_origins(values.get(API_CORS_ORIGINS_VAR)),
         )
 
     def ensure_directories(self) -> None:
@@ -175,6 +200,22 @@ def _log_level(value: str) -> str:
             f"{LOG_LEVEL_VAR} inválido: '{value}'. Usa um destes: {', '.join(LOG_LEVELS)}."
         )
     return level
+
+
+def _port(value: str) -> int:
+    text = value.strip()
+    if not text.isdigit() or not 1 <= int(text) <= 65_535:
+        raise ConfigurationError(
+            f"{API_PORT_VAR} inválido: '{value}'. Usa um número de porta, de 1 a 65535."
+        )
+    return int(text)
+
+
+def _origins(value: str | None) -> tuple[str, ...]:
+    """As origens do CORS, separadas por vírgulas (vazio: nenhuma)."""
+    if value is None:
+        return DEFAULT_CORS_ORIGINS
+    return tuple(origin.strip() for origin in value.split(",") if origin.strip())
 
 
 def _log_format(value: str) -> LogFormat:

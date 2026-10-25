@@ -1,6 +1,6 @@
 # 0021 — Redes neuronais em PyTorch: um ciclo de treino próprio, que se pode observar
 
-- **Estado:** Proposta
+- **Estado:** Aceite
 - **Data:** 2026-10-24
 
 ## Contexto

@@ -183,9 +183,12 @@ def test_each_task_type_gets_its_evaluator() -> None:
     assert isinstance(evaluator_for(TaskType.REGRESSION), RegressionEvaluator)
     assert PRIMARY_METRIC[TaskType.MULTICLASS_CLASSIFICATION] == "accuracy"
     assert PRIMARY_METRIC[TaskType.REGRESSION] == "r2"
-    for task_type in TaskType:  # desde a fase 4, todos os tipos de tarefa têm avaliador
-        assert task_type in evaluator_for(task_type).task_types
+    for task_type in TaskType:
         assert task_type in PRIMARY_METRIC
+        # Desde a fase 4, todas as tarefas que aprendem com dados têm avaliador. O controlo
+        # (fase 8) avalia-se a jogar episódios, sem dados: core/rl/evaluation.py.
+        if task_type.learns_from_data:
+            assert task_type in evaluator_for(task_type).task_types
 
 
 # --- diagnóstico ---------------------------------------------------------------------

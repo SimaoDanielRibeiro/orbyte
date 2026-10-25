@@ -69,7 +69,7 @@ class LogisticRegressionGDParams(Hyperparameters):
         le=10_000,
         title="C (inverso da regularização)",
         description="O mesmo C do scikit-learn: quanto menor, mais pequenos ficam os pesos.",
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 100]}},
     )
     tol: float = Field(
         default=1e-6,

@@ -18,8 +18,10 @@ razões estão em [docs/adr/](docs/adr/).
 | 4 — Catálogo clássico | 32 modelos supervisionados e não supervisionados, avaliadores de todas as tarefas, diagnósticos, validação cruzada, explicações das previsões; ecrãs Avaliar (completo), Explicar e Laboratório | ✅ concluída |
 | 5 — Memória | Registo de experiências em SQLite, runs guardados com o modelo, comparação e reprodução de runs; ecrã Experiências | ✅ concluída |
 | 6 — Deep learning | Adaptador PyTorch, rede neuronal (MLP) de classificação e de regressão, early stopping, gradientes e ativações de cada camada; o ecrã Treinar mostra as camadas da rede | ✅ concluída |
-| 7 — API | Rotas HTTP e WebSocket com FastAPI, para a interface aprimorada | próxima |
-| 8 e 9 | Ver o [roadmap](docs/architecture.md#roadmap-por-fases) | por fazer |
+| 7 — API | Os serviços por HTTP com FastAPI (uma rota por método, documentação em `/docs`), treino em segundo plano acompanhado por HTTP ou WebSocket, erros com código e mensagem em português | ✅ concluída |
+| 8 — Reinforcement learning | Contratos de ambiente e agente, uma grelha com três mapas, Q-learning (NumPy) e DQN (PyTorch), avaliação da política aprendida, runs no histórico; ecrã Reinforcement learning | ✅ concluída |
+| 9 — Agentes (AutoML) | O modo automático: um agente de dados, um agente por família de modelos e um coordenador que procura o melhor modelo com validação cruzada, sem tocar no teste; o vencedor fica no histórico; ecrã Agentes | ✅ concluída |
+| 10 — Interface aprimorada | Todos os ecrãs refeitos em React, por cima da API | próxima |
 
 ## Requisitos
 
@@ -55,7 +57,23 @@ Corre-o a partir da raiz do projeto. A app abre em <http://localhost:8501> e só
 computador lhe tem acesso (ver `.streamlit/config.toml`). Na primeira vez, o Streamlit pode
 pedir um email no terminal: basta carregar em Enter.
 
-Um percurso para começar: em **Dados**, carrega o exemplo Titanic; em **Explorar**, vê o
+Depois de carregar os dados há dois caminhos: o **modo automático** (o ecrã Agentes) e o
+**modo manual** (Explorar, Preparar, Modelo e Treinar). Os dois acabam nos mesmos ecrãs.
+
+Para o modo automático: em **Dados**, carrega o Titanic e escolhe "Pedir aos agentes". No
+ecrã **Agentes**, o alvo `Survived` já vem escolhido; abre "O que o agente de dados decidiu"
+para ver a preparação e as razões, e carrega em "Pedir aos agentes". Enquanto procuram, vês
+a conversa dos agentes e cada candidato a entrar no gráfico. No fim:
+
+- o vencedor, a validação cruzada que o escolheu e o teste, usado uma só vez;
+- o gráfico da procura (a triagem e a afinação, com o melhor até aí);
+- o melhor de cada agente, comparado com a referência (a regressão logística);
+- o quadro de todos os candidatos.
+
+"Abrir o vencedor no Avaliar" leva-o para o modo manual, e "Treinar no modo manual" treina
+qualquer candidato do quadro, passo a passo.
+
+Um percurso para o modo manual: em **Dados**, carrega o exemplo Titanic; em **Explorar**, vê o
 perfil das colunas e os avisos (77% de nulos em `Cabin`, `PassengerId` é um identificador);
 em **Preparar**, escolhe o alvo `Survived`, aceita as limpezas sugeridas e vê a linhagem, a
 divisão e a projeção 2D; em **Modelo**, lê a ficha da regressão logística, ajusta os
@@ -119,6 +137,45 @@ experiências para fazer aí:
 - a ReLU com uma taxa de aprendizagem de 0,5: mais de metade dos neurónios acabam
   parados, e a exatidão cai.
 
+Para ver um agente aprender por tentativa e erro, abre o ecrã **Reinforcement learning**:
+
+1. escolhe a grelha com o mapa "Penhasco" e o agente "Q-learning";
+2. carrega em "Treinar o agente".
+
+A recompensa por episódio sobe à medida que o agente aprende. Na grelha, percorre os
+episódios e vê o valor a espalhar-se a partir do objetivo, célula a célula, até à partida.
+No fim, compara as métricas: com a política aprendida, chega sempre ao objetivo; a treinar,
+caía nas armadilhas em cerca de 15% dos episódios, porque ainda explorava ao acaso. Depois
+experimenta:
+
+- a exploração no fim (ε) a 0: a treinar, também deixa de cair, mas o agente deixa de
+  procurar caminhos melhores;
+- o desconto (γ) a 0,5: o valor da partida fica negativo, porque o objetivo, a 13 passos,
+  quase não conta (0,5¹³ ≈ 0,0001);
+- o DQN: os mesmos valores Q, mas numa rede neuronal, e muito mais devagar.
+
+## Usar a API
+
+A API (fase 7) põe os mesmos serviços a falar HTTP, para a interface aprimorada:
+
+```bash
+uv run python -m ml_lab.api
+```
+
+A documentação interativa fica em <http://127.0.0.1:8000/docs>. Lá dá para:
+
+1. enviar um CSV (`POST /datasets/uploads`);
+2. começar um treino (`POST /experiments`, que responde logo com o `run_id`);
+3. acompanhar o treino (`GET /experiments/{run_id}/updates`, com os passos e a fronteira de
+   cada snapshot);
+4. pedir o resultado (`GET /experiments/{run_id}/result`).
+
+O WebSocket `/experiments/{run_id}/stream` envia o mesmo que o passo 3, sozinho. Os agentes
+de reinforcement learning têm as mesmas rotas, em `/reinforcement`, e o modo automático
+também, em `/automl` (`POST /automl` com o dataset e o alvo; os `updates` trazem a conversa
+dos agentes e os candidatos novos). Os pormenores estão em
+[src/ml_lab/api/README.md](src/ml_lab/api/README.md).
+
 ## Testes e verificações
 
 Uma fase só termina quando estas quatro verificações passam (corre-as antes de cada push):
@@ -139,7 +196,7 @@ uv run pytest -m "not integration and not api"
 | Pasta | O que verifica | Quando corre |
 |---|---|---|
 | `tests/unit/` | Uma função ou classe isolada; espelha `src/ml_lab/` | Sempre |
-| `tests/contract/` | Todos os componentes registados cumprem o seu contrato: modelos, métricas, fontes de dados, limpezas, divisões | Sempre |
+| `tests/contract/` | Todos os componentes registados cumprem o seu contrato: modelos, métricas, fontes de dados, limpezas, divisões, agentes e ambientes, e a fronteira dos serviços | Sempre |
 | `tests/architecture/` | Regras de importação entre camadas | Sempre |
 | `tests/integration/` | Fluxos de ponta a ponta: o critério de cada fase, nos serviços e na interface | Antes de cada push |
 | `tests/api/` | Endpoints HTTP e WebSocket (fase 7) | Antes de cada push |
@@ -159,22 +216,27 @@ para `.env` e edita-o, ou define variáveis de ambiente (que têm prioridade sob
 | `ML_LAB_DATABASE_PATH` | Ficheiro SQLite do registo de experiências | `artifacts/ml_lab.db` |
 | `ML_LAB_LOG_LEVEL` | Nível mínimo dos logs | `INFO` |
 | `ML_LAB_LOG_FORMAT` | `text` (terminal) ou `json` (logs estruturados) | `text` |
+| `ML_LAB_API_HOST` | Onde a API escuta (`127.0.0.1` é só este computador) | `127.0.0.1` |
+| `ML_LAB_API_PORT` | A porta da API | `8000` |
+| `ML_LAB_API_CORS_ORIGINS` | As páginas que podem chamar a API a partir do navegador | o servidor do Vite |
 
 ## Estrutura
 
 ```text
 src/ml_lab/          pacote instalável
-├── config.py        definições: caminhos, base de dados, logs
+├── config.py        definições: caminhos, base de dados, logs, API
 ├── logging.py       logs estruturados
 ├── core/            núcleo: não importa api/ nem ui/
 │   ├── foundation/  tipos, erros, registo de componentes, eventos, seeds
 │   ├── data/        camada de dados: as nove etapas (o único sítio com pandas)
 │   ├── models/      algoritmos: um ficheiro = um modelo
+│   ├── rl/          reinforcement learning: ambientes e agentes
+│   ├── automl/      os agentes do modo automático: dados, um por família, coordenador
 │   ├── services/    a única porta de entrada do núcleo
 │   └── ...          training, evaluation, explainability, tracking...
-└── api/             FastAPI (fase 7)
+└── api/             FastAPI: uma rota por método dos serviços (fase 7)
 ui/simple/           interface simples (Streamlit)
-ui/web/              interface aprimorada (React, fase 9)
+ui/web/              interface aprimorada (React, fase 10)
 tests/               unit, contract, integration, architecture, api
 data/samples/        datasets de exemplo (versionados)
 scripts/             utilitários, como descarregar os exemplos

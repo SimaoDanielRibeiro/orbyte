@@ -9,7 +9,7 @@ from components.layout import render_header, render_why
 from components.notices import render_error, render_notices
 from components.state import current_dataset, get_lab, select_dataset
 from components.tables import show_preview
-from ml_lab.core.services import DatasetSummary, MLLabError, NoticeLevel
+from ml_lab.core.services import DatasetSummary, MLLabError, NoticeLevel, explain
 from ml_lab.formatting import format_count
 
 _UPLOAD_TYPES = ["csv", "tsv", "txt", "gz", "xlsx", "xlsm"]
@@ -157,9 +157,25 @@ def _show(dataset: DatasetSummary) -> None:
         hide_index=True,
         width="stretch",
     )
-    st.page_link(
-        "pages/explorar.py", label="Explorar este dataset", icon=":material/arrow_forward:"
-    )
+    _next_step()
+
+
+def _next_step() -> None:
+    """Os dois caminhos depois dos dados: os agentes (automático) ou passo a passo (manual)."""
+    choice = explain("automatic_or_manual")
+    st.markdown(f"**{choice.title}**")
+    st.caption(choice.text)
+    automatic, manual = st.columns(2)
+    with automatic.container(border=True):
+        st.markdown("**Modo automático**")
+        st.write("Dizes o que queres prever, e os agentes procuram o melhor modelo.")
+        st.page_link("pages/agentes.py", label="Pedir aos agentes", icon=":material/groups:")
+    with manual.container(border=True):
+        st.markdown("**Modo manual**")
+        st.write("Exploras, preparas e escolhes o modelo tu, a ver o treino por dentro.")
+        st.page_link(
+            "pages/explorar.py", label="Explorar este dataset", icon=":material/arrow_forward:"
+        )
 
 
 main()

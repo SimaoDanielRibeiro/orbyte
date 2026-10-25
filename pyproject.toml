@@ -9,13 +9,17 @@ authors = [{ name = "Simão" }]
 # fase 1: numpy, pandas (+ openpyxl para Excel), plotly · fase 2: scikit-learn, pydantic
 # fase 5: joblib (já vinha com o scikit-learn) · fase 6: torch · fase 7: fastapi
 dependencies = [
+    "fastapi>=0.162.0",
     "joblib>=1.6.0",
     "numpy>=2.5.4",
     "openpyxl>=3.1.5",
     "pandas>=3.1.0",
     "pydantic>=2.14.1",
+    "python-multipart>=0.0.32",
     "scikit-learn>=1.9.1",
     "torch>=2.14.1",
+    "uvicorn>=0.54.0",
+    "websockets>=17.3",
 ]
 
 [build-system]
@@ -25,6 +29,7 @@ build-backend = "uv_build"
 [dependency-groups]
 # Ferramentas de desenvolvimento: estilo, tipos e testes.
 dev = [
+    "httpx2>=2.16.0",
     "mypy>=2.4.0",
     "pandas-stubs>=3.0.5",
     "pytest>=9.1.1",
@@ -73,9 +78,10 @@ ignore = [
     "D107", # os argumentos de __init__ documentam-se na docstring da classe
 ]
 
-# O sinal de multiplicação aparece nas dimensões das tabelas ("891 × 12") e o sinal de menos
-# tipográfico nas fórmulas dos eixos ("real − previsto"), de propósito.
-allowed-confusables = ["×", "−"]
+# O sinal de multiplicação aparece nas dimensões das tabelas ("891 × 12"), o sinal de menos
+# tipográfico nas fórmulas dos eixos ("real − previsto") e as letras gregas nos nomes dos
+# hiperparâmetros do reinforcement learning ("Desconto (γ)", "taxa α", "ε-greedy"), de propósito.
+allowed-confusables = ["×", "−", "α", "γ", "ε"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

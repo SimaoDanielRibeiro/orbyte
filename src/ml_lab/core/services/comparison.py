@@ -7,10 +7,13 @@ modelo, um hiperparâmetro, a seed, um passo da preparação), e lê o resultado
 - mesma configuração e mesma seed têm de dar as mesmas métricas (reprodutibilidade);
 - só a seed muda: a diferença é o efeito do acaso;
 - mudam várias escolhas ao mesmo tempo: não se sabe qual fez a diferença.
+
+Serve os runs de modelos e os de agentes (reinforcement learning): num agente, as escolhas
+são o ambiente, os seus parâmetros, o agente e os seus hiperparâmetros.
 """
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -22,10 +25,16 @@ from ml_lab.core.foundation.errors import ComponentNotFoundError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import Partition
 from ml_lab.core.models.base import MODELS
+from ml_lab.core.rl.agents.base import AGENTS
+from ml_lab.core.rl.environments.base import ENVIRONMENTS
+from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.schemas.serialization import to_json
 from ml_lab.core.services.experiments import ExperimentResult
+from ml_lab.core.services.reinforcement import ReinforcementResult
 from ml_lab.core.tracking.store import RunEntry
 from ml_lab.formatting import format_number, format_percent, format_significant
+
+type Compared = ExperimentResult | ReinforcementResult
 
 MAX_COMPARED: Final = 5
 """Quantos runs se comparam, no máximo (mais do que isto já não se lê lado a lado)."""
@@ -103,7 +112,7 @@ class RunComparison:
     notices: tuple[Notice, ...] = ()
 
 
-def compare_runs(entries: Sequence[RunEntry], results: Sequence[ExperimentResult]) -> RunComparison:
+def compare_runs(entries: Sequence[RunEntry], results: Sequence[Compared]) -> RunComparison:
     """Compara os runs (as entradas e os resultados vêm pela mesma ordem)."""
     labels = tuple(f"{chr(ord('A') + i)} · {entry.name}" for i, entry in enumerate(entries))
     has_test = all(result.main_partition is Partition.TEST for result in results)
@@ -163,15 +172,17 @@ def _best(values: Sequence[float | None], higher_is_better: bool | None) -> int 
     return winners[0] if len(winners) == 1 else None
 
 
-def _choices(result: ExperimentResult) -> dict[str, str]:
+def _choices(result: Compared) -> dict[str, str]:
     """Todas as escolhas de um run, escritas como texto, pelo nome a mostrar."""
+    if isinstance(result, ReinforcementResult):
+        return _agent_choices(result)
     choices = {
         "Dataset": result.dataset_name,
         "Tarefa": result.task_type.label,
         "Modelo": result.model_display_name,
         "Seed": str(result.seed),
     }
-    titles = _hyperparameter_titles(result.model_name)
+    titles = _titles(lambda: MODELS.get(result.model_name).info.hyperparameters)
     for name, value in result.hyperparameters.items():
         choices[f"Hiperparâmetro · {titles.get(name, name)}"] = _text(value)
     preparation = to_json(result.config.preparation)
@@ -184,13 +195,39 @@ def _choices(result: ExperimentResult) -> dict[str, str]:
     return choices
 
 
-def _hyperparameter_titles(model_name: str) -> dict[str, str]:
-    """O título de cada hiperparâmetro, como no formulário (sem o modelo, o nome técnico)."""
+def _agent_choices(result: ReinforcementResult) -> dict[str, str]:
+    """As escolhas de um run de reinforcement learning: o ambiente, o agente e a seed."""
+    environment = result.config.environment.name
     try:
-        fields = MODELS.get(model_name).info.hyperparameters.model_fields
+        environment_name = ENVIRONMENTS.get(environment).info.display_name
+    except ComponentNotFoundError:
+        environment_name = environment
+    choices = {
+        "Ambiente": environment_name,
+        "Tarefa": result.task_type.label,
+        "Agente": result.agent_display_name,
+        "Seed": str(result.seed),
+    }
+    parameter_titles = _titles(lambda: ENVIRONMENTS.get(environment).info.parameters)
+    for name, value in result.environment_parameters.items():
+        choices[f"Ambiente · {parameter_titles.get(name, name)}"] = _text(value)
+    titles = _titles(lambda: AGENTS.get(result.agent_name).info.hyperparameters)
+    for name, value in result.hyperparameters.items():
+        choices[f"Hiperparâmetro · {titles.get(name, name)}"] = _text(value)
+    return choices
+
+
+def _titles(form: Callable[[], type[Hyperparameters]]) -> dict[str, str]:
+    """O título de cada campo de um formulário, como a interface o mostra.
+
+    Args:
+        form: Uma função que devolve a classe do formulário (os hiperparâmetros de um modelo,
+            por exemplo). Se o componente já não existir, ficam os nomes técnicos.
+    """
+    try:
+        return form().titles()
     except ComponentNotFoundError:
         return {}
-    return {name: info.title or name for name, info in fields.items()}
 
 
 def _flatten(value: Any, path: str = "") -> dict[str, Any]:
@@ -226,7 +263,7 @@ def _differences(choices: Sequence[Mapping[str, str]]) -> tuple[ConfigDifference
     return tuple(found)
 
 
-def _loss(label: str, result: ExperimentResult) -> LossSeries:
+def _loss(label: str, result: Compared) -> LossSeries:
     points: list[tuple[int, float]] = [
         (record.step, record.loss) for record in result.history if record.loss is not None
     ]
@@ -237,7 +274,7 @@ def _loss(label: str, result: ExperimentResult) -> LossSeries:
 
 
 def _reading(
-    results: Sequence[ExperimentResult],
+    results: Sequence[Compared],
     metrics: Sequence[MetricComparison],
     differences: Sequence[ConfigDifference],
     labels: Sequence[str],
@@ -277,11 +314,12 @@ def _reading(
                 "outra inicialização). Dá uma ideia de quanto um resultado varia sem mudar nada.",
             )
         )
-    elif "Modelo" in changed:
+    elif "Modelo" in changed or "Agente" in changed:
+        noun = "agentes" if "Agente" in changed else "modelos"
         notices.append(
             Notice.info(
                 "different_models",
-                "Os runs usam modelos diferentes: a comparação mede cada modelo com os seus "
+                f"Os runs usam {noun} diferentes: a comparação mede cada um com os seus "
                 "hiperparâmetros, e não uma escolha só.",
             )
         )

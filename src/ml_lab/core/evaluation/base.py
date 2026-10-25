@@ -28,6 +28,7 @@ PRIMARY_METRIC: Final[Mapping[TaskType, str]] = MappingProxyType(
         TaskType.CLUSTERING: "silhouette",
         TaskType.DIMENSIONALITY_REDUCTION: "trustworthiness",
         TaskType.ANOMALY_DETECTION: "anomaly_rate",
+        TaskType.CONTROL: "success_rate",
     }
 )
 """A métrica que resume cada tipo de tarefa (a do "último resultado" e a do overfitting)."""

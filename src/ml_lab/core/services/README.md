@@ -20,11 +20,16 @@ ou o modelo) levam `@internal`, e as regras de domínio ficam aqui, não na inte
 |---|---|---|
 | `datasets.py` · `DatasetService` | Exemplos, geradores, upload, validação, perfil, sugestões de tarefa e de limpeza, opções de cada tarefa, preparação | 1 |
 | `catalog.py` · `CatalogService` | Os modelos de cada tarefa, com a ficha didática e o JSON Schema dos hiperparâmetros | 2 |
-| `experiments.py` · `ExperimentService` | Corre uma experiência (`ExperimentConfig`), também em segundo plano: prepara, treina, avalia, compara treino e teste e anuncia o run no `EventBus` | 2 |
+| `experiments.py` · `ExperimentService` | Corre uma experiência (`ExperimentConfig`), também em segundo plano: prepara, treina, avalia, compara treino e teste e anuncia o run no `EventBus`. Os treinos em segundo plano acompanham-se pelo id do run (`job`, `updates`, `pause`, `resume`, `cancel`, `result`) | 2, 7 |
 | `analysis.py` · `AnalysisService` | Depois do treino: gráficos do Avaliar, validação cruzada, importância, dependência parcial, explicação de uma previsão | 4 |
 | `laboratory.py` · `LaboratoryService` | As quatro demonstrações do Laboratório | 4 |
-| `history.py` · `HistoryService` | O histórico (ADR 0020): regista cada run sozinho, guarda o modelo e o treino passo a passo a pedido, reabre, compara (`comparison.py`) e reproduz runs | 5 |
-| `lab.py` · `Lab` | Os serviços de uma sessão, ligados entre si | 1 |
+| `history.py` · `HistoryService` | O histórico (ADR 0020): regista cada run sozinho, guarda o modelo e o treino passo a passo a pedido, reabre, compara (`comparison.py`) e reproduz runs, de modelos e de agentes | 5, 8 |
+| `reinforcement.py` · `ReinforcementService` | Treina agentes num ambiente (`ReinforcementConfig`), também em segundo plano, avalia a política aprendida e anuncia o run (ADR 0024) | 8 |
+| `automl.py` · `AutoMLService` | O modo automático (`AutoMLRequest`): o agente de dados decide a preparação, os agentes de modelo e o coordenador procuram o melhor modelo com validação cruzada só no treino, e o vencedor treina como um run normal do `ExperimentService` (ADR 0025). Acompanha-se pelo id da procura, como os treinos, e `train_candidate` treina um candidato à mão | 9 |
+| `lab.py` · `Lab` | Os serviços de uma sessão, ligados entre si e a um só `EventBus` | 1 |
+
+Cada método público tem a sua rota na API (`ml_lab/api/routes/<serviço>.py`), com o nome do
+método (ADR 0022).
 
 ## Exemplo
 

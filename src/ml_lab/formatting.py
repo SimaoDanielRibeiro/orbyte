@@ -15,6 +15,7 @@ Exemplo:
 """
 
 import math
+from collections.abc import Sequence
 
 _GROUPING_THRESHOLD = 10_000
 """Em português, só se separam os milhares a partir de cinco algarismos (1234, mas 12 345)."""
@@ -93,3 +94,43 @@ def format_quantity(count: int, singular: str, plural: str) -> str:
     '12 linhas duplicadas'
     """
     return f"{format_count(count)} {singular if count == 1 else plural}"
+
+
+def format_value(value: object, digits: int = 3) -> str:
+    """Escreve um valor qualquer (o de um hiperparâmetro, por exemplo) à portuguesa.
+
+    Os números decimais ficam com ``digits`` algarismos significativos, sem zeros à direita;
+    os muito pequenos, em potência de 10.
+
+    >>> format_value(0.0128)
+    '0,0128'
+    >>> format_value(0.1)
+    '0,1'
+    >>> format_value(0.00001)
+    '1 × 10⁻⁵'
+    >>> format_value(True)
+    'sim'
+    """
+    if isinstance(value, bool):
+        return "sim" if value else "não"
+    if isinstance(value, int):
+        return format_count(value)
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            return format_number(value)
+        text = f"{value:.{digits}g}"
+        return format_scientific(value, digits) if "e" in text else text.replace(".", ",")
+    return str(value)
+
+
+def format_list(items: Sequence[str]) -> str:
+    """Escreve uma lista como se diz em português, com "e" antes do último.
+
+    >>> format_list(["Sex"])
+    'Sex'
+    >>> format_list(["Sex", "Embarked", "Pclass"])
+    'Sex, Embarked e Pclass'
+    """
+    if len(items) <= 1:
+        return "".join(items)
+    return f"{', '.join(items[:-1])} e {items[-1]}"

@@ -32,7 +32,7 @@ class LogisticRegressionParams(Hyperparameters):
             "Quanto menor, mais forte a regularização: os pesos ficam pequenos e a fronteira "
             "mais simples. Valores grandes deixam o modelo seguir mais de perto o treino."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 100]}},
     )
     max_iter: int = Field(
         default=100,
@@ -48,7 +48,10 @@ class LogisticRegressionParams(Hyperparameters):
             "Com «equilibrado», os erros nas classes raras contam mais, o que ajuda quando as "
             "classes estão desequilibradas."
         ),
-        json_schema_extra={"x-labels": {"none": "Igual para todas", "balanced": "Equilibrado"}},
+        json_schema_extra={
+            "x-labels": {"none": "Igual para todas", "balanced": "Equilibrado"},
+            "x-search": {"values": ["none", "balanced"]},
+        },
     )
     fit_intercept: bool = Field(
         default=True,

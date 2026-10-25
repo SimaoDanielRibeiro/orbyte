@@ -19,7 +19,7 @@ class KernelParams(Hyperparameters):
             "Quanto custa cada ponto do lado errado da margem. C grande: margem estreita, que "
             "tenta acertar em tudo (overfitting); C pequeno: margem larga e tolerante."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.1, 100]}},
     )
     kernel: Literal["rbf", "linear", "poly"] = Field(
         default="rbf",
@@ -28,8 +28,10 @@ class KernelParams(Hyperparameters):
             "A forma da fronteira: linear (uma reta), RBF (curvas, à volta de cada ponto) ou "
             "polinomial (de grau 3)."
         ),
+        # O polinomial fica fora da procura: raramente ganha ao RBF, e com C grande demora muito.
         json_schema_extra={
-            "x-labels": {"rbf": "RBF (gaussiano)", "linear": "Linear", "poly": "Polinomial"}
+            "x-labels": {"rbf": "RBF (gaussiano)", "linear": "Linear", "poly": "Polinomial"},
+            "x-search": {"values": ["rbf", "linear"]},
         },
     )
     gamma: float = Field(
@@ -41,5 +43,5 @@ class KernelParams(Hyperparameters):
             "Nos kernels RBF e polinomial, até onde chega a influência de cada ponto. Gamma "
             "grande: cada ponto cria a sua ilha (overfitting); pequeno: fronteira suave."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 2]}},
     )

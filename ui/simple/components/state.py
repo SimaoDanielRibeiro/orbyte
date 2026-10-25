@@ -3,7 +3,9 @@
 O Streamlit volta a correr o script a cada interação, por isso tudo o que tem de
 sobreviver entre interações vive em ``st.session_state``: o ``Lab`` com os
 serviços (um por sessão), o dataset escolhido, a última preparação feita, o modelo
-escolhido, o treino em curso e o resultado do último treino.
+escolhido, o treino em curso e o resultado do último treino. O treino de um agente
+(reinforcement learning) e a procura dos agentes do modo automático têm cada um o seu par:
+o trabalho em curso e o último resultado.
 """
 
 from dataclasses import dataclass
@@ -12,6 +14,7 @@ from typing import Final
 import streamlit as st
 
 from ml_lab.core.services import (
+    AutoMLResult,
     DatasetSummary,
     ExperimentResult,
     Lab,
@@ -19,6 +22,7 @@ from ml_lab.core.services import (
     ModelCard,
     PreparationConfig,
     PreparationSummary,
+    ReinforcementResult,
     TrainingJob,
 )
 
@@ -28,6 +32,10 @@ _PREPARATION: Final = "preparation"
 _MODEL: Final = "model"
 _JOB: Final = "job"
 _RESULT: Final = "result"
+_RL_JOB: Final = "rl_job"
+_RL_RESULT: Final = "rl_result"
+_AUTOML_JOB: Final = "automl_job"
+_AUTOML_RESULT: Final = "automl_result"
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,3 +148,55 @@ def show_result(result: ExperimentResult) -> None:
     """
     st.session_state.pop(_JOB, None)
     st.session_state[_RESULT] = result
+
+
+def current_rl_job() -> TrainingJob[ReinforcementResult] | None:
+    """O último treino de um agente (a decorrer ou já terminado), se houver."""
+    job: TrainingJob[ReinforcementResult] | None = st.session_state.get(_RL_JOB)
+    return job
+
+
+def save_rl_job(job: TrainingJob[ReinforcementResult]) -> None:
+    """Guarda o treino de um agente; se outro ainda estiver a decorrer, manda-o parar."""
+    previous = current_rl_job()
+    if previous is not None and not previous.done:
+        previous.cancel()
+    st.session_state[_RL_JOB] = job
+
+
+def last_rl_result() -> ReinforcementResult | None:
+    """O resultado do último treino de um agente (incluindo o de um que acabou agora)."""
+    job = current_rl_job()
+    if job is not None and job.result is not None:
+        st.session_state[_RL_RESULT] = job.result
+    result: ReinforcementResult | None = st.session_state.get(_RL_RESULT)
+    return result
+
+
+def show_rl_result(result: ReinforcementResult) -> None:
+    """Põe um run de reinforcement learning do histórico como o resultado atual."""
+    st.session_state.pop(_RL_JOB, None)
+    st.session_state[_RL_RESULT] = result
+
+
+def current_automl_job() -> TrainingJob[AutoMLResult] | None:
+    """A última procura dos agentes (a decorrer ou já terminada), se houver."""
+    job: TrainingJob[AutoMLResult] | None = st.session_state.get(_AUTOML_JOB)
+    return job
+
+
+def save_automl_job(job: TrainingJob[AutoMLResult]) -> None:
+    """Guarda a procura lançada; se outra ainda estiver a decorrer, manda-a parar."""
+    previous = current_automl_job()
+    if previous is not None and not previous.done:
+        previous.cancel()
+    st.session_state[_AUTOML_JOB] = job
+
+
+def last_automl_result() -> AutoMLResult | None:
+    """O resultado da última procura dos agentes (incluindo o de uma que acabou agora)."""
+    job = current_automl_job()
+    if job is not None and job.result is not None:
+        st.session_state[_AUTOML_RESULT] = job.result
+    result: AutoMLResult | None = st.session_state.get(_AUTOML_RESULT)
+    return result

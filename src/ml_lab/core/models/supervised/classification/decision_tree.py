@@ -36,7 +36,10 @@ class DecisionTreeParams(TreeParams):
             "Como se mede a mistura de classes num nó. Gini e entropia escolhem quase sempre "
             "as mesmas divisões; a entropia vem da teoria da informação."
         ),
-        json_schema_extra={"x-labels": {"gini": "Gini", "entropy": "Entropia"}},
+        json_schema_extra={
+            "x-labels": {"gini": "Gini", "entropy": "Entropia"},
+            "x-search": {"values": ["gini", "entropy"]},
+        },
     )
 
 

@@ -90,6 +90,21 @@ class DataSourceError(DataError):
     """Não foi possível obter os dados: ficheiro em falta, formato não suportado, ilegível..."""
 
 
+class DatasetNotFoundError(MLLabError, LookupError):
+    """Não há nenhum dataset carregado com o identificador pedido.
+
+    Args:
+        dataset_id: O identificador pedido.
+    """
+
+    def __init__(self, dataset_id: str) -> None:
+        self.dataset_id = dataset_id
+        super().__init__(
+            f"Não há nenhum dataset carregado com o identificador '{dataset_id}': carrega-o "
+            "primeiro no ecrã Dados."
+        )
+
+
 class DataValidationError(DataError):
     """Os dados têm problemas que impedem usá-los.
 
@@ -142,6 +157,98 @@ class HyperparameterError(ModelError, ValueError):
 
 class CapabilityError(ModelError):
     """O modelo não tem a capacidade pedida (por exemplo, não dá probabilidades)."""
+
+
+class RunNotInMemoryError(ModelError, LookupError):
+    """O run já não está em memória: só os últimos ficam, com o modelo e os dados.
+
+    Args:
+        run_id: O identificador do run.
+    """
+
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+        super().__init__(f"O run {run_id} já não está em memória: treina o modelo outra vez.")
+
+
+class JobNotFoundError(MLLabError, LookupError):
+    """Não há nenhum treino em segundo plano com o identificador pedido.
+
+    Args:
+        run_id: O run que o treino produz.
+    """
+
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+        super().__init__(
+            f"Não há nenhum treino '{run_id}' nesta sessão: os mais antigos saem da memória, e "
+            "um servidor que reinicia começa sem nenhum."
+        )
+
+
+class SearchNotFoundError(MLLabError, LookupError):
+    """Não há nenhuma procura dos agentes com o identificador pedido.
+
+    Args:
+        search_id: O identificador pedido.
+    """
+
+    def __init__(self, search_id: str) -> None:
+        self.search_id = search_id
+        super().__init__(
+            f"Não há nenhuma procura '{search_id}' nesta sessão: só as últimas ficam em memória, "
+            "e um servidor que reinicia começa sem nenhuma. O vencedor de cada procura está no "
+            "histórico (ecrã Experiências)."
+        )
+
+
+class CandidateNotFoundError(MLLabError, LookupError):
+    """A procura não tem nenhum candidato com o número pedido.
+
+    Args:
+        search_id: A procura.
+        number: O número pedido.
+        count: Quantos candidatos a procura tem.
+    """
+
+    def __init__(self, search_id: str, number: int, count: int) -> None:
+        self.search_id = search_id
+        self.number = number
+        where = f"tem os candidatos de 1 a {count}" if count else "não mediu nenhum candidato"
+        super().__init__(f"A procura '{search_id}' não tem o candidato {number}: {where}.")
+
+
+class TrainingStateError(MLLabError):
+    """O pedido não combina com o estado de um treino em segundo plano (decorre, ou falhou)."""
+
+
+class TrainingInProgressError(TrainingStateError):
+    """O treino ainda decorre: o resultado só existe quando terminar.
+
+    Args:
+        run_id: O run que o treino produz.
+    """
+
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+        super().__init__(
+            f"O run '{run_id}' ainda está a treinar: o resultado só existe quando o treino "
+            "terminar (o estado do treino diz quando)."
+        )
+
+
+class TrainingFailedError(TrainingStateError):
+    """O treino falhou, por isso não há resultado.
+
+    Args:
+        run_id: O run que o treino devia produzir.
+        reason: A explicação do erro que o fez falhar.
+    """
+
+    def __init__(self, run_id: str, reason: str) -> None:
+        self.run_id = run_id
+        self.reason = reason
+        super().__init__(f"O treino do run '{run_id}' falhou: {reason}")
 
 
 class TrackingError(MLLabError):

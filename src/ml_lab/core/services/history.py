@@ -10,6 +10,11 @@ A memória do ML Lab tem dois passos (ADR 0020):
    Um run guardado volta a abrir com tudo, mesmo depois de fechar a app: o modelo vem do
    ficheiro e os dados preparam-se outra vez (a mesma configuração e a mesma seed dão os
    mesmos dados), por isso os gráficos do Avaliar e o Explicar voltam a funcionar.
+
+Os runs de reinforcement learning (fase 8) entram no mesmo histórico, com a tarefa
+``CONTROL``: o ambiente fica onde fica o dataset, e o agente onde fica o modelo. O que muda
+é o documento (um ``ReinforcementResult``), que se abre com ``open_reinforcement``, e o que se
+guarda a pedido (o agente e o que ele sabia em cada snapshot).
 """
 
 from collections.abc import Sequence
@@ -18,19 +23,25 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ml_lab.core.evaluation.base import PRIMARY_METRIC
-from ml_lab.core.foundation.errors import InvalidParameterError, MLLabError, ModelError
+from ml_lab.core.foundation.errors import InvalidParameterError, MLLabError, RunNotInMemoryError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.schemas.experiment import ExperimentConfig
+from ml_lab.core.schemas.reinforcement import ReinforcementConfig
 from ml_lab.core.schemas.serialization import from_json, internal, to_json
 from ml_lab.core.services.comparison import MAX_COMPARED, RunComparison, compare_runs
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService, RunArtifacts
+from ml_lab.core.services.reinforcement import ReinforcementResult, ReinforcementService
 from ml_lab.core.tracking.artifacts import ArtifactStore
 from ml_lab.core.tracking.store import ExperimentStore, RunEntry
 from ml_lab.core.training.jobs import TrainingJob
 from ml_lab.core.visualization_data.animation import TrainingAnimation
 from ml_lab.core.visualization_data.network import NetworkTrace
+from ml_lab.core.visualization_data.policy import PolicyTrace
+
+type RunResult = ExperimentResult | ReinforcementResult
+"""O resultado de um run, de um modelo (com um dataset) ou de um agente (num ambiente)."""
 
 
 class HistoryService:
@@ -41,6 +52,8 @@ class HistoryService:
         datasets: Para voltar a preparar os dados de um run guardado que se reabre.
         store: O registo (em SQLite, na app; em memória, nos testes).
         files: Os ficheiros dos runs guardados (o modelo e o treino passo a passo).
+        reinforcement: Onde estão o agente e o resultado dos últimos treinos de
+            reinforcement learning desta sessão.
     """
 
     def __init__(
@@ -49,23 +62,25 @@ class HistoryService:
         datasets: DatasetService,
         store: ExperimentStore,
         files: ArtifactStore,
+        reinforcement: ReinforcementService,
     ) -> None:
         self._experiments = experiments
         self._datasets = datasets
         self._store = store
         self._files = files
+        self._reinforcement = reinforcement
 
     @internal
     def record(self, run_id: str) -> RunEntry:
         """Regista um run que acabou de terminar (o ``Lab`` liga-o ao fim de cada run).
 
         Raises:
-            ModelError: Se o run já não estiver em memória.
+            RunNotInMemoryError: Se o run já não estiver em memória.
         """
-        result = self._experiments.artifacts(run_id).result
+        _, result = self._session(run_id)
         entry = _entry(result)
         # O treino passo a passo fica de fora: é o que mais pesa, e só se guarda a pedido.
-        self._store.add(entry, to_json(replace(result, animation=None, network=None)))
+        self._store.add(entry, to_json(_light(result)))
         return entry
 
     def runs(
@@ -93,19 +108,19 @@ class HistoryService:
         return self._store.entry(run_id)
 
     def save(self, run_id: str, name: str | None = None) -> RunEntry:
-        """Guarda o modelo treinado e o treino passo a passo de um run desta sessão.
+        """Guarda o modelo (ou o agente) treinado e o treino passo a passo de um run desta sessão.
 
         Args:
             run_id: O run.
             name: Um nome novo para o reconhecer no histórico (opcional).
 
         Raises:
-            ModelError: Se o run já não estiver em memória (só os últimos ficam).
+            RunNotInMemoryError: Se o run já não estiver em memória (só os últimos ficam).
             RunNotFoundError: Se o run não estiver no registo.
         """
-        artifacts = self._experiments.artifacts(run_id)
+        trained, result = self._session(run_id)
         self._store.entry(run_id)  # confirma que o run está no registo antes de gravar ficheiros
-        self._files.save(run_id, artifacts.model, _step_by_step(artifacts.result))
+        self._files.save(run_id, trained, _step_by_step(result))
         return self._store.update(run_id, saved=True, name=None if name is None else _name(name))
 
     def rename(self, run_id: str, name: str) -> RunEntry:
@@ -131,12 +146,21 @@ class HistoryService:
 
         Raises:
             RunNotFoundError: Se o run não estiver no registo.
+            InvalidParameterError: Se o run for de reinforcement learning (abre-se com
+                ``open_reinforcement``).
+            TrainingInProgressError: Se o run ainda estiver a treinar.
+            TrainingFailedError: Se o treino do run falhou (e por isso não ficou registado).
         """
         try:
-            return self._experiments.artifacts(run_id).result  # desta sessão: está tudo em memória
-        except ModelError:
+            return self._experiments.result(run_id)  # desta sessão: está tudo em memória
+        except RunNotInMemoryError:
             pass
         entry = self._store.entry(run_id)
+        if entry.task_type is TaskType.CONTROL:
+            raise InvalidParameterError(
+                f"O run '{run_id}' é de reinforcement learning: abre-o no ecrã Reinforcement "
+                "learning."
+            )
         result = from_json(ExperimentResult, self._store.document(run_id))
         if not entry.saved:
             return result
@@ -149,6 +173,30 @@ class HistoryService:
                 "Explicar ficam indisponíveis para este run; o resto está como foi registado.",
             )
             return replace(result, notices=(notice, *result.notices))
+
+    def open_reinforcement(self, run_id: str) -> ReinforcementResult:
+        """O resultado de um run de reinforcement learning, pronto a mostrar.
+
+        Num run guardado, volta também o que o agente sabia em cada snapshot.
+
+        Raises:
+            RunNotFoundError: Se o run não estiver no registo.
+            InvalidParameterError: Se o run não for de reinforcement learning.
+            TrainingInProgressError: Se o run ainda estiver a treinar.
+            TrainingFailedError: Se o treino do run falhou.
+        """
+        try:
+            return self._reinforcement.result(run_id)  # desta sessão: está tudo em memória
+        except RunNotInMemoryError:
+            pass
+        entry = self._store.entry(run_id)
+        if entry.task_type is not TaskType.CONTROL:
+            raise InvalidParameterError(
+                f"O run '{run_id}' não é de reinforcement learning: abre-o no ecrã Experiências."
+            )
+        result = from_json(ReinforcementResult, self._store.document(run_id))
+        trace = self._files.document(run_id, "trace") if entry.saved else None
+        return result if trace is None else replace(result, trace=from_json(PolicyTrace, trace))
 
     def compare(self, run_ids: Sequence[str]) -> RunComparison:
         """Os runs lado a lado: as métricas, as escolhas que mudam e as curvas da loss.
@@ -163,20 +211,45 @@ class HistoryService:
                 f"Escolhe entre 2 e {MAX_COMPARED} runs diferentes para comparar."
             )
         entries = [self._store.entry(run_id) for run_id in chosen]
-        results = [from_json(ExperimentResult, self._store.document(run_id)) for run_id in chosen]
-        return compare_runs(entries, results)
+        return compare_runs(entries, [self._document(entry) for entry in entries])
 
-    def reproduce(self, run_id: str) -> TrainingJob[ExperimentResult]:
+    def reproduce(self, run_id: str) -> TrainingJob[Any]:
         """Volta a treinar um run com a mesma configuração e a mesma seed, em segundo plano.
 
         O run novo entra no histórico como qualquer outro; comparado com o original, deve
         ter as mesmas métricas.
 
+        Returns:
+            O treino: de uma experiência, ou de um agente (num run de reinforcement learning).
+
         Raises:
             RunNotFoundError: Se o run não estiver no registo.
         """
-        config = from_json(ExperimentConfig, self._store.document(run_id)["config"])
-        return self._experiments.start(config)
+        entry = self._store.entry(run_id)
+        config = self._store.document(run_id)["config"]
+        if entry.task_type is TaskType.CONTROL:
+            return self._reinforcement.start(from_json(ReinforcementConfig, config))
+        return self._experiments.start(from_json(ExperimentConfig, config))
+
+    def _session(self, run_id: str) -> tuple[Any, RunResult]:
+        """O modelo (ou o agente) e o resultado de um run desta sessão.
+
+        Raises:
+            RunNotInMemoryError: Se nenhum serviço o tiver em memória.
+        """
+        try:
+            run = self._experiments.artifacts(run_id)
+            return run.model, run.result
+        except RunNotInMemoryError:
+            trained = self._reinforcement.artifacts(run_id)
+            return trained.agent, trained.result
+
+    def _document(self, entry: RunEntry) -> RunResult:
+        """O documento de um run do registo, do tipo certo para a sua tarefa."""
+        document = self._store.document(entry.run_id)
+        if entry.task_type is TaskType.CONTROL:
+            return from_json(ReinforcementResult, document)
+        return from_json(ExperimentResult, document)
 
     def _restore(self, result: ExperimentResult) -> ExperimentResult:
         """Volta a pôr em memória o modelo e os dados de um run guardado (e o passo a passo)."""
@@ -194,7 +267,7 @@ class HistoryService:
         return result
 
 
-def _entry(result: ExperimentResult) -> RunEntry:
+def _entry(result: RunResult) -> RunEntry:
     report = result.main_report
     primary = result.primary
     return RunEntry(
@@ -214,9 +287,20 @@ def _entry(result: ExperimentResult) -> RunEntry:
     )
 
 
-def _step_by_step(result: ExperimentResult) -> dict[str, Any]:
+def _light(result: RunResult) -> RunResult:
+    """O resultado sem o treino passo a passo (o que se regista sempre)."""
+    if isinstance(result, ReinforcementResult):
+        return replace(result, trace=None)
+    return replace(result, animation=None, network=None)
+
+
+def _step_by_step(result: RunResult) -> dict[str, Any]:
     """O treino passo a passo de um run, em valores de JSON, pelo nome do seu ficheiro."""
-    parts = {"animation": result.animation, "network": result.network}
+    parts: dict[str, Any] = (
+        {"trace": result.trace}
+        if isinstance(result, ReinforcementResult)
+        else {"animation": result.animation, "network": result.network}
+    )
     return {name: to_json(part) for name, part in parts.items() if part is not None}
 
 

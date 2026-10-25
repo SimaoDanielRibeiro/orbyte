@@ -1,4 +1,4 @@
-"""Ecrã 9 · Laboratório: mexer num controlo e ver o efeito imediato num conceito."""
+"""Ecrã 10 · Laboratório: mexer num controlo e ver o efeito imediato num conceito."""
 
 from typing import Literal
 

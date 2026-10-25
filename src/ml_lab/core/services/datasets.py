@@ -50,7 +50,7 @@ from ml_lab.core.data.validation.checks import (
     merge_reports,
     validate_table,
 )
-from ml_lab.core.foundation.errors import DataValidationError, InvalidParameterError
+from ml_lab.core.foundation.errors import DatasetNotFoundError, DataValidationError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.random import SeedManager
 from ml_lab.core.foundation.types import Partition, TaskType
@@ -385,15 +385,22 @@ class DatasetService:
 
     @internal
     def folds(
-        self, spec: SourceSpec, config: PreparationConfig, seed: int, k: int
+        self,
+        spec: SourceSpec,
+        config: PreparationConfig,
+        seed: int,
+        k: int,
+        max_rows: int | None = None,
     ) -> tuple[Dataset, ...]:
         """Os dados preparados para a validação cruzada: um ``Dataset`` por fold.
 
         O teste da divisão normal fica de fora; o treino parte-se em ``k`` folds, e as
-        transformações aprendem de novo em cada um (ver ``prepare_folds``).
+        transformações aprendem de novo em cada um. Com ``max_rows``, os folds usam só uma
+        amostra do treino com esse número de linhas (ver ``prepare_folds``).
         """
         summary = self.load(spec)
-        return prepare_folds(self._entry(summary.id).table, config, seeds=SeedManager(seed), k=k)
+        table = self._entry(summary.id).table
+        return prepare_folds(table, config, seeds=SeedManager(seed), k=k, max_rows=max_rows)
 
     def prepare(self, dataset_id: str, config: PreparationConfig, seed: int) -> PreparationSummary:
         """Prepara o dataset e resume o resultado para o ecrã Preparar.
@@ -439,10 +446,7 @@ class DatasetService:
         with self._lock:
             entry = self._entries.get(dataset_id)
         if entry is None:
-            raise InvalidParameterError(
-                f"Não há nenhum dataset carregado com o identificador '{dataset_id}': carrega-o "
-                "primeiro no ecrã Dados."
-            )
+            raise DatasetNotFoundError(dataset_id)
         return entry
 
 

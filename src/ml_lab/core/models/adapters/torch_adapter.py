@@ -71,7 +71,7 @@ class TrainingParams(Hyperparameters):
         le=1.0,
         title="Taxa de aprendizagem",
         description="O tamanho de cada passo. Grande demais, a loss salta ou explode.",
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.001, 0.03]}},
     )
     batch_size: int = Field(
         default=32,
@@ -82,6 +82,7 @@ class TrainingParams(Hyperparameters):
             "Quantos exemplos em cada passo. Lotes pequenos dão passos ruidosos (que ajudam a "
             "sair de mínimos maus); lotes grandes, passos certeiros mas poucos por época."
         ),
+        json_schema_extra={"x-search": {"values": [16, 32, 64]}},
     )
     max_epochs: int = Field(
         default=300,
@@ -96,7 +97,7 @@ class TrainingParams(Hyperparameters):
         le=0.1,
         title="Regularização L2 (alpha)",
         description="Puxa os pesos para zero em cada passo: quanto maior, mais suave a fronteira.",
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.00001, 0.01]}},
     )
     early_stopping: bool = Field(
         default=True,

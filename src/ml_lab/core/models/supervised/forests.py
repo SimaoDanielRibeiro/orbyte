@@ -19,6 +19,7 @@ class ForestParams(Hyperparameters):
             "Quantas árvores votam. Mais árvores nunca causam overfitting; só tornam o treino "
             "mais lento, e a partir de certo ponto deixam de ajudar."
         ),
+        json_schema_extra={"x-search": {"values": [50, 100, 200]}},
     )
     max_depth: int = Field(
         default=0,
@@ -29,6 +30,7 @@ class ForestParams(Hyperparameters):
             "Profundidade de cada árvore (0 = sem limite). Numa floresta, árvores fundas "
             "são normais: a média de muitas árvores diferentes corrige os excessos de cada uma."
         ),
+        json_schema_extra={"x-search": {"values": [0, 5, 10, 20]}},
     )
     max_features: Literal["sqrt", "log2", "all"] = Field(
         default="sqrt",
@@ -42,7 +44,8 @@ class ForestParams(Hyperparameters):
                 "sqrt": "Raiz quadrada do total",
                 "log2": "Logaritmo do total",
                 "all": "Todas",
-            }
+            },
+            "x-search": {"values": ["sqrt", "log2", "all"]},
         },
     )
 

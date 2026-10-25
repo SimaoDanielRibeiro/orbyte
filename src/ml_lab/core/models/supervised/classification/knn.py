@@ -37,12 +37,16 @@ class KnnParams(Hyperparameters):
             "Quantos vizinhos votam. Poucos: a fronteira segue cada ponto, incluindo o ruído "
             "(overfitting); muitos: fica suave e pode apagar detalhes."
         ),
+        json_schema_extra={"x-search": {"range": [1, 30]}},
     )
     weights: Literal["uniform", "distance"] = Field(
         default="uniform",
         title="Peso dos votos",
         description="Com «por distância», os vizinhos mais próximos contam mais.",
-        json_schema_extra={"x-labels": {"uniform": "Iguais", "distance": "Por distância"}},
+        json_schema_extra={
+            "x-labels": {"uniform": "Iguais", "distance": "Por distância"},
+            "x-search": {"values": ["uniform", "distance"]},
+        },
     )
     metric: Literal["euclidean", "manhattan"] = Field(
         default="euclidean",
@@ -51,7 +55,10 @@ class KnnParams(Hyperparameters):
             "Euclidiana é a linha reta; Manhattan soma as diferenças de cada feature, como "
             "andar por quarteirões."
         ),
-        json_schema_extra={"x-labels": {"euclidean": "Euclidiana", "manhattan": "Manhattan"}},
+        json_schema_extra={
+            "x-labels": {"euclidean": "Euclidiana", "manhattan": "Manhattan"},
+            "x-search": {"values": ["euclidean", "manhattan"]},
+        },
     )
 
 

@@ -1,4 +1,4 @@
-"""Ecrã 2 · Explorar: perfil das colunas, distribuições e avisos."""
+"""Ecrã 3 · Explorar: perfil das colunas, distribuições e avisos."""
 
 import streamlit as st
 

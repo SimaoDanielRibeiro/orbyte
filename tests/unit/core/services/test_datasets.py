@@ -4,9 +4,9 @@ import pytest
 
 from ml_lab.config import Settings
 from ml_lab.core.foundation.errors import (
+    DatasetNotFoundError,
     DataSourceError,
     DataValidationError,
-    InvalidParameterError,
 )
 from ml_lab.core.services import (
     DatasetService,
@@ -140,7 +140,8 @@ def test_prepared_data_is_reused_for_the_same_configuration(service: DatasetServ
 
 
 def test_unknown_datasets_are_explained(service: DatasetService) -> None:
-    with pytest.raises(InvalidParameterError, match="carrega-o primeiro"):
+    # Um LookupError: a API responde 404 (não existe), e não 422 (pedido mal escrito).
+    with pytest.raises(DatasetNotFoundError, match="carrega-o primeiro"):
         service.summary("nada")
 
 
@@ -150,5 +151,5 @@ def test_old_datasets_leave_memory_first(tmp_path: Path) -> None:
 
     service.load_sample("wine")
 
-    with pytest.raises(InvalidParameterError):
+    with pytest.raises(DatasetNotFoundError):
         service.summary(iris.id)

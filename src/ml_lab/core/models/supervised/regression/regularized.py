@@ -37,7 +37,7 @@ class RidgeParams(LinearRegressionParams):
             "Quanto custam os pesos grandes. Alpha a zero é a regressão linear; alpha enorme "
             "encolhe tudo e o modelo quase só prevê a média."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 100]}},
     )
 
 
@@ -53,7 +53,7 @@ class LassoParams(LinearRegressionParams):
             "Quanto custam os pesos. Quanto maior, mais pesos ficam exatamente a zero (as "
             "features correspondentes deixam de contar)."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.0001, 1]}},
     )
     max_iter: int = Field(
         default=1_000,

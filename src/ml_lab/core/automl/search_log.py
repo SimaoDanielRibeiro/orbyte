@@ -1,0 +1,195 @@
+"""A conversa da procura: o que cada agente decide e encontra, pela ordem em que acontece.
+
+A procura corre num fio de execução próprio e quem a acompanha (a interface, a API) lê
+noutro. O ``SearchLog`` é o sítio onde os agentes escrevem e de onde os outros leem: as
+mensagens (com a razão de cada decisão), os candidatos já medidos e a fase em que vai.
+Cada mensagem e cada candidato têm um número, para quem acompanha pedir só o que é novo.
+"""
+
+import threading
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from enum import StrEnum
+from types import MappingProxyType
+from typing import Any, Final
+
+from ml_lab.core.models.base import ModelFamily
+
+
+class SearchPhase(StrEnum):
+    """Em que parte da procura se está."""
+
+    DATA = "data"
+    SCREENING = "screening"
+    TUNING = "tuning"
+    FINAL = "final"
+    DONE = "done"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar, em português."""
+        return _PHASE_LABELS[self]
+
+
+_PHASE_LABELS: Final[Mapping[SearchPhase, str]] = MappingProxyType(
+    {
+        SearchPhase.DATA: "Preparar os dados",
+        SearchPhase.SCREENING: "Ronda 1 · triagem",
+        SearchPhase.TUNING: "Ronda 2 · afinação",
+        SearchPhase.FINAL: "Treinar e testar o vencedor",
+        SearchPhase.DONE: "Terminada",
+    }
+)
+
+
+class AgentRole(StrEnum):
+    """Quem fala na conversa."""
+
+    DATA = "data"
+    COORDINATOR = "coordinator"
+    MODEL = "model"
+
+
+DATA_AGENT: Final = "Agente de dados"
+COORDINATOR: Final = "Coordenador"
+
+
+def model_agent_name(family: ModelFamily) -> str:
+    """O nome do agente de uma família ("Agente · Árvores de decisão")."""
+    return f"Agente · {family.label}"
+
+
+@dataclass(frozen=True, slots=True)
+class AgentMessage:
+    """Uma mensagem da conversa.
+
+    Attributes:
+        number: A ordem na conversa (1, 2, 3…).
+        role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.
+        author: O nome a mostrar de quem fala.
+        text: O que diz, em português.
+        phase: A fase da procura em que o disse.
+        family: Num agente de modelo, a sua família.
+        candidate: O candidato de que fala, se for o caso.
+    """
+
+    number: int
+    role: AgentRole
+    author: str
+    text: str
+    phase: SearchPhase
+    family: ModelFamily | None = None
+    candidate: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Candidate:
+    """Um modelo com uns hiperparâmetros, medido com validação cruzada nos folds do treino.
+
+    Attributes:
+        number: A ordem em que foi experimentado (1, 2, 3…): identifica-o na procura.
+        phase: A ronda em que entrou: a triagem ou a afinação.
+        family: A família do modelo (o agente que o propôs).
+        model: O modelo, no registo.
+        model_display_name: O nome a mostrar.
+        hyperparameters: Os hiperparâmetros, completos.
+        changes: Os que mudaram em relação aos valores por omissão.
+        mean: A média do objetivo nos folds de avaliação (``None`` se falhou).
+        std: O desvio padrão do objetivo nos folds de avaliação.
+        train_mean: A média do objetivo nos folds de treino: a distância a ``mean`` mostra
+            quanto o modelo decora.
+        folds: O objetivo em cada fold de avaliação.
+        seconds: Quanto tempo demoraram todos os folds.
+        error: Se falhou, porquê.
+    """
+
+    number: int
+    phase: SearchPhase
+    family: ModelFamily
+    model: str
+    model_display_name: str
+    hyperparameters: dict[str, Any]
+    changes: dict[str, Any]
+    mean: float | None = None
+    std: float | None = None
+    train_mean: float | None = None
+    folds: tuple[float | None, ...] = ()
+    seconds: float = 0.0
+    error: str | None = None
+
+    @property
+    def failed(self) -> bool:
+        """Se a validação cruzada falhou (o candidato fica no quadro, com a razão)."""
+        return self.error is not None
+
+
+class SearchLog:
+    """O que a procura vai dizendo e encontrando (seguro entre fios de execução).
+
+    Args:
+        on_candidate: Chamado com cada candidato medido (o serviço conta-o como um passo).
+    """
+
+    def __init__(self, on_candidate: Callable[[Candidate], None] | None = None) -> None:
+        self._on_candidate = on_candidate
+        self._messages: list[AgentMessage] = []
+        self._candidates: list[Candidate] = []
+        self._phase = SearchPhase.DATA
+        self._lock = threading.Lock()
+
+    @property
+    def phase(self) -> SearchPhase:
+        """A fase em que a procura vai."""
+        with self._lock:
+            return self._phase
+
+    def enter(self, phase: SearchPhase) -> None:
+        """Passa à fase ``phase``."""
+        with self._lock:
+            self._phase = phase
+
+    def say(
+        self,
+        role: AgentRole,
+        author: str,
+        text: str,
+        *,
+        family: ModelFamily | None = None,
+        candidate: int | None = None,
+    ) -> AgentMessage:
+        """Junta uma mensagem à conversa."""
+        with self._lock:
+            message = AgentMessage(
+                number=len(self._messages) + 1,
+                role=role,
+                author=author,
+                text=text,
+                phase=self._phase,
+                family=family,
+                candidate=candidate,
+            )
+            self._messages.append(message)
+        return message
+
+    def add(self, candidate: Candidate) -> None:
+        """Junta um candidato medido."""
+        with self._lock:
+            self._candidates.append(candidate)
+        if self._on_candidate is not None:
+            self._on_candidate(candidate)
+
+    @property
+    def next_number(self) -> int:
+        """O número do próximo candidato."""
+        with self._lock:
+            return len(self._candidates) + 1
+
+    def messages(self, after: int = 0) -> tuple[AgentMessage, ...]:
+        """As mensagens depois da número ``after``."""
+        with self._lock:
+            return tuple(self._messages[after:])
+
+    def candidates(self, after: int = 0) -> tuple[Candidate, ...]:
+        """Os candidatos depois do número ``after``."""
+        with self._lock:
+            return tuple(self._candidates[after:])

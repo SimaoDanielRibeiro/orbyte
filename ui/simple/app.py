@@ -15,14 +15,16 @@ from components.layout import render_sidebar
 from components.screens import SCREENS
 from ml_lab.config import get_settings
 from ml_lab.logging import configure_logging
+from ml_lab.process import run_at_full_speed
 
 
 @st.cache_resource
 def _bootstrap() -> None:
-    """Prepara o backend uma única vez por processo: logs e pastas de trabalho."""
+    """Prepara o backend uma única vez por processo: logs, pastas e velocidade total do CPU."""
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_format)
     settings.ensure_directories()
+    run_at_full_speed()
 
 
 st.set_page_config(page_title="ML Lab", page_icon=":material/neurology:", layout="wide")

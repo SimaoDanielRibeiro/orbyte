@@ -45,7 +45,7 @@ tudo é usado por código, testes e uma API.
 ### Decisões assumidas (a confirmar)
 
 - Stack enxuta: 13 tecnologias no backend e na interface simples; FastAPI e React só nas
-  fases 7 e 9 (ver [Tecnologias](#tecnologias)).
+  fases 7 e 10 (ver [Tecnologias](#tecnologias)).
 - Python 3.12+, scikit-learn para todo o ML clássico, PyTorch para deep learning.
 - pandas apenas na camada de dados (`core/data/`); o resto do sistema trabalha com NumPy.
 - Implementações didáticas em NumPy puro para os algoritmos simples, ao lado das versões do
@@ -53,8 +53,10 @@ tudo é usado por código, testes e uma API.
 - Registo de experiências em SQLite com o módulo `sqlite3` da biblioteca padrão, atrás de um
   contrato trocável.
 - Interface em duas versões com as mesmas funcionalidades: simples (Streamlit) a par de cada
-  fase; aprimorada e personalizada (React) na fase 9.
+  fase; aprimorada e personalizada (React) na fase 10.
 - Reinforcement learning na fase 8, com ambiente próprio em grelha, sem bibliotecas de RL.
+- Agentes de AutoML na fase 9: um modo automático ao lado do manual, com agentes
+  deterministas por cima dos serviços, sem modelos de linguagem (ADR 0025).
 - Execução local, num só utilizador; sem autenticação nem filas distribuídas.
 
 ## Mapa do projeto
@@ -98,7 +100,7 @@ aparece em tempo real).
 ## Tecnologias
 
 A stack final tem **13 tecnologias** para o backend e a interface simples, e mais **7** que
-só entram nas fases 7 e 9 (API e interface aprimorada em React). Todos os tipos de
+só entram nas fases 7 e 10 (API e interface aprimorada em React). Todos os tipos de
 aprendizagem do plano ficam cobertos. Cada tecnologia tem um único papel; a coluna "Fase"
 diz quando a começas a usar.
 
@@ -138,17 +140,20 @@ módulo `logging`), sem dependências extra.
 | Streamlit | Transforma scripts Python em aplicações web, sem HTML nem JavaScript | Todos os ecrãs da interface simples, construídos a par do backend | 0 |
 | Plotly | Gráficos interativos (zoom, hover, animação) | Gráficos da interface simples; o Plotly.js dá os mesmos gráficos no React | 1 |
 
-### API e interface aprimorada (fases 7 e 9)
+### API e interface aprimorada (fases 7 e 10)
 
 | Tecnologia | O que é | Para que serve no projeto | Fase |
 |---|---|---|---|
 | FastAPI | Framework web assíncrona baseada em Pydantic, com WebSockets incluídos | Expor os serviços por HTTP e transmitir o treino em tempo real; documentação automática em `/docs` | 7 |
 | Uvicorn | Servidor que corre a aplicação FastAPI | Correr a API localmente | 7 |
-| React | Biblioteca para interfaces feitas de componentes | Interface aprimorada e personalizada | 9 |
-| TypeScript | JavaScript com tipos | Evitar erros; tipos gerados a partir da documentação da API | 9 |
-| Vite | Ferramenta de desenvolvimento e build para front-end | Servidor local rápido e build final | 9 |
-| Tailwind CSS | CSS por classes utilitárias | Sistema de design próprio (cores, tipografia, modo escuro) | 9 |
-| D3.js (+ Plotly.js) | Visualização de baixo nível | Animações feitas à medida: fronteiras a mover-se, redes neuronais, centróides | 9 |
+| React | Biblioteca para interfaces feitas de componentes | Interface aprimorada e personalizada | 10 |
+| TypeScript | JavaScript com tipos | Evitar erros; tipos gerados a partir da documentação da API | 10 |
+| Vite | Ferramenta de desenvolvimento e build para front-end | Servidor local rápido e build final | 10 |
+| Tailwind CSS | CSS por classes utilitárias | Sistema de design próprio (cores, tipografia, modo escuro) | 10 |
+| D3.js (+ Plotly.js) | Visualização de baixo nível | Animações feitas à medida: fronteiras a mover-se, redes neuronais, centróides | 10 |
+
+A fase 9 (os agentes) não traz tecnologias novas: usa o scikit-learn, o PyTorch e a validação
+cruzada que já existem.
 
 ### Extensões futuras (fora da stack inicial)
 
@@ -202,7 +207,7 @@ implementação oficial.
 | Não supervisionada | Deteção de anomalias | Isolation Forest, One-Class SVM, LOF | sklearn | Pontuação de anomalia por ponto |
 | Deep learning | Classificação / Regressão | MLP (rede densa) | PyTorch | Loss no treino e na validação, fronteira, gradientes, ativações e neurónios parados por época |
 | Deep learning (extensão) | Classificação de imagem | CNN pequena | PyTorch | Filtros e mapas de ativação |
-| Reinforcement learning (fase 8) | Controlo | Q-learning tabular, DQN | Didático (NumPy) / PyTorch | Recompensa por episódio, tabela Q, política |
+| Reinforcement learning (fase 8) | Controlo | Q-learning tabular, DQN | Didático (NumPy) / PyTorch | Recompensa por episódio, valor e política de cada célula, tabela Q, caminho aprendido |
 
 ### Pontos de extensão previstos
 
@@ -397,7 +402,7 @@ os snapshots só se guardam quando se pede (ADR 0020).
 | Interface aprimorada | API (por HTTP e WebSocket) | Nada do Python diretamente |
 | API | `services`, `schemas` | Modelos, dados, treino ou base de dados diretamente |
 | Serviços | Todo o `core` | `api`, `ui` |
-| Núcleo | Fundação, bibliotecas de ML; pandas só em `core/data/`; SQLite e joblib só em `core/tracking/`; PyTorch só nas redes (`models/neural/` e o seu adaptador) | `api`, `ui`, `services` |
+| Núcleo | Fundação, bibliotecas de ML; pandas só em `core/data/`; SQLite e joblib só em `core/tracking/`; PyTorch só nas redes (`models/neural/`, o seu adaptador e o DQN em `rl/agents/dqn.py`) | `api`, `ui`, `services` |
 | Fundação | Biblioteca padrão, Pydantic | Qualquer outra camada |
 
 Estas regras são verificadas em `tests/architecture/test_dependency_rules.py`.
@@ -430,9 +435,10 @@ ml-lab/
 ├── notebooks/                # explorações; nunca importados pelo código
 │
 ├── src/ml_lab/
-│   ├── config.py             # definições: caminhos, base de dados, logs
+│   ├── config.py             # definições: caminhos, base de dados, logs, API
 │   ├── logging.py            # configuração de logs estruturados
 │   ├── formatting.py         # números à portuguesa (19,9%, 20 640)
+│   ├── process.py            # pede ao Windows para não travar o processo (ADR 0023)
 │   │
 │   ├── core/                 # NÚCLEO: não importa api/ nem ui/
 │   │   ├── foundation/       # FUNDAÇÃO: peças usadas por todas as camadas
@@ -542,35 +548,59 @@ ml-lab/
 │   │   │   ├── embedding.py  # o mapa da redução de dimensionalidade
 │   │   │   ├── evaluation.py # os gráficos do ecrã Avaliar (ROC, resíduos, silhueta…)
 │   │   │   ├── learned.py    # o que o modelo aprendeu: pesos, regras, centros, com nomes
-│   │   │   └── network.py    # NetworkTrace: as camadas de uma rede em cada snapshot
+│   │   │   ├── network.py    # NetworkTrace: as camadas de uma rede em cada snapshot
+│   │   │   └── policy.py     # PolicyTrace: o valor e a política de um agente, na grelha
 │   │   ├── tracking/         # MEMÓRIA: o registo de experiências e os ficheiros dos runs
 │   │   │   ├── store.py      # contrato ExperimentStore, RunEntry e o registo em memória
 │   │   │   ├── sqlite_store.py  # o registo em SQLite, com migrações (user_version)
 │   │   │   ├── artifacts.py  # o modelo (joblib) e o treino passo a passo (JSON) guardados
 │   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Experiências
 │   │   ├── schemas/          # esquemas Pydantic partilhados
-│   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação)
+│   │   │   ├── hyperparameters.py  # base dos hiperparâmetros (formulários, validação, x-search)
 │   │   │   ├── experiment.py # ExperimentConfig: dados, preparação, modelo e seed
+│   │   │   ├── reinforcement.py  # ReinforcementConfig: ambiente, agente e seed
+│   │   │   ├── automl.py     # AutoMLRequest: o pedido aos agentes e o tamanho da procura
 │   │   │   ├── serialization.py  # a fronteira em JSON: to_json, json_schema, @internal
 │   │   │   └── validation.py # erros do Pydantic explicados em português
 │   │   ├── services/         # casos de uso: a única porta de entrada do núcleo
-│   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1 a 3)
-│   │   │   ├── catalog.py    # catálogo de modelos (ecrã 4)
-│   │   │   ├── experiments.py  # treinar (também em segundo plano), avaliar, anunciar (4 a 6)
-│   │   │   ├── analysis.py   # depois do treino: gráficos, validação cruzada, explicações (6 e 7)
-│   │   │   ├── history.py    # o histórico: registar, guardar, abrir, comparar, reproduzir (8)
+│   │   │   ├── datasets.py   # carregar, perfilar e preparar dados (ecrãs 1, 3 e 4)
+│   │   │   ├── automl.py     # os agentes: o plano, a procura e o vencedor (ecrã 2)
+│   │   │   ├── catalog.py    # catálogo de modelos (ecrã 5)
+│   │   │   ├── experiments.py  # treinar (também em segundo plano), avaliar, anunciar (5 a 7)
+│   │   │   ├── analysis.py   # depois do treino: gráficos, validação cruzada, explicações (7 e 8)
+│   │   │   ├── history.py    # o histórico: registar, guardar, abrir, comparar, reproduzir (9)
 │   │   │   ├── comparison.py # a comparação de runs lado a lado
-│   │   │   ├── laboratory.py # as demonstrações do ecrã Laboratório (9)
+│   │   │   ├── laboratory.py # as demonstrações do ecrã Laboratório (10)
+│   │   │   ├── reinforcement.py  # treinar agentes num ambiente e avaliá-los (11)
 │   │   │   ├── explanations.py # o painel "Porquê?": os temas de todas as camadas
 │   │   │   └── lab.py        # todos os serviços de uma sessão, ligados entre si
-│   │   └── rl/               # reservado (fase 8): ambiente em grelha, Q-learning, DQN
+│   │   ├── rl/               # REINFORCEMENT LEARNING: aprender num ambiente, sem dataset
+│   │   │   ├── environments/ # contrato Environment, registo ENVIRONMENTS e a grelha
+│   │   │   ├── agents/       # contrato Agent, o ciclo de episódios (ε-greedy), Q-learning
+│   │   │   │                 # (NumPy) e DQN (PyTorch), registo AGENTS
+│   │   │   ├── evaluation.py # as métricas: o treino (a explorar) e a política aprendida
+│   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Reinforcement learning
+│   │   └── automl/           # AGENTES DO MODO AUTOMÁTICO: o melhor modelo para um pedido
+│   │       ├── data_agent.py # o agente de dados: do perfil à preparação, com as razões
+│   │       ├── model_agent.py  # um agente por família de modelos, saído do registo MODELS
+│   │       ├── search_space.py # o espaço de procura de cada modelo, lido do x-search
+│   │       ├── objective.py  # a métrica a otimizar e o seu sentido
+│   │       ├── coordinator.py  # triagem e afinação, com validação cruzada só no treino
+│   │       ├── search_log.py # a conversa dos agentes e os candidatos, entre fios
+│   │       └── explanations.py  # textos do painel "Porquê?" do ecrã Agentes
 │   │
-│   └── api/                  # FastAPI: rotas HTTP e WebSocket
+│   └── api/                  # API: os serviços por HTTP e WebSocket (fase 7, ADR 0022)
+│       ├── app.py            # create_app: um Lab por processo, CORS, erros
+│       ├── routing.py        # ServiceRouter: respostas pelo to_json, ids serviço_método
+│       ├── errors.py         # o código HTTP de cada categoria de erro (ApiError)
+│       ├── stream.py         # o WebSocket: o mesmo updates dos serviços, de 0,25 em 0,25 s
+│       ├── requests.py       # corpos dos pedidos que juntam vários valores
+│       └── routes/           # uma rota por método público de cada serviço
 │
 ├── ui/
 │   ├── simple/               # INTERFACE SIMPLES (Streamlit + Plotly)
 │   │   ├── app.py            # entrada e navegação
-│   │   ├── pages/            # um ecrã por etapa (Dados, Explorar, Preparar…)
+│   │   ├── pages/            # um ecrã por etapa (Dados, Agentes, Explorar, Preparar…)
 │   │   ├── components/       # blocos reutilizáveis: cartão de métrica, formulário
 │   │   └── charts/           # desenha com Plotly os dados de visualization_data
 │   └── web/                  # INTERFACE APRIMORADA (React + TypeScript), fase final
@@ -622,6 +652,8 @@ adicionar algoritmos sem mexer no código existente.
 | Evaluator | Avaliar um modelo para um tipo de tarefa | Modelo, dados, partição (treino/teste) | Relatório com métricas, artefactos e avisos | `evaluation/` |
 | Metric | Uma métrica isolada | O que declara precisar (`needs`): valores reais e previstos, probabilidades, features, coordenadas ou pontuações | Um número + se "maior é melhor" (nenhum sentido, nas que só descrevem) | `evaluation/metrics/` |
 | ExperimentStore | Guardar e consultar experiências | Configuração, eventos, relatórios, modelos | Runs guardados, comparações | `tracking/` |
+| Environment | Um ambiente de reinforcement learning, pequeno e discreto | Um estado e uma ação (e o acaso) | O estado seguinte, a recompensa, se o episódio acabou; como se desenha | `rl/environments/` |
+| Agent | Um agente que aprende a agir num ambiente | Hiperparâmetros validados, seed, o ambiente, contexto de treino | A política (a ação de maior Q), a tabela Q, fotografias por episódio | `rl/agents/` |
 
 ### Ficha técnica de cada modelo
 
@@ -682,10 +714,13 @@ verificam o novo componente automaticamente.
 1. Criar o ficheiro na pasta do paradigma, ex.:
    `models/supervised/classification/extra_trees.py`.
 2. Definir a classe de hiperparâmetros (Pydantic) e a classe do modelo com `info`
-   preenchido.
+   preenchido. Nos hiperparâmetros que vale a pena afinar, dizer aos agentes o que
+   experimentar, com `"x-search"` (ver `schemas/hyperparameters.py`): sem isso, os agentes da
+   fase 9 experimentam o modelo, mas só com os valores por omissão.
 3. Decorar com `@MODELS.register("extra_trees")`.
 4. Escrever `docs/algorithms/extra_trees.md` (intuição, hiperparâmetros, quando usar).
-5. Correr `uv run pytest tests/contract` — o modelo é testado sem escrever testes novos.
+5. Correr `uv run pytest tests/contract` — o modelo é testado sem escrever testes novos,
+   incluindo o espaço de procura. O modelo entra sozinho no agente da sua família.
 
 ### Adicionar uma métrica
 
@@ -701,6 +736,19 @@ Implementar `DataSource.load() -> LoadedTable` (o DataFrame e os seus metadados)
 `DataSource.spec()` num novo ficheiro em `data/io/`, e registar com
 `@DATA_SOURCES.register("nome")`. Ex.: uma fonte que lê de uma URL, ou de uma base de dados.
 O `Dataset` com arrays NumPy só existe no fim da camada de dados (ADR 0009).
+
+### Adicionar um agente ou um ambiente de reinforcement learning
+
+- **Um agente** (por exemplo, o SARSA): um ficheiro em `rl/agents/` com uma subclasse de
+  `EpisodicAgent` que diz como aprende com um passo (`_learn`) e onde guarda os Q (`_q`,
+  `_q_table`), decorada com `@AGENTS.register("sarsa")`, e a ficha em `docs/algorithms/`.
+- **Um ambiente**: um ficheiro em `rl/environments/` com uma subclasse de `Environment` (o
+  `step`, o `reset` e o `layout` para se desenhar), decorada com
+  `@ENVIRONMENTS.register("nome")`.
+
+Em ambos os casos, `uv run pytest tests/contract/test_rl.py` testa-o sem escrever testes
+novos: aprende a grelha simples, repete com a mesma seed, pára a pedido, o objetivo
+alcança-se (ADR 0024).
 
 ### Adicionar um tipo de tarefa (o caso maior)
 
@@ -791,20 +839,28 @@ cedo e o redesenho final não obriga a repensar o produto.
 ### Ecrãs (iguais nas duas versões)
 
 Os ecrãs seguem a ordem natural de uma experiência, da esquerda para a direita numa barra de
-navegação.
+navegação. Depois de carregar os dados há dois caminhos (fase 9):
+
+- **o automático**: no ecrã Agentes, pede-se o alvo e a métrica, e os agentes preparam os
+  dados, experimentam os modelos e entregam o melhor, com as razões de cada escolha;
+- **o manual**: Explorar, Preparar, Modelo e Treinar, decidindo tudo à mão.
+
+Os dois acabam nos mesmos ecrãs (Avaliar, Explicar, Experiências): o vencedor dos agentes é
+um run como os outros, e qualquer candidato que eles experimentaram se pode treinar à mão.
 
 | # | Ecrã | O que o utilizador faz | O que vê | Fase do backend |
 |---|---|---|---|---|
-| 1 | Dados | Carrega um CSV/Excel, escolhe um dataset de exemplo ou gera um sintético (com controlos de ruído e número de pontos) | Lista de datasets, pré-visualização das primeiras linhas, erros de validação | 1 |
-| 2 | Explorar | Navega pelas colunas | Perfil de cada coluna, histogramas, mapa de correlações, mapa de nulos, desequilíbrio de classes, avisos | 1 |
-| 3 | Preparar | Escolhe a coluna-alvo, confirma o tipo de tarefa, aplica limpezas e transformações, define a divisão | Antes/depois de cada operação, histórico de passos (linhagem), tamanho de treino/teste | 1, 2 |
-| 4 | Modelo | Escolhe um algoritmo do catálogo filtrado pela tarefa e ajusta hiperparâmetros | Cartões por família, ficha didática, formulário gerado da ficha técnica | 2, 4 |
-| 5 | Treinar | Inicia, pausa, cancela; percorre o treino passo a passo | Barra de progresso, loss em tempo real, animação dos snapshots com controlos de reprodução, fronteira de decisão / centróides / árvore | 3 |
-| 6 | Avaliar | Lê os resultados | Cartões de métricas com explicação, matriz de confusão, ROC e PR, resíduos, silhouette, comparação treino vs. teste, diagnósticos | 2, 4 |
-| 7 | Explicar | Escolhe uma previsão ou o modelo inteiro | Importância de features, gráficos de dependência parcial | 4 |
-| 8 | Experiências | Filtra o histórico, escolhe de 2 a 5 runs, abre, guarda ou reproduz um run | Tabela de runs, comparação lado a lado de métricas, escolhas diferentes e curvas da loss | 5 |
-| 9 | Laboratório | Mexe num controlo e vê o efeito imediato | Demos de conceitos: overfitting (complexidade do modelo), taxa de aprendizagem, k do KNN, regularização | 4 |
-| 10 | Reinforcement learning | Escolhe ambiente e agente, inicia o treino | Recompensa por episódio, tabela Q, política aprendida | 8 |
+| 1 | Dados | Carrega um CSV/Excel, escolhe um dataset de exemplo ou gera um sintético (com controlos de ruído e número de pontos); escolhe o modo automático ou o manual | Lista de datasets, pré-visualização das primeiras linhas, erros de validação | 1 |
+| 2 | Agentes | Escolhe o alvo, a métrica a otimizar, os agentes e o orçamento, e lança a procura | O que o agente de dados decidiu e porquê, a conversa dos agentes, o quadro dos candidatos com a validação cruzada, o vencedor e o teste dele | 9 |
+| 3 | Explorar | Navega pelas colunas | Perfil de cada coluna, histogramas, mapa de correlações, mapa de nulos, desequilíbrio de classes, avisos | 1 |
+| 4 | Preparar | Escolhe a coluna-alvo, confirma o tipo de tarefa, aplica limpezas e transformações, define a divisão | Antes/depois de cada operação, histórico de passos (linhagem), tamanho de treino/teste | 1, 2 |
+| 5 | Modelo | Escolhe um algoritmo do catálogo filtrado pela tarefa e ajusta hiperparâmetros | Cartões por família, ficha didática, formulário gerado da ficha técnica | 2, 4 |
+| 6 | Treinar | Inicia, pausa, cancela; percorre o treino passo a passo | Barra de progresso, loss em tempo real, animação dos snapshots com controlos de reprodução, fronteira de decisão / centróides / árvore | 3 |
+| 7 | Avaliar | Lê os resultados | Cartões de métricas com explicação, matriz de confusão, ROC e PR, resíduos, silhouette, comparação treino vs. teste, diagnósticos | 2, 4 |
+| 8 | Explicar | Escolhe uma previsão ou o modelo inteiro | Importância de features, gráficos de dependência parcial | 4 |
+| 9 | Experiências | Filtra o histórico, escolhe de 2 a 5 runs, abre, guarda ou reproduz um run | Tabela de runs, comparação lado a lado de métricas, escolhas diferentes e curvas da loss | 5 |
+| 10 | Laboratório | Mexe num controlo e vê o efeito imediato | Demos de conceitos: overfitting (complexidade do modelo), taxa de aprendizagem, k do KNN, regularização | 4 |
+| 11 | Reinforcement learning | Escolhe ambiente e agente, inicia o treino | Recompensa por episódio, tabela Q, política aprendida | 8 |
 
 ### Elementos comuns a todos os ecrãs
 
@@ -824,7 +880,7 @@ navegação.
 | Animações | Slider para percorrer snapshots | Animações suaves, transições entre estados |
 | Design | Tema padrão do Streamlit com pequenos ajustes | Sistema de design próprio: cores, tipografia, componentes, modo escuro |
 | Objetivo | Validar funcionalidades e aprender depressa | Experiência polida para usar e mostrar |
-| Quando | Cresce a cada fase, a partir da fase 1 | Fase 9, com a API estável |
+| Quando | Cresce a cada fase, a partir da fase 1 | Fase 10, com a API estável |
 
 ### Regras para as duas versões partilharem tudo
 
@@ -839,7 +895,7 @@ navegação.
 
 ## Roadmap por fases
 
-Dez fases (0 a 9). Cada uma termina com algo que funciona, está testado e já se vê na
+Onze fases (0 a 10). Cada uma termina com algo que funciona, está testado e já se vê na
 interface simples. Cada fase introduz poucas tecnologias novas, para as aprenderes uma de
 cada vez.
 
@@ -852,9 +908,10 @@ cada vez.
 | 4 — Catálogo clássico ✅ | Todos os modelos supervisionados e não supervisionados; avaliadores de regressão, clustering e anomalias; diagnósticos; validação cruzada; importância por permutação | Avaliar (completo), Explicar, Laboratório | — (cada algoritmo e as suas métricas) | Todos os modelos passam os testes de contrato e têm ficha didática |
 | 5 — Memória ✅ | Base de dados, registo de experiências, artefactos, comparação e reprodução de runs | Experiências | SQLite (`sqlite3`), joblib | Fechar a app, reabrir e comparar dois runs |
 | 6 — Deep learning ✅ | Adaptador PyTorch, MLP, captura de ativações e gradientes, early stopping | Treinar mostra as camadas da rede | PyTorch | A MLP resolve "moons" e os snapshots mostram a fronteira a curvar |
-| 7 — API | Rotas de dados, catálogo e experiências; treino em background; WebSocket | — (a simples continua a usar os serviços) | FastAPI, Uvicorn | Pela documentação em `/docs`: carregar CSV, lançar treino e receber snapshots |
-| 8 — Reinforcement learning (opcional) | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
-| 9 — Interface aprimorada | Ajustes à API que a interface pedir | Todos os ecrãs refeitos em React com design próprio | React, TypeScript, Vite, Tailwind CSS, D3.js, Plotly.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real |
+| 7 — API ✅ | Rotas de dados, catálogo e experiências; treino em background; WebSocket | — (a simples continua a usar os serviços) | FastAPI, Uvicorn | Pela documentação em `/docs`: carregar CSV, lançar treino e receber snapshots |
+| 8 — Reinforcement learning ✅ | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
+| 9 — Agentes (AutoML) ✅ | Agente de dados (limpeza, tarefa, divisão e transformações, cada decisão com a razão); um agente por família de modelos; coordenador com triagem e procura aleatória, escolhidas por validação cruzada só com o treino; orçamento, pausa e paragem; o vencedor treina como um run normal | Agentes (o modo automático, ao lado do manual) | — (procura de hiperparâmetros, validação cruzada para escolher) | No Titanic, os agentes preparam os dados, experimentam uma família de cada vez e afinam os finalistas sem tocar no teste; o vencedor usa o teste uma só vez, fica no histórico e abre-se no Avaliar |
+| 10 — Interface aprimorada | Ajustes à API que a interface pedir | Todos os ecrãs refeitos em React com design próprio | React, TypeScript, Vite, Tailwind CSS, D3.js, Plotly.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real |
 
 ### Ordem de leitura recomendada para aprender
 
@@ -1347,3 +1404,214 @@ Decisões tomadas ao implementar (as não óbvias têm ADR própria):
   - no browser, com as luas de ruído 0,1, a rede chegou aos 100% no teste. O early
     stopping parou na época 121 com os pesos da 101. A fronteira ainda mal curvava no passo
     24 e contornava as luas no fim.
+
+### Fase 7
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **A API é uma camada fina por cima dos serviços** (ADR 0022):
+  - há uma rota por método público de cada serviço, com o nome do método. O id de cada
+    operação no OpenAPI é `<serviço>_<método>`, e é o nome que o cliente gerado para o React
+    vai ter;
+  - `tests/api/test_contract.py` falha se algum método público ficar sem rota. As exceções
+    estão numa lista, com a razão: `experiments.run` e `reinforcement.run`, porque a API
+    treina sempre em segundo plano;
+  - o `ServiceRouter` passa todas as respostas pelo `to_json` e tira o resumo de cada rota da
+    primeira linha da docstring, em português.
+- **Os treinos em segundo plano ficam nos serviços.** O `JobRegistry` guarda-os pelo id do
+  run, e os serviços ganham `job`, `pause`, `resume`, `cancel`, `updates` e `result`. A API
+  não guarda estado, e a interface simples passou a acompanhar o treino com o mesmo
+  `updates`.
+- **Acompanhar o treino é sempre o mesmo pedido:** `updates(run_id, after_step,
+  after_snapshot)` devolve o estado, os passos novos e a fronteira do snapshot novo.
+  - por HTTP, pergunta-se de vez em quando;
+  - o WebSocket pergunta ao serviço de 0,25 em 0,25 s e envia só o que mudou, em mensagens
+    `{"kind": "update" | "error", "data": ...}`.
+
+  A fronteira só se calcula quando há um snapshot novo, porque desenha a grelha inteira.
+- **Os erros mapeiam-se pela categoria:**
+  - `TrainingStateError` → 409;
+  - `DataError` e `ValueError` → 422;
+  - `LookupError` → 404;
+  - `TrackingError` → 500;
+  - outro `MLLabError` → 400.
+
+  O corpo é sempre `{code, message, problems}`. Entraram erros novos para as categorias
+  ficarem certas:
+  - `DatasetNotFoundError` (antes um `InvalidParameterError`, que daria 422);
+  - `RunNotInMemoryError`;
+  - `JobNotFoundError`;
+  - `TrainingInProgressError` e `TrainingFailedError`.
+
+  Os pedidos com a forma errada respondem `invalid_request`, com as frases em português do
+  `describe_problems`.
+- **Definições novas:** `ML_LAB_API_HOST` (por omissão 127.0.0.1, só este computador),
+  `ML_LAB_API_PORT` (8000) e `ML_LAB_API_CORS_ORIGINS` (por omissão, o servidor do Vite).
+  A API abre-se com `uv run python -m ml_lab.api`.
+- **Dependências:**
+  - o FastAPI (0.162, com o Starlette 1.9);
+  - o Uvicorn, com o `websockets`, sem o qual não aceita WebSockets;
+  - o `python-multipart`, para os uploads;
+  - nos testes, o `httpx2`, porque o `TestClient` do Starlette 1.9 avisa com o `httpx`, e os
+    avisos contam como erros.
+- **O processo pede ao Windows para não ser travado** (ADR 0023). Ao preparar o teste da
+  fase 7, uma MLP de 150 épocas demorava 9 s. A investigação passou pelo scikit-learn, pelo
+  OpenMP, pelo garbage collector, pelo `torch._dynamo` e pelos números subnormais, e chegou
+  ao EcoQoS do Windows 11: um processo sem janela em primeiro plano passa, ao fim de um
+  segundo, para os núcleos lentos de um processador híbrido. `run_at_full_speed()` pede para
+  não ser travado, no arranque da app, da API e dos testes. A MLP passou de 19,5 para 3,5 ms
+  por época.
+- **Testes:**
+  - `tests/api/` cobre o contrato com os serviços, os erros, o treino (com pausa, paragem e
+    WebSocket), os dados, o histórico e o RL;
+  - o teste de integração da fase 7 envia um CSV das luas, treina uma MLP e recebe os
+    snapshots enquanto treina, por HTTP e pelo WebSocket;
+  - no browser, a documentação em `/docs` abre e lista as rotas.
+
+### Fase 8
+
+Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Um paradigma novo com a maquinaria de sempre** (ADR 0024):
+  - o controlo é uma tarefa (`TaskType.CONTROL`, paradigma `REINFORCEMENT`), sem dataset;
+  - o agente fala com o mesmo `TrainingContext` dos modelos, e cada episódio é um passo;
+  - vêm de graça a pausa e a paragem, os snapshots, o `JobRegistry`, a API e o WebSocket;
+  - `TaskType.learns_from_data` separa o controlo das tarefas com dataset, na deteção de
+    tarefas e no catálogo.
+- **O ambiente não guarda o estado do episódio:** `step(estado, ação, rng)` devolve o
+  estado seguinte, a recompensa e se acabou. Com `rng=None` não há acaso, e é assim que se
+  desenha o caminho que o agente quer seguir. Esgotar os passos não é um estado final, por
+  isso o alvo continua a contar com o futuro.
+- **A grelha** (`gridworld`) tem três mapas e um parâmetro para escorregar:
+  - o simples (5×5, com paredes), o penhasco (4×12, com uma fila de armadilhas) e o
+    labirinto (7×7, com becos e armadilhas);
+  - as recompensas são +1 no objetivo, −1 nas armadilhas e −0,01 por passo;
+  - escorregar leva o agente para um dos lados, nunca para trás.
+- **Os agentes partilham o ciclo de episódios** (`EpisodicAgent`): ε-greedy com o ε a descer
+  em linha reta. Num empate, a ação escolhe-se ao acaso; escolher sempre a primeira faria o
+  agente subir sempre no início.
+  - **Q-learning** (didático, NumPy): aprende os três mapas em décimas de segundo, com os
+    caminhos mais curtos (8, 13 e 16 passos).
+  - **DQN** (PyTorch): uma rede com o estado em one-hot, uma memória de repetição, uma
+    rede-alvo e a loss de Huber. Aprende os três mapas, mas demora 4 a 11 s, porque treina a
+    rede em cada passo.
+- **A avaliação** tem o treino (os últimos 100 episódios, a explorar) e o teste (20
+  episódios com a política aprendida, sem explorar). A métrica principal é a taxa de sucesso
+  no teste. Há dois avisos:
+  - `exploration_cost`: no penhasco, o agente chega 100% das vezes no teste e só 88% a
+    treinar, porque cai a explorar;
+  - `not_solved`: a política aprendida não chega sempre lá, num ambiente sem acaso.
+- **O histórico serve os agentes.** O `ReinforcementResult` usa os nomes que o histórico e a
+  comparação usam (o ambiente faz de dataset, e o agente de modelo):
+  - os runs registam-se, guardam-se, comparam-se e reproduzem-se como os outros;
+  - abrem-se com `open_reinforcement`;
+  - o que o agente sabia em cada snapshot (`trace`, perto de 230 KB num run de 500
+    episódios) só se guarda a pedido, em `trace.json`.
+- **Interface:** o ecrã Reinforcement learning tem:
+  - a escolha do ambiente e do agente, com os formulários gerados dos esquemas e a ficha
+    didática;
+  - a vista ao vivo: a recompensa e a política no último snapshot, com Pausar e Parar;
+  - no fim, as métricas do treino e do teste, a recompensa por episódio (com a média móvel e
+    a taxa de sucesso), a grelha com o valor e as setas da política (com um seletor de
+    episódio), a tabela Q por ação e o botão para guardar.
+
+  O ecrã Experiências abre e reproduz os runs de agentes neste ecrã.
+- **Testes:**
+  - os contratos de `tests/contract/test_rl.py` percorrem todos os agentes e ambientes:
+    - os agentes aprendem a grelha simples e repetem com a mesma seed;
+    - um episódio é um passo, e param a pedido;
+    - os ambientes ficam dentro da grelha e o objetivo alcança-se;
+  - os unitários cobrem a regra do Q-learning, o fim e o esgotar de um episódio, o
+    escorregar e a memória de repetição;
+  - o teste de integração da fase 8:
+    - o Q-learning aprende o labirinto (16 passos, 100% no teste);
+    - o run fica no SQLite e outro `Lab` reabre-o;
+    - o DQN aprende a grelha simples;
+    - o ecrã mostra o que o agente aprendeu, e o ecrã Experiências abre lá um run;
+  - no browser, o Q-learning no penhasco (seed 42) chegou ao objetivo em 100% dos episódios
+    de teste e em 86% a treinar, com um caminho de 15 passos. No episódio 112, a grelha ainda
+    estava a branco, mas a ação "baixo" por cima do penhasco já era vermelha: o agente aprende
+    a não cair antes de saber onde fica o objetivo.
+
+### Fase 9
+
+A fase dos agentes entrou no roadmap antes da interface aprimorada, que passou para a fase
+10. Decisões tomadas ao implementar (as não óbvias têm ADR própria):
+
+- **Dois modos, os mesmos ecrãs no fim.** Depois do ecrã Dados, o modo automático (o ecrã
+  Agentes, novo ecrã 2) e o manual (Explorar, Preparar, Modelo, Treinar). O vencedor dos
+  agentes é um run normal, que se abre no Avaliar e no Explicar, e qualquer candidato do
+  quadro se treina à mão (`train_candidate`). O ecrã Dados oferece os dois caminhos.
+- **Agentes deterministas, sem modelos de linguagem** (ADR 0025), em `core/automl/`:
+  - o **agente de dados** decide a partir do perfil (nunca das linhas, por isso não usa o
+    pandas): a limpeza sugerida, a tarefa, a divisão estratificada com 20% para o teste, a
+    imputação, o one-hot e a padronização, cada decisão com a razão. Adota uma preparação
+    feita à mão, e com classes desequilibradas sugere a exatidão equilibrada;
+  - um **agente por família**, gerado do registo `MODELS`. As versões didáticas ficam de fora
+    quando a família tem uma das bibliotecas (o mesmo modelo, mais devagar), e os modelos sem
+    probabilidades quando o objetivo as mede;
+  - o **coordenador**: a triagem (todos os modelos com os valores por omissão, uma família
+    de cada vez, a referência à frente) e a afinação dos finalistas, à vez, por procura
+    aleatória, sem repetir combinações. O orçamento conta candidatos.
+- **A escolha nunca vê o teste.** O coordenador só recebe os folds do treino
+  (`prepare_folds`); o teste usa-se uma vez, quando o vencedor treina como um run do
+  `ExperimentService` (com a mesma seed dos folds). O resultado compara a validação cruzada
+  com o teste e explica a diferença (o vencedor é sempre um pouco otimista).
+- **O espaço de procura vive no modelo**: a extensão `"x-search"` do JSON Schema
+  (`{"values": [...]}` ou `{"range": [mín, máx]}`, na escala do `x-scale`) anota os
+  hiperparâmetros de todos os modelos supervisionados. Alguns valores ficaram de fora de
+  propósito: o kernel polinomial do SVM (lento com C grande), o grau polinomial acima de 3
+  (multiplica as colunas), a ativação sigmoide, o erro absoluto das árvores de regressão
+  (muito mais lento) e o epsilon do SVR (depende da escala do alvo).
+- **A validação cruzada mede qualquer métrica**: `cross_validate(..., metric=...)`, com as
+  probabilidades quando a métrica as pede. Os objetivos possíveis são uma lista escolhida:
+  a precisão e o recall, sozinhos, ganham-se com um modelo inútil, e o MSE ordena como a
+  RMSE.
+- **Datasets grandes procuram-se numa amostra**: `prepare_folds(..., max_rows=...)` tira uma
+  amostra do treino (estratificada, pelo método de Hamilton) antes dos folds, e a linhagem
+  di-lo. Por omissão, 2 000 linhas; o vencedor treina com o treino todo.
+- **A procura é um treino em segundo plano** com o contrato de sempre (`job`, `pause`,
+  `resume`, `cancel`, `updates`, `result`): cada candidato é um passo, e pausar ou parar
+  acontece no fim do candidato atual. A conversa e os candidatos ficam no `SearchLog`,
+  numerados; `updates` tem dois cursores (`after_step` para os candidatos e
+  `after_message` para as mensagens), e o WebSocket usa o segundo como o do snapshot.
+- **Erros novos:** `SearchNotFoundError` e `CandidateNotFoundError` (404).
+- **Interface:** o ecrã Agentes tem o pedido (o alvo, a tarefa, a métrica sugerida pelo
+  agente de dados, os agentes chamados e o formulário do tamanho da procura, gerado do
+  esquema), a pré-visualização do que o agente de dados vai fazer, a vista ao vivo (o
+  progresso, o melhor até agora, o gráfico da procura e as últimas mensagens), e no fim o
+  vencedor, a leitura, os gráficos, o quadro e a conversa toda.
+  - Os gráficos seguem as regras de visualização de dados: a paleta do projeto (Tableau 10)
+    falhava a verificação para daltonismo com sete famílias num gráfico de pontos, por isso
+    a cor diz só a ronda (as duas primeiras cores da paleta validada) e a família vai no
+    texto e na posição (o gráfico "o melhor de cada agente" tem uma linha por família).
+- **Testes:**
+  - os contratos de `tests/contract/test_search_spaces.py` percorrem todos os modelos: cada
+    valor que os agentes podem sortear é válido, e cada modelo supervisionado diz o que
+    procurar (ou porque não precisa);
+  - os unitários de `tests/unit/core/automl/` cobrem o agente de dados no Titanic, os agentes
+    de modelo, o espaço de procura (a escala logarítmica, os inteiros), o objetivo e o
+    coordenador (o orçamento, os finalistas, o sentido da métrica, as seeds, um candidato que
+    falha, a pausa e a paragem, e as linhas que ele vê, todas do treino);
+  - o teste de integração da fase 9: no Titanic, com 15 candidatos e 3 folds, o agente de
+    dados tira o identificador e o texto livre, a triagem passa pelos 9 modelos das 7
+    famílias, só os 3 finalistas são afinados, o vencedor bate a regressão logística na
+    validação cruzada, passa dos 75% no teste e é o único run no registo, que outro `Lab`
+    reabre; na interface, o ecrã Agentes faz um pedido e abre o vencedor no Avaliar, e um
+    candidato treina-se à mão no ecrã Treinar;
+  - no browser, o Titanic com os valores por omissão (24 candidatos, 5 folds, seed 42):
+    - a procura demorou 17,5 s;
+    - passaram à afinação o Gradient boosting (81,6%), o SVM e a Random Forest (80,2%);
+    - ganhou um Gradient boosting afinado (`n_estimators` 200, `learning_rate` 0,0338,
+      `max_depth` 4), com 82,9% ± 2,9% na validação cruzada e 85,5% no teste, 4,5 pontos acima
+      da regressão logística;
+    - o segundo ficou a 0,3 pontos, menos do que o desvio entre folds, e a leitura do
+      resultado di-lo (um empate).
+
+    A verificação apanhou quatro coisas, já corrigidas:
+    - a razão da métrica dizia "Foi a métrica pedida" quando o formulário só confirmava a
+      sugestão do agente de dados;
+    - o espaço de procura mostrava as opções pelos códigos, e passou a usar os nomes do
+      `x-labels`;
+    - as linhas e os textos dos gráficos perdiam-se no tema escuro;
+    - os cartões do vencedor ficavam cortados.

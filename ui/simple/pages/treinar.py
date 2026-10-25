@@ -1,4 +1,4 @@
-"""Ecrã 5 · Treinar: acompanhar o treino a decorrer e revê-lo passo a passo."""
+"""Ecrã 6 · Treinar: acompanhar o treino a decorrer e revê-lo passo a passo."""
 
 import streamlit as st
 
@@ -55,8 +55,9 @@ def _live(job: TrainingJob[ExperimentResult]) -> None:
     """O treino a decorrer: só esta parte do ecrã se atualiza, a cada meio segundo."""
     if job.done:
         st.rerun()  # o ecrã inteiro volta a correr e mostra o resultado
-    # Um só retrato do treino (o mesmo que a API vai devolver ao frontend).
-    state = job.state()
+    # O mesmo pedido que a API transmite ao frontend: o estado, os passos e a fronteira.
+    update = get_lab().experiments.updates(job.run_id)
+    state = update.state
     pause, stop, _ = st.columns([1, 1, 4])
     if state.status is JobStatus.PAUSED:
         pause.button(
@@ -95,13 +96,13 @@ def _live(job: TrainingJob[ExperimentResult]) -> None:
         st.progress(min(1.0, progress.steps / planned), text=text)
     else:
         st.markdown(text)
-    preview = get_lab().experiments.preview(state.run_id)
-    history = job.recorder.steps()
     boundary, curve = st.columns([3, 2])
-    if preview is not None:
-        boundary.plotly_chart(animation_chart(preview), width="stretch", key="treinar.preview")
-    if history:
-        curve.plotly_chart(loss_chart(history), width="stretch", key="treinar.live_loss")
+    if update.preview is not None:
+        boundary.plotly_chart(
+            animation_chart(update.preview), width="stretch", key="treinar.preview"
+        )
+    if update.steps:
+        curve.plotly_chart(loss_chart(update.steps), width="stretch", key="treinar.live_loss")
 
 
 def _replay(result: ExperimentResult) -> None:

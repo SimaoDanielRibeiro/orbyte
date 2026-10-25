@@ -5,6 +5,7 @@ from collections.abc import Iterator
 import pytest
 
 from ml_lab.config import get_settings
+from ml_lab.process import run_at_full_speed
 
 # Os testes destas pastas são mais lentos e correm antes de cada push. O marcador
 # deixa excluí-los no ciclo rápido: uv run pytest -m "not integration and not api"
@@ -12,6 +13,11 @@ _FOLDER_MARKERS = {
     "integration": pytest.mark.integration,
     "api": pytest.mark.api,
 }
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Pede ao Windows que não trave o processo dos testes (ver ``ml_lab.process``)."""
+    run_at_full_speed()
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:

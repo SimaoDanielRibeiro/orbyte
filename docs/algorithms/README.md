@@ -53,6 +53,16 @@ scikit-learn) e à classificação e à regressão, quando o algoritmo faz as du
 
 - [Rede neuronal (MLP)](mlp.md): PyTorch, de classificação e de regressão
 
+**Reinforcement learning** (agentes, não modelos: aprendem num ambiente, sem dataset)
+
+- [Q-learning](q_learning.md): didático (NumPy), com uma tabela
+- [DQN (Deep Q-Network)](dqn.md): PyTorch, com uma rede no lugar da tabela
+
+**Escolher o modelo** (os agentes do modo automático, fase 9)
+
+- [Agentes de AutoML](automl.md): a triagem e a procura aleatória de hiperparâmetros,
+  medidas com validação cruzada só no treino
+
 ## Modelo
 
 ````markdown

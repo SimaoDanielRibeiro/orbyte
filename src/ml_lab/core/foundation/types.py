@@ -12,18 +12,20 @@ from typing import Final
 
 
 class Paradigm(StrEnum):
-    """Paradigma de aprendizagem: como é que o modelo aprende com os dados.
+    """Paradigma de aprendizagem: de onde vem o que o modelo aprende.
 
     - ``SUPERVISED``: aprende a prever um alvo a partir de exemplos já rotulados.
     - ``UNSUPERVISED``: procura estrutura em dados sem alvo (grupos, direções, anomalias).
+    - ``REINFORCEMENT``: não há dataset; um agente aprende a agir num ambiente, pelas
+      recompensas que recebe (fase 8).
 
     Deep learning não é um paradigma: uma rede neuronal que classifica faz
-    aprendizagem supervisionada; o que muda é a família do modelo. O
-    reinforcement learning entra na fase 8, com o seu próprio tipo de tarefa.
+    aprendizagem supervisionada; o que muda é a família do modelo.
     """
 
     SUPERVISED = "supervised"
     UNSUPERVISED = "unsupervised"
+    REINFORCEMENT = "reinforcement"
 
 
 class TaskType(StrEnum):
@@ -40,6 +42,7 @@ class TaskType(StrEnum):
     CLUSTERING = "clustering"
     DIMENSIONALITY_REDUCTION = "dimensionality_reduction"
     ANOMALY_DETECTION = "anomaly_detection"
+    CONTROL = "control"
 
     @property
     def label(self) -> str:
@@ -55,6 +58,11 @@ class TaskType(StrEnum):
     def requires_target(self) -> bool:
         """Se a tarefa precisa de uma coluna-alvo (só as supervisionadas precisam)."""
         return self.paradigm is Paradigm.SUPERVISED
+
+    @property
+    def learns_from_data(self) -> bool:
+        """Se a tarefa aprende com um dataset (todas, menos o controlo: aprende num ambiente)."""
+        return self.paradigm is not Paradigm.REINFORCEMENT
 
     @property
     def is_classification(self) -> bool:
@@ -92,6 +100,7 @@ _LABELS: Final[Mapping[TaskType, str]] = MappingProxyType(
         TaskType.CLUSTERING: "Clustering",
         TaskType.DIMENSIONALITY_REDUCTION: "Redução de dimensionalidade",
         TaskType.ANOMALY_DETECTION: "Deteção de anomalias",
+        TaskType.CONTROL: "Controlo",
     }
 )
 
@@ -103,5 +112,6 @@ _PARADIGMS: Final[Mapping[TaskType, Paradigm]] = MappingProxyType(
         TaskType.CLUSTERING: Paradigm.UNSUPERVISED,
         TaskType.DIMENSIONALITY_REDUCTION: Paradigm.UNSUPERVISED,
         TaskType.ANOMALY_DETECTION: Paradigm.UNSUPERVISED,
+        TaskType.CONTROL: Paradigm.REINFORCEMENT,
     }
 )

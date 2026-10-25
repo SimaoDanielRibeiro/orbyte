@@ -3,17 +3,20 @@
 Cada camada escreve as suas (os dados em ``core/data/explanations.py``, o treino em
 ``core/training/explanations.py``, a avaliação e o Laboratório em
 ``core/evaluation/topics.py``, o registo de experiências em
-``core/tracking/explanations.py``); a interface pede-as aqui pelo tema.
+``core/tracking/explanations.py``, o reinforcement learning em ``core/rl/explanations.py``,
+os agentes em ``core/automl/explanations.py``); a interface pede-as aqui pelo tema.
 """
 
 from collections import ChainMap
 from collections.abc import Mapping
 from typing import Final
 
+from ml_lab.core.automl.explanations import AUTOML_EXPLANATIONS
 from ml_lab.core.data.explanations import EXPLANATIONS as DATA_EXPLANATIONS
 from ml_lab.core.data.explanations import Explanation
 from ml_lab.core.evaluation.topics import EVALUATION_EXPLANATIONS
 from ml_lab.core.foundation.errors import ComponentNotFoundError
+from ml_lab.core.rl.explanations import RL_EXPLANATIONS
 from ml_lab.core.tracking.explanations import TRACKING_EXPLANATIONS
 from ml_lab.core.training.explanations import TRAINING_EXPLANATIONS
 
@@ -22,6 +25,8 @@ EXPLANATIONS: Final[Mapping[str, Explanation]] = ChainMap(
     dict(TRAINING_EXPLANATIONS),
     dict(EVALUATION_EXPLANATIONS),
     dict(TRACKING_EXPLANATIONS),
+    dict(RL_EXPLANATIONS),
+    dict(AUTOML_EXPLANATIONS),
 )
 
 

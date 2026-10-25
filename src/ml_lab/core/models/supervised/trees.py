@@ -25,6 +25,7 @@ class TreeParams(Hyperparameters):
             "Quantas perguntas seguidas a árvore pode fazer (0 = sem limite). Árvores fundas "
             "decoram o treino (overfitting); árvores rasas podem ficar simples demais."
         ),
+        json_schema_extra={"x-search": {"values": [2, 3, 4, 5, 6, 8, 10, 0]}},
     )
     min_samples_leaf: int = Field(
         default=1,
@@ -35,6 +36,7 @@ class TreeParams(Hyperparameters):
             "Cada folha tem de ter pelo menos este número de exemplos: valores maiores evitam "
             "folhas que existem só para acertar num ponto."
         ),
+        json_schema_extra={"x-search": {"values": [1, 2, 5, 10, 20]}},
     )
 
 

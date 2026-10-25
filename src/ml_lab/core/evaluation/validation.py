@@ -10,6 +10,9 @@ A **curva de aprendizagem** treina com frações crescentes do treino de cada fo
 compara o desempenho no treino e na avaliação: se as curvas ainda se aproximam no fim,
 mais dados ajudariam; se ficam afastadas, o modelo decora (variância); se ficam juntas
 mas baixas, o modelo é simples demais (viés).
+
+As duas medem a métrica principal da tarefa. A validação cruzada pode medir outra (os
+agentes da fase 9 otimizam a que se lhes pede, como a F1 ou a ROC AUC).
 """
 
 import math
@@ -23,10 +26,10 @@ from numpy.typing import NDArray
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.evaluation.base import PRIMARY_METRIC
 from ml_lab.core.evaluation.metrics.base import METRICS, Metric, MetricInputs
-from ml_lab.core.foundation.errors import MLLabError, ModelError
+from ml_lab.core.foundation.errors import CapabilityError, MLLabError, ModelError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import TaskType
-from ml_lab.core.models.base import LabModel
+from ml_lab.core.models.base import LabModel, class_probabilities
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.formatting import format_count, format_number, format_percent
 
@@ -103,11 +106,24 @@ def primary_metric(task_type: TaskType) -> Metric:
     return METRICS.get(name)
 
 
-def score(model: LabModel[Any], X: NDArray[np.float64], y: NDArray[Any], dataset: Dataset) -> float:
-    """A métrica principal do modelo em ``X`` (só para tarefas com alvo)."""
-    metric = primary_metric(dataset.task_type)
-    inputs = MetricInputs(y_true=y, y_pred=model.predict(X), n_classes=dataset.n_classes)
-    return metric(inputs)
+def score(
+    model: LabModel[Any],
+    X: NDArray[np.float64],
+    y: NDArray[Any],
+    dataset: Dataset,
+    metric: Metric | None = None,
+) -> float:
+    """Uma métrica do modelo em ``X`` (só para tarefas com alvo); por omissão, a principal.
+
+    As métricas que precisam das probabilidades (a ROC AUC, a log-loss) recebem uma coluna
+    por classe do dataset, mesmo que alguma não tenha aparecido no treino deste fold.
+    """
+    chosen = metric or primary_metric(dataset.task_type)
+    proba = class_probabilities(model, X, dataset.n_classes) if chosen.needs_proba else None
+    inputs = MetricInputs(
+        y_true=y, y_pred=model.predict(X), y_proba=proba, n_classes=dataset.n_classes
+    )
+    return chosen(inputs)
 
 
 def cross_validate(
@@ -115,6 +131,7 @@ def cross_validate(
     hyperparameters: Hyperparameters,
     seed: int,
     folds: Sequence[Dataset],
+    metric: Metric | None = None,
 ) -> CrossValidation:
     """Treina e avalia em cada fold.
 
@@ -123,17 +140,27 @@ def cross_validate(
         hyperparameters: Os hiperparâmetros, os mesmos em todos os folds.
         seed: A seed do modelo.
         folds: Um ``Dataset`` por fold (de ``prepare_folds``): o "teste" é o fold de fora.
+        metric: A métrica a medir; por omissão, a principal da tarefa.
 
     Raises:
-        ModelError: Numa tarefa sem alvo (a validação cruzada mede previsões).
+        ModelError: Numa tarefa sem alvo (a validação cruzada mede previsões), ou com uma
+            métrica que não é da tarefa.
+        CapabilityError: Se a métrica precisar de probabilidades e o modelo não as der.
     """
     task = _supervised(folds)
-    metric = primary_metric(task)
+    metric = metric or primary_metric(task)
+    if task not in metric.task_types:
+        raise ModelError(f"{metric.display_name} não é uma métrica de {task.label.lower()}.")
+    if metric.needs_proba and not model_class.info.supports_proba:
+        raise CapabilityError(
+            f"{metric.display_name} precisa das probabilidades, e "
+            f"'{model_class.info.display_name}' não as dá."
+        )
     results = []
     for number, dataset in enumerate(folds, start=1):
         model = model_class(hyperparameters, seed=seed).fit(dataset.train.X, dataset.train.y)
-        train = _finite(score(model, dataset.train.X, _target(dataset.train.y), dataset))
-        test = _finite(score(model, dataset.test.X, _target(dataset.test.y), dataset))
+        train = _finite(score(model, dataset.train.X, _target(dataset.train.y), dataset, metric))
+        test = _finite(score(model, dataset.test.X, _target(dataset.test.y), dataset, metric))
         results.append(FoldScore(number, train, test))
     tests = [fold.test for fold in results if fold.test is not None]
     mean = float(np.mean(tests)) if tests else None

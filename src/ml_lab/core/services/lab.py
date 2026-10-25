@@ -9,13 +9,15 @@ from typing import Self
 
 from ml_lab.config import Settings, get_settings
 from ml_lab.core.foundation.errors import MLLabError
-from ml_lab.core.foundation.events import RunFinished
+from ml_lab.core.foundation.events import EventBus, RunFinished
 from ml_lab.core.services.analysis import AnalysisService
+from ml_lab.core.services.automl import AutoMLService
 from ml_lab.core.services.catalog import CatalogService
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import ExperimentService
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.laboratory import LaboratoryService
+from ml_lab.core.services.reinforcement import ReinforcementService
 from ml_lab.core.tracking.artifacts import ArtifactStore
 from ml_lab.core.tracking.sqlite_store import SqliteStore
 from ml_lab.core.tracking.store import ExperimentStore
@@ -35,6 +37,9 @@ class Lab:
         analysis: O que se pergunta a um modelo depois do treino (Avaliar e Explicar).
         laboratory: As demonstrações do ecrã Laboratório.
         history: O histórico de runs: registar, guardar, comparar e reproduzir.
+        reinforcement: Treinar agentes de reinforcement learning (ecrã Reinforcement learning).
+        automl: Os agentes do modo automático: procuram o melhor modelo para um pedido
+            (ecrã Agentes).
     """
 
     datasets: DatasetService
@@ -43,6 +48,8 @@ class Lab:
     analysis: AnalysisService
     laboratory: LaboratoryService
     history: HistoryService
+    reinforcement: ReinforcementService
+    automl: AutoMLService
 
     @classmethod
     def create(
@@ -55,24 +62,28 @@ class Lab:
             store: O registo de experiências; por omissão, o SQLite de ``settings``.
         """
         settings = settings or get_settings()
+        # Um só EventBus: os treinos de modelos e os de agentes anunciam-se no mesmo sítio.
+        bus = EventBus()
         datasets = DatasetService(settings)
-        experiments = ExperimentService(datasets)
+        experiments = ExperimentService(datasets, bus=bus)
+        reinforcement = ReinforcementService(settings, bus=bus)
         history = HistoryService(
             experiments,
             datasets,
             store if store is not None else SqliteStore(settings.database_path),
             ArtifactStore(settings.artifacts_dir / "runs"),
+            reinforcement,
         )
 
         # O registo subscreve o fim de cada run (o padrão observer): cada treino que termina
-        # fica registado, sem o serviço de experiências saber que o registo existe.
+        # fica registado, sem os serviços de treino saberem que o registo existe.
         def record(event: RunFinished) -> None:
             try:
                 history.record(event.run_id)
             except MLLabError:  # o treino correu bem: um registo que falha não o estraga
                 logger.exception("o run não ficou registado", extra={"run_id": event.run_id})
 
-        experiments.bus.subscribe(RunFinished, record)
+        bus.subscribe(RunFinished, record)
         return cls(
             datasets=datasets,
             catalog=CatalogService(settings),
@@ -80,4 +91,6 @@ class Lab:
             analysis=AnalysisService(experiments, datasets),
             laboratory=LaboratoryService(settings),
             history=history,
+            reinforcement=reinforcement,
+            automl=AutoMLService(datasets, experiments, history=history, settings=settings),
         )

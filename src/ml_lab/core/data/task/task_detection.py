@@ -21,11 +21,13 @@ from ml_lab.core.data.profiling.type_inference import infer_column, looks_like_c
 from ml_lab.core.data.schema import ColumnKind
 from ml_lab.core.foundation.errors import ColumnNotFoundError
 from ml_lab.core.foundation.notices import Notice
-from ml_lab.core.foundation.types import TaskType
+from ml_lab.core.foundation.types import Paradigm, TaskType
 from ml_lab.formatting import format_count, format_quantity
 
-UNSUPERVISED_TASKS: Final = tuple(task for task in TaskType if not task.requires_target)
-"""Tarefas possíveis sem coluna-alvo."""
+UNSUPERVISED_TASKS: Final = tuple(
+    task for task in TaskType if task.paradigm is Paradigm.UNSUPERVISED
+)
+"""Tarefas possíveis sem coluna-alvo (o controlo não aprende com dados: fica de fora)."""
 
 MAX_INTEGER_CLASSES: Final = 50
 """Um alvo inteiro com até este número de valores ainda pode ser tratado como classes."""

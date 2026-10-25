@@ -7,6 +7,9 @@ também reexporta os tipos de que ela precisa: os resultados que os serviços
 devolvem, as configurações que recebem e o erro base do ML Lab.
 """
 
+from ml_lab.core.automl.data_agent import DataDecision
+from ml_lab.core.automl.model_agent import SkippedModel
+from ml_lab.core.automl.search_log import AgentMessage, AgentRole, Candidate, SearchPhase
 from ml_lab.core.data.boundary import TablePreview
 from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.cleaning.suggestions import CleaningSuggestion
@@ -39,12 +42,30 @@ from ml_lab.core.evaluation.validation import (
 )
 from ml_lab.core.explainability.partial_dependence import PartialDependence
 from ml_lab.core.explainability.permutation import FeatureImportance, PermutationImportance
-from ml_lab.core.foundation.errors import MLLabError
+from ml_lab.core.foundation.errors import (
+    DataError,
+    MLLabError,
+    TrackingError,
+    TrainingStateError,
+)
 from ml_lab.core.foundation.notices import Notice, NoticeLevel
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import Implementation, ModelFamily
+from ml_lab.core.rl.environments.base import CellKind, GridLayout
+from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.schemas.reinforcement import AgentSpec, EnvironmentSpec, ReinforcementConfig
 from ml_lab.core.services.analysis import AnalysisService, Contribution, RowExplanation
+from ml_lab.core.services.automl import (
+    AgentModel,
+    AutoMLOptions,
+    AutoMLPlan,
+    AutoMLResult,
+    AutoMLService,
+    AutoMLUpdate,
+    ModelAgentCard,
+    ObjectiveOption,
+)
 from ml_lab.core.services.catalog import CatalogService, ModelCard
 from ml_lab.core.services.comparison import (
     ConfigDifference,
@@ -63,7 +84,7 @@ from ml_lab.core.services.datasets import (
     ProjectionPoints,
     SampleSummary,
 )
-from ml_lab.core.services.experiments import ExperimentResult, ExperimentService
+from ml_lab.core.services.experiments import ExperimentResult, ExperimentService, TrainingUpdate
 from ml_lab.core.services.explanations import explain
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.lab import Lab
@@ -75,6 +96,13 @@ from ml_lab.core.services.laboratory import (
     OverfittingDemo,
     Points,
     RegularizationDemo,
+)
+from ml_lab.core.services.reinforcement import (
+    AgentCard,
+    EnvironmentCard,
+    ReinforcementResult,
+    ReinforcementService,
+    ReinforcementUpdate,
 )
 from ml_lab.core.tracking.store import RunEntry
 from ml_lab.core.training.jobs import JobState, JobStatus, TrainingJob
@@ -102,10 +130,24 @@ from ml_lab.core.visualization_data.network import (
     NetworkFrame,
     NetworkTrace,
 )
+from ml_lab.core.visualization_data.policy import PolicyFrame, PolicyTrace, RewardCurve
 
 __all__ = [
+    "AgentCard",
+    "AgentMessage",
+    "AgentModel",
+    "AgentRole",
+    "AgentSpec",
     "AnalysisService",
+    "AutoMLOptions",
+    "AutoMLPlan",
+    "AutoMLRequest",
+    "AutoMLResult",
+    "AutoMLService",
+    "AutoMLUpdate",
+    "Candidate",
     "CatalogService",
+    "CellKind",
     "ClassBalance",
     "CleaningStep",
     "CleaningSuggestion",
@@ -119,12 +161,16 @@ __all__ = [
     "CrossValidation",
     "Curve",
     "CurvePoint",
+    "DataDecision",
+    "DataError",
     "DatasetProfile",
     "DatasetService",
     "DatasetSummary",
     "Dendrogram",
     "Distribution",
     "Embedding",
+    "EnvironmentCard",
+    "EnvironmentSpec",
     "EvaluationCharts",
     "EvaluationReport",
     "ExperimentConfig",
@@ -135,6 +181,7 @@ __all__ = [
     "FieldFrame",
     "FoldScore",
     "GeneratorSummary",
+    "GridLayout",
     "GroupMeans",
     "Histogram",
     "HistoryService",
@@ -159,6 +206,7 @@ __all__ = [
     "MetricComparison",
     "MetricResult",
     "MissingMap",
+    "ModelAgentCard",
     "ModelCard",
     "ModelFamily",
     "ModelSpec",
@@ -166,6 +214,7 @@ __all__ = [
     "NetworkTrace",
     "Notice",
     "NoticeLevel",
+    "ObjectiveOption",
     "OperationSummary",
     "Outline",
     "OverfittingDemo",
@@ -175,6 +224,8 @@ __all__ = [
     "PermutationImportance",
     "PointCloud",
     "Points",
+    "PolicyFrame",
+    "PolicyTrace",
     "PreparationConfig",
     "PreparationSummary",
     "Progress",
@@ -182,14 +233,22 @@ __all__ = [
     "ProjectionPoints",
     "Property",
     "RegularizationDemo",
+    "ReinforcementConfig",
+    "ReinforcementResult",
+    "ReinforcementService",
+    "ReinforcementUpdate",
     "Residuals",
+    "RewardCurve",
     "RowExplanation",
     "RunComparison",
     "RunEntry",
     "SampleSummary",
     "ScalingMethod",
+    "SearchPhase",
+    "SearchSettings",
     "Silhouette",
     "SilhouetteGroup",
+    "SkippedModel",
     "SourceSpec",
     "SplitConfig",
     "SplitStrategy",
@@ -199,8 +258,11 @@ __all__ = [
     "TaskOptions",
     "TaskSuggestion",
     "TaskType",
+    "TrackingError",
     "TrainingAnimation",
     "TrainingJob",
+    "TrainingStateError",
+    "TrainingUpdate",
     "TransformConfig",
     "ValidationReport",
     "ValueCount",

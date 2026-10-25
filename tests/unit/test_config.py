@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from ml_lab.config import KNOWN_VARIABLES, Settings, get_settings, project_root
+from ml_lab.config import (
+    DEFAULT_CORS_ORIGINS,
+    KNOWN_VARIABLES,
+    Settings,
+    get_settings,
+    project_root,
+)
 from ml_lab.core.foundation.errors import ConfigurationError
 
 
@@ -100,6 +106,29 @@ def test_invalid_log_level_is_rejected(tmp_path: Path) -> None:
 def test_invalid_log_format_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(ConfigurationError, match="ML_LAB_LOG_FORMAT"):
         Settings.from_env({"ML_LAB_LOG_FORMAT": "xml"}, home=tmp_path)
+
+
+def test_the_api_only_listens_on_this_computer_by_default(tmp_path: Path) -> None:
+    settings = Settings.from_env({}, home=tmp_path)
+
+    assert (settings.api_host, settings.api_port) == ("127.0.0.1", 8000)
+    assert settings.api_cors_origins == DEFAULT_CORS_ORIGINS
+
+
+def test_cors_origins_are_a_comma_separated_list(tmp_path: Path) -> None:
+    chosen = Settings.from_env(
+        {"ML_LAB_API_CORS_ORIGINS": " http://a.test , http://b.test,"}, home=tmp_path
+    )
+    none = Settings.from_env({"ML_LAB_API_CORS_ORIGINS": ""}, home=tmp_path)
+
+    assert chosen.api_cors_origins == ("http://a.test", "http://b.test")
+    assert none.api_cors_origins == ()
+
+
+@pytest.mark.parametrize("port", ["abc", "0", "70000", "-1"])
+def test_an_invalid_api_port_is_rejected(tmp_path: Path, port: str) -> None:
+    with pytest.raises(ConfigurationError, match="ML_LAB_API_PORT"):
+        Settings.from_env({"ML_LAB_API_PORT": port}, home=tmp_path)
 
 
 def test_malformed_env_file_line_points_to_the_line(tmp_path: Path) -> None:

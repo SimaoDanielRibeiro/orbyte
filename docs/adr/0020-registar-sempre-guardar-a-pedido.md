@@ -1,6 +1,6 @@
 # 0020 — Registo de experiências: registar sempre, guardar a pedido
 
-- **Estado:** Proposta
+- **Estado:** Aceite
 - **Data:** 2026-10-24
 
 ## Contexto

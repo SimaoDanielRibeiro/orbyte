@@ -1,4 +1,4 @@
-"""Ecrã 7 · Explicar: o que pesa nas previsões do modelo, no conjunto e numa previsão."""
+"""Ecrã 8 · Explicar: o que pesa nas previsões do modelo, no conjunto e numa previsão."""
 
 import streamlit as st
 

@@ -46,6 +46,8 @@ class PolynomialRegressionParams(Hyperparameters):
             "A maior potência usada. Grau 1 é a reta; graus altos fazem curvas que passam por "
             "todos os pontos de treino (overfitting)."
         ),
+        # Só até 3: com muitas features, cada grau a mais multiplica as colunas do polinómio.
+        json_schema_extra={"x-search": {"values": [1, 2, 3]}},
     )
     alpha: float = Field(
         default=0.000001,
@@ -56,7 +58,7 @@ class PolynomialRegressionParams(Hyperparameters):
             "Trava os pesos das potências. Quase zero mostra o overfitting em toda a sua "
             "glória; aumentar alpha amansa as curvas dos graus altos."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.000001, 10]}},
     )
 
 

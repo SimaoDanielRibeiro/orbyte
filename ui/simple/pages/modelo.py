@@ -1,4 +1,4 @@
-"""Ecrã 4 · Modelo: escolher o algoritmo e os hiperparâmetros."""
+"""Ecrã 5 · Modelo: escolher o algoritmo e os hiperparâmetros."""
 
 from itertools import groupby
 

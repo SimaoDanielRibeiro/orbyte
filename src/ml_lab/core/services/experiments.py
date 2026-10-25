@@ -14,6 +14,10 @@ Os passos 1 a 3 são o plano do run: se a configuração tiver um problema, falh
 antes de qualquer evento. ``run`` faz tudo e devolve o resultado; ``start`` valida o
 plano e treina em segundo plano, num ``TrainingJob`` que se pode pausar, retomar e
 parar (ADR 0014).
+
+Quem só sabe o identificador do run (a API) acompanha o treino com ``job`` e
+``updates``, controla-o com ``pause``, ``resume`` e ``cancel``, e pede o resultado com
+``result`` (ADR 0022).
 """
 
 import threading
@@ -28,7 +32,7 @@ from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.evaluation.base import PRIMARY_METRIC, evaluator_for
 from ml_lab.core.evaluation.diagnostics import compare_train_and_test
 from ml_lab.core.evaluation.report import EvaluationReport, MetricResult
-from ml_lab.core.foundation.errors import ModelError
+from ml_lab.core.foundation.errors import ModelError, RunNotInMemoryError
 from ml_lab.core.foundation.events import (
     EvaluationCompleted,
     EventBus,
@@ -45,7 +49,7 @@ from ml_lab.core.schemas.serialization import internal, to_json
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.training.context import SnapshotSampler
 from ml_lab.core.training.control import TrainingControl
-from ml_lab.core.training.jobs import TrainingJob
+from ml_lab.core.training.jobs import JobRegistry, JobState, TrainingJob
 from ml_lab.core.training.recorder import SnapshotRecorder, StepRecord
 from ml_lab.core.training.trainer import Trainer, TrainingOutcome
 from ml_lab.core.visualization_data.animation import TrainingAnimation, build_animation
@@ -140,6 +144,30 @@ class ExperimentResult:
         return None if name is None else self.main_report.find(name)
 
 
+@dataclass(frozen=True, slots=True)
+class TrainingUpdate:
+    """O que mudou num treino em segundo plano desde a última pergunta.
+
+    Quem acompanha o treino diz o que já tem (os passos até ``after_step`` e o snapshot do
+    passo ``after_snapshot``) e recebe só o que é novo. É o que a API transmite, tanto a quem
+    pergunta de vez em quando como pelo WebSocket.
+
+    Attributes:
+        state: O retrato do treino agora.
+        steps: Os passos novos, pela ordem.
+        preview: A fronteira no último snapshot, se houver um snapshot novo.
+    """
+
+    state: JobState
+    steps: tuple[StepRecord, ...] = ()
+    preview: TrainingAnimation | None = None
+
+    @property
+    def snapshot_step(self) -> int | None:
+        """O passo do snapshot novo, se houver."""
+        return self.preview.frames[-1].step if self.preview is not None else None
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class RunArtifacts:
     """O modelo treinado, os dados e o resultado de um run, para o que vem depois do treino."""
@@ -182,6 +210,7 @@ class ExperimentService:
         self._bus = bus or EventBus()
         self._runs: OrderedDict[str, RunArtifacts] = OrderedDict()
         self._active: dict[str, _Plan] = {}
+        self._jobs: JobRegistry[ExperimentResult] = JobRegistry(KEPT_RUNS)
         self._lock = threading.Lock()
 
     @property
@@ -220,7 +249,77 @@ class ExperimentService:
             plan.recorder,
             planned_steps=plan.planned_steps,
         )
-        return job.start()
+        return self._jobs.add(job.start())
+
+    def job(self, run_id: str) -> JobState:
+        """O estado de um treino lançado com ``start``.
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+        """
+        return self._jobs.get(run_id).state()
+
+    def pause(self, run_id: str) -> JobState:
+        """Pede uma pausa no fim do passo atual.
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+        """
+        job = self._jobs.get(run_id)
+        job.pause()
+        return job.state()
+
+    def resume(self, run_id: str) -> JobState:
+        """Retoma um treino em pausa.
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+        """
+        job = self._jobs.get(run_id)
+        job.resume()
+        return job.state()
+
+    def cancel(self, run_id: str) -> JobState:
+        """Pede ao treino que pare no fim do passo atual (o modelo fica com o que aprendeu).
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+        """
+        job = self._jobs.get(run_id)
+        job.cancel()
+        return job.state()
+
+    def updates(self, run_id: str, after_step: int = 0, after_snapshot: int = 0) -> TrainingUpdate:
+        """O que mudou num treino desde a última pergunta.
+
+        Args:
+            run_id: O run.
+            after_step: O último passo que quem pergunta já tem.
+            after_snapshot: O passo do último snapshot que quem pergunta já tem.
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+        """
+        job = self._jobs.get(run_id)
+        # O estado primeiro: se diz que o treino acabou, os passos lidos a seguir já estão todos.
+        state = job.state()
+        steps = tuple(record for record in job.recorder.steps() if record.step > after_step)
+        snapshots = job.recorder.snapshots()
+        # A fronteira custa a calcular (a grelha inteira): só quando há um snapshot novo.
+        has_new = bool(snapshots) and snapshots[-1].step > after_snapshot
+        return TrainingUpdate(state, steps, self.preview(run_id) if has_new else None)
+
+    def result(self, run_id: str) -> ExperimentResult:
+        """O resultado de um run desta sessão.
+
+        Raises:
+            TrainingInProgressError: Se o run ainda estiver a treinar.
+            TrainingFailedError: Se o treino falhou.
+            RunNotInMemoryError: Se o run já não estiver em memória.
+        """
+        if self._jobs.find(run_id) is not None:
+            return self._jobs.result(run_id)
+        return self.artifacts(run_id).result
 
     def preview(self, run_id: str) -> TrainingAnimation | None:
         """A fronteira (ou a reta) no último snapshot de um treino que ainda decorre.
@@ -251,12 +350,12 @@ class ExperimentService:
         """O modelo e os dados de um run recente (para o serviço de análise).
 
         Raises:
-            ModelError: Se o run já não estiver em memória.
+            RunNotInMemoryError: Se o run já não estiver em memória.
         """
         with self._lock:
             artifacts = self._runs.get(run_id)
         if artifacts is None:
-            raise ModelError(f"O run {run_id} já não está em memória: treina o modelo outra vez.")
+            raise RunNotInMemoryError(run_id)
         return artifacts
 
     @internal

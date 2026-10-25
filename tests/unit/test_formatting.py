@@ -6,11 +6,13 @@ import pytest
 import ml_lab.formatting as formatting_module
 from ml_lab.formatting import (
     format_count,
+    format_list,
     format_number,
     format_percent,
     format_quantity,
     format_scientific,
     format_significant,
+    format_value,
 )
 
 
@@ -79,6 +81,16 @@ def test_quantities_agree_in_number() -> None:
     assert format_quantity(1, "linha", "linhas") == "1 linha"
     assert format_quantity(0, "linha", "linhas") == "0 linhas"
     assert format_quantity(20640, "linha", "linhas") == "20 640 linhas"
+
+
+def test_values_and_lists_read_like_portuguese() -> None:
+    assert format_value(0.000714) == "0,000714"
+    assert format_value(3.0) == "3"
+    assert format_value(25_000) == "25 000"
+    assert format_value(False) == "não"
+    assert format_value("rbf") == "rbf"
+    assert format_list([]) == ""
+    assert format_list(["Sex", "Embarked"]) == "Sex e Embarked"
 
 
 def test_docstring_examples_run_as_documented() -> None:

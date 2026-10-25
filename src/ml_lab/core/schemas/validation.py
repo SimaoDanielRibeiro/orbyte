@@ -5,7 +5,7 @@ O Pydantic descreve cada problema com um tipo estável (``greater_than``,
 português que diz o campo, o valor recebido e o que era esperado.
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Final
 
 from pydantic import ValidationError
@@ -38,6 +38,11 @@ _TYPES: Final = {
     "bool_type": "verdadeiro ou falso",
     "bool_parsing": "verdadeiro ou falso",
     "string_type": "texto",
+    "dict_type": "um objeto (com chaves e valores)",
+    "model_type": "um objeto (com chaves e valores)",
+    "dataclass_type": "um objeto (com chaves e valores)",
+    "list_type": "uma lista",
+    "tuple_type": "uma lista",
 }
 
 
@@ -50,8 +55,23 @@ def describe_errors(
         error: O erro do Pydantic.
         titles: Nome a mostrar para cada campo (por omissão, o nome do campo).
     """
+    return describe_problems(error.errors(include_url=False), titles)
+
+
+def describe_problems(
+    problems: Iterable[Mapping[str, Any]], titles: Mapping[str, str] | None = None
+) -> tuple[str, ...]:
+    """Uma frase em português por cada problema, no formato do Pydantic.
+
+    É o que ``describe_errors`` usa, e serve também aos erros que chegam já em lista (os
+    de um pedido à API, por exemplo).
+
+    Args:
+        problems: Os problemas, cada um com ``loc``, ``type``, ``msg`` e, às vezes, ``ctx``.
+        titles: Nome a mostrar para cada campo (por omissão, o nome do campo).
+    """
     sentences: list[str] = []
-    for problem in error.errors(include_url=False):
+    for problem in problems:
         location = ".".join(str(part) for part in problem["loc"]) or "valor"
         field = (titles or {}).get(location, location)
         kind = problem["type"]

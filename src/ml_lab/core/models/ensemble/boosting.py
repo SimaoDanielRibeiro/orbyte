@@ -24,6 +24,7 @@ class GradientBoostingParams(Hyperparameters):
             "Quantas árvores se juntam, uma de cada vez. Ao contrário da Random Forest, "
             "árvores a mais acabam por decorar o treino."
         ),
+        json_schema_extra={"x-search": {"values": [50, 100, 200, 300]}},
     )
     learning_rate: float = Field(
         default=0.1,
@@ -34,7 +35,7 @@ class GradientBoostingParams(Hyperparameters):
             "Quanto conta cada árvore nova. Taxas pequenas precisam de mais árvores, mas "
             "costumam generalizar melhor."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 0.3]}},
     )
     max_depth: int = Field(
         default=3,
@@ -42,6 +43,7 @@ class GradientBoostingParams(Hyperparameters):
         le=10,
         title="Profundidade de cada árvore",
         description="Árvores pequenas (de 2 a 5 níveis) bastam: o poder vem de as juntar.",
+        json_schema_extra={"x-search": {"values": [2, 3, 4, 5]}},
     )
     subsample: float = Field(
         default=1.0,
@@ -52,6 +54,7 @@ class GradientBoostingParams(Hyperparameters):
             "Abaixo de 1, cada árvore vê só uma amostra das linhas (stochastic gradient "
             "boosting): mais ruído em cada árvore, menos overfitting no conjunto."
         ),
+        json_schema_extra={"x-search": {"range": [0.6, 1.0]}},
     )
 
 
@@ -64,6 +67,7 @@ class AdaBoostParams(Hyperparameters):
         le=500,
         title="Número de modelos (etapas)",
         description="Quantos modelos fracos (árvores de um só nível) se juntam, no máximo.",
+        json_schema_extra={"x-search": {"values": [25, 50, 100, 200]}},
     )
     learning_rate: float = Field(
         default=1.0,
@@ -71,7 +75,7 @@ class AdaBoostParams(Hyperparameters):
         le=5.0,
         title="Taxa de aprendizagem",
         description="Quanto conta cada modelo novo: menor exige mais modelos, mas é mais estável.",
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [0.05, 2.0]}},
     )
 
 

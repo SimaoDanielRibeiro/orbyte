@@ -10,9 +10,17 @@ Daqui sai tudo o resto, sem código específico por modelo: a validação dos va
 (com mensagens em português), o JSON para guardar a experiência e o JSON Schema de
 onde as duas interfaces geram o formulário.
 
-Duas extensões ao JSON Schema, que os formulários entendem: ``"x-scale": "log"``
-para números que variam em ordens de grandeza, e ``"x-labels"`` com os nomes a
-mostrar para as opções de um ``Literal``.
+Três extensões ao JSON Schema:
+
+- ``"x-scale": "log"``, para números que variam em ordens de grandeza (os formulários
+  mostram-nos assim, e os agentes procuram-nos assim);
+- ``"x-labels"``, com os nomes a mostrar para as opções de um ``Literal``;
+- ``"x-search"``, o que os agentes da fase 9 experimentam neste hiperparâmetro:
+  ``{"values": [...]}`` (escolhem um dos valores) ou ``{"range": [mínimo, máximo]}``
+  (escolhem ao acaso entre os dois, na escala do ``x-scale``). Um hiperparâmetro sem
+  ``x-search`` fica sempre com o valor por omissão: é o caso dos que só decidem quando o
+  treino pára (``max_iter``, ``tol``, ``patience``). O espaço de procura vive no ficheiro
+  do próprio modelo, por isso um modelo novo traz o seu.
 """
 
 from collections.abc import Mapping

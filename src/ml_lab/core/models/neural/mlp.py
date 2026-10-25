@@ -47,6 +47,7 @@ class MLPParams(TrainingParams):
         le=4,
         title="Camadas escondidas",
         description="Quantas camadas entre a entrada e a saída. Mais camadas, formas mais ricas.",
+        json_schema_extra={"x-search": {"values": [1, 2, 3]}},
     )
     units: int = Field(
         default=16,
@@ -54,6 +55,7 @@ class MLPParams(TrainingParams):
         le=128,
         title="Neurónios por camada",
         description="Quantos neurónios tem cada camada escondida. Poucos: fronteira mais simples.",
+        json_schema_extra={"x-search": {"values": [8, 16, 32, 64]}},
     )
     activation: Activation = Field(
         default="relu",
@@ -62,7 +64,11 @@ class MLPParams(TrainingParams):
             "A não linearidade de cada neurónio. A ReLU é a habitual; a tanh e a sigmoide "
             "saturam, e em redes fundas os gradientes podem desaparecer."
         ),
-        json_schema_extra={"x-labels": {"relu": "ReLU", "tanh": "tanh", "sigmoid": "Sigmoide"}},
+        # A sigmoide fica fora da procura: satura, e quase nunca ganha às outras duas.
+        json_schema_extra={
+            "x-labels": {"relu": "ReLU", "tanh": "tanh", "sigmoid": "Sigmoide"},
+            "x-search": {"values": ["relu", "tanh"]},
+        },
     )
 
 

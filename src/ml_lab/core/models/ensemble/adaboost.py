@@ -37,7 +37,8 @@ class AdaBoostRegressionParams(AdaBoostParams):
             "proporcional, ao quadrado (os grandes erros pesam muito mais) ou exponencial."
         ),
         json_schema_extra={
-            "x-labels": {"linear": "Linear", "square": "Quadrada", "exponential": "Exponencial"}
+            "x-labels": {"linear": "Linear", "square": "Quadrada", "exponential": "Exponencial"},
+            "x-search": {"values": ["linear", "square", "exponential"]},
         },
     )
 

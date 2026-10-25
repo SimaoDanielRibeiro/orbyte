@@ -29,7 +29,7 @@ def test_sidebar_shows_the_current_experiment() -> None:
 
 
 def test_there_is_one_page_per_screen_of_the_plan() -> None:
-    assert len(PAGES) == 10
+    assert len(PAGES) == 11
 
 
 @pytest.mark.parametrize("page", PAGES, ids=lambda page: page.stem)

@@ -95,6 +95,15 @@ class ClassBalance:
         """Linhas da classe menos frequente a dividir pelas da mais frequente (1 = equilibrado)."""
         return self.classes[-1].count / self.classes[0].count
 
+    @property
+    def is_imbalanced(self) -> bool:
+        """Se a classe menos frequente tem menos de metade da parte que teria com classes iguais.
+
+        Com duas classes, é a mais rara ficar abaixo de 25% das linhas.
+        """
+        k = len(self.classes)
+        return k >= 2 and self.classes[-1].ratio < 0.5 / k
+
 
 @dataclass(frozen=True, slots=True)
 class GroupMeans:
@@ -308,9 +317,8 @@ def _class_balance(
 
 def _balance_notices(balance: ClassBalance) -> list[Notice]:
     notices: list[Notice] = []
-    k = len(balance.classes)
     smallest = balance.classes[-1]
-    if k >= 2 and smallest.ratio < 0.5 / k:
+    if balance.is_imbalanced:
         notices.append(
             Notice.warning(
                 "class_imbalance",
@@ -331,7 +339,7 @@ def _balance_notices(balance: ClassBalance) -> list[Notice]:
                 balance.target,
             )
         )
-    if k == 1:
+    if len(balance.classes) == 1:
         notices.append(
             Notice.error(
                 "single_class",

@@ -29,7 +29,7 @@ class GaussianNBParams(Hyperparameters):
             "Uma fração da maior variância somada a todas, para nenhuma ser zero (uma feature "
             "constante numa classe daria probabilidades de 0 ou 1)."
         ),
-        json_schema_extra={"x-scale": "log"},
+        json_schema_extra={"x-scale": "log", "x-search": {"range": [1e-10, 0.1]}},
     )
 
 

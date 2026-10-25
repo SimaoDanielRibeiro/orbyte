@@ -1,6 +1,6 @@
 """Contrato da fronteira dos serviços: tudo o que a interface (e a API) recebe passa a JSON.
 
-A interface aprimorada (fase 9) vai falar com o núcleo através de uma API HTTP (fase 7).
+A interface aprimorada (fase 10) vai falar com o núcleo através de uma API HTTP (fase 7).
 Para isso, cada método público dos serviços devolve dados simples, que o Pydantic sabe
 descrever (o JSON Schema, de onde o FastAPI tira o OpenAPI) e passar a JSON. Um método
 novo fica testado aqui sem escrever testes novos. Os métodos marcados com ``@internal``
@@ -17,6 +17,8 @@ import pytest
 
 from ml_lab.core.data.preparation import PreparationConfig
 from ml_lab.core.foundation.types import TaskType
+from ml_lab.core.models.base import ModelFamily
+from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.schemas.serialization import is_internal, json_schema, to_json
 from ml_lab.core.services.lab import Lab
@@ -77,7 +79,20 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
             }
         )
     )
+    search = AutoMLRequest(
+        dataset=iris.source,
+        target="species",
+        families=(ModelFamily.LINEAR, ModelFamily.TREE),
+        settings=SearchSettings(budget=3, folds=3),
+        seed=0,
+    )
+    automl = lab.automl.start(search)
+    automl.wait(timeout=60)
     outputs = [
+        lab.automl.options(TaskType.BINARY_CLASSIFICATION),
+        lab.automl.plan(search),
+        lab.automl.updates(automl.run_id),
+        lab.automl.result(automl.run_id),
         lab.datasets.profile(iris.id, "species"),
         lab.datasets.prepare(iris.id, supervised, 0),
         lab.catalog.models(),

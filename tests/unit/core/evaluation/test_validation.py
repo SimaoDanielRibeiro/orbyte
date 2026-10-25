@@ -5,8 +5,9 @@ import pytest
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.preparation import PreparationConfig
+from ml_lab.core.evaluation.metrics.base import METRICS
 from ml_lab.core.evaluation.validation import cross_validate, learning_curve
-from ml_lab.core.foundation.errors import ModelError
+from ml_lab.core.foundation.errors import CapabilityError, ModelError
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.models.base import MODELS
 from ml_lab.core.services.datasets import DatasetService
@@ -69,3 +70,61 @@ def test_tasks_without_a_target_have_no_cross_validation() -> None:
 
     with pytest.raises(ModelError, match="alvo"):
         cross_validate(model, model.info.hyperparameters(), 0, folds(clustering))
+
+
+def test_cross_validation_can_measure_another_metric() -> None:
+    # Os agentes da fase 9 otimizam a métrica que se lhes pede: aqui, a ROC AUC, que mede as
+    # probabilidades (uma coluna por classe, mesmo que um fold não tenha alguma).
+    model = MODELS.get("logistic_regression")
+
+    result = cross_validate(
+        model,
+        model.info.hyperparameters(),
+        0,
+        folds(PreparationConfig("species")),
+        METRICS.get("roc_auc"),
+    )
+
+    assert result.metric == "roc_auc"
+    assert not result.as_percent
+    assert result.mean is not None
+    assert result.mean > 0.95
+
+
+def test_a_lower_is_better_metric_is_measured_as_it_is() -> None:
+    model = MODELS.get("linear_regression")
+    regression = PreparationConfig("sepal_length")
+
+    rmse = cross_validate(
+        model, model.info.hyperparameters(), 0, folds(regression), METRICS.get("rmse")
+    )
+
+    assert rmse.metric == "rmse"
+    assert rmse.mean is not None
+    assert 0.2 < rmse.mean < 0.6  # em centímetros, a escala do alvo
+
+
+def test_a_metric_that_needs_probabilities_refuses_a_model_without_them() -> None:
+    model = MODELS.get("perceptron")
+
+    with pytest.raises(CapabilityError, match="probabilidades"):
+        cross_validate(
+            model,
+            model.info.hyperparameters(),
+            0,
+            folds(PreparationConfig("species")),
+            METRICS.get("log_loss"),
+        )
+
+
+def test_a_metric_from_another_task_is_refused() -> None:
+    model = MODELS.get("logistic_regression")
+
+    with pytest.raises(ModelError, match="não é uma métrica de classificação"):
+        cross_validate(
+            model,
+            model.info.hyperparameters(),
+            0,
+            folds(PreparationConfig("species")),
+            METRICS.get("r2"),
+        )

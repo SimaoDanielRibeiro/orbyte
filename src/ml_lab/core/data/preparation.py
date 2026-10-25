@@ -50,6 +50,9 @@ SPLIT_SEED: Final = "split"
 FOLDS_SEED: Final = "folds"
 """Nome do componente dos folds da validação cruzada."""
 
+SAMPLE_SEED: Final = "folds_sample"
+"""Nome do componente da amostra do treino que os folds usam, quando há linhas a mais."""
+
 
 @dataclass(frozen=True, slots=True)
 class PreparationConfig:
@@ -121,7 +124,12 @@ def prepare(table: LoadedTable, config: PreparationConfig, *, seeds: SeedManager
 
 
 def prepare_folds(
-    table: LoadedTable, config: PreparationConfig, *, seeds: SeedManager, k: int
+    table: LoadedTable,
+    config: PreparationConfig,
+    *,
+    seeds: SeedManager,
+    k: int,
+    max_rows: int | None = None,
 ) -> tuple[Dataset, ...]:
     """Prepara os dados para a validação cruzada: um ``Dataset`` por fold.
 
@@ -130,17 +138,35 @@ def prepare_folds(
     e o treino as outras. As transformações aprendem de novo em cada fold, só com o treino
     desse fold: a parte de fora nunca influencia a escala nem a imputação.
 
+    Com ``max_rows``, um treino maior do que isso é primeiro reduzido a uma amostra de
+    ``max_rows`` linhas (estratificada pelas classes, se as houver). É o que deixa os
+    agentes da fase 9 experimentar muitos modelos num dataset grande; o teste continua de
+    fora, e o modelo final treina com o treino todo.
+
     Raises:
-        InvalidParameterError: Se ``k`` for menor do que 2 ou maior do que o treino.
+        InvalidParameterError: Se ``k`` for menor do que 2 ou maior do que o treino, ou
+            ``max_rows`` menor do que ``k``.
     """
     selected = _select(table, config)
     indices, split_step = _split(selected, config, seeds)
     train = np.asarray(indices.train)
+    target = _class_column(selected.task_type, config.target)
+    steps = [split_step]
+    if max_rows is not None and len(train) > max_rows:
+        if max_rows < k:
+            raise InvalidParameterError(
+                f"A amostra do treino tem de ter pelo menos uma linha por fold ({k}); pediste "
+                f"{max_rows}."
+            )
+        kept = _sample_positions(
+            selected.frame.iloc[train], max_rows, seeds.seed_for(SAMPLE_SEED), target
+        )
+        steps.append(_sample_step(len(train), len(kept), target))
+        train = train[kept]
     if not 2 <= k <= len(train):
         raise InvalidParameterError(
             f"A validação cruzada precisa de entre 2 e {len(train)} folds; pediste {k}."
         )
-    target = _class_column(selected.task_type, config.target)
     folds = _fold_positions(selected.frame.iloc[train], k, seeds.seed_for(FOLDS_SEED), target)
     datasets = []
     for number, held_out in enumerate(folds, start=1):
@@ -160,7 +186,7 @@ def prepare_folds(
             params={"fold": number, "k": k},
             rows_after=len(kept),
         )
-        lineage = selected.lineage.then(split_step, step)
+        lineage = selected.lineage.then(*steps, step)
         dataset, _, _ = _assemble(table.name, selected, parts, config, lineage)
         datasets.append(dataset)
     return tuple(datasets)
@@ -360,6 +386,49 @@ def _assemble(
         projection=projection,
     )
     return dataset, transformed, notices
+
+
+def _sample_positions(
+    frame: pd.DataFrame, n: int, seed: int, target: str | None
+) -> NDArray[np.intp]:
+    """As posições (dentro de ``frame``) de uma amostra de ``n`` linhas, por ordem.
+
+    Com um alvo de classes, cada classe fica com a sua parte das ``n`` linhas (pelo menos
+    uma): uma classe rara não desaparece da amostra.
+    """
+    rng = np.random.default_rng(seed)
+    if target is None:
+        return np.sort(rng.choice(len(frame), size=n, replace=False)).astype(np.intp)
+    values = frame[target].astype(str).to_numpy()
+    classes, counts = np.unique(values, return_counts=True)
+    shares = counts / counts.sum() * n
+    quotas = np.minimum(counts, np.maximum(1, np.floor(shares).astype(np.intp)))
+    # As linhas que sobram vão para as classes com a maior parte decimal (o método de Hamilton).
+    for position in np.argsort(-(shares - np.floor(shares)), kind="stable"):
+        if quotas.sum() >= n:
+            break
+        if quotas[position] < counts[position]:
+            quotas[position] += 1
+    chosen = [
+        rng.choice(np.flatnonzero(values == value), size=int(quota), replace=False)
+        for value, quota in zip(classes, quotas, strict=True)
+    ]
+    return np.sort(np.concatenate(chosen)).astype(np.intp)
+
+
+def _sample_step(rows: int, kept: int, target: str | None) -> LineageStep:
+    how = f", com a proporção de cada classe de {target}" if target else ", ao acaso"
+    return LineageStep(
+        stage=Stage.SPLIT,
+        operation="sample_train",
+        description=(
+            f"Amostra de {format_quantity(kept, 'linha', 'linhas')} das "
+            f"{format_count(rows)} do treino{how}, para a validação cruzada ser rápida."
+        ),
+        params={"max_rows": kept},
+        rows_before=rows,
+        rows_after=kept,
+    )
 
 
 def _fold_positions(

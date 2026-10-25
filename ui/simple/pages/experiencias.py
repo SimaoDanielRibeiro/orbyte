@@ -1,4 +1,4 @@
-"""Ecrã 8 · Experiências: o histórico dos runs, a comparação lado a lado e a reprodução.
+"""Ecrã 9 · Experiências: o histórico dos runs, a comparação lado a lado e a reprodução.
 
 Cada treino que termina fica registado sozinho; guardar junta-lhe o modelo treinado e o
 treino passo a passo (a animação e, numa rede, as camadas). Aqui filtra-se o histórico,
@@ -13,7 +13,15 @@ import streamlit as st
 from charts.history import loss_comparison_chart, metrics_comparison_chart
 from components.layout import render_header, render_why
 from components.notices import render_error, render_notices
-from components.state import get_lab, save_job, show_result, training_in_progress
+from components.state import (
+    current_rl_job,
+    get_lab,
+    save_job,
+    save_rl_job,
+    show_result,
+    show_rl_result,
+    training_in_progress,
+)
 from ml_lab.core.services import MLLabError, RunComparison, RunEntry, TaskType
 from ml_lab.formatting import format_number, format_percent
 
@@ -164,7 +172,8 @@ def _one_run(entries: Sequence[RunEntry]) -> None:
         f"{entry.model_display_name} em {entry.dataset_name} · "
         f"{entry.task_type.label.lower()} · seed {entry.seed} · {kept}"
     )
-    busy = training_in_progress()
+    agent = current_rl_job()
+    busy = training_in_progress() or (agent is not None and not agent.done)
     if busy:
         st.info(
             "Há um treino a decorrer: espera que acabe para abrir ou reproduzir outro run.",
@@ -177,9 +186,10 @@ def _one_run(entries: Sequence[RunEntry]) -> None:
         disabled=busy,
         width="stretch",
         key="experiencias.open",
-        help="Mostra este run nos ecrãs Treinar, Avaliar e Explicar.",
+        help="Mostra este run nos ecrãs Treinar, Avaliar e Explicar (um agente, no ecrã "
+        "Reinforcement learning).",
     ):
-        _open(entry.run_id)
+        _open(entry)
     if reproduce_column.button(
         "Reproduzir",
         icon=":material/replay:",
@@ -189,7 +199,7 @@ def _one_run(entries: Sequence[RunEntry]) -> None:
         help="Treina outra vez com a mesma configuração e a mesma seed; o run novo entra no "
         "histórico, para os comparares.",
     ):
-        _reproduce(entry.run_id)
+        _reproduce(entry)
     if save_column.button(
         "Guardar",
         icon=":material/save:",
@@ -204,22 +214,31 @@ def _one_run(entries: Sequence[RunEntry]) -> None:
         _rename_or_delete(entry)
 
 
-def _open(run_id: str) -> None:
+def _open(entry: RunEntry) -> None:
+    # Um agente (tarefa de controlo) mostra-se no seu ecrã; um modelo, no Avaliar.
+    history = get_lab().history
     try:
-        result = get_lab().history.open(run_id)
+        if entry.task_type is TaskType.CONTROL:
+            show_rl_result(history.open_reinforcement(entry.run_id))
+        else:
+            show_result(history.open(entry.run_id))
     except MLLabError as error:
         render_error(error)
         return
-    show_result(result)
-    st.switch_page("pages/avaliar.py")
+    st.switch_page(
+        "pages/reinforcement.py" if entry.task_type is TaskType.CONTROL else "pages/avaliar.py"
+    )
 
 
-def _reproduce(run_id: str) -> None:
+def _reproduce(entry: RunEntry) -> None:
     try:
-        job = get_lab().history.reproduce(run_id)
+        job = get_lab().history.reproduce(entry.run_id)
     except MLLabError as error:
         render_error(error)
         return
+    if entry.task_type is TaskType.CONTROL:
+        save_rl_job(job)
+        st.switch_page("pages/reinforcement.py")
     save_job(job)
     st.switch_page("pages/treinar.py")
 

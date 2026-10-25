@@ -35,7 +35,8 @@ def test_the_catalog_groups_the_models_by_family(catalog: CatalogService) -> Non
 
 
 def test_every_task_has_a_suggested_first_model(catalog: CatalogService) -> None:
-    for task_type in TaskType:
+    # O controlo (reinforcement learning) não tem modelos: tem agentes, noutro catálogo.
+    for task_type in (task for task in TaskType if task.learns_from_data):
         suggested = catalog.suggested_model(task_type)
 
         assert suggested is not None

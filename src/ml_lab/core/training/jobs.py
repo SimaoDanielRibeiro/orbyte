@@ -5,15 +5,24 @@ de execução próprio. A interface fica livre para mostrar o progresso, que lê
 gravador de snapshots, e para pedir pausas ou o cancelamento através do controlo
 (ADR 0014). Cancelar não é um erro: o treino pára no fim do passo seguinte e o
 resultado fica com o que o modelo já tinha aprendido.
+
+Quem lança um treino fica com o ``TrainingJob``. Quem só sabe o identificador do run (a
+API, que recebe pedidos soltos) encontra-o no ``JobRegistry`` do serviço que o lançou.
 """
 
 import threading
+from collections import OrderedDict
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Final, Self
 
+from ml_lab.core.foundation.errors import (
+    JobNotFoundError,
+    TrainingFailedError,
+    TrainingInProgressError,
+)
 from ml_lab.core.training.control import TrainingControl
 from ml_lab.core.training.recorder import Progress, SnapshotRecorder
 
@@ -169,3 +178,61 @@ class TrainingJob[T]:
             self._result = self._work(self.control)
         except Exception as error:  # guardado aqui e relançado em wait(), no fio de quem espera
             self._error = error
+
+
+class JobRegistry[T]:
+    """Os treinos em segundo plano de um serviço, encontrados pelo identificador do run.
+
+    Os que ainda decorrem ficam sempre. Dos que já terminaram, quando há mais do que
+    ``limit`` treinos, saem primeiro os mais antigos: cada um guarda o seu resultado, e
+    os resultados ocupam memória.
+
+    Args:
+        limit: Quantos treinos lembrar, no máximo (sem contar os que decorrem).
+    """
+
+    def __init__(self, limit: int) -> None:
+        self._limit = limit
+        self._jobs: OrderedDict[str, TrainingJob[T]] = OrderedDict()
+        self._lock = threading.Lock()
+
+    def add(self, job: TrainingJob[T]) -> TrainingJob[T]:
+        """Junta um treino (e esquece os terminados que passem do limite)."""
+        with self._lock:
+            self._jobs[job.run_id] = job
+            finished = [run_id for run_id, known in self._jobs.items() if known.done]
+            for run_id in finished[: max(0, len(self._jobs) - self._limit)]:
+                del self._jobs[run_id]
+        return job
+
+    def find(self, run_id: str) -> TrainingJob[T] | None:
+        """O treino do run, ou ``None`` se não for um treino deste registo."""
+        with self._lock:
+            return self._jobs.get(run_id)
+
+    def get(self, run_id: str) -> TrainingJob[T]:
+        """O treino do run.
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+        """
+        job = self.find(run_id)
+        if job is None:
+            raise JobNotFoundError(run_id)
+        return job
+
+    def result(self, run_id: str) -> T:
+        """O resultado de um treino que terminou bem.
+
+        Raises:
+            JobNotFoundError: Se não houver nenhum treino com esse run.
+            TrainingInProgressError: Se ainda decorrer.
+            TrainingFailedError: Se falhou.
+        """
+        job = self.get(run_id)
+        if not job.done:
+            raise TrainingInProgressError(run_id)
+        if job.error is not None:
+            raise TrainingFailedError(run_id, str(job.error)) from job.error
+        assert job.result is not None  # terminou sem erro
+        return job.result

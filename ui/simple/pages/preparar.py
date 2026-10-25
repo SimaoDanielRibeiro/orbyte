@@ -1,4 +1,4 @@
-"""Ecrã 3 · Preparar: alvo, tipo de tarefa, limpeza, transformações e divisão.
+"""Ecrã 4 · Preparar: alvo, tipo de tarefa, limpeza, transformações e divisão.
 
 A preparação volta a correr sempre que um controlo muda, para se ver logo o efeito
 de cada escolha na linhagem, nos tamanhos e na projeção.

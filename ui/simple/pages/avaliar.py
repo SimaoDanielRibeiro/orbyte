@@ -1,4 +1,4 @@
-"""Ecrã 6 · Avaliar: métricas, gráficos de cada tarefa, diagnósticos e o que o modelo aprendeu."""
+"""Ecrã 7 · Avaliar: métricas, gráficos de cada tarefa, diagnósticos e o que o modelo aprendeu."""
 
 from typing import Any
 

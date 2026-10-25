@@ -24,8 +24,12 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0017](0017-modelos-do-scikit-learn-que-crescem.md) | Modelos do scikit-learn que se mostram a crescer, com o mesmo resultado final | Proposta |
 | [0018](0018-explicacoes-independentes-do-modelo.md) | Explicações independentes do modelo, escritas em NumPy | Proposta |
 | [0019](0019-fronteira-dos-servicos-pronta-para-a-api.md) | A fronteira dos serviços pronta para a API: dados simples, JSON verificado | Proposta |
-| [0020](0020-registar-sempre-guardar-a-pedido.md) | Registo de experiências: registar sempre, guardar a pedido | Proposta |
-| [0021](0021-redes-pytorch-com-ciclo-de-treino-observavel.md) | Redes neuronais em PyTorch: um ciclo de treino próprio, que se pode observar | Proposta |
+| [0020](0020-registar-sempre-guardar-a-pedido.md) | Registo de experiências: registar sempre, guardar a pedido | Aceite |
+| [0021](0021-redes-pytorch-com-ciclo-de-treino-observavel.md) | Redes neuronais em PyTorch: um ciclo de treino próprio, que se pode observar | Aceite |
+| [0022](0022-api-fina-por-cima-dos-servicos.md) | A API: rotas finas por cima dos serviços, e o treino acompanhado pelo mesmo pedido | Proposta |
+| [0023](0023-o-processo-pede-para-nao-ser-travado.md) | O processo pede ao Windows para não ser travado | Proposta |
+| [0024](0024-reinforcement-learning-com-os-mesmos-contratos.md) | Reinforcement learning: um paradigma novo, com a mesma maquinaria de treino | Proposta |
+| [0025](0025-agentes-de-automl-deterministas.md) | Agentes de AutoML deterministas, por cima dos serviços | Proposta |
 
 ## Como escrever uma ADR
 
