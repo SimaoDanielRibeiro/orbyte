@@ -66,6 +66,11 @@ class LaboratoryDemo(StrEnum):
         """Os modelos cujo funcionamento a demonstração mostra (a página deles liga-se a ela)."""
         return _DEMO_MODELS[self]
 
+    @property
+    def topic(self) -> str:
+        """O tema do painel "Porquê?" que explica a demonstração."""
+        return _DEMO_TOPICS[self]
+
 
 _DEMO_LABELS: Final[Mapping[LaboratoryDemo, str]] = MappingProxyType(
     {
@@ -86,6 +91,15 @@ _DEMO_MODELS: Final[Mapping[LaboratoryDemo, frozenset[str]]] = MappingProxyType(
         ),
         LaboratoryDemo.KNN: frozenset({"knn", "knn_numpy"}),
         LaboratoryDemo.REGULARIZATION: frozenset({"ridge", "lasso"}),
+    }
+)
+
+_DEMO_TOPICS: Final[Mapping[LaboratoryDemo, str]] = MappingProxyType(
+    {
+        LaboratoryDemo.OVERFITTING: "bias_variance",
+        LaboratoryDemo.LEARNING_RATE: "learning_rate_demo",
+        LaboratoryDemo.KNN: "knn_k",
+        LaboratoryDemo.REGULARIZATION: "regularization",
     }
 )
 

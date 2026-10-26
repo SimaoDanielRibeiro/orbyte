@@ -113,6 +113,26 @@ export function formatSignificant(value: number, digits = 4): string {
   return formatNumber(value, Math.max(0, digits - 1 - magnitude));
 }
 
+/**
+ * Escreve uma estatística (uma média, um quartil) só com os algarismos que dizem alguma coisa:
+ * até quatro significativos e sem zeros à direita (`0,42`, `29,7`, `80`). Os números a partir de
+ * mil escrevem-se por inteiro (`206 856`), e os muito pequenos em potência de 10.
+ */
+export function formatStatistic(value: number): string {
+  if (value === 0 || !Number.isFinite(value)) {
+    return formatNumber(value, 0);
+  }
+  if (Math.abs(value) >= 1000) {
+    return formatNumber(value, 0);
+  }
+  const magnitude = Math.floor(Math.log10(Math.abs(value)));
+  if (magnitude < -3) {
+    return formatScientific(value, 3);
+  }
+  const text = formatNumber(value, Math.max(0, 3 - magnitude));
+  return text.includes(",") ? text.replace(/0+$/, "").replace(/,$/, "") : text;
+}
+
 /** Escreve uma quantidade com o nome no singular ou no plural (`12 linhas duplicadas`). */
 export function formatQuantity(count: number, singular: string, plural: string): string {
   return `${formatCount(count)} ${count === 1 ? singular : plural}`;

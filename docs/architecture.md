@@ -1687,16 +1687,16 @@ de ML teria.
 
 **As etapas**, cada uma com o seu "Pronto quando":
 
-| Etapa | O quê | Estado |
-|---|---|---|
-| 10.1 | A base: o projeto, os tokens, as fontes, o cliente gerado, a verificação e os testes | ✅ |
-| 10.2 | A moldura: a barra lateral, as rotas, o painel inicial, o telemóvel e a acessibilidade | ✅ |
-| 10.3 | O backend que a interface pede: o agente que trabalha, as demonstrações, as fórmulas | ✅ |
-| 10.4 | Início (com o campo ao vivo), Dados, Explorar e Preparar | |
-| 10.5 | Modelos: a lista, a transição do nome e a página de cada modelo | |
-| 10.6 | Treinar e avaliar: o treino ao vivo e a gaveta de cada métrica | |
-| 10.7 | Agentes: o fluxograma ao vivo, a conversa e a classificação | |
-| 10.8 | Explicar, Experiências, Laboratório, RL, o glossário das métricas e o acabamento | |
+| Etapa | O quê | Pronto quando | Estado |
+|---|---|---|---|
+| 10.1 | A base: o projeto, os tokens, as fontes, o cliente gerado, a verificação e os testes | Lint, tipos, testes e build passam, e uma página mostra o `/health` e o vocabulário vindos da API | ✅ |
+| 10.2 | A moldura: a barra lateral, as rotas, o painel inicial, o telemóvel e a acessibilidade | Navega-se por tudo só com o teclado e, com a barra aberta ou fechada, nada fica cortado a 1440, 1024 e 390 px | ✅ |
+| 10.3 | O backend que a interface pede: o agente que trabalha, as demonstrações, as fórmulas | `ruff`, `mypy` e `pytest` passam, o `openapi.json` está regenerado e as ADRs estão escritas | ✅ |
+| 10.4 | Início (com o campo ao vivo), Dados, Explorar e Preparar | Um teste vai do início ao Titanic, explora, prepara e chega a Modelos, filtrado pela tarefa | ✅ |
+| 10.5 | Modelos: a lista, a transição do nome e a página de cada modelo | Os 34 modelos abrem com exemplo e ficha (um teste percorre-os todos) e mudar um hiperparâmetro muda o exemplo | ✅ |
+| 10.6 | Treinar e avaliar: o treino ao vivo e a gaveta de cada métrica | Um teste treina um modelo de ponta a ponta e abre todas as métricas, e tudo funciona com o movimento reduzido | ✅ |
+| 10.7 | Agentes: o fluxograma ao vivo, a conversa e a classificação | Uma procura pequena passa por todas as fases no fluxograma, e pausar, retomar e parar funcionam | ✅ |
+| 10.8 | Explicar, Experiências, Laboratório, RL, o glossário das métricas e o acabamento | Os 11 ecrãs da interface simples têm equivalente e passam todas as verificações; aí decide-se o que fazer à interface Streamlit | |
 
 O ecrã Avaliar deixa de existir à parte: entra em "Treinar e avaliar". A interface Streamlit
 continua a funcionar até à 10.8.
@@ -1766,3 +1766,116 @@ continua a funcionar até à 10.8.
   - cada modelo tem demonstração e a ficha com as seis secções do modelo;
   - cada métrica tem fórmula, e cada símbolo explicado está nela;
   - cada termo é um símbolo da fórmula, e os termos dão o valor da métrica.
+
+**As fundações dos ecrãs** (para a 10.4 em diante):
+
+- **Os gráficos** são componentes próprios, em D3 e SVG (`components/charts/`), com a
+  paleta do skill de visualização de dados validada sobre a ardósia: linhas, barras,
+  histogramas, barras de 100%, mapas de calor, dispersões, o campo de decisão (em canvas, com
+  as fronteiras em SVG), a árvore, a rede, a silhueta, o dendrograma e o mapa dos nulos. Todos
+  têm a dica ao passar o rato (o valor primeiro), a legenda com duas séries ou mais e a
+  legenda de leitura por baixo.
+- **A cor segue a classe**: a classe "1" tem a mesma cor no equilíbrio das classes, na
+  projeção e no campo, pela ordem do `class_labels` do backend. Com mais de três classes numa
+  dispersão, a forma também muda.
+- **Os formulários geram-se do JSON Schema** (`SchemaForm`): os hiperparâmetros, os
+  parâmetros dos geradores e o tamanho da procura dos agentes, sem código para cada um.
+- **Os textos de leitura vêm do backend** (ADR 0030): o "como ler" de cada gráfico é um tema,
+  pedido pelo nome, e um teste procura esses nomes no código das duas interfaces.
+
+**10.4, os ecrãs dos dados**:
+
+- **Início**: abre com uma rede neuronal a aprender as luas (a demonstração do catálogo), que
+  se reproduz uma vez e fica no último passo; com "reduzir movimento", mostra logo o fim.
+  Por baixo, o que ficou aberto da última vez e os dois caminhos.
+- **Dados**: os exemplos, um ficheiro (arrastado ou escolhido) e os geradores. Com um dataset
+  aberto, ele vem primeiro: os factos, os avisos da validação, as primeiras linhas, os tipos
+  das colunas e porquê, e o passo seguinte (à mão ou com os agentes).
+- **Explorar**: os números do dataset e uma faixa com uma marca por coluna, na cor do tipo
+  inferido; os avisos (os primeiros cinco, e os outros a pedido); as colunas uma a uma (as
+  estatísticas, o histograma ou os valores mais frequentes), as correlações, o mapa dos nulos
+  (marcas de giz na ardósia) e o alvo (o equilíbrio das classes e as médias de cada feature por
+  classe, cada uma na escala da sua coluna).
+- **Preparar**: os quatro passos da preparação, por ordem, e o resultado ao lado, que volta a
+  correr 350 ms depois do último controlo mexido: as partes da divisão, a linhagem, as classes
+  em cada parte (barras de 100%: na divisão estratificada, alinham), os dados antes e depois e
+  a projeção 2D (a cor é a classe, a forma é a parte).
+- **As escolhas, não a configuração**: o ecrã guarda o que o utilizador escolheu, e o que ele
+  não tocou segue as sugestões do backend. Trocar de alvo volta às sugestões do alvo novo. A
+  preparação que corre bem fica na sessão (é com ela que se treina); a que falha tira-a.
+- **Um id que se perdeu**: os datasets vivem na memória da API. Se ela recomeçar, os ecrãs
+  dizem que é preciso carregar o dataset outra vez, em vez de falharem.
+- **Um erro que só se via no browser**: as escalas do d3 devolvem `rgb(…)`, e o campo lia as
+  cores como `#rrggbb`, por isso pintava tudo a preto. A leitura das cores passou a aceitar os
+  dois formatos, com testes.
+- **A prova** (`e2e/manual-path.spec.ts`): do início, "Começar à mão" leva aos Dados; o teste
+  carrega o Titanic, vê os tipos das colunas, explora (os avisos, as correlações, o alvo),
+  prepara (a linhagem) e chega aos Modelos com o filtro na classificação binária, sem os de
+  regressão. Um segundo teste troca o alvo para `Fare` e confirma que a tarefa passa a
+  regressão.
+
+**10.5, os modelos**:
+
+- A lista mostra só o nome e uma seta, por família, filtrada pela tarefa preparada (o filtro
+  fica no endereço, `?tarefa=…`). Ao abrir um modelo, o nome desliza para o título (o mesmo
+  `layoutId` do Motion; a rota espera pelo cartão, para os dois nomes existirem no mesmo
+  instante).
+- A página lê-se como um capítulo: a intuição; o modelo ao vivo num conjunto de exemplo, que
+  volta a treinar 300 ms depois de mudar um hiperparâmetro (a fotografia anterior fica à
+  vista, esbatida); o que aprendeu (os pesos, a árvore desenhada, a importância das features,
+  as tabelas, a rede no mesmo passo do campo); o resto da ficha; e as demonstrações do
+  Laboratório.
+- "Treinar com estes valores" usa a preparação da sessão e segue para o treino; sem
+  preparação, ou com uma de outra tarefa, diz o que falta.
+- O backend decide os temas do "Porquê?" de cada modelo (`ModelCard.topics`).
+- Os controlos deslizantes não tinham nome para os leitores de ecrã (o rótulo apontava para a
+  raiz, e quem tem o foco é o polegar): passaram a ter o nome e o valor escrito, que num
+  controlo em passos logarítmicos é o número e não a posição.
+- **A prova** (`e2e/models.spec.ts`): os 34 modelos abrem, cada um com o exemplo desenhado, a
+  ficha e o que aprendeu; na árvore de decisão, baixar a profundidade máxima de 5 para 2 volta
+  a pedir o exemplo, e a animação passa a acabar no passo 2 (antes, no 5).
+
+**10.6, treinar e avaliar**:
+
+- **Ao vivo**, pelo WebSocket: o estado com o ponto amarelo (o agora), o passo, a loss e a
+  fronteira no último snapshot, com Pausar, Retomar e Parar.
+- **No fim**: o campo passo a passo (com a rede no mesmo passo, numa rede), a loss e as
+  métricas de cada passo em gráficos separados (escalas diferentes nunca partilham dois
+  eixos), as métricas no treino e no teste, os gráficos da tarefa (a matriz de confusão por
+  parte, as curvas ROC e de precisão-recall, os resíduos, a silhueta, o dendrograma, as
+  pontuações de anomalia, a variância explicada, onde o modelo erra), a validação cruzada e a
+  curva de aprendizagem a pedido, e o que o modelo aprendeu.
+- **A gaveta de cada métrica**: o valor em cada parte, o que mede, a fórmula em KaTeX com o
+  significado de cada símbolo, a conta deste run (os termos da fórmula, cada um com uma barra
+  à escala do maior, a aparecerem um a um, e o resultado no fim) e como se lê. As métricas sem
+  termos mostram o gráfico de onde o valor sai (a curva ROC, a silhueta, os grupos).
+- O backend ganhou o "como ler" do campo (`TrainingAnimation.how_to_read`) e o nome das
+  métricas de cada passo (`Vocabulary.step_metrics`).
+- **A prova** (`e2e/training.spec.ts`, com "reduzir movimento" ligado): treina-se a regressão
+  logística no Titanic pelo ecrã e abre-se a gaveta de cada métrica. Depois, um run de cada
+  tarefa abre as 22, cada uma com a fórmula, a conta do run e o "como se lê". Os cinco runs
+  treinam-se um de cada vez, porque a API só guarda os últimos cinco em memória e os outros
+  testes também treinam.
+
+**10.7, os agentes**:
+
+- **O pedido**: o alvo, a tarefa, a métrica, os agentes chamados, o tamanho da procura e a
+  seed, com o plano do agente de dados ao lado e o fluxograma dos agentes que vão trabalhar.
+- **O fluxograma**, em SVG e Motion: Dados, Coordenador, um nó por agente de família, Líder (o
+  Vencedor, no fim) e Teste. Só o que acontece agora fica a amarelo: o agente que mede um
+  candidato tem o fold em que vai numa barra, e a ligação até ele corre. Os nós medem a
+  largura que têm e escolhem a versão mais longa do texto que cabe.
+- Por baixo: as fases por ordem, o melhor até agora, os candidatos medidos (o mais recente em
+  cima; o lugar de cada um só se decide no fim, pelo backend) e a conversa dos agentes. No
+  fim: o vencedor e a sua nota no teste, a procura num gráfico, o melhor de cada agente, o
+  quadro completo e a ponte para treinar qualquer candidato à mão.
+- **O backend**: o plano de uma procura passou a ter rota (`automl_search_plan`), porque as
+  atualizações só trazem o que muda e o fluxograma precisa dos agentes desde o início; e o
+  WebSocket passou a mandar uma mensagem também quando só muda o trabalho a decorrer (o
+  candidato, o fold, a fase), com dois testes.
+- **A prova** (`e2e/agents.spec.ts`): uma procura no Titanic com dois agentes (os modelos
+  lineares, rápidos, e as redes neuronais, lentas), 6 candidatos e 3 folds pausa, retoma e
+  acaba; outra pára a meio e acaba com o melhor até aí. O fluxograma mostra a triagem e o fim.
+  As fases mais curtas que o intervalo do WebSocket (0,25 s), como a do agente de dados ou o
+  treino do vencedor, podem começar e acabar entre duas mensagens; por isso o teste
+  confirma-as na conversa, que as tem todas.

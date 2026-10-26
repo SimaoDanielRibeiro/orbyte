@@ -32,6 +32,7 @@ from ml_lab.core.rl.environments.base import CellKind
 from ml_lab.core.services.catalog import SUGGESTED_MODELS
 from ml_lab.core.services.laboratory import LaboratoryDemo
 from ml_lab.core.training.jobs import JobStatus
+from ml_lab.core.training.step_metrics import STEP_METRICS, StepMetric
 
 
 class _Labeled(Protocol):
@@ -80,10 +81,13 @@ class Vocabulary:
         labels: Para cada enum, pelo nome do seu tipo (o mesmo do OpenAPI, como
             ``TaskType``), o nome a mostrar de cada valor.
         tasks: As tarefas, pela ordem do enum.
+        step_metrics: As métricas que os modelos reportam em cada passo do treino, além da
+            loss (``StepRecord.metrics``), com o nome a mostrar.
     """
 
     labels: dict[str, dict[str, str]]
     tasks: tuple[TaskInfo, ...]
+    step_metrics: tuple[StepMetric, ...]
 
 
 def vocabulary() -> Vocabulary:
@@ -106,7 +110,11 @@ def vocabulary() -> Vocabulary:
         "Stage": _labels(Stage),
         "TaskType": _labels(TaskType),
     }
-    return Vocabulary(labels=labels, tasks=tuple(_task(task_type) for task_type in TaskType))
+    return Vocabulary(
+        labels=labels,
+        tasks=tuple(_task(task_type) for task_type in TaskType),
+        step_metrics=tuple(STEP_METRICS.values()),
+    )
 
 
 def _labels(members: Iterable[_Labeled]) -> dict[str, str]:

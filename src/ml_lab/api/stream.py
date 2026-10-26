@@ -12,8 +12,9 @@ cuidado com os fios), o WebSocket pergunta ao serviço o que mudou, de ``POLL_SE
 
 Cada mensagem é um objeto ``{"kind": ..., "data": ...}``:
 
-- ``{"kind": "update", "data": <update>}`` quando há passos novos, um snapshot novo ou o
-  estado mudou;
+- ``{"kind": "update", "data": <update>}`` quando há passos novos, um snapshot novo, o
+  estado mudou ou mudou o trabalho a decorrer (na procura dos agentes, o candidato que um
+  agente está a medir e o fold em que vai, e a fase: o fluxograma acompanha-os);
 - ``{"kind": "error", "data": <ApiError>}`` se o treino não existir.
 
 A ligação fecha quando o treino termina (a última mensagem tem o estado final) e o
@@ -67,6 +68,7 @@ async def stream_updates(websocket: WebSocket, poll: Callable[[int, int], Update
     await websocket.accept()
     after_step = after_snapshot = 0
     last_status: JobStatus | None = None
+    last_work: object = None
     try:
         while True:
             try:
@@ -76,15 +78,32 @@ async def stream_updates(websocket: WebSocket, poll: Callable[[int, int], Update
                 await websocket.send_json({"kind": "error", "data": to_json(api_error(error))})
                 break
             status = update.state.status
-            if update.steps or update.snapshot_step is not None or status != last_status:
+            work = _work(update)
+            if (
+                update.steps
+                or update.snapshot_step is not None
+                or status != last_status
+                or work != last_work
+            ):
                 await websocket.send_json({"kind": "update", "data": to_json(update)})
             if update.steps:
                 after_step = update.steps[-1].step
             after_snapshot = update.snapshot_step or after_snapshot
             last_status = status
+            last_work = work
             if status in _DONE:
                 break
             await asyncio.sleep(POLL_SECONDS)
     except WebSocketDisconnect:
         return
     await websocket.close()
+
+
+def _work(update: Update) -> object:
+    """O trabalho a decorrer que não conta como passo nem como mensagem.
+
+    Na procura dos agentes, um candidato só entra no quadro depois de medido: até lá, o que
+    muda é o candidato que um agente mede, o fold em que vai e a fase. Os outros trabalhos (o
+    treino, o RL) não têm nada disto.
+    """
+    return (getattr(update, "working", None), getattr(update, "phase", None))

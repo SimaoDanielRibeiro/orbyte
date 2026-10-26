@@ -77,6 +77,7 @@ class ModelCard:
         sections: A ficha dividida pelas suas secções (Intuição, Matemática essencial…).
         laboratory: As demonstrações do Laboratório que mostram como o modelo funciona.
         examples: Os conjuntos de exemplo da demonstração (``demo``), o de omissão primeiro.
+        topics: Os temas do painel "Porquê?" que explicam o que a página do modelo mostra.
     """
 
     name: str
@@ -93,6 +94,7 @@ class ModelCard:
     sections: tuple[DocSection, ...]
     laboratory: tuple[LaboratoryDemo, ...]
     examples: tuple[DemoExample, ...]
+    topics: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +200,7 @@ class CatalogService:
         info = model.info
         doc_path = self._docs / info.doc
         doc = doc_path.read_text(encoding="utf-8") if doc_path.is_file() else ""
+        laboratory = demos_for(info.name)
         return ModelCard(
             name=info.name,
             display_name=info.display_name,
@@ -211,9 +214,58 @@ class CatalogService:
             defaults=info.hyperparameters().model_dump(mode="json"),
             doc=doc,
             sections=doc_sections(doc),
-            laboratory=demos_for(info.name),
+            laboratory=laboratory,
             examples=examples_for(model),
+            topics=_model_topics(info.task_types, info.family, info.iterative, laboratory),
         )
+
+
+_CLASSIFICATION: Final = frozenset(
+    {TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}
+)
+_UNSUPERVISED: Final = frozenset(
+    {TaskType.CLUSTERING, TaskType.DIMENSIONALITY_REDUCTION, TaskType.ANOMALY_DETECTION}
+)
+
+
+def _model_topics(
+    task_types: frozenset[TaskType],
+    family: ModelFamily,
+    iterative: bool,
+    laboratory: tuple[LaboratoryDemo, ...],
+) -> tuple[str, ...]:
+    """Os temas do painel "Porquê?" que explicam a página de um modelo.
+
+    São os do desenho do treino (a fronteira, os snapshots, a loss), os do que o modelo
+    aprendeu (a rede, a árvore, a importância das features) e os das demonstrações do
+    Laboratório que lhe dizem respeito.
+    """
+    topics: list[str] = []
+    if task_types & _CLASSIFICATION:
+        topics.append("decision_boundary")
+    if task_types & _UNSUPERVISED:
+        # A demonstração pinta os pontos com a coluna de referência, que não entra no treino.
+        topics.append("reference")
+    if TaskType.CLUSTERING in task_types:
+        topics.append("silhouette")
+    if TaskType.DIMENSIONALITY_REDUCTION in task_types:
+        topics.append("projection")
+    if iterative:
+        topics += ["snapshots", "loss"]
+    elif TaskType.REGRESSION in task_types:
+        topics.append("loss")
+    if family is ModelFamily.NEURAL:
+        topics += ["gradient_descent", "neural_network", "backpropagation", "network_diagram"]
+    elif iterative and family is ModelFamily.LINEAR:
+        topics.append("gradient_descent")
+    if family is ModelFamily.TREE:
+        topics.append("tree_diagram")
+    if family in (ModelFamily.TREE, ModelFamily.ENSEMBLE) and not (
+        task_types & {TaskType.ANOMALY_DETECTION}
+    ):
+        topics.append("impurity_importance")
+    topics += [demo.topic for demo in laboratory if demo.topic not in topics]
+    return tuple(topics)
 
 
 def _metric_card(metric: Metric) -> MetricCard:

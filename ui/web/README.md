@@ -50,11 +50,17 @@ Depois de mudar um serviço do backend: `uv run python scripts/export_openapi.py
 
 ```
 src/
-├── api/         o cliente (gerado em generated/), os erros, a cache e o vocabulário
-├── components/  ui/ (os do shadcn, adaptados), shell/ (a moldura)
-├── hooks/       hooks partilhados
-├── lib/         format.ts (os números à portuguesa), utils.ts
-├── routes/      um ficheiro por ecrã (o TanStack Router gera routeTree.gen.ts)
+├── api/         o cliente (gerado em generated/), os erros, a cache, o vocabulário, os temas,
+│                a demonstração de um modelo e o acompanhamento pelo WebSocket (stream.ts)
+├── components/  ui/ (os do shadcn, adaptados), shell/ (a moldura), charts/ (os gráficos, em
+│                D3 e SVG), forms/ (o formulário gerado de um JSON Schema), markdown/ (o texto
+│                com fórmulas), data/ (a tabela de dados), notices/ (os avisos)
+├── features/    um ecrã por pasta: home, data, explore, prepare, models, training, agents
+├── hooks/       hooks partilhados (o tamanho de um elemento, um valor com atraso)
+├── lib/         format.ts (os números à portuguesa), colors.ts e classes.ts (as cores dos
+│                dados), utils.ts
+├── routes/      um ficheiro por rota, que só aponta para o ecrã (o TanStack Router gera
+│                routeTree.gen.ts)
 ├── state/       o pouco estado do cliente (session.ts)
 └── styles/      globals.css: os tokens do sistema visual
 ```
@@ -102,9 +108,18 @@ Os textos escrevem-se uma vez, no backend (regra 5 do `CONTRIBUTING.md`). Pede-s
     valor cru. Um teste garante que cada enum que a API devolve está lá, com todos os
     valores;
   - `tasks`: o que muda com cada tarefa (o paradigma, se precisa de alvo, a métrica
-    principal, o modelo sugerido, se os agentes trabalham nela).
-- `GET /explanations` dá todos os temas do painel "Porquê?" (`{tema: {title, text}}`), e
-  `GET /explanations/{tema}` um só.
+    principal, o modelo sugerido, se os agentes trabalham nela);
+  - `step_metrics`: as métricas que os modelos reportam em cada passo do treino, além da
+    loss (`StepRecord.metrics`: `accuracy`, `val_loss`, `oob_score`), com o nome a mostrar,
+    se são percentagem e se são uma loss (a de validação desenha-se com a do treino).
+- `GET /explanations` dá todos os temas (`{tema: {title, text}}`), e
+  `GET /explanations/{tema}` um só. São os do painel "Porquê?" e também o "como ler" de cada
+  gráfico (`correlation_matrix`, `confusion_matrix`, `lineage`, `train_vs_test`…): a interface
+  mostra-os por baixo dos gráficos. Pedem-se ao arrancar, como o vocabulário, e a interface
+  pede cada um pelo nome; `tests/contract/test_topics_in_use.py` procura esses nomes no código
+  das duas interfaces e falha se algum não existir. Os temas que explicam a página de cada
+  modelo vêm no cartão (`topics`), e o "como ler" do campo de decisão vem na própria animação
+  (`TrainingAnimation.how_to_read`), porque depende do que os valores são.
 - `GET /catalog/metrics` dá cada métrica com o que mede, como se lê, a **fórmula em LaTeX**
   e o significado de cada símbolo. Não muda de run para run: pede-se uma vez. Os números de
   um run vêm nos relatórios: cada `MetricResult` traz os `terms` da fórmula (os VP e os FP da
@@ -192,6 +207,13 @@ se calculam com campos que vêm:
 | Se a procura usou uma amostra | `search_rows < train_rows` |
 | Se um candidato falhou | `error !== null` |
 | A linha e a coluna de uma célula da grelha | `Math.floor(estado / columns)` e `estado % columns` |
+| A parte de células em falta de um dataset | `n_missing_cells / (n_rows × n_columns)` |
+| Quantas colunas há de cada tipo | contar `columns[].kind` no perfil |
+| Todos os avisos do perfil | `notices` e os de cada coluna (`columns[].notices`), pela ordem das colunas |
+| O equilíbrio das classes | `classes.at(-1).count / classes[0].count` (vêm da mais para a menos frequente) |
+| As colunas de uma matriz de confusão | `column_labels`; vazio quer dizer as mesmas classes de `labels` (e a diagonal são os acertos) |
+| Os avisos do diagnóstico de um run | `notices` sem os que também estão em `training_notices` |
+| A cor de cada classe | a posição em `class_labels`; no perfil, que não os traz, a mesma ordem do backend (numérica se os valores forem todos números, senão a do texto) |
 
 As regras de domínio vêm sempre do backend, já decididas: se os dados podem seguir
 (`validation.is_usable`), que divisões existem para uma tarefa
@@ -210,7 +232,7 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 | Ecrã | Operações |
 |---|---|
 | 1 · Dados | `datasets_samples`, `datasets_generators`, `datasets_load_sample`, `datasets_generate`, `datasets_upload`, `datasets_load`, `datasets_loaded`, `datasets_summary`, `datasets_preview` |
-| 2 · Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor abre-se com `history_open` |
+| 2 · Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar) |
 | 3 · Explorar | `datasets_profile` |
 | 4 · Preparar | `datasets_suggest_task`, `datasets_task_options`, `datasets_suggest_cleaning`, `datasets_cleaning_operations`, `datasets_prepare` |
 | 5 · Modelo | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `catalog_demo`, `experiments_start` |
@@ -221,6 +243,14 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 | 10 · Laboratório | `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization` |
 | 11 · Reinforcement learning | `reinforcement_environments`, `reinforcement_agents`, `reinforcement_start`, `reinforcement_updates` (e o WebSocket), `reinforcement_pause`, `reinforcement_resume`, `reinforcement_cancel`, `reinforcement_job`, `reinforcement_result` |
 | Todos | `explanations_vocabulary`, `explanations_topics`, `explanations_explain`, `meta_health` |
+
+Na interface web, o Treinar (6) e o Avaliar (7) são um só ecrã, "Treinar e avaliar": o treino
+ao vivo e, quando acaba, a avaliação, com uma gaveta por métrica (a fórmula de
+`catalog_metrics` e os `terms` do run).
+
+O WebSocket de uma procura manda uma mensagem também quando só muda o trabalho a decorrer (o
+candidato que um agente mede, o fold em que vai, a fase): é com isso que o fluxograma mostra
+quem trabalha agora, entre um candidato e o seguinte.
 
 A página de cada modelo usa o cartão (`catalog_model`: a ficha já dividida em `sections`,
 as demonstrações do Laboratório que se aplicam em `laboratory` e os conjuntos de exemplo em

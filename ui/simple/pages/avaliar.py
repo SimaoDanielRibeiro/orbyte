@@ -30,6 +30,7 @@ from ml_lab.core.services import (
     MLLabError,
     Partition,
     TaskType,
+    explain,
 )
 from ml_lab.formatting import format_number, format_percent
 
@@ -165,20 +166,11 @@ def _confusion(result: ExperimentResult) -> None:
     assert matrix is not None  # só se mostram as partes que a têm
     st.plotly_chart(confusion_matrix_chart(matrix), width="stretch")
     if result.task_type is TaskType.CLUSTERING:
-        st.caption(
-            "Cada linha é uma classe da coluna de referência e cada coluna um grupo encontrado: "
-            "grupos que correspondem a classes têm quase tudo numa só célula da coluna."
-        )
+        st.caption(explain("reference_matrix").text)
     elif result.task_type is TaskType.ANOMALY_DETECTION:
-        st.caption(
-            "Cada linha é o que o ponto era (segundo a referência) e cada coluna o que o detetor "
-            "disse: a diagonal são os acertos."
-        )
+        st.caption(explain("anomaly_matrix").text)
     else:
-        st.caption(
-            "Cada linha é a classe real e cada coluna a prevista: a diagonal são os acertos, o "
-            "resto são as confusões do modelo."
-        )
+        st.caption(explain("confusion_matrix").text)
 
 
 def _curves(charts: EvaluationCharts) -> None:
@@ -192,11 +184,7 @@ def _curves(charts: EvaluationCharts) -> None:
     roc, pr = st.columns(2)
     roc.plotly_chart(curves_chart(charts.roc, kind="roc"), width="stretch")
     pr.plotly_chart(curves_chart(charts.pr, kind="pr"), width="stretch")
-    st.caption(
-        "Cada ponto de uma curva é um limiar de decisão diferente. A ROC compara os acertos com "
-        "os falsos alarmes (a diagonal é o acaso); a de precisão-recall mostra o preço de "
-        "encontrar mais casos. Em multiclasse, há uma curva por classe contra as outras."
-    )
+    st.caption(explain("roc_pr_chart").text)
 
 
 def _plane(charts: EvaluationCharts, title: str) -> None:
@@ -206,10 +194,7 @@ def _plane(charts: EvaluationCharts, title: str) -> None:
     st.plotly_chart(
         plane_chart(charts.test_points, charts.axis_labels, value_title=title), width="stretch"
     )
-    st.caption(
-        f"{title}, no plano da projeção 2D do ecrã Preparar. Zonas com muitos erros mostram "
-        "onde o modelo tem mais dificuldade (muitas vezes, onde as classes se misturam)."
-    )
+    st.caption(explain("errors_map").text)
 
 
 def _residuals(charts: EvaluationCharts) -> None:
@@ -222,11 +207,7 @@ def _residuals(charts: EvaluationCharts) -> None:
     st.plotly_chart(
         distribution_chart(residuals.histogram, x_title="Erro (real − previsto)"), width="stretch"
     )
-    st.caption(
-        "Num bom modelo, os erros parecem ruído à volta de zero, sem padrão. Uma curva nos "
-        "resíduos indica uma relação que o modelo não apanhou; um leque a abrir, um erro que "
-        "cresce com o valor previsto."
-    )
+    st.caption(explain("residuals").text)
 
 
 def _groups(charts: EvaluationCharts) -> None:
@@ -237,10 +218,7 @@ def _groups(charts: EvaluationCharts) -> None:
         )
     if charts.test_points is not None:
         right.plotly_chart(plane_chart(charts.test_points, charts.axis_labels), width="stretch")
-    st.caption(
-        "O tamanho de cada grupo e onde ficam os pontos de teste no plano 2D. Grupos muito "
-        "desequilibrados (um enorme e vários minúsculos) costumam querer dizer um k errado."
-    )
+    st.caption(explain("cluster_sizes").text)
 
 
 def _silhouette(charts: EvaluationCharts) -> None:
@@ -248,31 +226,20 @@ def _silhouette(charts: EvaluationCharts) -> None:
         st.info("A silhueta precisa de pelo menos dois grupos com pontos.", icon=":material/info:")
         return
     st.plotly_chart(silhouette_chart(charts.silhouette), width="stretch")
-    st.caption(
-        "Cada barra é um ponto: perto de 1, está bem no seu grupo; perto de 0, está na "
-        "fronteira; negativa, estaria melhor noutro. A linha tracejada é a média."
-    )
+    st.caption(explain("silhouette").text)
 
 
 def _dendrogram(charts: EvaluationCharts) -> None:
     assert charts.dendrogram is not None  # o separador só existe quando há dendrograma
     st.plotly_chart(dendrogram_chart(charts.dendrogram), width="stretch")
-    st.caption(
-        "Cada «U» é uma junção de dois grupos, à altura da distância a que se deu (só as "
-        "últimas 30). A linha vermelha é o corte que dá os grupos escolhidos: uma junção muito "
-        "mais alta do que as de baixo é um bom sítio para cortar."
-    )
+    st.caption(explain("dendrogram").text)
 
 
 def _map(result: ExperimentResult) -> None:
     if result.embedding is None:
         return
     st.plotly_chart(embedding_chart(result.embedding), width="stretch")
-    st.caption(
-        "Os pontos de treino nas novas coordenadas, pintados com a coluna de referência (se a "
-        "escolheste). A confiança dos vizinhos diz se o que está junto no mapa estava junto nos "
-        "dados."
-    )
+    st.caption(explain("embedding").text)
 
 
 def _variance(charts: EvaluationCharts) -> None:
@@ -286,8 +253,8 @@ def _variance(charts: EvaluationCharts) -> None:
         bars_chart(pairs, x_title="Variância explicada (%)", percent=True), width="stretch"
     )
     st.caption(
-        f"As componentes guardadas explicam {format_percent(total)} da variância dos dados. O "
-        "que falta perdeu-se na redução."
+        f"As componentes guardadas explicam {format_percent(total)} da variância dos dados. "
+        f"{explain('explained_variance').text}"
     )
 
 
@@ -299,20 +266,10 @@ def _scores(charts: EvaluationCharts) -> None:
             ),
             width="stretch",
         )
-        st.caption(
-            "A pontuação de cada ponto de teste, pintada com a coluna de referência (as anomalias "
-            "verdadeiras). Acima do limiar, o detetor marca o ponto como anomalia: as anomalias à "
-            "esquerda da linha escaparam-lhe e os pontos normais à direita são falsos alarmes."
-            if charts.scores_reference
-            else "A pontuação de cada ponto de teste, pintada com o que o detetor decidiu. Acima "
-            "do limiar, o ponto é marcado como anomalia."
-        )
+        st.caption(explain("anomaly_scores").text)
     if charts.roc:
         st.plotly_chart(curves_chart(charts.roc, kind="roc"), width="stretch")
-        st.caption(
-            "A curva ROC da pontuação contra as anomalias verdadeiras (da coluna de referência): "
-            "não depende do limiar."
-        )
+        st.caption(explain("anomaly_roc").text)
 
 
 def _compare(result: ExperimentResult) -> None:
@@ -329,10 +286,7 @@ def _compare(result: ExperimentResult) -> None:
             (found.formatted if (found := report.find(m.name)) else "—") for m in test.metrics
         ]
     st.dataframe(table, hide_index=True, width="stretch")
-    st.caption(
-        "O modelo aprendeu com o treino; o teste mostra como se sai com dados que nunca viu. "
-        "Uma diferença grande a favor do treino é o sinal de overfitting."
-    )
+    st.caption(explain("train_vs_test").text)
 
 
 def _validation(result: ExperimentResult) -> None:
@@ -371,10 +325,7 @@ def _learned(result: ExperimentResult) -> None:
         st.plotly_chart(
             bars_chart(list(learned.importances[:20]), x_title="Importância"), width="stretch"
         )
-        st.caption(
-            "Quanto cada feature reduziu a impureza nas divisões das árvores. Favorece features "
-            "com muitos valores: a importância por permutação (ecrã Explicar) é mais honesta."
-        )
+        st.caption(explain("impurity_importance").text)
     if learned.tree_rules:
         st.markdown("**As regras da árvore** (limiares na escala depois da preparação)")
         st.code("\n".join(learned.tree_rules), language=None)

@@ -98,6 +98,8 @@ class TrainingAnimation:
         field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é
             ``field_labels[k]``): as classes, ou os grupos do clustering.
         noise: Se a última categoria do campo é o ruído (pontos sem grupo).
+        how_to_read: Como se lê o desenho, numa ou duas frases (as interfaces mostram-no
+            por baixo dele).
     """
 
     dimensions: int
@@ -111,6 +113,7 @@ class TrainingAnimation:
     points: PointCloud
     field_labels: tuple[str, ...] = ()
     noise: bool = False
+    how_to_read: str = ""
 
     @property
     def animated(self) -> bool:
@@ -176,6 +179,49 @@ def build_animation(
         points=_points(dataset, grid),
         field_labels=field_labels,
         noise=noise,
+        how_to_read=_how_to_read(kind, grid.dimensions, dataset.task_type, noise),
+    )
+
+
+def _how_to_read(kind: ValueKind, dimensions: int, task: TaskType, noise: bool) -> str:
+    """Como se lê o campo, conforme o que os valores são."""
+    if kind == "probability" and dimensions == 2:
+        return (
+            "As cores são a probabilidade que o modelo dá a cada classe em cada ponto do plano; "
+            "a linha é a fronteira de decisão (50%). Os pontos são o treino."
+        )
+    if kind == "probability":
+        return (
+            "A curva é a probabilidade da classe positiva ao longo da feature; a fronteira de "
+            "decisão é onde a curva corta os 50%. Os pontos são o treino."
+        )
+    if kind == "class" and task is TaskType.CLUSTERING:
+        text = (
+            "Cada cor é o grupo que o modelo daria a um ponto nessa zona do plano; as cruzes "
+            "são os centros e as linhas pontilhadas as elipses das nuvens, se o modelo os "
+            "tiver. Os pontos são o treino, com a forma da coluna de referência (se a "
+            "escolheste)."
+        )
+        return (
+            f"{text} As zonas cinzentas são ruído (não pertencem a nenhum grupo)."
+            if noise
+            else text
+        )
+    if kind == "class":
+        return (
+            "Cada cor é a classe que o modelo prevê nessa zona do plano: as fronteiras de "
+            "decisão são as mudanças de cor. Os pontos são o treino."
+        )
+    if kind == "score":
+        return (
+            "As cores são a pontuação de anomalia em cada ponto do plano: quanto mais forte a "
+            "cor, mais estranho seria um ponto ali. Os pontos são o treino."
+        )
+    if dimensions == 1:
+        return "A linha é a previsão do modelo; os pontos são o treino."
+    return (
+        "As cores são o valor que o modelo prevê em cada ponto do plano; os pontos são o "
+        "treino, pintados com o valor real na mesma escala."
     )
 
 

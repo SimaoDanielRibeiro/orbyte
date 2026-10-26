@@ -357,10 +357,7 @@ def _manual(result: AutoMLResult) -> None:
     if not result.ranking:
         return
     st.markdown("**Treinar um candidato à mão**")
-    st.caption(
-        "Qualquer candidato do quadro treina como um run normal, com a mesma preparação e a "
-        "mesma seed: vês o treino passo a passo e avalia-lo no teste."
-    )
+    st.caption(explain("train_candidate").text)
     objective = result.plan.objective
     by_number = {candidate.number: candidate for candidate in result.candidates}
     number = st.selectbox(

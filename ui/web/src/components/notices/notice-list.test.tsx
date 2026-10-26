@@ -10,6 +10,7 @@ import { NoticeList } from "./notice-list";
 const VOCABULARY: Vocabulary = {
   labels: { NoticeLevel: { info: "Nota", warning: "Aviso", error: "Erro" } },
   tasks: [],
+  step_metrics: [],
 };
 
 function renderWithVocabulary(notices: Notice[]) {

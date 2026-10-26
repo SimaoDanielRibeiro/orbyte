@@ -92,6 +92,12 @@ def updates(
     return lab.automl.updates(search_id, after_step, after_message)
 
 
+@router.get("/{search_id}/plan")
+def search_plan(lab: LabDep, search_id: str) -> AutoMLPlan:
+    """O plano de uma procura (as decisões do agente de dados e os agentes), mesmo a decorrer."""
+    return lab.automl.search_plan(search_id)
+
+
 @router.get("/{search_id}/result")
 def result(lab: LabDep, search_id: str) -> AutoMLResult:
     """O resultado de uma procura terminada: o quadro, a conversa e o run do vencedor."""

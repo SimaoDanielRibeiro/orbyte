@@ -22,8 +22,8 @@ AUTOML_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "O modo automático responde depressa a «que modelo serve melhor para isto?» e "
             "mostra porquê. O manual (Explorar, Preparar, Modelo, Treinar) é onde se aprende a "
             "fazer cada escolha e se vê o treino por dentro. Os dois acabam no mesmo sítio: o "
-            "vencedor dos agentes é um run como os outros, que se abre no Avaliar e no "
-            "Explicar, e qualquer candidato do quadro se pode treinar à mão.",
+            "vencedor dos agentes é um run como os outros, que se avalia e explica da mesma "
+            "maneira, e qualquer candidato do quadro se pode treinar à mão.",
         ),
         "model_selection": Explanation(
             "Escolher sem olhar para o teste",
@@ -58,6 +58,13 @@ AUTOML_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "costuma ficar um pouco abaixo da da validação cruzada, e quanto mais candidatos, "
             "mais. Diferenças menores do que o desvio padrão entre folds são, na prática, "
             "empates: nesses casos, o modelo mais simples é uma escolha tão boa como o vencedor.",
+        ),
+        "train_candidate": Explanation(
+            "Treinar um candidato à mão",
+            "Qualquer candidato do quadro treina como um run normal, com a mesma preparação e a "
+            "mesma seed: vês o treino passo a passo e avalia-lo no teste. É a ponte do modo "
+            "automático para o manual, por exemplo para comparar o vencedor com um modelo mais "
+            "simples que ficou quase empatado.",
         ),
         "data_agent": Explanation(
             "O que o agente de dados decide",

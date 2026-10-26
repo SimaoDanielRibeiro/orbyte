@@ -15,6 +15,7 @@ import type {
   Implementation,
   ImputationStrategy,
   JobStatus,
+  LaboratoryDemo,
   ModelFamily,
   NoticeLevel,
   Paradigm,
@@ -37,6 +38,7 @@ export interface VocabularyKinds {
   Implementation: Implementation;
   ImputationStrategy: ImputationStrategy;
   JobStatus: JobStatus;
+  LaboratoryDemo: LaboratoryDemo;
   ModelFamily: ModelFamily;
   NoticeLevel: NoticeLevel;
   Paradigm: Paradigm;

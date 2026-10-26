@@ -54,6 +54,16 @@ def test_a_search_runs_in_the_background_and_ends_with_the_winners_run(
     assert entry["name"].startswith("Agentes · ")
 
 
+def test_the_plan_of_a_search_is_there_while_it_runs_and_after(client: TestClient) -> None:
+    search_id = client.post("/automl", json=REQUEST).json()["run_id"]
+
+    plan = client.get(f"/automl/{search_id}/plan").json()  # logo a seguir: ainda decorre
+
+    assert plan["target"] == "species"
+    assert [agent["family"] for agent in plan["agents"]] == ["linear", "instance_based", "tree"]
+    assert client.get("/automl/search-nada/plan").status_code == 404
+
+
 def test_updates_bring_only_the_new_candidates_and_messages(
     client: TestClient, finished: Waiter
 ) -> None:

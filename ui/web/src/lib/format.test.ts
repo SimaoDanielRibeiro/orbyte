@@ -13,6 +13,7 @@ import {
   formatQuantity,
   formatScientific,
   formatSignificant,
+  formatStatistic,
   formatValue,
 } from "./format";
 
@@ -103,6 +104,24 @@ describe("formatValue e formatList", () => {
     expect(formatList(["Sex"])).toBe("Sex");
     expect(formatList(["Sex", "Embarked"])).toBe("Sex e Embarked");
     expect(formatList(["Sex", "Embarked", "Pclass"])).toBe("Sex, Embarked e Pclass");
+  });
+});
+
+describe("formatStatistic", () => {
+  it("guarda até quatro algarismos significativos, sem zeros à direita", () => {
+    expect(formatStatistic(0.42)).toBe("0,42");
+    expect(formatStatistic(29.69911764705882)).toBe("29,7");
+    expect(formatStatistic(14.526497332334042)).toBe("14,53");
+    expect(formatStatistic(80)).toBe("80");
+    expect(formatStatistic(20.125)).toBe("20,12");
+    expect(formatStatistic(-6.6875)).toBe("-6,688");
+  });
+
+  it("escreve por inteiro a partir de mil, e em potência de 10 os muito pequenos", () => {
+    expect(formatStatistic(206_855.8)).toBe("206 856");
+    expect(formatStatistic(2_635.76)).toBe("2636");
+    expect(formatStatistic(0.0000123)).toBe("1,23 × 10⁻⁵");
+    expect(formatStatistic(0)).toBe("0");
   });
 });
 

@@ -13,7 +13,13 @@ from charts.distributions import (
 from components.layout import render_header, render_why, require_dataset
 from components.notices import render_notices
 from components.state import current_preparation, get_lab
-from ml_lab.core.services import ColumnKind, ColumnProfile, DatasetProfile, DatasetSummary
+from ml_lab.core.services import (
+    ColumnKind,
+    ColumnProfile,
+    DatasetProfile,
+    DatasetSummary,
+    explain,
+)
 from ml_lab.formatting import format_count, format_number, format_percent, format_quantity
 
 # Singular e plural de cada tipo, para frases como "5 numéricas, 1 booleana".
@@ -56,10 +62,7 @@ def main() -> None:
             st.info("São precisas pelo menos duas colunas numéricas para medir correlações.")
         else:
             st.plotly_chart(correlation_chart(profile.correlations), width="stretch")
-            st.caption(
-                "Correlação de Pearson: 1 é uma relação linear perfeita, -1 perfeita mas ao "
-                "contrário, 0 é nenhuma relação linear. Correlação não é causalidade."
-            )
+            st.caption(explain("correlation_matrix").text)
     with missing_tab:
         _missing(profile)
     with target_tab:
@@ -154,10 +157,8 @@ def _missing(profile: DatasetProfile) -> None:
     st.plotly_chart(missing_ratio_chart(profile.columns), width="stretch")
     st.markdown("**Onde estão os nulos**")
     st.plotly_chart(missing_map_chart(profile.missing_map), width="stretch")
-    st.caption(
-        f"{len(profile.missing_map.rows)} linhas espalhadas pelo dataset. Faixas vermelhas na "
-        "vertical são colunas com muitos nulos; na horizontal, linhas quase vazias."
-    )
+    shown = format_quantity(len(profile.missing_map.rows), "linha mostrada", "linhas mostradas")
+    st.caption(f"{shown}. {explain('missing_map').text}")
 
 
 def _target_profile(profile: DatasetProfile) -> None:
@@ -173,8 +174,7 @@ def _target_profile(profile: DatasetProfile) -> None:
         return
     st.plotly_chart(class_balance_chart(balance), width="stretch")
     st.caption(
-        f"Equilíbrio: a classe menos frequente tem {format_percent(balance.imbalance_ratio)} das "
-        "linhas da mais frequente (100% é perfeitamente equilibrado)."
+        f"Equilíbrio: {format_percent(balance.imbalance_ratio)}. {explain('class_balance').text}"
     )
     means = profile.group_means
     if means is not None:
@@ -186,7 +186,7 @@ def _target_profile(profile: DatasetProfile) -> None:
                 for row in means.means
             ]
         st.dataframe(table, hide_index=True, width="stretch")
-        st.caption("Diferenças grandes entre classes indicam features que ajudam a separá-las.")
+        st.caption(explain("group_means").text)
 
 
 main()

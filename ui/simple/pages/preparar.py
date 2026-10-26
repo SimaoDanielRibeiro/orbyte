@@ -27,6 +27,7 @@ from ml_lab.core.services import (
     SplitStrategy,
     TaskType,
     TransformConfig,
+    explain,
 )
 from ml_lab.formatting import format_count, format_number, format_percent
 
@@ -315,7 +316,7 @@ def _result(summary: PreparationSummary) -> None:
     )
     with lineage_tab:
         st.dataframe(lineage_table(summary.lineage), hide_index=True, width="stretch")
-        st.caption("Cada linha é uma operação, por ordem: é com isto que a preparação se repete.")
+        st.caption(explain("lineage").text)
     with split_tab:
         _split_result(summary)
     with data_tab:
@@ -343,10 +344,7 @@ def _split_result(summary: PreparationSummary) -> None:
             f"{format_percent(value.ratio)} ({format_count(value.count)})" for value in part.classes
         ]
     st.dataframe(table, hide_index=True, width="stretch")
-    st.caption(
-        "Proporção de cada classe em cada parte. Na divisão estratificada, as percentagens "
-        "são quase iguais em todas."
-    )
+    st.caption(explain("split_classes").text)
 
 
 def _projection(summary: PreparationSummary) -> None:
@@ -356,12 +354,7 @@ def _projection(summary: PreparationSummary) -> None:
         return
     st.plotly_chart(projection_chart(points), width="stretch")
     st.caption(
-        "Círculos: treino · losangos: validação · cruzes: teste. "
-        + (
-            "Os eixos são as duas componentes principais (PCA), aprendidas só com o treino."
-            if points.method == "pca"
-            else "Os eixos são as próprias features."
-        )
+        f"Círculos: treino · losangos: validação · cruzes: teste. {explain('projection').text}"
     )
     if points.loadings is not None:
         st.markdown("**Peso de cada feature nas componentes**")
@@ -374,6 +367,7 @@ def _projection(summary: PreparationSummary) -> None:
             hide_index=True,
             width="stretch",
         )
+        st.caption(explain("pca_loadings").text)
 
 
 main()

@@ -486,6 +486,24 @@ class AutoMLService:
             working=log.working,
         )
 
+    def search_plan(self, search_id: str) -> AutoMLPlan:
+        """O plano de uma procura desta sessão: o que o agente de dados decidiu e os agentes.
+
+        As atualizações só trazem o que muda; é com isto que quem acompanha a procura desenha
+        os agentes (o fluxograma) e diz o que se está a prever, mesmo antes de ela acabar.
+
+        Raises:
+            SearchNotFoundError: Se a procura já não estiver em memória.
+        """
+        with self._lock:
+            plan = self._searches.get(search_id)
+            result = self._results.get(search_id)
+        if plan is not None:
+            return plan.preview
+        if result is not None:
+            return result.plan
+        raise SearchNotFoundError(search_id)
+
     def result(self, search_id: str) -> AutoMLResult:
         """O resultado de uma procura desta sessão.
 

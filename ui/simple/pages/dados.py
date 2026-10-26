@@ -70,10 +70,7 @@ def _samples() -> None:
 
 def _upload() -> None:
     uploaded = st.file_uploader("Ficheiro CSV ou Excel", type=_UPLOAD_TYPES, key="dados.upload")
-    st.caption(
-        "O separador (vírgula, ponto e vírgula, tabulação) e a codificação são detetados sozinhos. "
-        "O ficheiro fica guardado em data/uploads/, que não vai para o Git."
-    )
+    st.caption(explain("upload").text)
     if uploaded is not None and st.button(
         "Carregar ficheiro", type="primary", icon=":material/upload_file:", key="dados.load_file"
     ):

@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ScreenPlaceholder } from "@/components/shell/screen-placeholder";
-import { SCREENS } from "@/components/shell/screens";
+import { ModelsScreen } from "@/features/models/models-screen";
+
+interface ModelsSearch {
+  /** A tarefa do filtro (`todas` para ver todos); sem ela, a da preparação. */
+  tarefa?: string;
+}
 
 export const Route = createFileRoute("/modelos/")({
-  component: () => <ScreenPlaceholder screen={SCREENS.models} milestone="10.5" />,
+  validateSearch: (search: Record<string, unknown>): ModelsSearch =>
+    typeof search.tarefa === "string" ? { tarefa: search.tarefa } : {},
+  component: ModelsScreen,
 });

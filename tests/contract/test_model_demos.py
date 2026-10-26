@@ -11,6 +11,7 @@ from ml_lab.core.models.base import MODELS
 from ml_lab.core.services.catalog import CatalogService
 from ml_lab.core.services.demos import EXAMPLES
 from ml_lab.core.services.laboratory import LaboratoryDemo
+from ml_lab.core.training.step_metrics import STEP_METRICS
 
 SECTIONS = (
     "intuicao",
@@ -43,8 +44,12 @@ def test_every_model_shows_itself_working_on_an_example(catalog: CatalogService,
         assert demo.embedding is not None  # o resultado é o mapa dos pontos
     else:
         assert demo.animation is not None
+        assert demo.animation.how_to_read, "o campo diz como se lê"
         if card.iterative:
             assert len(demo.animation.frames) > 1, "um modelo que treina por passos anima-se"
+    # As métricas de cada passo têm nome a mostrar no vocabulário (os gráficos do treino).
+    reported = {name for record in demo.history for name in record.metrics}
+    assert reported <= STEP_METRICS.keys(), f"sem nome: {reported - STEP_METRICS.keys()}"
 
 
 @pytest.mark.parametrize("name", MODELS.names())

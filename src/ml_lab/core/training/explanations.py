@@ -44,6 +44,13 @@ TRAINING_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "é por isso um corte da fronteira verdadeira, e alguns pontos podem parecer do "
             "lado errado sem o estarem.",
         ),
+        "embedding": Explanation(
+            "O mapa da redução",
+            "Cada ponto é uma linha de treino nas novas coordenadas. Se escolheste uma coluna "
+            "de referência no ecrã Preparar, as cores são as suas classes: classes bem "
+            "separadas querem dizer que a redução guardou o que as distingue. A confiança dos "
+            "vizinhos diz se o que está junto no mapa estava junto nos dados.",
+        ),
         "neural_network": Explanation(
             "Rede neuronal",
             "Uma rede neuronal densa é uma sequência de camadas. Cada neurónio faz uma soma "

@@ -34,6 +34,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0027](0027-interface-web-com-o-cliente-gerado.md) | A interface web: React, com o cliente gerado do contrato | Proposta |
 | [0028](0028-demonstracoes-dos-modelos-e-formulas-das-metricas.md) | A página de cada modelo e a explicação de cada métrica: demonstrações e fórmulas | Proposta |
 | [0029](0029-sistema-visual-ardosia-e-giz.md) | O sistema visual: ardósia e giz | Proposta |
+| [0030](0030-textos-de-leitura-no-backend.md) | Os textos de leitura vivem no backend, e as interfaces pedem-nos pelo nome | Proposta |
 
 ## Como escrever uma ADR
 

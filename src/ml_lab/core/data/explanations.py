@@ -91,14 +91,69 @@ EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
         "projection": Explanation(
             "Projeção 2D",
             "Um gráfico só mostra duas dimensões. Com duas features, usam-se as próprias; com "
-            "mais, a PCA encontra as duas direções em que os dados variam mais e projeta-os "
-            "nelas. É uma cópia só para ver: o modelo usa todas as features.",
+            "mais, a PCA encontra, só com o treino, as duas direções em que os dados variam "
+            "mais e projeta nelas todas as partes. É uma cópia só para ver: o modelo usa todas "
+            "as features.",
         ),
         "output": Explanation(
             "Saída",
             "No fim, a tabela vira matrizes NumPy de números decimais (float64), e as classes "
             "do alvo viram números 0, 1, 2… É aqui que acaba o pandas: daqui para a frente, os "
             "modelos só veem números, mas os nomes das features e das classes seguem com eles.",
+        ),
+        # Como ler cada gráfico e cada tabela dos ecrãs de dados: as interfaces mostram-nos
+        # por baixo deles, e o painel "Porquê?" também os pode juntar.
+        "upload": Explanation(
+            "Carregar um ficheiro",
+            "Aceita CSV (separado por vírgulas, por ponto e vírgula ou por tabulações, também "
+            "comprimido em `.gz`) e Excel (`.xlsx`, `.xlsm`). O separador e a codificação dos "
+            "acentos são detetados sozinhos. O ficheiro fica guardado na pasta dos uploads "
+            "(`data/uploads/`), que não vai para o Git.",
+        ),
+        "correlation_matrix": Explanation(
+            "Matriz de correlação",
+            "Cada célula é a correlação de Pearson entre duas colunas numéricas: 1 é uma relação "
+            "linear perfeita, -1 também, mas ao contrário (uma sobe quando a outra desce), e 0 "
+            "é nenhuma relação linear. Duas features muito correlacionadas dizem quase o mesmo "
+            "ao modelo. Correlação não é causalidade.",
+        ),
+        "missing_map": Explanation(
+            "Mapa dos valores em falta",
+            "Cada linha do mapa é uma linha do dataset (uma seleção espalhada por ele todo) e "
+            "cada coluna é uma coluna; as células marcadas são valores em falta. Faixas na "
+            "vertical são colunas com muitos nulos; na horizontal, linhas quase vazias. Nulos "
+            "que aparecem juntos em várias colunas costumam ter a mesma causa.",
+        ),
+        "class_balance": Explanation(
+            "Equilíbrio das classes",
+            "Quantas linhas tem cada classe do alvo. O equilíbrio é a parte que a classe menos "
+            "frequente tem da mais frequente: 100% é perfeitamente equilibrado. Com classes "
+            "muito desequilibradas, um modelo que responde sempre a classe maior parece bom na "
+            "exatidão; a divisão estratificada e métricas como o F1 passam a contar mais.",
+        ),
+        "group_means": Explanation(
+            "Médias por classe",
+            "A média de cada feature numérica em cada classe do alvo. Diferenças grandes entre "
+            "as classes indicam features que ajudam a separá-las; médias quase iguais, features "
+            "que sozinhas dizem pouco.",
+        ),
+        "lineage": Explanation(
+            "Linhagem",
+            "Cada linha é uma operação da preparação, pela ordem em que correu, com o que mudou: "
+            "as linhas antes e depois e as colunas que entraram, saíram ou mudaram. É com esta "
+            "lista que a preparação se repete, igual, noutro dia ou com dados novos.",
+        ),
+        "split_classes": Explanation(
+            "Classes em cada parte",
+            "A proporção de cada classe no treino, na validação e no teste. Na divisão "
+            "estratificada, as percentagens são quase iguais em todas as partes; na aleatória, "
+            "podem afastar-se, sobretudo com classes raras e poucos dados.",
+        ),
+        "pca_loadings": Explanation(
+            "Pesos das componentes",
+            "Cada componente principal é uma soma das features (já transformadas), cada uma "
+            "com o seu peso. Um peso grande, positivo ou negativo, diz que a feature conta "
+            "muito nessa direção; perto de zero, que quase não conta.",
         ),
     }
 )

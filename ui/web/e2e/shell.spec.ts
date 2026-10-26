@@ -30,11 +30,16 @@ test("o início abre com a API ligada e os dois caminhos", async ({ page }) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { level: 1, name: "Como queres trabalhar?" }),
+    page.getByRole("heading", { level: 1, name: "Vê um modelo aprender." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Como queres trabalhar?" }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Testar à mão" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Procurar com agentes" })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("API ligada");
+  await expect(page.getByRole("navigation", { name: "Ecrãs" }).getByRole("status")).toContainText(
+    "API ligada",
+  );
 });
 
 test("escolher um caminho mostra os passos dele na barra", async ({ page }) => {

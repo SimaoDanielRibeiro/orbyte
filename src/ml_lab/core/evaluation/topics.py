@@ -105,5 +105,84 @@ EVALUATION_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "exatamente a zero. Alpha a mais apaga também o que importa; o melhor alpha "
             "escolhe-se pelo teste.",
         ),
+        # Como ler os gráficos da avaliação: as interfaces mostram-nos por baixo deles.
+        "train_vs_test": Explanation(
+            "Treino e teste",
+            "O modelo aprendeu com o treino; o teste mostra como se sai com dados que nunca "
+            "viu. Uma diferença grande a favor do treino é o sinal de overfitting.",
+        ),
+        "confusion_matrix": Explanation(
+            "Matriz de confusão",
+            "Cada linha é a classe real e cada coluna a prevista: a diagonal são os acertos, o "
+            "resto são as confusões do modelo.",
+        ),
+        "reference_matrix": Explanation(
+            "Grupos e referência",
+            "Cada linha é uma classe da coluna de referência e cada coluna um grupo "
+            "encontrado: grupos que correspondem a classes têm quase tudo numa só célula da "
+            "coluna.",
+        ),
+        "anomaly_matrix": Explanation(
+            "Anomalias e referência",
+            "Cada linha é o que o ponto era (segundo a coluna de referência) e cada coluna o "
+            "que o detetor disse: a diagonal são os acertos.",
+        ),
+        "roc_pr_chart": Explanation(
+            "Como ler as curvas",
+            "Cada ponto de uma curva é um limiar de decisão diferente. A ROC compara os "
+            "acertos com os falsos alarmes (a diagonal é o acaso); a de precisão-recall mostra "
+            "o preço de encontrar mais casos. Em multiclasse, há uma curva por classe contra "
+            "as outras.",
+        ),
+        "errors_map": Explanation(
+            "Onde o modelo erra",
+            "Os pontos de teste no plano da projeção 2D do ecrã Preparar. Zonas com muitos "
+            "erros mostram onde o modelo tem mais dificuldade (muitas vezes, onde as classes "
+            "se misturam).",
+        ),
+        "cluster_sizes": Explanation(
+            "O tamanho dos grupos",
+            "Quantos pontos de teste ficaram em cada grupo. Grupos muito desequilibrados (um "
+            "enorme e vários minúsculos) costumam querer dizer um número de grupos errado.",
+        ),
+        "dendrogram": Explanation(
+            "Dendrograma",
+            "Cada «U» é uma junção de dois grupos, à altura da distância a que se deu (só as "
+            "últimas 30). A linha horizontal é o corte que dá os grupos escolhidos: uma junção "
+            "muito mais alta do que as de baixo é um bom sítio para cortar.",
+        ),
+        "explained_variance": Explanation(
+            "Variância explicada",
+            "Quanto da variância dos dados guarda cada componente, por ordem. A soma é o que a "
+            "redução guardou; o que falta perdeu-se nela.",
+        ),
+        "anomaly_scores": Explanation(
+            "As pontuações de anomalia",
+            "A pontuação de cada ponto de teste. Acima do limiar (a linha), o detetor marca o "
+            "ponto como anomalia. Com uma coluna de referência, as cores são as anomalias "
+            "verdadeiras: as que ficam abaixo do limiar escaparam ao detetor, e os pontos "
+            "normais acima dele são falsos alarmes. Sem ela, as cores são o que o detetor "
+            "decidiu.",
+        ),
+        "anomaly_roc": Explanation(
+            "A ROC da pontuação",
+            "A curva ROC da pontuação contra as anomalias verdadeiras (da coluna de "
+            "referência): não depende do limiar.",
+        ),
+        # Como ler o que um modelo aprendeu (a página de cada modelo e o fim de um treino).
+        "impurity_importance": Explanation(
+            "Importância pelas impurezas",
+            "Quanto cada feature reduziu a impureza nas divisões das árvores, somado em todas "
+            "elas e normalizado para dar 1. Favorece as features com muitos valores "
+            "diferentes: a importância por permutação (ecrã Explicar) é mais honesta.",
+        ),
+        "tree_diagram": Explanation(
+            "Como ler a árvore",
+            "Cada nó faz uma pergunta a uma feature («x2 ≤ 0,26?»): os pontos que respondem "
+            "sim seguem para a esquerda, os outros para a direita. As folhas, em baixo, dão a "
+            "previsão: a classe mais frequente dos pontos de treino que lá chegam, com a parte "
+            "que ela tem. Uma folha pura (100%) só tem pontos de uma classe; muitas folhas "
+            "pequenas e puras são o sinal de uma árvore que decorou o treino.",
+        ),
     }
 )

@@ -5745,6 +5745,88 @@
         }
       }
     },
+    "/automl/{search_id}/plan": {
+      "get": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "O plano de uma procura (as decisões do agente de dados e os agentes), mesmo a decorrer.",
+        "operationId": "automl_search_plan",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Search Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoMLPlan"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/automl/{search_id}/result": {
       "get": {
         "tags": [
@@ -9676,6 +9758,13 @@
             },
             "type": "array",
             "title": "Examples"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
           }
         },
         "type": "object",
@@ -9693,10 +9782,11 @@
           "doc",
           "sections",
           "laboratory",
-          "examples"
+          "examples",
+          "topics"
         ],
         "title": "ModelCard",
-        "description": "Um modelo do catálogo, pronto a mostrar.\n\nAttributes:\n    name: Identificador no registo.\n    display_name: Nome a mostrar.\n    summary: O que faz, numa frase.\n    task_types: Tipos de tarefa que resolve.\n    family: Família (para agrupar os cartões).\n    implementation: Didática ou de uma biblioteca.\n    iterative: Se treina por passos.\n    supports_proba: Se dá probabilidades.\n    hyperparameters_schema: JSON Schema dos hiperparâmetros.\n    defaults: Os valores por omissão dos hiperparâmetros.\n    doc: O texto da ficha didática, em Markdown (vazio se o ficheiro faltar).\n    sections: A ficha dividida pelas suas secções (Intuição, Matemática essencial…).\n    laboratory: As demonstrações do Laboratório que mostram como o modelo funciona.\n    examples: Os conjuntos de exemplo da demonstração (``demo``), o de omissão primeiro."
+        "description": "Um modelo do catálogo, pronto a mostrar.\n\nAttributes:\n    name: Identificador no registo.\n    display_name: Nome a mostrar.\n    summary: O que faz, numa frase.\n    task_types: Tipos de tarefa que resolve.\n    family: Família (para agrupar os cartões).\n    implementation: Didática ou de uma biblioteca.\n    iterative: Se treina por passos.\n    supports_proba: Se dá probabilidades.\n    hyperparameters_schema: JSON Schema dos hiperparâmetros.\n    defaults: Os valores por omissão dos hiperparâmetros.\n    doc: O texto da ficha didática, em Markdown (vazio se o ficheiro faltar).\n    sections: A ficha dividida pelas suas secções (Intuição, Matemática essencial…).\n    laboratory: As demonstrações do Laboratório que mostram como o modelo funciona.\n    examples: Os conjuntos de exemplo da demonstração (``demo``), o de omissão primeiro.\n    topics: Os temas do painel \"Porquê?\" que explicam o que a página do modelo mostra."
       },
       "ModelDemo": {
         "properties": {
@@ -11801,6 +11891,35 @@
         "title": "Stage",
         "description": "Etapa da camada de dados em que a operação aconteceu (ver ``core/data/README.md``)."
       },
+      "StepMetric": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "as_percent": {
+            "type": "boolean",
+            "title": "As Percent"
+          },
+          "is_loss": {
+            "type": "boolean",
+            "title": "Is Loss"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "as_percent",
+          "is_loss"
+        ],
+        "title": "StepMetric",
+        "description": "Uma métrica de cada passo do treino.\n\nAttributes:\n    name: O nome em ``StepRecord.metrics``.\n    label: O nome a mostrar.\n    as_percent: Se se mostra em percentagem (as que vão de 0 a 1).\n    is_loss: Se é uma loss (desenha-se junto da loss do treino, na mesma escala)."
+      },
       "StepRecord": {
         "properties": {
           "step": {
@@ -12126,6 +12245,11 @@
             "type": "boolean",
             "title": "Noise",
             "default": false
+          },
+          "how_to_read": {
+            "type": "string",
+            "title": "How To Read",
+            "default": ""
           }
         },
         "type": "object",
@@ -12140,10 +12264,11 @@
           "frames",
           "points",
           "field_labels",
-          "noise"
+          "noise",
+          "how_to_read"
         ],
         "title": "TrainingAnimation",
-        "description": "Tudo o que é preciso para animar o treino.\n\nAttributes:\n    dimensions: 2 (campo no plano) ou 1 (curva ao longo de uma feature).\n    value_kind: O que os valores do campo são.\n    value_label: O nome a mostrar para os valores.\n    xs: A grelha no eixo horizontal.\n    ys: A grelha no eixo vertical (vazio em 1D).\n    axis_labels: O nome de cada eixo.\n    class_labels: O nome das classes dos pontos (do alvo ou da referência).\n    frames: Um campo por snapshot, por ordem de passo.\n    points: Os pontos de treino.\n    field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é\n        ``field_labels[k]``): as classes, ou os grupos do clustering.\n    noise: Se a última categoria do campo é o ruído (pontos sem grupo)."
+        "description": "Tudo o que é preciso para animar o treino.\n\nAttributes:\n    dimensions: 2 (campo no plano) ou 1 (curva ao longo de uma feature).\n    value_kind: O que os valores do campo são.\n    value_label: O nome a mostrar para os valores.\n    xs: A grelha no eixo horizontal.\n    ys: A grelha no eixo vertical (vazio em 1D).\n    axis_labels: O nome de cada eixo.\n    class_labels: O nome das classes dos pontos (do alvo ou da referência).\n    frames: Um campo por snapshot, por ordem de passo.\n    points: Os pontos de treino.\n    field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é\n        ``field_labels[k]``): as classes, ou os grupos do clustering.\n    noise: Se a última categoria do campo é o ruído (pontos sem grupo).\n    how_to_read: Como se lê o desenho, numa ou duas frases (as interfaces mostram-no\n        por baixo dele)."
       },
       "TrainingUpdate": {
         "properties": {
@@ -12424,15 +12549,23 @@
             },
             "type": "array",
             "title": "Tasks"
+          },
+          "step_metrics": {
+            "items": {
+              "$ref": "#/components/schemas/StepMetric"
+            },
+            "type": "array",
+            "title": "Step Metrics"
           }
         },
         "type": "object",
         "required": [
           "labels",
-          "tasks"
+          "tasks",
+          "step_metrics"
         ],
         "title": "Vocabulary",
-        "description": "O vocabulário da interface.\n\nAttributes:\n    labels: Para cada enum, pelo nome do seu tipo (o mesmo do OpenAPI, como\n        ``TaskType``), o nome a mostrar de cada valor.\n    tasks: As tarefas, pela ordem do enum."
+        "description": "O vocabulário da interface.\n\nAttributes:\n    labels: Para cada enum, pelo nome do seu tipo (o mesmo do OpenAPI, como\n        ``TaskType``), o nome a mostrar de cada valor.\n    tasks: As tarefas, pela ordem do enum.\n    step_metrics: As métricas que os modelos reportam em cada passo do treino, além da\n        loss (``StepRecord.metrics``), com o nome a mostrar."
       },
       "WorkInProgress": {
         "properties": {
