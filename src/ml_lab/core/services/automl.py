@@ -47,12 +47,16 @@ from ml_lab.core.automl.objective import (
 from ml_lab.core.automl.search_log import (
     COORDINATOR,
     DATA_AGENT,
+    TO_COORDINATOR,
+    TO_TEST,
     AgentMessage,
     AgentRole,
     Candidate,
+    MessageKind,
     SearchLog,
     SearchPhase,
     WorkInProgress,
+    to_agents,
 )
 from ml_lab.core.automl.search_space import search_space
 from ml_lab.core.data.preparation import PreparationConfig
@@ -640,9 +644,16 @@ class AutoMLService:
         try:
             log.enter(SearchPhase.DATA)
             for decision in preview.decisions:
-                log.say(AgentRole.DATA, DATA_AGENT, f"{decision.title}. {decision.reason}")
+                log.say(
+                    AgentRole.DATA,
+                    DATA_AGENT,
+                    f"{decision.title}. {decision.reason}",
+                    kind=MessageKind.REPORT,
+                    recipients=TO_COORDINATOR,
+                )
+            agents = to_agents(agent.family for agent in preview.agents)
             for text in _opening(preview, plan.objective):
-                log.say(AgentRole.COORDINATOR, COORDINATOR, text)
+                log.say(AgentRole.COORDINATOR, COORDINATOR, text, recipients=agents)
             folds = self._datasets.folds(
                 request.dataset,
                 preview.preparation,
@@ -720,6 +731,9 @@ class AutoMLService:
             f"({format_quantity(preview.train_rows, 'linha', 'linhas')}), e a avaliá-lo no teste "
             f"({format_quantity(preview.test_rows, 'linha', 'linhas')}), pela primeira e única "
             "vez.",
+            candidate=winner.number,
+            kind=MessageKind.TEST,
+            recipients=TO_TEST,
         )
         config = ExperimentConfig(
             dataset=plan.request.dataset,
@@ -731,7 +745,14 @@ class AutoMLService:
         test = experiment.main_report.find(objective.name)
         self._name_run(experiment.run_id, f"Agentes · {winner.model_display_name}", preview)
         reading = _test_reading(winner, test, objective, sampled=preview.sampled)
-        plan.log.say(AgentRole.COORDINATOR, COORDINATOR, reading)
+        # A leitura do teste é para quem acompanha a procura: não tem destinatários.
+        plan.log.say(
+            AgentRole.COORDINATOR,
+            COORDINATOR,
+            reading,
+            candidate=winner.number,
+            kind=MessageKind.TEST,
+        )
         return experiment.run_id, test
 
     def _name_run(self, run_id: str, name: str, preview: AutoMLPlan) -> None:

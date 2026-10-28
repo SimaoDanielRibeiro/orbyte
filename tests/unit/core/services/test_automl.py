@@ -16,7 +16,10 @@ from ml_lab.core.services import (
     AutoMLRequest,
     JobStatus,
     Lab,
+    MessageKind,
     ModelFamily,
+    Participant,
+    ParticipantKind,
     SearchPhase,
     SearchSettings,
     SourceSpec,
@@ -120,6 +123,16 @@ def test_a_search_runs_in_the_background_and_the_winner_lands_in_the_history(lab
     assert result.test.name == "accuracy"
     assert result.messages[0].role is AgentRole.DATA
     assert result.messages[-1].text.startswith("No teste: ")
+    # A troca: o plano vai ao coordenador; no fim, o vencedor vai ao teste, e a leitura do
+    # teste é para quem acompanha (sem destinatários).
+    first, training, reading = result.messages[0], result.messages[-2], result.messages[-1]
+    assert first.kind is MessageKind.REPORT
+    assert first.recipients == (Participant(ParticipantKind.COORDINATOR),)
+    assert training.kind is MessageKind.TEST
+    assert training.recipients == (Participant(ParticipantKind.TEST),)
+    assert training.candidate == reading.candidate == result.winner
+    assert reading.kind is MessageKind.TEST
+    assert reading.recipients == ()
 
 
 def test_updates_send_only_what_is_new(lab: Lab) -> None:

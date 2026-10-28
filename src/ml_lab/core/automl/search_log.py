@@ -8,7 +8,7 @@ para quem acompanha pedir só o que é novo.
 """
 
 import threading
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
 from types import MappingProxyType
@@ -74,9 +74,92 @@ def model_agent_name(family: ModelFamily) -> str:
     return f"Agente · {family.label}"
 
 
+class ParticipantKind(StrEnum):
+    """Quem pode receber uma mensagem: os agentes e as duas etapas do fim da procura."""
+
+    DATA = "data"
+    COORDINATOR = "coordinator"
+    MODEL = "model"
+    WINNER = "winner"
+    TEST = "test"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar, em português."""
+        return _PARTICIPANT_LABELS[self]
+
+
+_PARTICIPANT_LABELS: Final[Mapping[ParticipantKind, str]] = MappingProxyType(
+    {
+        ParticipantKind.DATA: "Agente de dados",
+        ParticipantKind.COORDINATOR: "Coordenador",
+        ParticipantKind.MODEL: "Agente de modelo",
+        ParticipantKind.WINNER: "Vencedor",
+        ParticipantKind.TEST: "Teste",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class Participant:
+    """Um destinatário de uma mensagem.
+
+    Attributes:
+        kind: Quem é.
+        family: Num agente de modelo, a sua família.
+    """
+
+    kind: ParticipantKind
+    family: ModelFamily | None = None
+
+
+TO_COORDINATOR: Final = (Participant(ParticipantKind.COORDINATOR),)
+TO_WINNER: Final = (Participant(ParticipantKind.WINNER),)
+TO_TEST: Final = (Participant(ParticipantKind.TEST),)
+
+
+def to_agents(families: Iterable[ModelFamily]) -> tuple[Participant, ...]:
+    """Os agentes das famílias ``families`` (cada um uma vez, pela ordem)."""
+    return tuple(Participant(ParticipantKind.MODEL, family) for family in dict.fromkeys(families))
+
+
+class MessageKind(StrEnum):
+    """O que uma mensagem é na troca entre os agentes (o histórico das trocas desenha-a)."""
+
+    REPORT = "report"
+    ANNOUNCEMENT = "announcement"
+    REQUEST = "request"
+    REPLY = "reply"
+    DECISION = "decision"
+    TEST = "test"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar, em português."""
+        return _MESSAGE_KIND_LABELS[self]
+
+
+_MESSAGE_KIND_LABELS: Final[Mapping[MessageKind, str]] = MappingProxyType(
+    {
+        MessageKind.REPORT: "Relatório",
+        MessageKind.ANNOUNCEMENT: "Anúncio",
+        MessageKind.REQUEST: "Pedido",
+        MessageKind.REPLY: "Resposta",
+        MessageKind.DECISION: "Decisão",
+        MessageKind.TEST: "Teste",
+    }
+)
+
+
 @dataclass(frozen=True, slots=True)
 class AgentMessage:
-    """Uma mensagem da conversa.
+    """Uma mensagem da conversa: quem a diz, a quem, e o quê.
+
+    As mensagens contam a procura como uma troca: o agente de dados entrega o plano ao
+    coordenador (``REPORT``); o coordenador anuncia as rondas aos agentes (``ANNOUNCEMENT``),
+    pede a cada um que meça um candidato (``REQUEST``) e recebe a resposta com o resultado
+    (``REPLY``); no fim, passa o melhor ao vencedor (``DECISION``) e o vencedor vai ao teste
+    (``TEST``). É com ``kind`` e ``recipients`` que o histórico visual desenha cada troca.
 
     Attributes:
         number: A ordem na conversa (1, 2, 3…).
@@ -86,6 +169,8 @@ class AgentMessage:
         phase: A fase da procura em que o disse.
         family: Num agente de modelo, a sua família.
         candidate: O candidato de que fala, se for o caso.
+        kind: O que a mensagem é na troca.
+        recipients: A quem se dirige (vazio: a quem acompanha a procura).
     """
 
     number: int
@@ -95,6 +180,8 @@ class AgentMessage:
     phase: SearchPhase
     family: ModelFamily | None = None
     candidate: int | None = None
+    kind: MessageKind = MessageKind.ANNOUNCEMENT
+    recipients: tuple[Participant, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,6 +289,8 @@ class SearchLog:
         *,
         family: ModelFamily | None = None,
         candidate: int | None = None,
+        kind: MessageKind = MessageKind.ANNOUNCEMENT,
+        recipients: tuple[Participant, ...] = (),
     ) -> AgentMessage:
         """Junta uma mensagem à conversa."""
         with self._lock:
@@ -213,6 +302,8 @@ class SearchLog:
                 phase=self._phase,
                 family=family,
                 candidate=candidate,
+                kind=kind,
+                recipients=recipients,
             )
             self._messages.append(message)
         return message

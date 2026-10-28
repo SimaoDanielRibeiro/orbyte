@@ -17,6 +17,17 @@ AUTOML_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "razão. Não há magia nem um modelo de linguagem: são regras e medições, e com a "
             "mesma seed a procura repete-se tal e qual.",
         ),
+        "exchange_history": Explanation(
+            "O histórico das trocas",
+            "Repete a procura mensagem a mensagem, no fluxograma: cada troca é uma luz que vai "
+            "de quem fala para quem ouve. O **agente de dados** entrega o plano ao "
+            "**coordenador**; o coordenador anuncia cada ronda aos agentes e dá a vez a um de "
+            "cada vez (um **pedido**); o agente mede o candidato com validação cruzada e "
+            "responde-lhe com o resultado (a **resposta**). No fim, o coordenador passa o "
+            "melhor ao **vencedor**, que treina com o treino todo e vai ao **teste**, uma só "
+            "vez. A linha do tempo tem uma marca por mensagem, com a cor de quem a disse: "
+            "arrasta-a para ires a qualquer momento da procura e veres como estava.",
+        ),
         "automatic_or_manual": Explanation(
             "Automático ou manual?",
             "O modo automático responde depressa a «que modelo serve melhor para isto?» e "

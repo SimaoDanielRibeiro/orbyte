@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from ml_lab.core.automl.objective import supports
-from ml_lab.core.automl.search_log import AgentRole, SearchPhase
+from ml_lab.core.automl.search_log import AgentRole, MessageKind, ParticipantKind, SearchPhase
 from ml_lab.core.data.lineage import Stage
 from ml_lab.core.data.schema import ColumnKind
 from ml_lab.core.data.splitting.base import SplitStrategy
@@ -100,9 +100,11 @@ def vocabulary() -> Vocabulary:
         "ImputationStrategy": _labels(ImputationStrategy),
         "JobStatus": _labels(JobStatus),
         "LaboratoryDemo": _labels(LaboratoryDemo),
+        "MessageKind": _labels(MessageKind),
         "ModelFamily": _labels(ModelFamily),
         "NoticeLevel": _labels(NoticeLevel),
         "Paradigm": _labels(Paradigm),
+        "ParticipantKind": _labels(ParticipantKind),
         "Partition": _labels(Partition),
         "ScalingMethod": _labels(ScalingMethod),
         "SearchPhase": _labels(SearchPhase),

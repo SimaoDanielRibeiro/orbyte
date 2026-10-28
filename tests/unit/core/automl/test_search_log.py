@@ -5,10 +5,14 @@ from dataclasses import replace
 from ml_lab.core.automl.search_log import (
     AgentRole,
     Candidate,
+    MessageKind,
+    Participant,
+    ParticipantKind,
     SearchLog,
     SearchPhase,
     WorkInProgress,
     model_agent_name,
+    to_agents,
 )
 from ml_lab.core.models.base import ModelFamily
 
@@ -49,6 +53,24 @@ def test_messages_are_numbered_and_carry_the_phase() -> None:
     assert second.number == 2
     assert [m.phase for m in log.messages()] == [SearchPhase.DATA, SearchPhase.SCREENING]
     assert log.phase is SearchPhase.SCREENING
+
+
+def test_a_message_without_recipients_is_an_announcement_to_whoever_follows() -> None:
+    log = SearchLog()
+
+    message = log.say(AgentRole.COORDINATOR, "Coordenador", "Ronda 1.")
+
+    assert message.kind is MessageKind.ANNOUNCEMENT
+    assert message.recipients == ()
+
+
+def test_each_agent_is_a_recipient_once_in_the_order_given() -> None:
+    recipients = to_agents([ModelFamily.TREE, ModelFamily.LINEAR, ModelFamily.TREE])
+
+    assert recipients == (
+        Participant(ParticipantKind.MODEL, ModelFamily.TREE),
+        Participant(ParticipantKind.MODEL, ModelFamily.LINEAR),
+    )
 
 
 def test_whoever_follows_asks_only_for_what_is_new() -> None:

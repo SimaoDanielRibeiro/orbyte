@@ -17,6 +17,11 @@ um treino, e a nota final do vencedor deixava de ser honesta.
 
 O vencedor é o candidato com a melhor média; num empate, o de menor desvio padrão (o mais
 estável) e depois o que veio primeiro (a triagem vem antes da afinação).
+
+A conversa conta a procura como uma troca, com quem fala a quem: o coordenador anuncia cada
+ronda aos agentes, dá a vez a um agente de cada vez (um pedido, com o número do candidato que
+vai sair dele), o agente responde-lhe com o resultado, e no fim o coordenador passa o melhor ao
+vencedor. O histórico visual da interface desenha estas trocas pela ordem.
 """
 
 import math
@@ -32,11 +37,16 @@ from ml_lab.core.automl.model_agent import ModelAgent, describe_changes
 from ml_lab.core.automl.objective import Objective
 from ml_lab.core.automl.search_log import (
     COORDINATOR,
+    TO_COORDINATOR,
+    TO_WINNER,
     AgentRole,
     Candidate,
+    MessageKind,
+    Participant,
     SearchLog,
     SearchPhase,
     WorkInProgress,
+    to_agents,
 )
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.evaluation.validation import cross_validate
@@ -148,7 +158,8 @@ class Coordinator:
             f"Ronda 1, triagem: {format_quantity(len(planned), 'modelo', 'modelos')} de "
             f"{format_quantity(families, 'família', 'famílias')}, cada um com os valores por "
             "omissão. Diz que famílias se dão bem com estes dados, antes de gastar o "
-            "orçamento a afinar."
+            "orçamento a afinar.",
+            recipients=to_agents(agent.family for agent, _ in planned),
         )
         if len(planned) < len(order):
             left_out = ", ".join(model.info.display_name for _, model in order[len(planned) :])
@@ -159,6 +170,7 @@ class Coordinator:
         for agent, model in planned:
             if not self._may_continue():
                 return
+            self._ask(agent, f"mede {model.info.display_name} com os valores por omissão.")
             candidate = self._evaluate(agent, model, agent.defaults(model), SearchPhase.SCREENING)
             self._agent_says(agent, candidate, None)
 
@@ -174,13 +186,16 @@ class Coordinator:
         self._say(
             f"Passam à afinação: {names}. À vez, o agente de cada um propõe outra combinação "
             "de hiperparâmetros, sorteada do espaço de procura do modelo (procura aleatória), "
-            f"até gastar os {format_count(self._left())} candidatos que sobram do orçamento."
+            f"até gastar os {format_count(self._left())} candidatos que sobram do orçamento.",
+            recipients=to_agents(agent.family for agent, _ in finalists),
         )
         self._log.enter(SearchPhase.TUNING)
         rotation: deque[Entry] = deque(finalists)
         while rotation and self._left() > 0:
             agent, model = rotation.popleft()
+            turn = f"é a tua vez de afinar {model.info.display_name}."
             if agent.space(model).is_empty:
+                self._ask(agent, turn, numbered=False)
                 self._agent_says(
                     agent,
                     None,
@@ -191,6 +206,7 @@ class Coordinator:
                 continue
             values = agent.propose(model, self._rng)
             if values is None:
+                self._ask(agent, turn, numbered=False)
                 self._agent_says(
                     agent,
                     None,
@@ -200,6 +216,7 @@ class Coordinator:
                 continue
             if not self._may_continue():
                 return
+            self._ask(agent, turn)
             best_before = self._best(model)
             candidate = self._evaluate(agent, model, values, SearchPhase.TUNING)
             self._agent_says(agent, candidate, best_before)
@@ -297,6 +314,7 @@ class Coordinator:
     # --- a conversa --------------------------------------------------------------------
 
     def _announce(self, winner: Candidate | None, ranked: Sequence[Candidate]) -> None:
+        """Escolhe o vencedor e passa-o à etapa seguinte (o treino com tudo e o teste)."""
         if winner is None:
             self._say("Nenhum candidato chegou ao fim da validação cruzada: não há vencedor.")
             return
@@ -314,10 +332,38 @@ class Coordinator:
                 f" O segundo é {second.model_display_name} ({objective.written(second.mean)}), "
                 f"a {gap}."
             )
-        self._say(text)
+        self._say(text, kind=MessageKind.DECISION, recipients=TO_WINNER, candidate=winner.number)
 
-    def _say(self, text: str) -> None:
-        self._log.say(AgentRole.COORDINATOR, COORDINATOR, text)
+    def _say(
+        self,
+        text: str,
+        *,
+        kind: MessageKind = MessageKind.ANNOUNCEMENT,
+        recipients: tuple[Participant, ...] | None = None,
+        candidate: int | None = None,
+    ) -> None:
+        """O coordenador fala; sem destinatários, fala para todos os agentes."""
+        self._log.say(
+            AgentRole.COORDINATOR,
+            COORDINATOR,
+            text,
+            candidate=candidate,
+            kind=kind,
+            recipients=(
+                to_agents(agent.family for agent in self._agents)
+                if recipients is None
+                else recipients
+            ),
+        )
+
+    def _ask(self, agent: ModelAgent, request: str, *, numbered: bool = True) -> None:
+        """O coordenador dá a vez a um agente (com o número do candidato que vai sair dela)."""
+        self._say(
+            f"{agent.name}, {request}",
+            kind=MessageKind.REQUEST,
+            recipients=to_agents([agent.family]),
+            candidate=self._log.next_number if numbered else None,
+        )
 
     def _agent_says(
         self,
@@ -336,6 +382,8 @@ class Coordinator:
             text,
             family=agent.family,
             candidate=None if candidate is None else candidate.number,
+            kind=MessageKind.REPLY,
+            recipients=TO_COORDINATOR,
         )
 
     # --- o orçamento e o controlo --------------------------------------------------------

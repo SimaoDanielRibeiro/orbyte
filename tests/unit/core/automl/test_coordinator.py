@@ -17,6 +17,9 @@ from ml_lab.core.automl.objective import objective_for
 from ml_lab.core.automl.search_log import (
     AgentRole,
     Candidate,
+    MessageKind,
+    Participant,
+    ParticipantKind,
     SearchLog,
     SearchPhase,
     WorkInProgress,
@@ -228,6 +231,34 @@ def test_the_conversation_tells_the_story_of_the_search() -> None:
     assert all(m.candidate is not None for m in agents)
     assert [m.number for m in messages] == list(range(1, len(messages) + 1))
     assert {m.phase for m in messages} == {SearchPhase.SCREENING, SearchPhase.TUNING}
+
+
+def test_the_conversation_says_who_speaks_to_whom() -> None:
+    outcome, log = search(budget=6, finalists=2)
+
+    messages = log.messages()
+    requests = [m for m in messages if m.kind is MessageKind.REQUEST]
+    replies = [m for m in messages if m.kind is MessageKind.REPLY]
+    # Cada candidato: o coordenador dá a vez ao agente dele, e o agente responde-lhe logo.
+    assert [m.candidate for m in requests] == [c.number for c in outcome.candidates]
+    assert [m.candidate for m in replies] == [c.number for c in outcome.candidates]
+    for request, reply in zip(requests, replies, strict=True):
+        assert request.role is AgentRole.COORDINATOR
+        assert request.recipients == (Participant(ParticipantKind.MODEL, reply.family),)
+        assert reply.recipients == (Participant(ParticipantKind.COORDINATOR),)
+        assert reply.number == request.number + 1
+    # Os anúncios das rondas vão para os agentes; a decisão, para o vencedor.
+    announcements = [m for m in messages if m.kind is MessageKind.ANNOUNCEMENT]
+    assert announcements
+    assert all(
+        m.recipients and {p.kind for p in m.recipients} == {ParticipantKind.MODEL}
+        for m in announcements
+    )
+    decision = messages[-1]
+    assert outcome.winner is not None
+    assert decision.kind is MessageKind.DECISION
+    assert decision.recipients == (Participant(ParticipantKind.WINNER),)
+    assert decision.candidate == outcome.winner.number
 
 
 class FoldWatcher(SearchLog):

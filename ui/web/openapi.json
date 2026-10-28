@@ -6412,6 +6412,18 @@
               }
             ],
             "title": "Candidate"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MessageKind",
+            "default": "announcement"
+          },
+          "recipients": {
+            "items": {
+              "$ref": "#/components/schemas/Participant"
+            },
+            "type": "array",
+            "title": "Recipients",
+            "default": []
           }
         },
         "type": "object",
@@ -6422,10 +6434,12 @@
           "text",
           "phase",
           "family",
-          "candidate"
+          "candidate",
+          "kind",
+          "recipients"
         ],
         "title": "AgentMessage",
-        "description": "Uma mensagem da conversa.\n\nAttributes:\n    number: A ordem na conversa (1, 2, 3…).\n    role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.\n    author: O nome a mostrar de quem fala.\n    text: O que diz, em português.\n    phase: A fase da procura em que o disse.\n    family: Num agente de modelo, a sua família.\n    candidate: O candidato de que fala, se for o caso."
+        "description": "Uma mensagem da conversa: quem a diz, a quem, e o quê.\n\nAs mensagens contam a procura como uma troca: o agente de dados entrega o plano ao\ncoordenador (``REPORT``); o coordenador anuncia as rondas aos agentes (``ANNOUNCEMENT``),\npede a cada um que meça um candidato (``REQUEST``) e recebe a resposta com o resultado\n(``REPLY``); no fim, passa o melhor ao vencedor (``DECISION``) e o vencedor vai ao teste\n(``TEST``). É com ``kind`` e ``recipients`` que o histórico visual desenha cada troca.\n\nAttributes:\n    number: A ordem na conversa (1, 2, 3…).\n    role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.\n    author: O nome a mostrar de quem fala.\n    text: O que diz, em português.\n    phase: A fase da procura em que o disse.\n    family: Num agente de modelo, a sua família.\n    candidate: O candidato de que fala, se for o caso.\n    kind: O que a mensagem é na troca.\n    recipients: A quem se dirige (vazio: a quem acompanha a procura)."
       },
       "AgentModel": {
         "properties": {
@@ -9581,6 +9595,19 @@
         "title": "Matrix",
         "description": "Uma tabela de números com nome nas linhas e nas colunas (os centros, as componentes)."
       },
+      "MessageKind": {
+        "type": "string",
+        "enum": [
+          "report",
+          "announcement",
+          "request",
+          "reply",
+          "decision",
+          "test"
+        ],
+        "title": "MessageKind",
+        "description": "O que uma mensagem é na troca entre os agentes (o histórico das trocas desenha-a)."
+      },
       "MetricCard": {
         "properties": {
           "name": {
@@ -10562,6 +10589,42 @@
         ],
         "title": "PartialDependence",
         "description": "A dependência parcial de uma feature.\n\nAttributes:\n    feature: A feature.\n    grid: Os valores da feature (na escala depois da preparação).\n    output_labels: O que cada curva média mostra (a probabilidade de cada classe ou o\n        valor previsto).\n    average: Uma curva por saída, com um valor por ponto da grelha.\n    individual: As curvas individuais (ICE) da primeira saída, uma por linha.\n    values: Os valores da feature nas linhas usadas (para ver onde há dados)."
+      },
+      "Participant": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ParticipantKind"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelFamily"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "family"
+        ],
+        "title": "Participant",
+        "description": "Um destinatário de uma mensagem.\n\nAttributes:\n    kind: Quem é.\n    family: Num agente de modelo, a sua família."
+      },
+      "ParticipantKind": {
+        "type": "string",
+        "enum": [
+          "data",
+          "coordinator",
+          "model",
+          "winner",
+          "test"
+        ],
+        "title": "ParticipantKind",
+        "description": "Quem pode receber uma mensagem: os agentes e as duas etapas do fim da procura."
       },
       "Partition": {
         "type": "string",
