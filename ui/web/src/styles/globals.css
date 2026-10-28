@@ -155,6 +155,18 @@
   }
 }
 
+/*
+ * O que ainda mostra o resultado anterior enquanto o novo chega (uma demonstração a treinar
+ * outra vez, um perfil a recalcular): os desenhos esbatem-se, o texto não. Esbater o bloco
+ * inteiro baixava o texto abaixo do contraste mínimo (4,5:1) enquanto se esperava.
+ */
+@layer components {
+  .stale :is(svg, canvas) {
+    opacity: 0.45;
+    transition: opacity 150ms;
+  }
+}
+
 /* Com "reduzir movimento" ligado, tudo aparece já no estado final. */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -1,16 +1,12 @@
 """Critério da fase 3: ver a fronteira da regressão logística didática a mover-se, com o
 resultado final igual ao do scikit-learn.
 
-Verifica-se nos serviços (as fotografias do treino e a comparação com o scikit-learn) e
-na interface simples: Modelo → Treinar mostra a animação da fronteira.
+Verifica-se nos serviços: as fotografias do treino e a comparação com o scikit-learn. A
+animação da fronteira na interface está nos testes de ponta a ponta da web.
 """
-
-import json
-from pathlib import Path
 
 import numpy as np
 import pytest
-from streamlit.testing.v1 import AppTest
 
 from ml_lab.core.services import (
     ExperimentConfig,
@@ -22,7 +18,6 @@ from ml_lab.core.services import (
     SourceSpec,
 )
 
-APP = Path(__file__).resolve().parents[2] / "ui" / "simple" / "app.py"
 MOONS = SourceSpec(
     "synthetic", {"generator": "moons", "seed": 0, "parameters": {"n_samples": 400, "noise": 0.2}}
 )
@@ -75,24 +70,3 @@ def test_the_final_result_equals_the_scikit_learn_one(lab: Lab) -> None:
     assert ours.reports[Partition.TEST].values() == pytest.approx(
         theirs.reports[Partition.TEST].values(), abs=1e-4
     )
-
-
-def test_the_training_screen_replays_the_boundary() -> None:
-    app = AppTest.from_file(APP, default_timeout=120).run()
-    app.selectbox(key="dados.sample").select("iris").run()
-    app.button(key="dados.load").click().run()
-    app.switch_page("pages/preparar.py").run()
-    app.switch_page("pages/modelo.py").run()
-    app.selectbox(key="modelo.multiclass_classification").select("logistic_regression_gd").run()
-
-    app.button(key="modelo.train").click().run()
-    assert app.title[0].value == "Treinar"  # o botão leva logo ao ecrã Treinar
-    app.session_state["job"].wait(timeout=60)
-    # O AppTest volta a correr a página que ele próprio abriu (o Modelo): muda-se à mão.
-    app.switch_page("pages/treinar.py").run()
-
-    assert not app.exception
-    animation, loss = (json.loads(chart.proto.spec) for chart in app.get("plotly_chart"))
-    assert len(animation["frames"]) > 1
-    assert animation["layout"]["sliders"][0]["steps"]
-    assert loss["data"][0]["name"] == "Loss"

@@ -3,12 +3,68 @@
 import numpy as np
 import pytest
 
-from ml_lab.core.services import LaboratoryService
+from ml_lab.core.foundation.errors import InvalidParameterError
+from ml_lab.core.services import DemoControl, LaboratoryDemo, LaboratoryService, explain
 
 
 @pytest.fixture(scope="module")
 def laboratory() -> LaboratoryService:
     return LaboratoryService()
+
+
+def controls(laboratory: LaboratoryService) -> dict[str, DemoControl]:
+    """O controlo de cada demonstração (e de cada versão), pelo nome."""
+    found: dict[str, DemoControl] = {}
+    for card in laboratory.demos():
+        if card.control is not None:
+            found[card.name] = card.control
+        for variant in card.variants:
+            found[f"{card.name}.{variant.name}"] = variant.control
+    return found
+
+
+def test_every_demo_has_a_card_with_a_control_that_starts_on_one_of_its_values(
+    laboratory: LaboratoryService,
+) -> None:
+    cards = laboratory.demos()
+
+    assert [card.name for card in cards] == list(LaboratoryDemo)
+    for card in cards:
+        assert card.summary
+        assert explain(card.topic).text  # o tema do "Porquê?" existe
+        assert (card.control is None) == bool(card.variants)  # um controlo, ou um por versão
+    regularization = cards[-1]
+    assert [variant.name for variant in regularization.variants] == ["ridge", "lasso"]
+    assert regularization.default_variant == "lasso"
+    for control in controls(laboratory).values():
+        assert list(control.values) == sorted(set(control.values))
+        assert control.default in control.values
+
+
+def test_every_value_a_control_offers_works(laboratory: LaboratoryService) -> None:
+    offered = controls(laboratory)
+
+    # Os extremos de cada controlo (o meio já se usa nos outros testes).
+    for degree in (offered["overfitting"].values[0], offered["overfitting"].values[-1]):
+        assert laboratory.overfitting(int(degree)).notices
+    for rate in (offered["learning_rate"].values[0], offered["learning_rate"].values[-1]):
+        assert laboratory.learning_rate(rate).notices
+    assert laboratory.knn(int(offered["knn"].values[-1])).boundary is not None
+    for kind in ("ridge", "lasso"):
+        values = offered[f"regularization.{kind}"].values
+        for alpha in (values[0], values[-1]):
+            assert laboratory.regularization(kind, alpha).notices
+
+
+def test_values_the_demos_cannot_use_are_explained(laboratory: LaboratoryService) -> None:
+    with pytest.raises(InvalidParameterError, match="entre 1 e 15"):
+        laboratory.overfitting(16)
+    with pytest.raises(InvalidParameterError, match="positivo"):
+        laboratory.learning_rate(0.0)
+    with pytest.raises(InvalidParameterError, match="vizinhos"):
+        laboratory.knn(0)
+    with pytest.raises(InvalidParameterError, match="positivo"):
+        laboratory.regularization("lasso", 0.0)
 
 
 def test_overfitting_the_test_error_goes_down_then_up(laboratory: LaboratoryService) -> None:

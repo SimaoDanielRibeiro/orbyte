@@ -70,7 +70,7 @@ equilibrada: a exatidão ganha-se com um modelo que diz sempre a classe mais fre
   honesto e explicado.
 - Para comparar famílias de modelos nos mesmos dados, com a mesma preparação e os mesmos
   folds: a comparação é justa.
-- Como primeiro passo: o vencedor abre-se no Avaliar e no Explicar, e qualquer candidato se
+- Como primeiro passo: o vencedor abre-se no Treinar e avaliar e no Explicar, e qualquer candidato se
   pode treinar à mão, para se ver por dentro.
 - O modo manual continua a ser onde se aprende cada escolha. Os agentes só trabalham com um
   alvo (classificação e regressão): no clustering não há previsões certas para comparar.

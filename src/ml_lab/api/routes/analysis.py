@@ -1,4 +1,4 @@
-"""Rotas do que se pergunta a um modelo depois do treino (ecrãs Avaliar e Explicar).
+"""Rotas do que se pergunta a um modelo depois do treino (a avaliação e o ecrã Explicar).
 
 Só servem os runs que ainda estão em memória (os últimos desta sessão, ou um run guardado
 que se reabriu do histórico): precisam do modelo treinado e dos dados.
@@ -26,7 +26,7 @@ Folds = Annotated[int | None, Query(ge=2, le=20, description="Quantos folds (por
 
 @router.get("/charts")
 def charts(lab: LabDep, run_id: str) -> EvaluationCharts:
-    """Os dados dos gráficos do ecrã Avaliar (ROC, resíduos, silhueta…)."""
+    """Os dados dos gráficos da avaliação (ROC, resíduos, silhueta…)."""
     return lab.analysis.charts(run_id)
 
 

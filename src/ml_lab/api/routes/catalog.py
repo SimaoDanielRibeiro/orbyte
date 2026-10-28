@@ -1,4 +1,4 @@
-"""Rotas do catálogo de modelos (ecrã Modelo): o ``CatalogService`` por HTTP."""
+"""Rotas do catálogo (o ecrã Modelos e a página de cada modelo): o ``CatalogService`` por HTTP."""
 
 from typing import Any
 

@@ -178,6 +178,19 @@ export function formatValue(value: unknown, digits = 3): string {
   return JSON.stringify(value);
 }
 
+/**
+ * Escreve um momento (em ISO 8601, como a API os manda) na hora local, por extenso curto:
+ * `24/10/2026 15:30`.
+ */
+export function formatMoment(iso: string): string {
+  const moment = new Date(iso);
+  if (Number.isNaN(moment.getTime())) {
+    return "—";
+  }
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(moment.getDate())}/${two(moment.getMonth() + 1)}/${String(moment.getFullYear())} ${two(moment.getHours())}:${two(moment.getMinutes())}`;
+}
+
 /** Escreve uma lista como se diz em português, com "e" antes do último. */
 export function formatList(items: readonly string[]): string {
   if (items.length <= 1) {

@@ -1,7 +1,7 @@
-"""Contrato da fronteira dos serviços: tudo o que a interface (e a API) recebe passa a JSON.
+"""Contrato da fronteira dos serviços: tudo o que a API recebe passa a JSON.
 
-A interface aprimorada (fase 10) vai falar com o núcleo através de uma API HTTP (fase 7).
-Para isso, cada método público dos serviços devolve dados simples, que o Pydantic sabe
+A interface web (fase 10) fala com o núcleo através da API HTTP (fase 7). Para isso, cada
+método público dos serviços devolve dados simples, que o Pydantic sabe
 descrever (o JSON Schema, de onde o FastAPI tira o OpenAPI) e passar a JSON. Um método
 novo fica testado aqui sem escrever testes novos. Os métodos marcados com ``@internal``
 servem só outros serviços (devolvem DataFrames ou o modelo treinado) e ficam de fora
@@ -111,6 +111,7 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
         lab.analysis.partial_dependence(result.run_id, result.feature_names[0]),
         lab.analysis.explain_row(result.run_id, 0),
         lab.laboratory.knn(5),
+        list(lab.laboratory.demos()),
         vocabulary(),
     ]
 

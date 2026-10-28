@@ -50,7 +50,7 @@ que depende do ponto de partida (o scikit-learn começa pelo resultado de um k-m
 
 ## O que observar no treino
 
-No ecrã **Treinar**, cada passo é uma iteração do EM. As **elipses** mostram cada nuvem (a dois
+No ecrã **Treinar e avaliar**, cada passo é uma iteração do EM. As **elipses** mostram cada nuvem (a dois
 desvios padrão do centro), e as cruzes os seus centros. Vês as elipses a deslocarem-se, a
 esticarem e a rodarem até se ajustarem aos dados. A loss é o negativo da log-verosimilhança
 média: desce até estabilizar.

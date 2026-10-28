@@ -26,7 +26,7 @@ from ml_lab.formatting import format_count, format_quantity
 type FileFormat = Literal["delimited", "excel"]
 
 MAX_FILE_BYTES: Final = 200 * 1024 * 1024
-"""Tamanho máximo de um ficheiro (200 MB, o mesmo limite de envio do Streamlit)."""
+"""Tamanho máximo de um ficheiro (200 MB): o que se lê de uma vez, em memória, sem demorar."""
 
 MIN_ROWS: Final = 10
 """Abaixo deste número de linhas não há dados suficientes para treinar e testar."""

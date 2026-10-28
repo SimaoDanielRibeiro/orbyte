@@ -71,7 +71,7 @@ KEPT_RUNS: Final = 5
 
 @dataclass(frozen=True, slots=True)
 class ExperimentResult:
-    """O resultado de uma experiência, pronto a mostrar nos ecrãs Treinar e Avaliar.
+    """O resultado de uma experiência, pronto a mostrar no ecrã Treinar e avaliar.
 
     Attributes:
         run_id: Identificador do run (é o que aparece nos eventos).

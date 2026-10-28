@@ -57,7 +57,7 @@ menor inércia. A versão didática (`kmeans_numpy`) corre uma só vez, para se 
 
 ## O que observar no treino
 
-Na versão didática, o ecrã **Treinar** mostra cada iteração: as cruzes (os centróides) andam
+Na versão didática, o ecrã **Treinar e avaliar** mostra cada iteração: as cruzes (os centróides) andam
 até ao meio dos seus grupos, e as zonas coloridas (o grupo que cada ponto do plano receberia)
 mudam com elas. A loss é a inércia, que só desce, e em poucas iterações estabiliza. Com
 `random`, outra seed pode acabar noutra divisão.

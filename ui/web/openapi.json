@@ -2541,7 +2541,7 @@
         "tags": [
           "analysis"
         ],
-        "summary": "Os dados dos gráficos do ecrã Avaliar (ROC, resíduos, silhueta…).",
+        "summary": "Os dados dos gráficos da avaliação (ROC, resíduos, silhueta…).",
         "operationId": "analysis_charts",
         "parameters": [
           {
@@ -3901,6 +3901,81 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JobState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/laboratory/demos": {
+      "get": {
+        "tags": [
+          "laboratory"
+        ],
+        "summary": "As demonstrações, com o que mostram e os valores que o controlo de cada uma oferece.",
+        "operationId": "laboratory_demos",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DemoCard"
+                  },
+                  "type": "array",
+                  "title": "Response Laboratory Demos"
                 }
               }
             }
@@ -7688,6 +7763,100 @@
         "title": "DatasetSummary",
         "description": "Um dataset carregado.\n\nAttributes:\n    id: Identificador para os outros pedidos ao serviço.\n    name: Nome a mostrar.\n    description: O que os dados descrevem.\n    source: De onde vieram (para os voltar a obter).\n    n_rows: Linhas.\n    n_columns: Colunas.\n    columns: As colunas e os seus tipos.\n    suggested_target: A coluna-alvo habitual, se houver.\n    validation: Os erros e avisos da validação."
       },
+      "DemoCard": {
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/LaboratoryDemo"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "control": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DemoControl"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/DemoVariant"
+            },
+            "type": "array",
+            "title": "Variants",
+            "default": []
+          },
+          "variant_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Label"
+          },
+          "default_variant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Variant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "summary",
+          "topic",
+          "control",
+          "variants",
+          "variant_label",
+          "default_variant"
+        ],
+        "title": "DemoCard",
+        "description": "Uma demonstração do Laboratório, pronta a mostrar.\n\nAttributes:\n    name: A demonstração (o nome do método e o da rota).\n    summary: O que se vê e o que se pode mexer.\n    topic: O tema do painel \"Porquê?\" que a explica.\n    control: O controlo, nas demonstrações com uma só versão.\n    variants: As versões, cada uma com o seu controlo (só a regularização as tem).\n    variant_label: O nome a mostrar da escolha da versão.\n    default_variant: A versão com que a demonstração abre."
+      },
+      "DemoControl": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "values": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Values"
+          },
+          "default": {
+            "type": "number",
+            "title": "Default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "values",
+          "default"
+        ],
+        "title": "DemoControl",
+        "description": "O controlo de uma demonstração: os valores que se podem escolher e o de partida.\n\nAttributes:\n    label: O nome a mostrar.\n    values: Os valores que o controlo oferece, por ordem crescente.\n    default: O valor com que a demonstração abre (um dos ``values``)."
+      },
       "DemoExample": {
         "properties": {
           "name": {
@@ -7739,6 +7908,29 @@
         "type": "object",
         "title": "DemoRequest",
         "description": "Que hiperparâmetros usar, e em que conjunto de exemplo.\n\nAttributes:\n    hyperparameters: Os valores escolhidos; os que faltam ficam com o valor por omissão.\n    example: O conjunto de exemplo (um dos ``examples`` do cartão do modelo); ``None``\n        escolhe o primeiro da tarefa principal do modelo."
+      },
+      "DemoVariant": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "control": {
+            "$ref": "#/components/schemas/DemoControl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "control"
+        ],
+        "title": "DemoVariant",
+        "description": "Uma versão de uma demonstração, com o seu controlo (a Ridge e o Lasso).\n\nAttributes:\n    name: O valor que a rota da demonstração recebe (o ``kind`` da regularização).\n    label: O nome a mostrar.\n    control: O controlo desta versão (o alpha anda numa gama diferente em cada uma)."
       },
       "Dendrogram": {
         "properties": {
@@ -8329,7 +8521,7 @@
           "network"
         ],
         "title": "ExperimentResult",
-        "description": "O resultado de uma experiência, pronto a mostrar nos ecrãs Treinar e Avaliar.\n\nAttributes:\n    run_id: Identificador do run (é o que aparece nos eventos).\n    config: A configuração, com a seed já resolvida: repete o run tal e qual.\n    dataset_name: O nome do dataset.\n    task_type: O tipo de tarefa.\n    model_name: O modelo, no registo.\n    model_display_name: O nome a mostrar do modelo.\n    hyperparameters: Os hiperparâmetros usados, completos.\n    feature_names: As features que o modelo recebeu.\n    class_labels: Na classificação, as classes.\n    reports: A avaliação de cada parte dos dados.\n    model_state: O que o modelo aprendeu (coeficientes...).\n    notices: Todos os avisos: os do treino e os dos diagnósticos.\n    duration_seconds: Quanto tempo demorou o treino e a avaliação.\n    history: Cada passo do treino, com a loss (vazio nos modelos que treinam de uma vez).\n    stopped_early: Se o treino foi interrompido a pedido.\n    animation: A fronteira (ou a reta) em cada snapshot, para rever o treino.\n    training_notices: Só os avisos do treino (não convergiu, explodiu, foi parado).\n    embedding: Na redução de dimensionalidade, o mapa dos pontos de treino.\n    learned: O que o modelo aprendeu, pronto a mostrar (pesos, regras, centros…).\n    main_partition: A parte dos dados cujo relatório resume o run: o teste, ou o\n        treino num modelo que só conhece os pontos com que treinou (o t-SNE).\n    network: Numa rede neuronal, o que cada camada fez em cada snapshot (as ativações\n        dos neurónios e os gradientes)."
+        "description": "O resultado de uma experiência, pronto a mostrar no ecrã Treinar e avaliar.\n\nAttributes:\n    run_id: Identificador do run (é o que aparece nos eventos).\n    config: A configuração, com a seed já resolvida: repete o run tal e qual.\n    dataset_name: O nome do dataset.\n    task_type: O tipo de tarefa.\n    model_name: O modelo, no registo.\n    model_display_name: O nome a mostrar do modelo.\n    hyperparameters: Os hiperparâmetros usados, completos.\n    feature_names: As features que o modelo recebeu.\n    class_labels: Na classificação, as classes.\n    reports: A avaliação de cada parte dos dados.\n    model_state: O que o modelo aprendeu (coeficientes...).\n    notices: Todos os avisos: os do treino e os dos diagnósticos.\n    duration_seconds: Quanto tempo demorou o treino e a avaliação.\n    history: Cada passo do treino, com a loss (vazio nos modelos que treinam de uma vez).\n    stopped_early: Se o treino foi interrompido a pedido.\n    animation: A fronteira (ou a reta) em cada snapshot, para rever o treino.\n    training_notices: Só os avisos do treino (não convergiu, explodiu, foi parado).\n    embedding: Na redução de dimensionalidade, o mapa dos pontos de treino.\n    learned: O que o modelo aprendeu, pronto a mostrar (pesos, regras, centros…).\n    main_partition: A parte dos dados cujo relatório resume o run: o teste, ou o\n        treino num modelo que só conhece os pontos com que treinou (o t-SNE).\n    network: Numa rede neuronal, o que cada camada fez em cada snapshot (as ativações\n        dos neurónios e os gradientes)."
       },
       "Explanation": {
         "properties": {
@@ -11431,6 +11623,10 @@
               }
             ],
             "title": "Base"
+          },
+          "how_to_read": {
+            "type": "string",
+            "title": "How To Read"
           }
         },
         "type": "object",
@@ -11442,10 +11638,11 @@
           "method",
           "effect_label",
           "contributions",
-          "base"
+          "base",
+          "how_to_read"
         ],
         "title": "RowExplanation",
-        "description": "Uma previsão explicada.\n\nAttributes:\n    row: A linha do teste (0 é a primeira).\n    prediction: O que o modelo previu, escrito.\n    actual: O valor real, escrito (se houver).\n    probabilities: Na classificação com probabilidades, a de cada classe.\n    method: Como se calcularam os contributos: ``\"weights\"`` (pesos × valores, nos\n        modelos lineares, exato) ou ``\"replace\"`` (trocar a feature pela média do treino\n        e ver quanto a previsão muda, em qualquer modelo).\n    effect_label: Em que unidades estão os contributos.\n    contributions: O contributo de cada feature, do maior para o menor (em valor absoluto).\n    base: O ponto de partida (a ordenada, nos modelos lineares)."
+        "description": "Uma previsão explicada.\n\nAttributes:\n    row: A linha do teste (0 é a primeira).\n    prediction: O que o modelo previu, escrito.\n    actual: O valor real, escrito (se houver).\n    probabilities: Na classificação com probabilidades, a de cada classe.\n    method: Como se calcularam os contributos: ``\"weights\"`` (pesos × valores, nos\n        modelos lineares, exato) ou ``\"replace\"`` (trocar a feature pela média do treino\n        e ver quanto a previsão muda, em qualquer modelo).\n    effect_label: Em que unidades estão os contributos.\n    contributions: O contributo de cada feature, do maior para o menor (em valor absoluto).\n    base: O ponto de partida (a ordenada, nos modelos lineares).\n    how_to_read: Como se leem os contributos (depende do método)."
       },
       "RunComparison": {
         "properties": {
@@ -12268,7 +12465,7 @@
           "how_to_read"
         ],
         "title": "TrainingAnimation",
-        "description": "Tudo o que é preciso para animar o treino.\n\nAttributes:\n    dimensions: 2 (campo no plano) ou 1 (curva ao longo de uma feature).\n    value_kind: O que os valores do campo são.\n    value_label: O nome a mostrar para os valores.\n    xs: A grelha no eixo horizontal.\n    ys: A grelha no eixo vertical (vazio em 1D).\n    axis_labels: O nome de cada eixo.\n    class_labels: O nome das classes dos pontos (do alvo ou da referência).\n    frames: Um campo por snapshot, por ordem de passo.\n    points: Os pontos de treino.\n    field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é\n        ``field_labels[k]``): as classes, ou os grupos do clustering.\n    noise: Se a última categoria do campo é o ruído (pontos sem grupo).\n    how_to_read: Como se lê o desenho, numa ou duas frases (as interfaces mostram-no\n        por baixo dele)."
+        "description": "Tudo o que é preciso para animar o treino.\n\nAttributes:\n    dimensions: 2 (campo no plano) ou 1 (curva ao longo de uma feature).\n    value_kind: O que os valores do campo são.\n    value_label: O nome a mostrar para os valores.\n    xs: A grelha no eixo horizontal.\n    ys: A grelha no eixo vertical (vazio em 1D).\n    axis_labels: O nome de cada eixo.\n    class_labels: O nome das classes dos pontos (do alvo ou da referência).\n    frames: Um campo por snapshot, por ordem de passo.\n    points: Os pontos de treino.\n    field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é\n        ``field_labels[k]``): as classes, ou os grupos do clustering.\n    noise: Se a última categoria do campo é o ruído (pontos sem grupo).\n    how_to_read: Como se lê o desenho, numa ou duas frases (a interface mostra-o por\n        baixo dele)."
       },
       "TrainingUpdate": {
         "properties": {
@@ -12657,7 +12854,7 @@
     },
     {
       "name": "explanations",
-      "description": "Os textos das interfaces, para o frontend pedir uma vez: o vocabulário (o nome a mostrar de cada valor) e os temas do painel «Porquê?»."
+      "description": "Os textos da interface, para o frontend pedir uma vez: o vocabulário (o nome a mostrar de cada valor) e os temas do painel «Porquê?»."
     },
     {
       "name": "meta",

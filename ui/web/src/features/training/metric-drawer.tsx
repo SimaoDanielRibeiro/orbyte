@@ -8,6 +8,7 @@
  * mostram o gráfico de onde o valor sai. Com "reduzir movimento", aparece tudo de uma vez.
  */
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { RotateCcw } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
@@ -15,7 +16,6 @@ import { useState } from "react";
 import type {
   EvaluationCharts,
   EvaluationReport,
-  MetricCard,
   MetricResult,
   MetricTerm,
   Partition,
@@ -36,6 +36,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { directionText } from "@/features/metrics/direction";
+import { FormulaBlock } from "@/features/metrics/formula-block";
+import { metricAnchor } from "@/features/metrics/names";
 import { classColors } from "@/lib/classes";
 import { CATEGORICAL } from "@/lib/colors";
 import { formatMetric, formatNumber, formatPercent, formatStatistic } from "@/lib/format";
@@ -84,13 +87,7 @@ export function MetricDrawer({
               <SheetTitle className="font-serif text-2xl font-medium">
                 {metric.display_name}
               </SheetTitle>
-              <SheetDescription>
-                {metric.higher_is_better === null
-                  ? "Descreve o resultado: não há melhor nem pior."
-                  : metric.higher_is_better
-                    ? "Quanto maior, melhor."
-                    : "Quanto menor, melhor."}
-              </SheetDescription>
+              <SheetDescription>{directionText(metric.higher_is_better)}</SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-8 px-4 pb-10">
               <Facts
@@ -123,34 +120,20 @@ export function MetricDrawer({
                 <h3 className="text-lg">Como se lê</h3>
                 <Prose text={metric.how_to_read} />
               </section>
+              {card !== undefined && (
+                <Link
+                  to="/metricas"
+                  hash={metricAnchor(metric.name)}
+                  className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  Ver no glossário das métricas
+                </Link>
+              )}
             </div>
           </>
         )}
       </SheetContent>
     </Sheet>
-  );
-}
-
-/** A fórmula e o que quer dizer cada símbolo. */
-function FormulaBlock({ card }: { card: MetricCard }) {
-  return (
-    <section className="flex flex-col gap-3" aria-label="A fórmula">
-      <div className="rounded-md border bg-card px-3 py-4">
-        <Formula tex={card.formula} />
-      </div>
-      {card.symbols.length > 0 && (
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-          {card.symbols.map((symbol) => (
-            <div key={symbol.symbol} className="contents">
-              <dt className="text-right">
-                <Formula tex={symbol.symbol} display={false} />
-              </dt>
-              <dd className="font-serif text-muted-foreground">{symbol.meaning}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </section>
   );
 }
 

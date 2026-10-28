@@ -97,7 +97,7 @@ O treino:
 - **Taxa de aprendizagem.** Grande demais, a loss salta ou explode (o treino pára com o aviso
   "a loss explodiu"); pequena demais, arrasta-se. Com o Adam, 0,01 ou 0,001 costumam servir.
 - **Neurónios mortos.** Uma ReLU cuja soma ficou sempre negativa dá sempre zero, e o gradiente
-  que passa por ela também é zero: não volta. Muitos neurónios parados (no ecrã Treinar) pedem
+  que passa por ela também é zero: não volta. Muitos neurónios parados (em **As camadas da rede**) pedem
   uma taxa menor.
 - **Gradiente que desaparece.** Com a sigmoide (ou a tanh) em redes fundas, o gradiente encolhe
   de camada para camada e as primeiras quase não aprendem. Vê-se no gráfico dos gradientes.
@@ -112,7 +112,7 @@ O treino:
 
 ## O que observar no treino
 
-No ecrã **Treinar**, a rede é fotografada época a época:
+No ecrã **Treinar e avaliar**, a rede é fotografada época a época:
 
 - a **fronteira de decisão** começa quase reta e vai-se curvando à volta das luas;
 - a **curva da loss** mostra o treino e a validação: enquanto descem juntas, a rede aprende;

@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Simão" }]
 # As bibliotecas de dados e ML entram fase a fase (ver docs/architecture.md, secção Roadmap):
-# fase 1: numpy, pandas (+ openpyxl para Excel), plotly · fase 2: scikit-learn, pydantic
+# fase 1: numpy, pandas (+ openpyxl para Excel) · fase 2: scikit-learn, pydantic
 # fase 5: joblib (já vinha com o scikit-learn) · fase 6: torch · fase 7: fastapi
 dependencies = [
     "fastapi>=0.162.0",
@@ -35,21 +35,17 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
-# Interface simples. Não faz parte do pacote ml_lab: vive em ui/simple/ e usa os serviços.
-ui = [
-    "plotly>=7.1.0",
-    "streamlit>=1.66.1",
-]
 
 [tool.uv]
-# `uv sync` instala tudo o que é preciso para desenvolver e abrir a app, num só comando.
-default-groups = ["dev", "ui"]
+# `uv sync` instala tudo o que é preciso para desenvolver o backend, num só comando. A
+# interface (ui/web) instala-se à parte, com o npm.
+default-groups = ["dev"]
 
 # --- ruff: linter e formatador -------------------------------------------------
 [tool.ruff]
 line-length = 100
 # Pastas com código próprio: o isort trata os seus módulos como "first-party".
-src = ["src", "ui/simple", "tests"]
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = [
@@ -106,19 +102,18 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-files = ["src", "tests", "ui", "scripts"]
-# src/ é a raiz do pacote ml_lab; ui/simple/ é a raiz dos módulos da interface simples
-# (app, pages.*, components.*, charts.*), tal como o Streamlit os importa.
-mypy_path = ["src", "ui/simple"]
+files = ["src", "tests", "scripts"]
+# src/ é a raiz do pacote ml_lab.
+mypy_path = ["src"]
 explicit_package_bases = true
 pretty = true
 # O plugin do Pydantic ensina o mypy a ler os modelos (campos, valores por omissão, Field).
 plugins = ["pydantic.mypy"]
 
-# O Plotly, o scikit-learn e o joblib não trazem anotações de tipos: os seus objetos ficam
-# com o tipo Any.
+# O scikit-learn e o joblib não trazem anotações de tipos: os seus objetos ficam com o tipo
+# Any.
 [[tool.mypy.overrides]]
-module = ["plotly", "plotly.*", "sklearn", "sklearn.*", "joblib", "joblib.*"]
+module = ["sklearn", "sklearn.*", "joblib", "joblib.*"]
 ignore_missing_imports = true
 
 # --- pytest: testes ---------------------------------------------------------------

@@ -1,8 +1,8 @@
-"""Serviço do catálogo de modelos: o que o ecrã Modelo mostra.
+"""Serviço do catálogo de modelos: o que o ecrã Modelos e a página de cada modelo mostram.
 
 Cada cartão vem da ficha técnica do modelo (``ModelInfo``): nome, família,
-implementação, capacidades, o JSON Schema dos hiperparâmetros (de onde as interfaces
-geram o formulário) e o texto da ficha didática, inteiro e dividido pelas suas secções.
+implementação, capacidades, o JSON Schema dos hiperparâmetros (de onde a interface gera
+o formulário) e o texto da ficha didática, inteiro e dividido pelas suas secções.
 
 A página de cada modelo também o mostra a trabalhar: ``demo`` treina-o num conjunto de
 exemplo pequeno, fora do histórico (``services/demos.py``, ADR 0028).

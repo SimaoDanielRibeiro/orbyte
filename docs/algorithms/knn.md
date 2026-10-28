@@ -52,6 +52,6 @@ memória.
 
 ## O que observar no treino
 
-O KNN treina de uma vez (só guarda os dados). No ecrã **Treinar** vês a fronteira final: com k
+O KNN treina de uma vez (só guarda os dados). No ecrã **Treinar e avaliar** vês a fronteira final: com k
 pequeno aparecem ilhas à volta de pontos isolados; com k grande, a fronteira fica lisa. Compara
 `knn` com `knn_numpy` nos mesmos dados: as previsões são iguais.

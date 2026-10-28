@@ -1,9 +1,9 @@
 """O vocabulário da interface: o nome a mostrar de cada valor, e o que cada tarefa é.
 
 Os enums viajam em JSON pelo valor (``"binary_classification"``), que é estável; o nome a
-mostrar (``"Classificação binária"``) está no ``label`` de cada um. A interface simples lê-o
-diretamente; o frontend pede o vocabulário uma vez (``GET /vocabulary``) e usa-o em todos os
-ecrãs, sem escrever os nomes outra vez (regra 5 do ``CONTRIBUTING.md``, ADR 0026).
+mostrar (``"Classificação binária"``) está no ``label`` de cada um. O frontend pede o
+vocabulário uma vez (``GET /vocabulary``) e usa-o em todos os ecrãs, sem escrever os nomes
+outra vez (regra 5 do ``CONTRIBUTING.md``, ADR 0026).
 
 As tarefas vêm com o que muda com elas: o paradigma, se precisam de alvo, a métrica que
 resume um run (a do "último resultado"), o modelo sugerido e se os agentes do modo

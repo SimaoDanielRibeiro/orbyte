@@ -57,7 +57,7 @@ export function TreeDiagram({ nodes, description, caption }: TreeDiagramProps) {
 
   return (
     <figure className="flex min-w-0 flex-col gap-2">
-      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={description}>
+      <div className="relative overflow-x-auto" tabIndex={0} role="region" aria-label={description}>
         <svg width={width} height={height} role="img" aria-label={description} className="block">
           {layout.links().map((link) => {
             const x1 = shift(link.source);

@@ -103,3 +103,22 @@ def test_the_laboratory_and_the_why_panel_answer(client: TestClient) -> None:
 
     assert knn.json()["k"] == 5
     assert why.json()["title"]
+
+
+def test_the_laboratory_says_what_each_control_offers(client: TestClient) -> None:
+    demos = client.get("/laboratory/demos").json()
+    degree = demos[0]["control"]
+    too_far = client.get(
+        "/laboratory/overfitting", params={"degree": int(degree["values"][-1]) + 1}
+    )
+
+    assert [demo["name"] for demo in demos] == [
+        "overfitting",
+        "learning_rate",
+        "knn",
+        "regularization",
+    ]
+    assert degree["default"] in degree["values"]
+    # Um valor fora do que a demonstração compara é um pedido que não serve, explicado.
+    assert too_far.status_code == 422
+    assert too_far.json()["code"] == "invalid_parameter"

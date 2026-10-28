@@ -4,7 +4,7 @@ Uma camada densa calcula, para cada neurónio, uma soma pesada das entradas mais
 ordenada, e passa-a por uma **ativação** (ReLU, tanh ou sigmoide). Sem a ativação, várias
 camadas seguidas seriam só uma conta linear, e a rede nunca desenharia uma fronteira
 curva; com ela, e neurónios suficientes, aproxima qualquer forma. É isso que se vê no
-ecrã Treinar: a fronteira começa quase reta e vai-se curvando à volta das luas.
+treino passo a passo: a fronteira começa quase reta e vai-se curvando à volta das luas.
 
 Os pesos iniciais são tirados ao acaso com a escala certa para a ativação (He para a ReLU,
 Glorot para as outras), para os sinais não morrerem nem explodirem de camada para camada.

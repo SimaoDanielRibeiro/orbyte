@@ -8,7 +8,7 @@ com tipos, limites, valores por omissão e textos em português::
 
 Daqui sai tudo o resto, sem código específico por modelo: a validação dos valores
 (com mensagens em português), o JSON para guardar a experiência e o JSON Schema de
-onde as duas interfaces geram o formulário.
+onde a interface gera o formulário.
 
 Três extensões ao JSON Schema:
 
@@ -56,5 +56,5 @@ class Hyperparameters(BaseModel):
 
     @classmethod
     def form_schema(cls) -> dict[str, Any]:
-        """O JSON Schema de onde as interfaces geram o formulário."""
+        """O JSON Schema de onde a interface gera o formulário."""
         return cls.model_json_schema()

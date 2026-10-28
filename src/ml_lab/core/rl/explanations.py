@@ -67,6 +67,18 @@ RL_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "Os episódios são ruidosos porque o agente ainda explora ao acaso. A curva sobe "
             "quando o agente aprende a chegar ao objetivo e a fazê-lo em menos passos.",
         ),
+        "success_curve": Explanation(
+            "Os episódios que chegam ao objetivo",
+            "A parte dos últimos episódios (a mesma janela da média móvel) em que o agente "
+            "chegou ao objetivo. Sobe quando ele aprende o caminho; a treinar, raramente chega "
+            "aos 100%, porque o agente continua a explorar ao acaso de vez em quando.",
+        ),
+        "q_table": Explanation(
+            "Como ler a tabela Q",
+            "Uma grelha por ação: a cor de cada célula é o Q dessa ação ali, o que o agente "
+            "espera ganhar se a fizer e depois jogar o melhor que sabe. Em cada célula, a "
+            "política escolhe a ação com o Q mais alto das quatro grelhas.",
+        ),
         "rl_evaluation": Explanation(
             "Treino e teste num agente",
             "No **treino**, o agente ainda explora: as métricas são dos últimos episódios, "

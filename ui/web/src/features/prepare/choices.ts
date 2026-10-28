@@ -144,7 +144,7 @@ export function suggestedCleaning(
   };
 }
 
-/** Os passos da limpeza, pela ordem em que correm (a mesma da interface simples). */
+/** Os passos da limpeza, pela ordem em que correm. */
 export function cleaningSteps(
   choices: CleaningChoices,
   suggestions: readonly CleaningSuggestion[],

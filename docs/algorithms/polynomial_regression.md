@@ -48,6 +48,6 @@ $\binom{p + d}{d} - 1$ termos. Com 10 features e grau 3, já são 285. O modelo 
 
 ## O que observar no treino
 
-Treina de uma vez. Com uma só feature, o ecrã **Treinar** desenha a curva por cima dos pontos.
-Experimenta o grau 1, o 3 e o 15. No ecrã **Avaliar**, compara o erro no treino e no teste: a
+Treina de uma vez. Com uma só feature, o ecrã **Treinar e avaliar** desenha a curva por cima dos
+pontos. Experimenta o grau 1, o 3 e o 15. Na avaliação, compara o erro no treino e no teste: a
 diferença cresce com o grau.

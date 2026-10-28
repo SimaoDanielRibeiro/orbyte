@@ -1,4 +1,4 @@
-"""A rede ao longo do treino: o que cada camada faz em cada fotografia (ecrã Treinar).
+"""A rede ao longo do treino: o que cada camada faz em cada fotografia (treino passo a passo).
 
 Cada fotografia de uma rede neuronal (``state["layers"]``, do adaptador do PyTorch) diz,
 para cada camada, o tamanho do gradiente dos seus pesos e, nas camadas escondidas, a

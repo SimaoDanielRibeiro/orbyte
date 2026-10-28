@@ -1,10 +1,9 @@
 """Serviços (casos de uso): a única porta de entrada do núcleo.
 
-A interface simples chama-os diretamente; a API (fase 7) chama-os para a interface
-aprimorada. Como a interface só pode importar ``ml_lab.core.services`` e
-``ml_lab.core.schemas`` (regra verificada em ``tests/architecture/``), este pacote
-também reexporta os tipos de que ela precisa: os resultados que os serviços
-devolvem, as configurações que recebem e o erro base do ML Lab.
+A API chama-os, e a interface web fala com a API. Como a API só pode importar
+``ml_lab.core.services`` e ``ml_lab.core.schemas`` (regra verificada em
+``tests/architecture/``), este pacote também reexporta os tipos de que ela precisa: os
+resultados que os serviços devolvem, as configurações que recebem e o erro base do ML Lab.
 """
 
 from ml_lab.core.automl.data_agent import DataDecision
@@ -98,6 +97,9 @@ from ml_lab.core.services.explanations import explain, topics
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.services.laboratory import (
+    DemoCard,
+    DemoControl,
+    DemoVariant,
     KnnDemo,
     LaboratoryDemo,
     LaboratoryService,
@@ -183,7 +185,10 @@ __all__ = [
     "DatasetProfile",
     "DatasetService",
     "DatasetSummary",
+    "DemoCard",
+    "DemoControl",
     "DemoExample",
+    "DemoVariant",
     "Dendrogram",
     "Distribution",
     "DocSection",

@@ -6,7 +6,13 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { loadSample } from "./helpers";
 
-/** As fases que o fluxograma mostrou, pela ordem (guardadas na página, a cada mudança). */
+/**
+ * As fases que o fluxograma mostrou, pela ordem (guardadas na página, a cada mudança).
+ *
+ * O fluxograma só aparece quando chega o plano da procura, e esse pedido pode chegar depois
+ * das primeiras mensagens do WebSocket: o fluxograma nasce então já numa fase. Por isso conta
+ * também a fase com que ele aparece (`childList`), não só as mudanças do atributo.
+ */
 async function recordPhases(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const seen: string[] = [];
@@ -16,7 +22,12 @@ async function recordPhases(page: Page): Promise<void> {
       if (phase !== null && phase !== undefined && seen.at(-1) !== phase) {
         seen.push(phase);
       }
-    }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-phase"] });
+    }).observe(document, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ["data-phase"],
+    });
   });
 }
 

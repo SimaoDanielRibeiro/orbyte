@@ -78,7 +78,7 @@ TAGS = [
     {
         "name": "explanations",
         "description": (
-            "Os textos das interfaces, para o frontend pedir uma vez: o vocabulário (o nome a "
+            "Os textos da interface, para o frontend pedir uma vez: o vocabulário (o nome a "
             "mostrar de cada valor) e os temas do painel «Porquê?»."
         ),
     },

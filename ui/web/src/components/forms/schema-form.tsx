@@ -2,8 +2,8 @@
  * Um formulário gerado a partir de um JSON Schema: os hiperparâmetros de um modelo, os
  * parâmetros de um gerador de dados, as definições dos agentes.
  *
- * Um controlo por propriedade, sem código próprio para cada uma (a interface simples faz o
- * mesmo, em `components/forms.py`). Entende as extensões do laboratório:
+ * Um controlo por propriedade, sem código próprio para cada uma. Entende as extensões do
+ * laboratório:
  *
  * - `x-scale: "log"`: números que variam em ordens de grandeza (o `C` de um SVM) andam em
  *   passos 1, 2, 5 de cada potência de 10. Os inteiros com uma gama muito larga (de 5 a 5000

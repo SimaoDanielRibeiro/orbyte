@@ -3,7 +3,8 @@
  * cada coluna, o tamanho de cada classe, os pesos de um modelo linear).
  *
  * Barras finas (no máximo 24 px), a ponta dos dados arredondada e a base direita, o valor na
- * ponta. Com valores dos dois lados do zero (os pesos), as barras crescem a partir do zero.
+ * ponta. Com valores dos dois lados do zero (os pesos), as barras crescem a partir do zero. Uma
+ * barra com `error` ganha um traço à volta da ponta (a média ± o desvio das repetições).
  */
 import { scaleBand, scaleLinear } from "d3";
 import { useState, type ReactNode } from "react";
@@ -11,13 +12,15 @@ import { useState, type ReactNode } from "react";
 import { CATEGORICAL } from "@/lib/colors";
 import { formatCount } from "@/lib/format";
 
-import { Chart, ChartTooltip, TooltipRow } from "./chart";
+import { Chart, ChartTooltip, Legend, TooltipRow, type LegendItem } from "./chart";
 
 export interface BarItem {
   key: string;
   label: string;
   value: number;
   color?: string;
+  /** O desvio à volta do valor: desenha-se um traço de `value − error` a `value + error`. */
+  error?: number;
 }
 
 interface BarChartProps {
@@ -32,6 +35,8 @@ interface BarChartProps {
   labelWidth?: number;
   /** O máximo da escala (por omissão, o maior valor). */
   max?: number;
+  /** A legenda, quando a cor das barras quer dizer alguma coisa (o sentido de um contributo). */
+  legend?: readonly LegendItem[];
 }
 
 const ROW = 30;
@@ -45,12 +50,16 @@ export function BarChart({
   valueLabel = "",
   labelWidth = 140,
   max,
+  legend,
 }: BarChartProps) {
   const [hover, setHover] = useState<string | null>(null);
-  const values = items.map((item) => item.value);
-  const signed = values.some((value) => value < 0);
-  const top = max ?? Math.max(0, ...values);
-  const bottom = signed ? Math.min(0, ...values) : 0;
+  const reach = items.flatMap((item) => [
+    item.value - (item.error ?? 0),
+    item.value + (item.error ?? 0),
+  ]);
+  const signed = reach.some((value) => value < 0);
+  const top = max ?? Math.max(0, ...reach);
+  const bottom = signed ? Math.min(0, ...reach) : 0;
   const height = items.length * ROW + 8;
 
   return (
@@ -59,6 +68,7 @@ export function BarChart({
       description={description}
       caption={caption}
       margin={{ top: 4, bottom: 4, left: labelWidth, right: 64 }}
+      legend={legend === undefined ? undefined : <Legend items={legend} />}
       overlay={(plot) => {
         const item = items.find((one) => one.key === hover);
         if (item === undefined) {
@@ -77,6 +87,11 @@ export function BarChart({
             plot={plot}
           >
             <TooltipRow value={format(item.value, item)} label={item.label} />
+            {item.error !== undefined && (
+              <div className="text-muted-foreground tabular-nums">
+                ± {format(item.error, item)} entre repetições
+              </div>
+            )}
             {valueLabel !== "" && <div className="text-muted-foreground">{valueLabel}</div>}
           </ChartTooltip>
         );
@@ -99,6 +114,14 @@ export function BarChart({
               const width = Math.abs(end - zero);
               const left = Math.min(end, zero);
               const color = item.color ?? CATEGORICAL[0];
+              const error = item.error ?? 0;
+              const written = format(item.value, item);
+              // O valor escreve-se depois da barra e do traço do desvio, do lado para onde ela
+              // cresce; uma barra negativa curta, sem espaço à esquerda (chocava com o nome),
+              // escreve-o do outro lado do zero.
+              const before = Math.min(left, x(item.value - error)) - 6;
+              const outside = item.value >= 0 || before < written.length * 6.5;
+              const labelAt = outside ? Math.max(end, zero, x(item.value + error)) + 6 : before;
               return (
                 <g
                   key={item.key}
@@ -130,14 +153,35 @@ export function BarChart({
                     d={bar(left, center - THICKNESS / 2, width, THICKNESS, item.value >= 0)}
                     fill={color}
                   />
+                  {item.error !== undefined && item.error > 0 && (
+                    <g aria-hidden="true" stroke="var(--foreground)" strokeOpacity={0.75}>
+                      <line
+                        x1={x(item.value - error)}
+                        x2={x(item.value + error)}
+                        y1={center}
+                        y2={center}
+                        strokeWidth={1.5}
+                      />
+                      {[item.value - error, item.value + error].map((at) => (
+                        <line
+                          key={at}
+                          x1={x(at)}
+                          x2={x(at)}
+                          y1={center - 4}
+                          y2={center + 4}
+                          strokeWidth={1.5}
+                        />
+                      ))}
+                    </g>
+                  )}
                   <text
-                    x={item.value >= 0 ? end + 6 : left - 6}
+                    x={labelAt}
                     y={center}
                     dy="0.32em"
-                    textAnchor={item.value >= 0 ? "start" : "end"}
+                    textAnchor={outside ? "start" : "end"}
                     className="fill-muted-foreground text-xs tabular-nums"
                   >
-                    {format(item.value, item)}
+                    {written}
                   </text>
                 </g>
               );

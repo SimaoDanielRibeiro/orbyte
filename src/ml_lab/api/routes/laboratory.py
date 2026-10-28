@@ -4,9 +4,21 @@ from typing import Literal
 
 from ml_lab.api.errors import ERROR_RESPONSES
 from ml_lab.api.routing import LabDep, ServiceRouter
-from ml_lab.core.services import KnnDemo, LearningRateDemo, OverfittingDemo, RegularizationDemo
+from ml_lab.core.services import (
+    DemoCard,
+    KnnDemo,
+    LearningRateDemo,
+    OverfittingDemo,
+    RegularizationDemo,
+)
 
 router = ServiceRouter(prefix="/laboratory", tags=["laboratory"], responses=ERROR_RESPONSES)
+
+
+@router.get("/demos")
+def demos(lab: LabDep) -> tuple[DemoCard, ...]:
+    """As demonstrações, com o que mostram e os valores que o controlo de cada uma oferece."""
+    return lab.laboratory.demos()
 
 
 @router.get("/overfitting")

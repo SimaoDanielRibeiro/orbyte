@@ -50,7 +50,7 @@ gastar um conjunto de validação.
 
 ## O que observar no treino
 
-No ecrã **Treinar**, cada passo junta mais árvores. A loss é o **erro OOB**: 1 − exatidão OOB
+No ecrã **Treinar e avaliar**, cada passo junta mais árvores. A loss é o **erro OOB**: 1 − exatidão OOB
 (classificação) ou 1 − R² OOB (regressão). Desce depressa com as primeiras dezenas de árvores
 e depois estabiliza: é por isso que mais árvores não fazem mal, só deixam de ajudar. A
 fronteira começa irregular (poucas árvores) e fica mais suave à medida que a média se

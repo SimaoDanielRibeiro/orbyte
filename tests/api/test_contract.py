@@ -1,8 +1,8 @@
 """O contrato da API com os serviços: cada método público tem a sua rota, documentada.
 
 Como cada operação se chama ``<serviço>_<método>`` (ver ``ml_lab.api.routing``), um método
-novo num serviço que fique sem rota faz falhar o primeiro teste: a interface aprimorada
-nunca fica sem acesso a uma coisa que a interface simples já usa.
+novo num serviço que fique sem rota faz falhar o primeiro teste: a interface nunca fica sem
+acesso a uma coisa que o backend já sabe fazer.
 """
 
 import inspect

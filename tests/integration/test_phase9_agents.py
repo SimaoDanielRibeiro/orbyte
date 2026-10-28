@@ -5,33 +5,30 @@ família de cada vez, com os valores por omissão; só os finalistas são afinad
 com validação cruzada nos folds do treino. O vencedor é o único run que usa o teste: fica no
 registo em SQLite, e outro ``Lab`` (como reabrir a app) abre-o.
 
-Na interface: o ecrã Dados oferece os dois modos, o ecrã Agentes faz o pedido e mostra o
-quadro, o vencedor abre-se no Avaliar e um candidato treina-se à mão no Treinar.
+Na interface, o ecrã Agentes (o pedido, o fluxograma ao vivo, a pausa e o vencedor) está nos
+testes de ponta a ponta da web (``ui/web/e2e/agents.spec.ts``).
 """
 
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from streamlit.testing.v1 import AppTest
 
 from ml_lab.config import Settings, get_settings
 from ml_lab.core.services import (
     AutoMLRequest,
     Lab,
-    ModelFamily,
     SearchPhase,
     SearchSettings,
     SourceSpec,
 )
 
-APP = Path(__file__).resolve().parents[2] / "ui" / "simple" / "app.py"
 TITANIC = SourceSpec("sample", {"name": "titanic"})
 
 
 @pytest.fixture
 def fresh(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Settings]:
-    """Uma base de dados e uma pasta de artefactos vazias, só deste teste (também para a app)."""
+    """Uma base de dados e uma pasta de artefactos vazias, só deste teste."""
     monkeypatch.setenv("ML_LAB_ARTIFACTS_DIR", str(tmp_path / "artifacts"))
     monkeypatch.setenv("ML_LAB_DATABASE_PATH", str(tmp_path / "artifacts" / "ml_lab.db"))
     get_settings.cache_clear()
@@ -88,78 +85,3 @@ def test_the_agents_find_a_model_for_the_titanic_without_touching_the_test(
     assert entry.name.startswith("Agentes · ")
     reopened = after.history.open(run_id)
     assert reopened.main_report.metric("accuracy").value == result.test.value
-
-
-def test_the_data_screen_offers_the_two_modes(fresh: Settings) -> None:
-    lab = Lab.create(fresh)
-    summary = lab.datasets.load_sample("titanic")
-    app = AppTest.from_file(APP, default_timeout=60)
-    app.session_state["lab"] = lab
-    app.session_state["dataset_id"] = summary.id
-    app.run()
-
-    assert not app.exception
-    texts = [markdown.value for markdown in app.markdown]
-    assert "**Modo automático**" in texts
-    assert "**Modo manual**" in texts
-
-
-def test_the_agents_screen_runs_a_search_and_opens_the_winner(fresh: Settings) -> None:
-    lab = Lab.create(fresh)
-    summary = lab.datasets.load_sample("iris")
-    app = AppTest.from_file(APP, default_timeout=120)
-    app.session_state["lab"] = lab
-    app.session_state["dataset_id"] = summary.id
-    app.run()
-    app.switch_page("pages/agentes.py").run()
-    assert not app.exception
-
-    families = [ModelFamily.LINEAR, ModelFamily.TREE]
-    app.multiselect(key="agentes.families.multiclass_classification").set_value(families).run()
-    app.slider(key="agentes.settings.budget").set_value(4).run()
-    app.slider(key="agentes.settings.folds").set_value(3).run()
-    app.button(key="agentes.start").click().run()
-    app.session_state["automl_job"].wait(timeout=120)
-    app.run()  # o ecrã volta a correr e mostra o resultado
-
-    assert not app.exception
-    headers = [header.value for header in app.subheader]
-    assert headers[:3] == ["A procura", "O melhor de cada agente", "O quadro dos candidatos"]
-    assert len(app.get("plotly_chart")) == 2
-    result = app.session_state["automl_result"]
-    assert len(result.candidates) == 4
-
-    app.button(key="agentes.open").click().run()
-
-    assert not app.exception
-    assert app.title[0].value == "Avaliar"
-    assert app.session_state["result"].run_id == result.run_id
-
-
-def test_a_candidate_is_trained_by_hand_from_the_board(fresh: Settings) -> None:
-    lab = Lab.create(fresh)
-    summary = lab.datasets.load_sample("iris")
-    request = AutoMLRequest(
-        dataset=summary.source,
-        target="species",
-        families=(ModelFamily.LINEAR, ModelFamily.TREE),
-        settings=SearchSettings(budget=3, folds=3),
-        seed=1,
-    )
-    result = lab.automl.run(request)
-    app = AppTest.from_file(APP, default_timeout=120)
-    app.session_state["lab"] = lab
-    app.session_state["dataset_id"] = summary.id
-    app.session_state["automl_result"] = result
-    app.run()
-    app.switch_page("pages/agentes.py").run()
-
-    last = result.ranking[-1]
-    app.selectbox(key=f"agentes.manual.{result.search_id}").set_value(last).run()
-    app.button(key="agentes.train").click().run()
-
-    assert not app.exception
-    assert app.title[0].value == "Treinar"
-    job = app.session_state["job"]
-    trained = job.wait(timeout=60)
-    assert trained.model_name == result.candidate(last).model

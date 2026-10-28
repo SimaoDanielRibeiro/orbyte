@@ -11,8 +11,6 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 PACKAGE = SRC / "ml_lab"
@@ -22,8 +20,6 @@ DATA = CORE / "data"
 SERVICES = CORE / "services"
 TRACKING = CORE / "tracking"
 API = PACKAGE / "api"
-UI = ROOT / "ui"
-UI_SIMPLE = UI / "simple"
 
 # Bibliotecas de interface, web e gráficos: o núcleo não depende de nenhuma delas.
 INTERFACE_LIBRARIES = (
@@ -67,8 +63,8 @@ def python_files(*folders: Path, exclude: Iterable[Path] = ()) -> list[Path]:
 
 
 def module_name(path: Path) -> str:
-    """Nome com que o ficheiro é importado: ``ml_lab.core.x`` ou, na interface, ``pages.x``."""
-    base = next((root for root in (SRC, UI_SIMPLE) if path.is_relative_to(root)), ROOT)
+    """Nome com que o ficheiro é importado (``ml_lab.core.x``)."""
+    base = SRC if path.is_relative_to(SRC) else ROOT
     parts = path.relative_to(base).with_suffix("").parts
     return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
 
@@ -121,7 +117,7 @@ def test_the_scanner_finds_the_project_files() -> None:
     # Sem ficheiros, todas as regras passariam sem verificar nada.
     assert python_files(FOUNDATION)
     assert python_files(DATA)
-    assert python_files(UI_SIMPLE)
+    assert python_files(API)
 
 
 def test_the_scanner_sees_every_kind_of_import() -> None:
@@ -134,7 +130,7 @@ def test_the_scanner_sees_every_kind_of_import() -> None:
         "if TYPE_CHECKING:\n"
         "    import numpy\n"
         "def lazy() -> None:\n"
-        "    import streamlit\n"
+        "    import matplotlib\n"
     )
 
     names = {name for _, name in parse_imports(source, "ml_lab.core.models.base")}
@@ -146,7 +142,7 @@ def test_the_scanner_sees_every_kind_of_import() -> None:
         "ml_lab.core.models.sibling",
         "ml_lab.core.data.boundary",
         "numpy",
-        "streamlit",
+        "matplotlib",
     }
 
 
@@ -184,21 +180,21 @@ def test_foundation_only_depends_on_the_standard_library() -> None:
     )
 
 
-def test_core_does_not_import_the_api_or_the_interface() -> None:
-    forbidden = ("ml_lab.api", "ui", *INTERFACE_LIBRARIES)
+def test_core_does_not_import_the_api_or_interface_libraries() -> None:
+    forbidden = ("ml_lab.api", *INTERFACE_LIBRARIES)
 
     violations = find_violations(
         python_files(CORE), lambda name: any(is_within(name, prefix) for prefix in forbidden)
     )
 
     assert not violations, report(
-        "O núcleo não depende da API, da interface nem de bibliotecas de gráficos:", violations
+        "O núcleo não depende da API nem de bibliotecas de interface ou de gráficos:", violations
     )
 
 
 def test_pandas_is_only_used_in_the_data_layer() -> None:
     violations = find_violations(
-        python_files(PACKAGE, UI, exclude=[DATA]), lambda name: is_within(name, "pandas")
+        python_files(PACKAGE, exclude=[DATA]), lambda name: is_within(name, "pandas")
     )
 
     assert not violations, report(
@@ -210,7 +206,7 @@ def test_the_database_and_the_saved_files_belong_to_the_tracking_layer() -> None
     # O registo de experiências é trocável (regra 6 dos contratos): quem o usa só conhece o
     # ExperimentStore, nunca o SQLite nem o formato dos ficheiros.
     violations = find_violations(
-        python_files(PACKAGE, UI, exclude=[TRACKING]),
+        python_files(PACKAGE, exclude=[TRACKING]),
         lambda name: is_within(name, "sqlite3") or is_within(name, "joblib"),
     )
 
@@ -228,7 +224,7 @@ def test_pytorch_is_only_used_by_the_neural_networks() -> None:
         CORE / "rl" / "agents" / "dqn.py",
     ]
     violations = find_violations(
-        python_files(PACKAGE, UI, exclude=neural), lambda name: is_within(name, "torch")
+        python_files(PACKAGE, exclude=neural), lambda name: is_within(name, "torch")
     )
 
     assert not violations, report(
@@ -250,26 +246,16 @@ def test_the_core_does_not_import_the_services() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    ("folder", "also_forbidden"),
-    [
-        pytest.param(UI, ("ml_lab.api",), id="interface"),
-        pytest.param(API, ("ui", "streamlit", "plotly"), id="api"),
-    ],
-)
-def test_interfaces_only_reach_the_core_through_services_and_schemas(
-    folder: Path, also_forbidden: tuple[str, ...]
-) -> None:
+def test_the_api_only_reaches_the_core_through_services_and_schemas() -> None:
+    # A interface web fala com o backend só pela API (em HTTP e WebSocket): a API é a única
+    # porta para o núcleo, e só entra pelos serviços e pelos esquemas.
     allowed = ("ml_lab.core.services", "ml_lab.core.schemas")
 
     def is_forbidden(name: str) -> bool:
-        if any(is_within(name, prefix) for prefix in also_forbidden):
-            return True
         return is_within(name, "ml_lab.core") and not any(is_within(name, a) for a in allowed)
 
-    violations = find_violations(python_files(folder), is_forbidden)
+    violations = find_violations(python_files(API), is_forbidden)
 
     assert not violations, report(
-        "A interface e a API só chegam ao núcleo através de core/services e core/schemas:",
-        violations,
+        "A API só chega ao núcleo através de core/services e core/schemas:", violations
     )

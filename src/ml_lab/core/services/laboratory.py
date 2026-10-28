@@ -11,6 +11,10 @@ ideia, e devolve os números dos gráficos:
   fronteira lisa demais (k grande);
 - **regularização**: os pesos da Ridge e do Lasso a encolher à medida que o alpha cresce;
   no Lasso, os inúteis chegam a zero.
+
+Os valores que cada controlo oferece também se decidem aqui (``demos``): são uma escolha
+didática (de onde a taxa de aprendizagem se arrasta até onde explode), e a interface desenha
+os controlos a partir deles.
 """
 
 import math
@@ -28,6 +32,7 @@ from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.preparation import PreparationConfig
 from ml_lab.core.evaluation.metrics.base import MetricInputs
 from ml_lab.core.evaluation.metrics.regression import r2 as r2_metric
+from ml_lab.core.foundation.errors import InvalidParameterError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.models.base import MODELS, LabModel
 from ml_lab.core.services.datasets import DatasetService
@@ -38,8 +43,17 @@ from ml_lab.formatting import format_number, format_percent
 
 DEGREES: Final = tuple(range(1, 16))
 KS: Final = (1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 75, 100)
+RATES: Final = (0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
+"""As taxas que o controlo oferece: das que se arrastam às que explodem (acima de 1)."""
 COMPARED_RATES: Final = (0.01, 0.1, 0.5)
 EPOCHS: Final = 60
+DEFAULT_DEGREE: Final = 3
+DEFAULT_RATE: Final = 0.1
+DEFAULT_K: Final = 5
+ALPHA_DECADES: Final[Mapping[str, tuple[int, int]]] = MappingProxyType(
+    {"ridge": (-2, 4), "lasso": (-3, 2)}
+)
+"""As potências de 10 entre as quais anda o alpha de cada modelo (o Lasso apaga pesos antes)."""
 # Luas escolhidas para a curva clássica: k pequeno decora, k grande alisa demais, e o
 # melhor fica no meio (perto de 15).
 MOONS: Final = SourceSpec(
@@ -104,9 +118,85 @@ _DEMO_TOPICS: Final[Mapping[LaboratoryDemo, str]] = MappingProxyType(
 )
 
 
+_DEMO_SUMMARIES: Final[Mapping[LaboratoryDemo, str]] = MappingProxyType(
+    {
+        LaboratoryDemo.OVERFITTING: (
+            "Uma regressão polinomial em 20 pontos de um seno com ruído. Sobe o grau e vê o erro "
+            "de treino a descer sempre, enquanto o de teste desce e depois volta a subir."
+        ),
+        LaboratoryDemo.LEARNING_RATE: (
+            "A regressão linear com dois pesos, treinada por gradiente descendente durante "
+            f"{EPOCHS} épocas. O erro é uma taça (as curvas de nível) e o caminho mostra os pesos "
+            "época a época."
+        ),
+        LaboratoryDemo.KNN: (
+            "O KNN (em NumPy) nas luas com ruído. Com poucos vizinhos, a fronteira segue cada "
+            "ponto; com muitos, fica lisa demais. O melhor k está no meio."
+        ),
+        LaboratoryDemo.REGULARIZATION: (
+            "Uma regressão com 8 features em que só 3 contam (x1, x2 e x3) e só 40 linhas de "
+            "treino. Vê os pesos a encolher à medida que o alpha cresce."
+        ),
+    }
+)
+
+
 def demos_for(model: str) -> tuple[LaboratoryDemo, ...]:
     """As demonstrações do Laboratório que mostram como ``model`` funciona."""
     return tuple(demo for demo in LaboratoryDemo if model in demo.models)
+
+
+@dataclass(frozen=True, slots=True)
+class DemoControl:
+    """O controlo de uma demonstração: os valores que se podem escolher e o de partida.
+
+    Attributes:
+        label: O nome a mostrar.
+        values: Os valores que o controlo oferece, por ordem crescente.
+        default: O valor com que a demonstração abre (um dos ``values``).
+    """
+
+    label: str
+    values: tuple[float, ...]
+    default: float
+
+
+@dataclass(frozen=True, slots=True)
+class DemoVariant:
+    """Uma versão de uma demonstração, com o seu controlo (a Ridge e o Lasso).
+
+    Attributes:
+        name: O valor que a rota da demonstração recebe (o ``kind`` da regularização).
+        label: O nome a mostrar.
+        control: O controlo desta versão (o alpha anda numa gama diferente em cada uma).
+    """
+
+    name: str
+    label: str
+    control: DemoControl
+
+
+@dataclass(frozen=True, slots=True)
+class DemoCard:
+    """Uma demonstração do Laboratório, pronta a mostrar.
+
+    Attributes:
+        name: A demonstração (o nome do método e o da rota).
+        summary: O que se vê e o que se pode mexer.
+        topic: O tema do painel "Porquê?" que a explica.
+        control: O controlo, nas demonstrações com uma só versão.
+        variants: As versões, cada uma com o seu controlo (só a regularização as tem).
+        variant_label: O nome a mostrar da escolha da versão.
+        default_variant: A versão com que a demonstração abre.
+    """
+
+    name: LaboratoryDemo
+    summary: str
+    topic: str
+    control: DemoControl | None
+    variants: tuple[DemoVariant, ...] = ()
+    variant_label: str | None = None
+    default_variant: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,8 +284,62 @@ class LaboratoryService:
     def __init__(self, settings: Settings | None = None) -> None:
         self._datasets = DatasetService(settings)
 
+    def demos(self) -> tuple[DemoCard, ...]:
+        """As demonstrações, com o que mostram e os valores que o controlo de cada uma oferece."""
+        alphas = {kind: _alpha_values(kind) for kind in ALPHA_DECADES}
+        return (
+            DemoCard(
+                name=LaboratoryDemo.OVERFITTING,
+                summary=_DEMO_SUMMARIES[LaboratoryDemo.OVERFITTING],
+                topic=LaboratoryDemo.OVERFITTING.topic,
+                control=DemoControl("Grau do polinómio", _floats(DEGREES), DEFAULT_DEGREE),
+            ),
+            DemoCard(
+                name=LaboratoryDemo.LEARNING_RATE,
+                summary=_DEMO_SUMMARIES[LaboratoryDemo.LEARNING_RATE],
+                topic=LaboratoryDemo.LEARNING_RATE.topic,
+                control=DemoControl("Taxa de aprendizagem", RATES, DEFAULT_RATE),
+            ),
+            DemoCard(
+                name=LaboratoryDemo.KNN,
+                summary=_DEMO_SUMMARIES[LaboratoryDemo.KNN],
+                topic=LaboratoryDemo.KNN.topic,
+                control=DemoControl("Número de vizinhos (k)", _floats(KS), DEFAULT_K),
+            ),
+            DemoCard(
+                name=LaboratoryDemo.REGULARIZATION,
+                summary=_DEMO_SUMMARIES[LaboratoryDemo.REGULARIZATION],
+                topic=LaboratoryDemo.REGULARIZATION.topic,
+                control=None,
+                variants=tuple(
+                    DemoVariant(
+                        kind,
+                        label,
+                        # O alpha começa a meio da gama: nem sem efeito, nem a apagar tudo.
+                        DemoControl(
+                            "Alpha (força da regularização)",
+                            alphas[kind],
+                            alphas[kind][len(alphas[kind]) // 2],
+                        ),
+                    )
+                    for kind, label in (("ridge", "Ridge (L2)"), ("lasso", "Lasso (L1)"))
+                ),
+                variant_label="Modelo",
+                # O Lasso mostra melhor a ideia: os pesos inúteis chegam exatamente a zero.
+                default_variant="lasso",
+            ),
+        )
+
     def overfitting(self, degree: int) -> OverfittingDemo:
-        """Uma regressão polinomial de grau ``degree`` num seno com ruído (20 pontos de treino)."""
+        """Uma regressão polinomial de grau ``degree`` num seno com ruído (20 pontos de treino).
+
+        Raises:
+            InvalidParameterError: Se o grau não for um dos que a demonstração compara.
+        """
+        if degree not in DEGREES:
+            raise InvalidParameterError(
+                f"O grau do polinómio tem de estar entre {DEGREES[0]} e {DEGREES[-1]}."
+            )
         rng = np.random.default_rng(7)
         x_train, x_test = np.sort(rng.uniform(-3, 3, 20)), rng.uniform(-3, 3, 200)
         y_train = np.sin(x_train) + rng.normal(scale=0.3, size=20)
@@ -224,7 +368,13 @@ class LaboratoryService:
         )
 
     def learning_rate(self, rate: float) -> LearningRateDemo:
-        """O gradiente descendente da regressão linear com dois pesos e a taxa ``rate``."""
+        """O gradiente descendente da regressão linear com dois pesos e a taxa ``rate``.
+
+        Raises:
+            InvalidParameterError: Se a taxa não for positiva.
+        """
+        if not (math.isfinite(rate) and rate > 0):
+            raise InvalidParameterError("A taxa de aprendizagem tem de ser um número positivo.")
         rng = np.random.default_rng(5)
         first = rng.normal(size=100)
         second = 0.8 * first + 0.6 * rng.normal(size=100)  # correlacionadas: a taça é alongada
@@ -271,12 +421,20 @@ class LaboratoryService:
         )
 
     def knn(self, k: int) -> KnnDemo:
-        """O KNN (em NumPy) nas luas com ``k`` vizinhos, e a exatidão de outros k."""
+        """O KNN (em NumPy) nas luas com ``k`` vizinhos, e a exatidão de outros k.
+
+        Raises:
+            InvalidParameterError: Se ``k`` não estiver entre 1 e o número de linhas de treino.
+        """
         preparation = PreparationConfig(target="target")
         dataset = self._datasets.prepared(MOONS, preparation, MOONS_SEED).dataset
         train, test = dataset.train, dataset.test
         assert train.y is not None  # as luas têm alvo
         assert test.y is not None
+        if not 1 <= k <= len(train):
+            raise InvalidParameterError(
+                f"O número de vizinhos tem de estar entre 1 e {len(train)} (as linhas de treino)."
+            )
         ks = tuple(value for value in sorted({*KS, k}) if value <= len(train))
         train_accuracy, test_accuracy = [], []
         boundary = None
@@ -300,13 +458,19 @@ class LaboratoryService:
         )
 
     def regularization(self, kind: Literal["ridge", "lasso"], alpha: float) -> RegularizationDemo:
-        """Os pesos da Ridge ou do Lasso para uma gama de alphas (só 3 das 8 features contam)."""
+        """Os pesos da Ridge ou do Lasso para uma gama de alphas (só 3 das 8 features contam).
+
+        Raises:
+            InvalidParameterError: Se o alpha não for positivo.
+        """
+        if not (math.isfinite(alpha) and alpha > 0):
+            raise InvalidParameterError("O alpha tem de ser um número positivo.")
         rng = np.random.default_rng(11)
         truth = np.array([3.0, -2.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0])
         X_train, X_test = rng.normal(size=(40, 8)), rng.normal(size=(200, 8))
         y_train = X_train @ truth + rng.normal(scale=2.0, size=40)
         y_test = X_test @ truth + rng.normal(scale=2.0, size=200)
-        low, high = (-3, 2) if kind == "lasso" else (-2, 4)
+        low, high = ALPHA_DECADES[kind]
         alphas = np.logspace(low, high, 30)
         paths, train_r2, test_r2 = [], [], []
         for value in alphas:
@@ -342,6 +506,17 @@ def _model(name: str, **values: Any) -> LabModel[Any]:
 
 def _floats(values: Any) -> tuple[float, ...]:
     return tuple(float(value) for value in values)
+
+
+def _alpha_values(kind: str) -> tuple[float, ...]:
+    """Alphas "redondos" (1; 2,5; 5 e 7,5 de cada potência de 10), na gama do modelo ``kind``."""
+    low, high = ALPHA_DECADES[kind]
+    values = (
+        float(f"{step * 10.0**exponent:.6g}")
+        for exponent in range(low, high + 1)
+        for step in (1.0, 2.5, 5.0, 7.5)
+    )
+    return tuple(value for value in values if value <= 10.0**high)
 
 
 def _rmse(actual: NDArray[np.float64], predicted: NDArray[Any]) -> float:

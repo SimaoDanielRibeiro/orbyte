@@ -1,4 +1,4 @@
-"""Rotas dos textos das interfaces: escrevem-se uma vez, no backend, para as duas.
+"""Rotas dos textos da interface: escrevem-se uma vez, no backend.
 
 São dois pedidos que o frontend faz uma vez, ao arrancar, e guarda:
 

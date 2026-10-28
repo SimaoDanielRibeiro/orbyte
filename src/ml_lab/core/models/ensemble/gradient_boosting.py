@@ -2,7 +2,7 @@
 
 Começa por prever uma constante e, em cada etapa, junta uma árvore pequena ajustada ao
 que ainda falta acertar (os resíduos, ou o gradiente da log-loss na classificação),
-multiplicada pela taxa de aprendizagem. No ecrã Treinar, cada passo é uma etapa (ver
+multiplicada pela taxa de aprendizagem. No treino passo a passo, cada passo é uma etapa (ver
 ``adapters/growth.py``). Ficha didática: ``docs/algorithms/gradient_boosting.md``.
 """
 

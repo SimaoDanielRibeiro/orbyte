@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { ApiRequestError } from "@/api/errors";
 import type { JobState, StepRecord, TrainingAnimation, TrainingUpdate } from "@/api/generated";
-import { experimentsResultOptions } from "@/api/generated/@tanstack/react-query.gen";
+import {
+  experimentsResultOptions,
+  historyOpenOptions,
+} from "@/api/generated/@tanstack/react-query.gen";
 import { useJobStream } from "@/api/stream";
 
 /** O treino a decorrer, tal como chega pelo WebSocket. */
@@ -21,7 +25,9 @@ const EMPTY: LiveTraining = { state: null, steps: [], preview: null };
  *
  * O WebSocket recomeça do princípio a cada ligação: os passos que já se têm ignoram-se. Um run
  * que já não está a treinar (aberto do histórico, ou de antes de a API recomeçar) não tem
- * transmissão: pede-se logo o resultado, e é ele que diz se o run ainda existe.
+ * transmissão: pede-se logo o resultado. Se a API já não o tiver em memória
+ * (`run_not_in_memory`), pede-se ao histórico, que o reabre (um run guardado volta com o modelo,
+ * e com ele os gráficos e o ecrã Explicar). Só um run que também não está no histórico se perdeu.
  */
 export function useTrainingRun(runId: string) {
   const [live, setLive] = useState<LiveTraining>(EMPTY);
@@ -38,9 +44,16 @@ export function useTrainingRun(runId: string) {
   });
   const status = live.state?.status ?? null;
   const detached = stream.error !== null;
-  const result = useQuery({
+  const session = useQuery({
     ...experimentsResultOptions({ path: { run_id: runId } }),
     enabled: status === "finished" || detached,
+    staleTime: "static",
+  });
+  const fromHistory =
+    session.error instanceof ApiRequestError && session.error.code === "run_not_in_memory";
+  const history = useQuery({
+    ...historyOpenOptions({ path: { run_id: runId } }),
+    enabled: fromHistory,
     staleTime: "static",
   });
   return {
@@ -48,7 +61,9 @@ export function useTrainingRun(runId: string) {
     status,
     /** Se o run não tem transmissão (já não está a treinar nesta sessão da API). */
     detached,
-    result,
+    result: fromHistory ? history : session,
+    /** Se o resultado veio do histórico (o run já não estava na memória da API). */
+    fromHistory,
     connected: stream.connected,
   };
 }

@@ -1,6 +1,6 @@
 # API (`api/`)
 
-FastAPI: os serviços do ML Lab por HTTP, para a interface aprimorada (fase 10). A
+FastAPI: os serviços do ML Lab por HTTP, para a interface web (fase 10). A
 documentação interativa é gerada automaticamente em `/docs`, a partir dos tipos que os
 serviços devolvem (ADR 0022).
 

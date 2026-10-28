@@ -47,6 +47,8 @@ interface SessionState {
   runTitle: string | null;
   /** A última procura dos agentes. */
   searchId: string | null;
+  /** O último treino de um agente de reinforcement learning. */
+  agentRunId: string | null;
   choosePath: (path: WorkPath) => void;
   setSidebarOpen: (open: boolean) => void;
   /** Abre um dataset; a preparação de outro dataset deixa de valer. */
@@ -56,6 +58,7 @@ interface SessionState {
   /** Abre um run; `title` é o nome do modelo, quando se acaba de o começar. */
   openRun: (runId: string | null, title?: string | null) => void;
   openSearch: (searchId: string | null) => void;
+  openAgentRun: (runId: string | null) => void;
 }
 
 export const useSession = create<SessionState>()(
@@ -69,6 +72,7 @@ export const useSession = create<SessionState>()(
       runId: null,
       runTitle: null,
       searchId: null,
+      agentRunId: null,
       choosePath: (path) => {
         set({ path });
       },
@@ -95,10 +99,13 @@ export const useSession = create<SessionState>()(
       openSearch: (searchId) => {
         set({ searchId });
       },
+      openAgentRun: (agentRunId) => {
+        set({ agentRunId });
+      },
     }),
     {
       name: "ml-lab:session",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       partialize: ({
         path,
@@ -109,6 +116,7 @@ export const useSession = create<SessionState>()(
         runId,
         runTitle,
         searchId,
+        agentRunId,
       }) => ({
         path,
         sidebarOpen,
@@ -118,10 +126,11 @@ export const useSession = create<SessionState>()(
         runId,
         runTitle,
         searchId,
+        agentRunId,
       }),
       // As versões anteriores não tinham alguns campos (a 1 só tinha o caminho e a barra; a 2,
-      // o rascunho da preparação): os que faltam começam vazios.
-      migrate: (persisted) => persisted as SessionState,
+      // o rascunho da preparação; a 3, o treino de RL): os que faltam começam vazios.
+      migrate: (persisted) => ({ agentRunId: null, ...(persisted as Partial<SessionState>) }),
     },
   ),
 );

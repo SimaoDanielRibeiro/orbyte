@@ -62,7 +62,7 @@ describe("as escolhas do ecrã Preparar", () => {
     ]);
   });
 
-  it("monta a limpeza pela ordem da interface simples", () => {
+  it("monta a limpeza pela ordem em que os passos correm", () => {
     const steps = cleaningSteps(
       {
         enabled: ["convert_type:Price"],

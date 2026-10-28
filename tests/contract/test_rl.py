@@ -16,6 +16,7 @@ from ml_lab.core.foundation.errors import NotFittedError
 from ml_lab.core.rl.agents.base import AGENTS, Agent, greedy_path
 from ml_lab.core.rl.environments.base import ENVIRONMENTS, CellKind, Environment
 from ml_lab.core.training.context import RecordingTrainingContext
+from ml_lab.core.training.step_metrics import STEP_METRICS
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "algorithms"
 TEMPLATE_SECTIONS = (
@@ -78,6 +79,8 @@ def test_each_episode_is_a_step_of_the_training(name: str) -> None:
     assert loss is not None  # aprendeu alguma coisa no último episódio
     assert loss >= 0
     assert set(metrics) == {"reward", "length", "success", "epsilon"}
+    # Cada métrica do episódio tem nome a mostrar no vocabulário (os gráficos do treino).
+    assert set(metrics) <= STEP_METRICS.keys()
     epsilons = [m["epsilon"] for _, _, m in context.steps]
     assert epsilons == sorted(epsilons, reverse=True)  # a exploração só desce
 

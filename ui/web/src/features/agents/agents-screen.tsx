@@ -43,12 +43,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { RequireDataset } from "@/features/data/require-dataset";
 import { useDebounced } from "@/hooks/use-debounced";
+import { isValidSeed, MAX_SEED } from "@/lib/seed";
 import { useSession } from "@/state/session";
 
 import { Flowchart } from "./flowchart";
 import { PlanView } from "./plan-view";
-
-const MAX_SEED = 2 ** 32 - 1;
 
 export function AgentsScreen() {
   const searchId = useSession((state) => state.searchId);
@@ -121,7 +120,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
     staleTime: "static",
   });
   const ownAllowed = preparation?.datasetId === dataset.id && preparation.config.target === target;
-  const validSeed = Number.isInteger(seed) && seed >= 0 && seed <= MAX_SEED;
+  const validSeed = isValidSeed(seed);
 
   const request: AutoMlRequest | null =
     task === null || options.data === undefined || !validSeed

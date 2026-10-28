@@ -1,8 +1,8 @@
-"""Serviço de análise: o que se pergunta a um modelo depois do treino (ecrãs Avaliar e Explicar).
+"""Serviço de análise: o que se pergunta a um modelo depois do treino (avaliação e Explicar).
 
 Usa o modelo e os dados que o serviço de experiências guarda dos últimos runs:
 
-- os dados dos gráficos do ecrã Avaliar (ROC, resíduos, silhueta, dendrograma…);
+- os dados dos gráficos da avaliação (ROC, resíduos, silhueta, dendrograma…);
 - a validação cruzada e a curva de aprendizagem (treinam outra vez, nos folds);
 - a importância por permutação e a dependência parcial (ecrã Explicar);
 - a explicação de uma previsão: o contributo de cada feature para ela.
@@ -13,8 +13,9 @@ guardados por run, para não se repetirem ao voltar ao ecrã.
 
 import threading
 from collections import OrderedDict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Final, Literal
 
 import numpy as np
@@ -45,6 +46,22 @@ CACHE_SIZE: Final = 50
 
 FOLDS: Final = 5
 
+_HOW_TO_READ: Final[Mapping[Literal["weights", "replace"], str]] = MappingProxyType(
+    {
+        "weights": (
+            "É um modelo linear: cada barra é o peso da feature vezes o seu valor nesta linha, e "
+            "a previsão (ou a pontuação da classe) é a ordenada mais a soma das barras. As barras "
+            "positivas empurram a previsão para cima; as negativas, para baixo."
+        ),
+        "replace": (
+            "Cada barra é quanto a previsão muda por a feature ter este valor, em vez da média do "
+            "treino: as positivas empurram a previsão para cima, as negativas para baixo. É uma "
+            "aproximação, porque ignora as interações entre features."
+        ),
+    }
+)
+"""Como se leem os contributos, conforme o método que os calculou."""
+
 
 @dataclass(frozen=True, slots=True)
 class Contribution:
@@ -70,6 +87,7 @@ class RowExplanation:
         effect_label: Em que unidades estão os contributos.
         contributions: O contributo de cada feature, do maior para o menor (em valor absoluto).
         base: O ponto de partida (a ordenada, nos modelos lineares).
+        how_to_read: Como se leem os contributos (depende do método).
     """
 
     row: int
@@ -80,6 +98,7 @@ class RowExplanation:
     effect_label: str
     contributions: tuple[Contribution, ...]
     base: float | None
+    how_to_read: str
 
 
 class AnalysisService:
@@ -97,7 +116,7 @@ class AnalysisService:
         self._lock = threading.Lock()
 
     def charts(self, run_id: str) -> EvaluationCharts:
-        """Os dados dos gráficos do ecrã Avaliar.
+        """Os dados dos gráficos da avaliação.
 
         Raises:
             ModelError: Se o run já não estiver em memória.
@@ -227,6 +246,7 @@ class AnalysisService:
             effect_label=label,
             contributions=tuple(contributions),
             base=base,
+            how_to_read=_HOW_TO_READ[method],
         )
 
     def _folds(

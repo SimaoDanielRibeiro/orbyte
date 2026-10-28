@@ -8,7 +8,7 @@ e o seu peso) e descobre-as com o algoritmo EM, que repete dois passos:
    probabilidades.
 
 Ao contrário do k-means, cada ponto pertence a todas as nuvens com uma probabilidade, e
-as nuvens podem ser alongadas. No ecrã Treinar, cada passo é uma iteração do EM: com
+as nuvens podem ser alongadas. No treino passo a passo, cada passo é uma iteração do EM: com
 ``warm_start`` e uma iteração de cada vez, o scikit-learn continua de onde estava, e o
 resultado é o mesmo de treinar de uma vez. Ficha didática:
 ``docs/algorithms/gaussian_mixture.md``.

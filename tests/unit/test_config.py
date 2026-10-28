@@ -88,7 +88,7 @@ def test_environment_wins_over_the_env_file(tmp_path: Path) -> None:
 
 
 def test_variables_of_other_programs_are_ignored(tmp_path: Path) -> None:
-    write_env_file(tmp_path, "STREAMLIT_SERVER_PORT=8502\n")
+    write_env_file(tmp_path, "VITE_PORT=5180\n")
 
     Settings.from_env({"PATH": "/usr/bin", "HOME": "/home/simao"}, home=tmp_path)
 

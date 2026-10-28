@@ -1,7 +1,7 @@
-"""Explicações didáticas do treino: os textos do painel "Porquê?" do ecrã Treinar.
+"""Explicações didáticas do treino: os textos do painel "Porquê?" do ecrã Treinar e avaliar.
 
-Como as da camada de dados, vivem no backend para as duas interfaces mostrarem o
-mesmo texto, escrito uma só vez.
+Como as da camada de dados, vivem no backend, escritas uma só vez, e a interface pede-as
+pela API.
 """
 
 from collections.abc import Mapping

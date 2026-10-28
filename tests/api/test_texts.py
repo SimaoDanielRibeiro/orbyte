@@ -1,4 +1,4 @@
-"""Os textos das interfaces pela API: o vocabulário e os temas do "Porquê?", pedidos uma vez."""
+"""Os textos da interface pela API: o vocabulário e os temas do "Porquê?", pedidos uma vez."""
 
 from fastapi.testclient import TestClient
 

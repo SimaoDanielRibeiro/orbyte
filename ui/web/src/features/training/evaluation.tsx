@@ -64,9 +64,10 @@ export function Evaluation({ result }: { result: ExperimentResult }) {
       <MetricsTable result={result} onOpen={setOpen} />
       <NoticeList notices={[...diagnostics, ...(main?.notices ?? [])]} />
       {charts.error !== null ? (
-        <p className="font-serif text-reading text-muted-foreground">
-          Os gráficos precisam do modelo, e este run já não está na memória da API (só ficam os
-          últimos). Treina-o outra vez para os ver.
+        <p className="max-w-[68ch] font-serif text-reading text-muted-foreground">
+          Os gráficos precisam do modelo, e a API já não o tem: só ficam os últimos runs, e um run
+          do histórico só volta com o modelo se tiver sido guardado. Para os ver, reproduz este run
+          no ecrã Experiências.
         </p>
       ) : charts.data === undefined ? (
         <Skeleton className="h-64 w-full" />
@@ -108,7 +109,7 @@ function MetricsTable({
         As métricas
       </h3>
       <TopicText topic="train_vs_test" />
-      <div className="max-w-3xl overflow-x-auto rounded-md border">
+      <div className="relative max-w-3xl overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">

@@ -6,7 +6,8 @@ viram "campos" prontos a desenhar, um por snapshot: a probabilidade da classe po
 pontuação de anomalia ou o valor previsto (regressão). Se o estado do modelo tiver
 centros (centróides, médias de cada classe) e covariâncias (as nuvens de uma mistura
 gaussiana), vão também para o plano, como pontos e elipses. Junta-se a nuvem dos pontos
-de treino. Só números: desenhar é com a interface (regra das duas interfaces).
+de treino. Só números: desenhar é com a interface (regra 2 da interface, em
+``docs/architecture.md``).
 """
 
 from collections.abc import Mapping, Sequence
@@ -98,8 +99,8 @@ class TrainingAnimation:
         field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é
             ``field_labels[k]``): as classes, ou os grupos do clustering.
         noise: Se a última categoria do campo é o ruído (pontos sem grupo).
-        how_to_read: Como se lê o desenho, numa ou duas frases (as interfaces mostram-no
-            por baixo dele).
+        how_to_read: Como se lê o desenho, numa ou duas frases (a interface mostra-o por
+            baixo dele).
     """
 
     dimensions: int

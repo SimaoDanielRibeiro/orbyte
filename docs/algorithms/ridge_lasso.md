@@ -53,6 +53,6 @@ o bico prende-os lá.
 
 ## O que observar no treino
 
-As duas treinam de uma vez. Em **O que o modelo aprendeu** (ecrã Avaliar), compara os pesos com
+As duas treinam de uma vez. Em **O que aprendeu**, compara os pesos com
 os da regressão linear: na Ridge encolhem todos; no Lasso alguns desaparecem. A demonstração
 "Regularização" do ecrã Laboratório mostra o caminho de cada peso à medida que o alpha cresce.

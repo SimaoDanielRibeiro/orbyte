@@ -107,7 +107,7 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
         profile.error === null && <PageSkeleton />
       ) : (
         <div
-          className={cn("transition-opacity", profile.isPlaceholderData && "opacity-60")}
+          className={cn(profile.isPlaceholderData && "stale")}
           aria-busy={profile.isPlaceholderData}
         >
           <Overview
@@ -328,7 +328,7 @@ function Columns({ profile, selected, onSelect }: ColumnsProps) {
   const column = profile.columns.find((one) => one.name === selected) ?? profile.columns[0] ?? null;
   return (
     <div className="grid gap-10 @5xl/main:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-      <div className="max-w-xl self-start overflow-x-auto rounded-md border @5xl/main:max-w-none">
+      <div className="relative max-w-xl self-start overflow-x-auto rounded-md border @5xl/main:max-w-none">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left">
@@ -574,7 +574,7 @@ function Classes({ profile }: { profile: DatasetProfile }) {
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
               Ver os números
             </summary>
-            <div className="mt-3 overflow-x-auto rounded-md border">
+            <div className="relative mt-3 overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">

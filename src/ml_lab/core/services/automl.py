@@ -16,7 +16,7 @@
 ``run`` faz tudo e devolve o resultado; ``start`` corre em segundo plano, e ``job``,
 ``updates``, ``pause``, ``resume``, ``cancel`` e ``result`` servem quem só sabe o
 identificador da procura (a API, ADR 0022). ``train_candidate`` é a ponte para o modo
-manual: treina um candidato do quadro como um run normal, para o ver no Treinar e no Avaliar.
+manual: treina um candidato do quadro como um run normal, para o ver no Treinar e avaliar.
 """
 
 import threading

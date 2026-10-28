@@ -1,12 +1,12 @@
-"""O que o modelo aprendeu, pronto a mostrar (o separador "O que o modelo aprendeu").
+"""O que o modelo aprendeu, pronto a mostrar (a secção "O que aprendeu").
 
 Cada modelo descreve o que aprendeu em ``LabModel.state()``: um dicionário com nomes
 combinados entre os modelos (``coefficients``, ``intercept``, ``classes``, ``centers``,
 ``components``, ``tree``, ``feature_importances``…). Este módulo é o único que o lê
 para o mostrar. Dá aos pesos o nome da saída que explicam (a previsão, ou uma classe), às
 tabelas os nomes das linhas e das colunas, à árvore as suas regras e aos números simples
-o seu nome em português. As interfaces (a simples e a aprimorada) só desenham, e a
-explicação de uma previsão (``services/analysis.py``) usa os mesmos pesos.
+o seu nome em português. A interface só desenha, e a explicação de uma previsão
+(``services/analysis.py``) usa os mesmos pesos.
 
 Os valores estão na escala depois da preparação (padronizados, se a preparação os
 padronizou).

@@ -25,7 +25,8 @@ export function LossCharts({ steps, height = 240 }: LossChartsProps) {
   const reported = new Set(steps.flatMap((record) => Object.keys(record.metrics)));
   const known = vocabulary.step_metrics.filter((metric) => reported.has(metric.name));
   const losses = known.filter((metric) => metric.is_loss);
-  const scores = known.filter((metric) => !metric.is_loss);
+  // O gráfico de baixo é em percentagem (de 0 a 100%): só as métricas que o são.
+  const scores = known.filter((metric) => !metric.is_loss && metric.as_percent);
 
   const lossSeries: LineSeries[] = [
     {

@@ -47,7 +47,7 @@ KNOWN_VARIABLES: Final = frozenset(
 )
 
 DEFAULT_CORS_ORIGINS: Final = ("http://localhost:5173", "http://127.0.0.1:5173")
-"""O servidor de desenvolvimento do Vite, onde corre a interface aprimorada (fase 10)."""
+"""O servidor de desenvolvimento do Vite, onde corre a interface web (fase 10)."""
 
 
 @dataclass(frozen=True, slots=True)

@@ -48,6 +48,6 @@ scikit-learn não prevê), usa o grupo do ponto de treino mais próximo.
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar** vês os grupos no plano. No ecrã **Avaliar** está o
+Treina de uma vez. No ecrã **Treinar e avaliar** vês os grupos no plano e, na avaliação, o
 **dendrograma**: as últimas 30 junções, com a linha do corte que dá os grupos escolhidos. Uma
 junção muito mais alta do que as outras é um sítio natural para cortar.

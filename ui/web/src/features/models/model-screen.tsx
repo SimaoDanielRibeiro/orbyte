@@ -186,7 +186,9 @@ function ModelPage({ card }: { card: ModelCard }) {
             {card.laboratory.map((demoName) => (
               <li key={demoName}>
                 <Button asChild variant="outline">
-                  <Link to="/laboratorio">{label("LaboratoryDemo", demoName)}</Link>
+                  <Link to="/laboratorio" search={{ demo: demoName }}>
+                    {label("LaboratoryDemo", demoName)}
+                  </Link>
                 </Button>
               </li>
             ))}
@@ -258,10 +260,7 @@ function Example({ card, example, onExample, demo, reloading, onStepChange }: Ex
           {chosen.description}
         </p>
       )}
-      <div
-        className={cn("relative transition-opacity", reloading && "opacity-50")}
-        aria-busy={reloading}
-      >
+      <div className={cn("relative", reloading && "stale")} aria-busy={reloading}>
         {demo === undefined ? (
           <div
             className="flex items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground"

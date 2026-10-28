@@ -9,7 +9,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0002](0002-pandas-isolado-em-core-data.md) | pandas isolado em `core/data/` | Aceite |
 | [0003](0003-stack-enxuta-extensoes-atras-de-contratos.md) | Stack enxuta, extensões atrás de contratos | Aceite |
 | [0004](0004-sqlite-com-sqlite3.md) | SQLite com `sqlite3` | Aceite |
-| [0005](0005-interface-simples-primeiro-react-no-fim.md) | Interface simples (Streamlit) primeiro, React no fim | Aceite |
+| [0005](0005-interface-simples-primeiro-react-no-fim.md) | Interface simples (Streamlit) primeiro, React no fim | Substituída por 0031 |
 | [0006](0006-seeds-derivadas-por-nome.md) | Seeds derivadas por nome a partir de uma seed raiz | Proposta |
 | [0007](0007-descoberta-automatica-de-componentes.md) | Descoberta automática dos componentes registados | Proposta |
 | [0008](0008-camada-de-dados-so-com-pandas-e-numpy.md) | Camada de dados só com pandas e NumPy | Proposta |
@@ -35,6 +35,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0028](0028-demonstracoes-dos-modelos-e-formulas-das-metricas.md) | A página de cada modelo e a explicação de cada métrica: demonstrações e fórmulas | Proposta |
 | [0029](0029-sistema-visual-ardosia-e-giz.md) | O sistema visual: ardósia e giz | Proposta |
 | [0030](0030-textos-de-leitura-no-backend.md) | Os textos de leitura vivem no backend, e as interfaces pedem-nos pelo nome | Proposta |
+| [0031](0031-retirar-a-interface-streamlit.md) | A interface web é a única: a interface Streamlit sai | Proposta |
 
 ## Como escrever uma ADR
 

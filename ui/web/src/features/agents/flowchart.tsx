@@ -118,7 +118,7 @@ export function Flowchart({
 
   return (
     <figure className="flex flex-col gap-3" data-phase={phase ?? "none"}>
-      <div ref={ref} className="overflow-x-auto">
+      <div ref={ref} className="relative overflow-x-auto">
         <svg
           width={width}
           height={height}

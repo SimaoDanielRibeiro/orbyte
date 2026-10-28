@@ -8,7 +8,9 @@ from typing import Any
 import pytest
 
 from ml_lab.config import Settings, get_settings
+from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.preparation import PreparationConfig
+from ml_lab.core.data.splitting.base import SplitConfig, SplitStrategy
 from ml_lab.core.foundation.errors import (
     InvalidParameterError,
     ModelError,
@@ -131,6 +133,29 @@ def test_the_comparison_shows_only_the_choices_that_change(lab: Lab) -> None:
     assert accuracy.values == (strong.primary.value, weak.primary.value)  # type: ignore[union-attr]
     assert comparison.labels[0].startswith("A · ")
     assert "best" in {notice.code for notice in comparison.notices}
+
+
+def test_the_preparation_choices_are_written_with_their_names(lab: Lab) -> None:
+    plain = run(lab)
+    cleaned = lab.experiments.run(
+        ExperimentConfig(
+            dataset=lab.datasets.load_sample("iris").source,
+            preparation=PreparationConfig(
+                target="species",
+                cleaning=(CleaningStep("drop_columns", {"columns": ["sepal_width"]}),),
+                split=SplitConfig(strategy=SplitStrategy.STRATIFIED),
+            ),
+            model=ModelSpec(name="logistic_regression"),
+            seed=42,
+        )
+    )
+
+    comparison = lab.history.compare([plain.run_id, cleaned.run_id])
+
+    differences = {difference.label: difference.values for difference in comparison.differences}
+    # O nome da operação e o da estratégia, e não o JSON da configuração nem o nome do campo.
+    assert differences["Limpeza"] == ("nenhuma", "Remover colunas (sepal_width)")
+    assert differences["Divisão · estratégia"] == ("Aleatória", "Estratificada")
 
 
 def test_reproducing_a_run_gives_the_same_metrics(lab: Lab) -> None:

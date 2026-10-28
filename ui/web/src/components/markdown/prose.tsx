@@ -38,7 +38,9 @@ const COMPONENTS: Components = {
     <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">{children}</code>
   ),
   pre: ({ children }) => (
-    <pre className="my-4 overflow-x-auto rounded-lg border bg-card p-3 text-sm">{children}</pre>
+    <pre className="relative my-4 overflow-x-auto rounded-lg border bg-card p-3 text-sm">
+      {children}
+    </pre>
   ),
   blockquote: ({ children }) => (
     <blockquote className="my-4 border-l-2 border-input pl-4 text-muted-foreground">
@@ -46,7 +48,7 @@ const COMPONENTS: Components = {
     </blockquote>
   ),
   table: ({ children }) => (
-    <div className="my-4 overflow-x-auto">
+    <div className="relative my-4 overflow-x-auto">
       <table className="w-full border-collapse font-sans text-sm">{children}</table>
     </div>
   ),
@@ -103,7 +105,9 @@ export function Formula({ tex, display = true, className }: FormulaProps) {
   return (
     <span
       className={cn(
-        display ? "block overflow-x-auto py-1 text-center text-lg" : "inline",
+        // `relative` nas duas: o MathML que o KaTeX junta para os leitores de ecrã tem posição
+        // absoluta, e sem um contentor posicionado alargava a página no telemóvel.
+        display ? "relative block overflow-x-auto py-1 text-center text-lg" : "relative inline",
         className,
       )}
       // O LaTeX vem do backend do próprio laboratório e o KaTeX escapa o texto.

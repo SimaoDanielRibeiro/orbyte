@@ -21,11 +21,12 @@ razões estão em [docs/adr/](docs/adr/).
 | 7 — API | Os serviços por HTTP com FastAPI (uma rota por método, documentação em `/docs`), treino em segundo plano acompanhado por HTTP ou WebSocket, erros com código e mensagem em português | ✅ concluída |
 | 8 — Reinforcement learning | Contratos de ambiente e agente, uma grelha com três mapas, Q-learning (NumPy) e DQN (PyTorch), avaliação da política aprendida, runs no histórico; ecrã Reinforcement learning | ✅ concluída |
 | 9 — Agentes (AutoML) | O modo automático: um agente de dados, um agente por família de modelos e um coordenador que procura o melhor modelo com validação cruzada, sem tocar no teste; o vencedor fica no histórico; ecrã Agentes | ✅ concluída |
-| 10 — Interface aprimorada | Todos os ecrãs refeitos em React, por cima da API | próxima |
+| 10 — Interface aprimorada | Todos os ecrãs refeitos em React, por cima da API; a interface simples, em Streamlit, saiu depois dela (ADR 0031) | em curso |
 
 ## Requisitos
 
 - [uv](https://docs.astral.sh/uv/), que instala o Python 3.12 sozinho se for preciso.
+- [Node.js](https://nodejs.org/) 24 ou mais recente (traz o npm), para a interface.
 - Git.
 
 ## Instalação
@@ -35,10 +36,10 @@ uv sync
 ```
 
 Este comando cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em
-`uv.lock` (as bibliotecas do pacote, as ferramentas de desenvolvimento, o Streamlit e o
-Plotly) e instala o pacote `ml_lab` em modo editável: as alterações em `src/` ficam ativas sem
-reinstalar. A biblioteca mais pesada é o PyTorch (as redes neuronais, desde a fase 6): no
-Windows vem a versão só para CPU, que chega para as redes do laboratório.
+`uv.lock` (as bibliotecas do pacote e as ferramentas de desenvolvimento) e instala o pacote
+`ml_lab` em modo editável: as alterações em `src/` ficam ativas sem reinstalar. A biblioteca
+mais pesada é o PyTorch (as redes neuronais, desde a fase 6): no Windows vem a versão só para
+CPU, que chega para as redes do laboratório.
 
 Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no repositório, em
 `data/samples/`. Para os voltar a descarregar das origens, com verificação SHA-256:
@@ -47,61 +48,73 @@ Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no re
 uv run python scripts/download_samples.py --force
 ```
 
-## Abrir a interface simples
+## Abrir a interface
+
+A interface é uma aplicação web (React, em `ui/web`) que fala com o backend pela API. Um só
+comando, a partir da raiz do projeto, arranca as duas:
 
 ```bash
-uv run streamlit run ui/simple/app.py
+uv run python scripts/dev.py
 ```
 
-Corre-o a partir da raiz do projeto. A app abre em <http://localhost:8501> e só este
-computador lhe tem acesso (ver `.streamlit/config.toml`). Na primeira vez, o Streamlit pode
-pedir um email no terminal: basta carregar em Enter.
+A interface abre em <http://localhost:5173> e, como a API, só este computador lhe tem acesso.
+Recarrega sozinha quando gravas um ficheiro, e `Ctrl+C` pára as duas. Na primeira vez, o
+comando instala as dependências da interface (`npm install`, em `ui/web`).
 
-Depois de carregar os dados há dois caminhos: o **modo automático** (o ecrã Agentes) e o
-**modo manual** (Explorar, Preparar, Modelo e Treinar). Os dois acabam nos mesmos ecrãs.
+No **Início** há dois caminhos: **Começar à mão** (Explorar, Preparar, Modelo e "Treinar e
+avaliar") e **Começar com os agentes** (o ecrã Agentes). Os dois começam nos Dados e acabam
+nos mesmos ecrãs: o "Treinar e avaliar", o Explicar e as Experiências.
 
 Para o modo automático: em **Dados**, carrega o Titanic e escolhe "Pedir aos agentes". No
-ecrã **Agentes**, o alvo `Survived` já vem escolhido; abre "O que o agente de dados decidiu"
-para ver a preparação e as razões, e carrega em "Pedir aos agentes". Enquanto procuram, vês
-a conversa dos agentes e cada candidato a entrar no gráfico. No fim:
+ecrã **Agentes**, o alvo `Survived` já vem escolhido, e ao lado estão o plano do agente de
+dados, com as razões de cada escolha, e os agentes que vão trabalhar. Carrega em "Pedir aos
+agentes". Enquanto procuram, o fluxograma mostra o agente que mede cada candidato (e o fold em
+que vai), e por baixo ficam o melhor até agora, os candidatos medidos e a conversa dos
+agentes. No fim:
 
 - o vencedor, a validação cruzada que o escolheu e o teste, usado uma só vez;
 - o gráfico da procura (a triagem e a afinação, com o melhor até aí);
 - o melhor de cada agente, comparado com a referência (a regressão logística);
 - o quadro de todos os candidatos.
 
-"Abrir o vencedor no Avaliar" leva-o para o modo manual, e "Treinar no modo manual" treina
-qualquer candidato do quadro, passo a passo.
+"Abrir o vencedor" leva-o para o "Treinar e avaliar", como um run feito à mão, e "Treinar no
+modo manual" treina qualquer candidato do quadro, passo a passo.
 
-Um percurso para o modo manual: em **Dados**, carrega o exemplo Titanic; em **Explorar**, vê o
-perfil das colunas e os avisos (77% de nulos em `Cabin`, `PassengerId` é um identificador);
-em **Preparar**, escolhe o alvo `Survived`, aceita as limpezas sugeridas e vê a linhagem, a
-divisão e a projeção 2D; em **Modelo**, lê a ficha da regressão logística, ajusta os
-hiperparâmetros e carrega em "Treinar"; em **Treinar**, vês a fronteira de decisão no plano
-da projeção; em **Avaliar**, vês as métricas (cada uma com a sua explicação), a matriz de
-confusão, o treino contra o teste e os pesos que o modelo aprendeu. Experimenta baixar o `C`
-e treinar outra vez.
+Um percurso para o modo manual: em **Dados**, carrega o exemplo Titanic e vê o tipo de cada
+coluna e porquê; em **Explorar**, vê o perfil das colunas e os avisos (77% de nulos em
+`Cabin`, `PassengerId` é um identificador); em **Preparar**, o alvo `Survived` e as limpezas
+sugeridas já vêm escolhidos, e ao lado vês a linhagem, a divisão e a projeção 2D; em
+**Modelos**, abre a regressão logística, lê a ficha, vê-a aprender num exemplo enquanto
+mudas os hiperparâmetros e carrega em "Treinar com estes valores". No **Treinar e avaliar**,
+vês o treino ao vivo e, no fim, a fronteira de decisão no plano da projeção, as métricas no
+treino e no teste (carrega no nome de uma para ver a fórmula e a conta deste run), a matriz
+de confusão e os pesos que o modelo aprendeu. Experimenta baixar o `C` e treinar outra vez.
 
-Para ver o treino passo a passo: em **Dados**, gera as "Luas" (separador Sintéticos); em
-**Modelo**, escolhe a "Regressão logística (gradiente descendente)" e carrega em "Treinar".
-No ecrã **Treinar**, carrega em "▶ Reproduzir" e vê a fronteira a mover-se época a época, com
-a loss a descer. Experimenta taxas de aprendizagem diferentes: com 0,05 o treino arrasta-se;
-com 50 a fronteira salta de um lado para o outro. Com treinos longos (California Housing com
-a regressão linear e 20 000 épocas), o ecrã mostra o progresso ao vivo, com Pausar e Parar.
+O treino usa sempre a preparação aberta: noutro dataset, passa pelo **Preparar** antes de
+escolher o modelo (com as sugestões, basta abri-lo).
 
-Para avaliar a fundo e explicar, treina um classificador e abre o ecrã **Avaliar**. Tens a
-matriz de confusão, as curvas ROC e de precisão-recall e os pontos onde o modelo erra, no
-plano. No separador "Validação cruzada", o botão "Calcular" treina o modelo 5 vezes e
-desenha a curva de aprendizagem. O ecrã **Explicar** mostra três coisas: que features o
-modelo usa (importância por permutação), como a previsão muda com cada uma (dependência
-parcial) e porque saiu uma previsão concreta.
+Para ver o treino passo a passo: em **Dados**, gera as "Luas" (separador Sintéticos) e
+prepara-as; em **Modelos**, abre a "Regressão logística (gradiente descendente)" e carrega em
+"Treinar com estes valores". No **Treinar e avaliar**, carrega no botão por baixo do campo (▶,
+ou ↺ para ver outra vez) e vê a fronteira a mover-se época a época, com a loss a descer; o
+controlo ao lado percorre as fotografias uma a uma. Experimenta taxas de aprendizagem
+diferentes: com 0,05 o treino arrasta-se; com 50 a fronteira salta de um lado para o outro.
+Com treinos longos (California Housing com a regressão linear e 20 000 épocas), o ecrã
+mostra o progresso ao vivo, com Pausar, Retomar e Parar.
+
+Para avaliar a fundo e explicar, treina um classificador. A avaliação tem a matriz de
+confusão, as curvas ROC e de precisão-recall e os pontos onde o modelo erra, no plano. "Correr
+a validação cruzada" treina o modelo 5 vezes, e "Desenhar a curva de aprendizagem" mostra
+como ele muda com mais dados. "Explicar as previsões" abre o ecrã **Explicar**, com três
+perguntas: o que pesa no conjunto (a importância por permutação), como a previsão muda com
+uma feature (a dependência parcial) e porque saiu uma previsão concreta.
 
 Para aprender sem alvo, carrega o Iris e, em **Preparar**, mantém o alvo `species` mas
 escolhe a tarefa "Clustering". A coluna deixa de entrar no treino e fica como referência.
-Treina a "Mistura de gaussianas" e vê as elipses a ajustarem-se, iteração a iteração; no
-**Avaliar**, o separador "Referência" mostra se os grupos encontrados correspondem às
-espécies. Para anomalias, gera o exemplo sintético "Anomalias", escolhe a tarefa "Deteção
-de anomalias" e treina o Isolation Forest. O separador "Pontuações" mostra as anomalias
+Treina a "Mistura de gaussianas" e vê as elipses a ajustarem-se, iteração a iteração; na
+avaliação, "Grupos e referência" mostra se os grupos encontrados correspondem às espécies.
+Para anomalias, gera o exemplo sintético "Anomalias", escolhe a tarefa "Deteção de
+anomalias" e treina o Isolation Forest. As pontuações de anomalia mostram as anomalias
 verdadeiras de um lado e do outro do limiar.
 
 O ecrã **Laboratório** tem quatro demonstrações, cada uma com um só controlo:
@@ -110,26 +123,28 @@ O ecrã **Laboratório** tem quatro demonstrações, cada uma com um só control
 - o k do KNN;
 - a força da regularização na Ridge e no Lasso.
 
+O ecrã **Métricas** tem o glossário das 22, cada uma com a fórmula e o que mede.
+
 Cada treino fica registado sozinho no ecrã **Experiências**. Para comparar dois runs:
 
 1. treina o Iris duas vezes, com valores de `C` diferentes;
-2. num deles, carrega em "Guardar experiência", na barra lateral;
-3. no ecrã Experiências, escolhe os dois runs. Vês as métricas lado a lado, só as escolhas
-   que mudaram e as curvas da loss.
+2. num deles, carrega em "Guardar experiência", no "Treinar e avaliar";
+3. no ecrã Experiências, marca os dois runs. Vês as métricas lado a lado, com o melhor
+   marcado, só as escolhas que mudaram e as curvas da loss.
 
-Fecha a app e abre-a outra vez: os runs continuam lá, e o guardado volta a abrir com o
-modelo (os gráficos do Avaliar funcionam). "Reproduzir" treina outra vez a mesma
-configuração, e a comparação confirma que as métricas são iguais.
+Pára a API e arranca-a outra vez: os runs continuam lá, e o guardado volta a abrir com o
+modelo (a avaliação e o Explicar funcionam). Na gaveta de cada run, "Reproduzir" treina outra
+vez a mesma configuração, e a comparação confirma que as métricas são iguais.
 
 Para ver uma rede neuronal por dentro:
 
-1. em **Dados**, gera as "Luas" com ruído 0,1;
-2. em **Modelo**, escolhe a "Rede neuronal (MLP)" e treina.
+1. em **Dados**, gera as "Luas" com ruído 0,1 e prepara-as;
+2. em **Modelos**, abre a "Rede neuronal (MLP)" e treina.
 
-No **Treinar**, a fronteira curva-se à volta das luas, o que a regressão logística não
-consegue. A secção "As camadas da rede" mostra, passo a passo, a ativação de cada
-neurónio, o tamanho dos gradientes de cada camada e os neurónios parados. Duas
-experiências para fazer aí:
+No **Treinar e avaliar**, a fronteira curva-se à volta das luas, o que a regressão logística
+não consegue. A secção "As camadas da rede" mostra, passo a passo, a ativação de cada
+neurónio, o tamanho dos gradientes de cada camada e os neurónios parados. Duas experiências para fazer
+aí:
 
 - a sigmoide com 4 camadas: o gradiente encolhe de camada para camada, e na primeira é
   dezenas de vezes menor do que na saída (o gradiente que desaparece). Com a ReLU, fica
@@ -156,7 +171,8 @@ experimenta:
 
 ## Usar a API
 
-A API (fase 7) põe os mesmos serviços a falar HTTP, para a interface aprimorada:
+A API (fase 7) põe os serviços a falar HTTP, e é por ela que a interface chega ao backend.
+Para a correr sozinha:
 
 ```bash
 uv run python -m ml_lab.api
@@ -176,7 +192,7 @@ também, em `/automl` (`POST /automl` com o dataset e o alvo; os `updates` traze
 dos agentes e os candidatos novos). Os pormenores estão em
 [src/ml_lab/api/README.md](src/ml_lab/api/README.md).
 
-Para o frontend (fase 10), o contrato da API fica guardado em `ui/web/openapi.json`, de
+Para a interface (fase 10), o contrato da API fica guardado em `ui/web/openapi.json`, de
 onde se geram os tipos TypeScript, e o guia do contrato está em
 [ui/web/README.md](ui/web/README.md): as rotas de cada ecrã, o vocabulário
 (`GET /vocabulary`), o acompanhamento do treino e os códigos de erro. Depois de mudar um
@@ -203,13 +219,24 @@ Para um ciclo rápido, sem os testes de integração e da API:
 uv run pytest -m "not integration and not api"
 ```
 
+A interface tem as suas, dentro de `ui/web`:
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run e2e
+```
+
 | Pasta | O que verifica | Quando corre |
 |---|---|---|
 | `tests/unit/` | Uma função ou classe isolada; espelha `src/ml_lab/` | Sempre |
 | `tests/contract/` | Todos os componentes registados cumprem o seu contrato: modelos, métricas, fontes de dados, limpezas, divisões, agentes e ambientes, e a fronteira dos serviços | Sempre |
 | `tests/architecture/` | Regras de importação entre camadas | Sempre |
-| `tests/integration/` | Fluxos de ponta a ponta: o critério de cada fase, nos serviços e na interface | Antes de cada push |
+| `tests/integration/` | Fluxos de ponta a ponta: o critério de cada fase, nos serviços | Antes de cada push |
 | `tests/api/` | Endpoints HTTP e WebSocket (fase 7) | Antes de cada push |
+| `ui/web/src/` (`*.test.ts`, `*.test.tsx`) | As peças da interface: os números à portuguesa, as cores, as escolhas do Preparar, os erros da API e os avisos | Sempre (`npm test`) |
+| `ui/web/e2e/` | A interface num browser, ecrã a ecrã (Playwright), com a API numa pasta temporária | Antes de cada push (`npm run e2e`) |
 
 Os avisos (`warnings`) contam como erros nos testes: um aviso do pandas ou do scikit-learn
 costuma anunciar um problema real, por isso é melhor resolvê-lo logo.
@@ -245,11 +272,10 @@ src/ml_lab/          pacote instalável
 │   ├── services/    a única porta de entrada do núcleo
 │   └── ...          training, evaluation, explainability, tracking...
 └── api/             FastAPI: uma rota por método dos serviços (fase 7)
-ui/simple/           interface simples (Streamlit)
-ui/web/              interface aprimorada (React, fase 10)
+ui/web/              a interface (React + TypeScript, fase 10)
 tests/               unit, contract, integration, architecture, api
 data/samples/        datasets de exemplo (versionados)
-scripts/             utilitários, como descarregar os exemplos
+scripts/             utilitários: arrancar a API e a interface, descarregar os exemplos…
 docs/                arquitetura, ADRs e fichas didáticas dos algoritmos
 ```
 

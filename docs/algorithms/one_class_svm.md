@@ -42,6 +42,6 @@ fronteira e um limite mínimo para a fração de vetores de suporte.
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar**, as cores mostram a pontuação de anomalia no plano: vês
+Treina de uma vez. No ecrã **Treinar e avaliar**, as cores mostram a pontuação de anomalia no plano: vês
 a fronteira a abraçar as nuvens de pontos. Experimenta o `gamma`: pequeno dá uma forma lisa;
 grande, ilhas à volta de cada ponto.

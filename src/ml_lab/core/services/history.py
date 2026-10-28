@@ -9,7 +9,7 @@ A memória do ML Lab tem dois passos (ADR 0020):
    animação e, numa rede neuronal, as camadas em cada snapshot), que é o que mais pesa.
    Um run guardado volta a abrir com tudo, mesmo depois de fechar a app: o modelo vem do
    ficheiro e os dados preparam-se outra vez (a mesma configuração e a mesma seed dão os
-   mesmos dados), por isso os gráficos do Avaliar e o Explicar voltam a funcionar.
+   mesmos dados), por isso os gráficos da avaliação e o Explicar voltam a funcionar.
 
 Os runs de reinforcement learning (fase 8) entram no mesmo histórico, com a tarefa
 ``CONTROL``: o ambiente fica onde fica o dataset, e o agente onde fica o modelo. O que muda
@@ -138,7 +138,7 @@ class HistoryService:
         self._files.delete(run_id)
 
     def open(self, run_id: str) -> ExperimentResult:
-        """O resultado de um run, pronto a mostrar nos ecrãs Treinar, Avaliar e Explicar.
+        """O resultado de um run, pronto a mostrar nos ecrãs Treinar e avaliar e Explicar.
 
         Num run guardado, o modelo volta do ficheiro e os dados preparam-se outra vez. Se
         isso falhar (por exemplo, o ficheiro de dados já não existe), o resultado abre na
@@ -169,7 +169,7 @@ class HistoryService:
         except MLLabError as error:
             notice = Notice.warning(
                 "not_restored",
-                f"O modelo guardado não voltou a abrir ({error}). Os gráficos do Avaliar e o "
+                f"O modelo guardado não voltou a abrir ({error}). Os gráficos da avaliação e o "
                 "Explicar ficam indisponíveis para este run; o resto está como foi registado.",
             )
             return replace(result, notices=(notice, *result.notices))

@@ -2,7 +2,8 @@
 
 Pelos serviços: a rede chega a uma exatidão que a regressão logística não alcança, a
 fronteira muda entre a primeira e a última fotografia, e a fronteira final é curva (uma
-reta não a reproduz). Na interface: o ecrã Treinar mostra as camadas da rede.
+reta não a reproduz). As camadas da rede na interface estão nos testes de ponta a ponta da
+web (a página da rede neuronal e o ecrã Treinar e avaliar).
 
 As luas têm aqui ruído 0,1: com o ruído por omissão (0,2), as duas luas sobrepõem-se e
 nenhum modelo passa muito dos 95% num teste de 40 pontos (a rede fica nos 94,6% em
@@ -10,12 +11,9 @@ média, contra 86% da regressão logística). Com menos ruído, "resolver" quer 
 acertar quase tudo.
 """
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression
-from streamlit.testing.v1 import AppTest
 
 from ml_lab.core.services import (
     ExperimentConfig,
@@ -26,7 +24,6 @@ from ml_lab.core.services import (
     SourceSpec,
 )
 
-APP = Path(__file__).resolve().parents[2] / "ui" / "simple" / "app.py"
 MOONS = SourceSpec("synthetic", {"generator": "moons", "seed": 0, "parameters": {"noise": 0.1}})
 
 
@@ -66,23 +63,3 @@ def test_the_network_solves_the_moons_with_a_curving_boundary(lab: Lab) -> None:
     assert line < 0.9  # e acabou curva
     assert network.network is not None
     assert len(network.network.frames) > 10
-
-
-def test_the_training_screen_shows_the_layers_of_the_network(lab: Lab) -> None:
-    result = train(lab, "mlp")
-    app = AppTest.from_file(APP, default_timeout=120)
-    app.session_state["lab"] = lab
-    app.session_state["result"] = result
-    app.run()
-
-    app.switch_page("pages/treinar.py").run()
-
-    assert not app.exception
-    assert "As camadas da rede" in [header.value for header in app.subheader]
-    assert (
-        len(app.get("plotly_chart")) >= 6
-    )  # fronteira, loss, rede, gradientes, parados, ativações
-    app.select_slider(key=f"treinar.network_step.{result.run_id}").set_value(
-        result.network.frames[0].step if result.network else 0
-    ).run()
-    assert not app.exception

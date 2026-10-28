@@ -26,12 +26,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatCount, formatNumber } from "@/lib/format";
+import { isValidSeed, MAX_SEED } from "@/lib/seed";
 
 import { useDatasetLoaded } from "./use-dataset-loaded";
 
-/** Os ficheiros que a leitura aceita (a mesma lista da interface simples). */
+/** Os ficheiros que a leitura do backend aceita (`core/data/io/file_source.py`). */
 const ACCEPTED = ".csv,.tsv,.txt,.gz,.xlsx,.xlsm";
-const MAX_SEED = 2 ** 32 - 1;
 
 /** Os datasets de exemplo, cada um com o que tem e de onde vem. */
 export function SampleSource({ open }: { open: SourceSpec | undefined }) {
@@ -195,7 +195,7 @@ export function SyntheticSource() {
     return null;
   }
   const values = parameters[generator.name] ?? schemaDefaults(generator.parameters_schema);
-  const validSeed = Number.isInteger(seed) && seed >= 0 && seed <= MAX_SEED;
+  const validSeed = isValidSeed(seed);
 
   return (
     <div className="grid gap-8 @3xl/main:grid-cols-[15rem_minmax(0,1fr)] @6xl/main:grid-cols-[17rem_minmax(0,42rem)]">

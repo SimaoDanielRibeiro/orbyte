@@ -12,6 +12,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { ApiRequestError } from "@/api/errors";
 import type { ExperimentResult } from "@/api/generated";
 import {
   experimentsCancelMutation,
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton } from "@/features/data/require-dataset";
+import { SaveRunButton } from "@/features/history/save-run";
 import { EmbeddingView } from "@/features/models/embedding-view";
 import { LearnedViewPanel } from "@/features/models/learned-view";
 import { formatCount, formatNumber, formatStatistic } from "@/lib/format";
@@ -54,7 +56,7 @@ export function TrainScreen() {
 
 function TrainRun({ runId }: { runId: string }) {
   const label = useLabel();
-  const { live, status, detached, result } = useTrainingRun(runId);
+  const { live, status, detached, result, fromHistory } = useTrainingRun(runId);
   const runTitle = useSession((state) => (state.runId === runId ? state.runTitle : null));
   const openRun = useSession((state) => state.openRun);
   const data = result.data;
@@ -65,14 +67,20 @@ function TrainRun({ runId }: { runId: string }) {
   }, [runId, openRun]);
 
   if (detached && result.error !== null) {
+    const missing =
+      result.error instanceof ApiRequestError && result.error.code === "run_not_found";
     return (
       <>
         <PageHeader title={SCREENS.train.title} description={SCREENS.train.description} />
-        <NeedsStep
-          message="Este run já não está na memória da API: ela recomeçou, ou ele saiu para dar lugar a outros. Os runs guardados voltam a abrir no ecrã Experiências."
-          to="/experiencias"
-          action="Abrir as experiências"
-        />
+        {missing ? (
+          <NeedsStep
+            message="Este run não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Experiências."
+            to="/experiencias"
+            action="Abrir as experiências"
+          />
+        ) : (
+          <ErrorNote error={result.error} className="mt-10" />
+        )}
       </>
     );
   }
@@ -98,17 +106,23 @@ function TrainRun({ runId }: { runId: string }) {
             </p>
           )}
         </div>
-        <WhyButton
-          topics={[
-            "loss",
-            "snapshots",
-            "decision_boundary",
-            "train_vs_test",
-            "cross_validation",
-            "learning_curve",
-          ]}
-        />
+        <div className="flex shrink-0 flex-wrap items-start gap-2">
+          {data !== undefined && <SaveRunButton runId={runId} />}
+          <WhyButton
+            topics={[
+              "loss",
+              "snapshots",
+              "decision_boundary",
+              "train_vs_test",
+              "cross_validation",
+              "learning_curve",
+            ]}
+          />
+        </div>
       </header>
+      {fromHistory && data !== undefined && (
+        <p className="mt-4 text-sm text-muted-foreground">Aberto do histórico.</p>
+      )}
       {live_ && data === undefined && <Live live={live} runId={runId} />}
       {status === "failed" && (
         <ErrorNote

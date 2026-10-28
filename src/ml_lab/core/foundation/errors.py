@@ -168,7 +168,10 @@ class RunNotInMemoryError(ModelError, LookupError):
 
     def __init__(self, run_id: str) -> None:
         self.run_id = run_id
-        super().__init__(f"O run {run_id} já não está em memória: treina o modelo outra vez.")
+        super().__init__(
+            f"O run {run_id} já não está em memória (só ficam os últimos). Se o guardaste, "
+            "abre-o no ecrã Experiências, que o modelo volta com ele; se não, treina-o outra vez."
+        )
 
 
 class JobNotFoundError(MLLabError, LookupError):

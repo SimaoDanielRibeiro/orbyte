@@ -53,8 +53,8 @@ exemplos.
 
 ## O que observar no treino
 
-No ecrã **Treinar**, cada passo é a árvore com mais um nível de profundidade. Vês a fronteira
+No ecrã **Treinar e avaliar**, cada passo é a árvore com mais um nível de profundidade. Vês a fronteira
 a partir-se em retângulos cada vez mais pequenos, e a loss (a proporção de erros no treino,
 ou o erro quadrático médio) a descer. Repara quando a fronteira começa a fazer retângulos à
-volta de pontos isolados: é o overfitting a chegar. Em **O que o modelo aprendeu** (ecrã
-Avaliar) estão as regras da árvore.
+volta de pontos isolados: é o overfitting a chegar. Em **O que aprendeu** está a árvore
+desenhada, com a pergunta de cada nó.

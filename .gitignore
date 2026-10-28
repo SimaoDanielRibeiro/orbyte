@@ -20,9 +20,6 @@ data/uploads/*
 artifacts/*
 !artifacts/.gitkeep
 
-# Streamlit
-.streamlit/secrets.toml
-
 # Notebooks
 .ipynb_checkpoints/
 

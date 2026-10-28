@@ -26,7 +26,7 @@ tudo é usado por código, testes e uma API.
 ### Princípios de arquitetura
 
 - **Núcleo independente da interface.** O pacote `core` não importa FastAPI, nem bibliotecas
-  de gráficos, nem nada de UI. A API e a futura interface consomem o núcleo, nunca o
+  de gráficos, nem nada de UI. A API consome o núcleo, e a interface consome a API; nunca o
   contrário.
 - **Contratos antes de implementações.** Modelos, avaliadores, transformações e fontes de
   dados obedecem a interfaces abstratas. O resto do sistema só conhece a interface.
@@ -45,7 +45,8 @@ tudo é usado por código, testes e uma API.
 ### Decisões assumidas (a confirmar)
 
 - Stack enxuta: 13 tecnologias no backend e na interface simples; FastAPI e React só nas
-  fases 7 e 10 (ver [Tecnologias](#tecnologias)).
+  fases 7 e 10 (ver [Tecnologias](#tecnologias)). Depois da fase 10, a interface simples saiu
+  e levou o Streamlit e o Plotly (ADR 0031).
 - Python 3.12+, scikit-learn para todo o ML clássico, PyTorch para deep learning.
 - pandas apenas na camada de dados (`core/data/`); o resto do sistema trabalha com NumPy.
 - Implementações didáticas em NumPy puro para os algoritmos simples, ao lado das versões do
@@ -53,7 +54,8 @@ tudo é usado por código, testes e uma API.
 - Registo de experiências em SQLite com o módulo `sqlite3` da biblioteca padrão, atrás de um
   contrato trocável.
 - Interface em duas versões com as mesmas funcionalidades: simples (Streamlit) a par de cada
-  fase; aprimorada e personalizada (React) na fase 10.
+  fase; aprimorada e personalizada (React) na fase 10. Quando a web ficou com tudo, a simples
+  saiu (ADR 0031).
 - Reinforcement learning na fase 8, com ambiente próprio em grelha, sem bibliotecas de RL.
 - Agentes de AutoML na fase 9: um modo automático ao lado do manual, com agentes
   deterministas por cima dos serviços, sem modelos de linguagem (ADR 0025).
@@ -75,7 +77,7 @@ Sete regiões, 28 etapas, 2 ciclos:
 | 4 · Observação do treino | **Eventos** (o modelo anuncia cada passo) → **Snapshots** (estado do modelo a cada N passos) → **Progresso** (loss por época, logs estruturados) → **Controlo** (parar, pausar, early stopping) | EventBus · `core/training` |
 | 5 · Avaliação | **Métricas** (por tipo de tarefa) → **Diagnósticos** (overfitting, desequilíbrio) → **Robustez** (validação cruzada, learning curves) → **Explicar** (importância de features) | `core/evaluation` · explainability |
 | 6 · Memória | **Registar** (run, métricas, configuração) → **Guardar** (modelo treinado e snapshots, a pedido) → **Comparar** (2 a 5 runs lado a lado) → **Reproduzir** (mesma configuração e mesma seed) | `core/tracking` · SQLite |
-| 7 · Apresentação | **Serviços** (única porta do núcleo) → **Gráficos** (fronteiras, curvas, projeções 2D) → **UI simples** (Streamlit + Plotly, todas as funções) → **UI aprimorada** (React + API, WebSocket) | services · visualization_data · ui |
+| 7 · Apresentação | **Serviços** (única porta do núcleo) → **Gráficos** (fronteiras, curvas, projeções 2D) → **API** (HTTP e WebSocket, uma rota por método) → **Interface** (React, todos os ecrãs) | services · visualization_data · api · ui/web |
 
 - **Ciclo de aprendizagem:** a avaliação volta à preparação para ajustar dados ou
   hiperparâmetros.
@@ -99,16 +101,17 @@ aparece em tempo real).
 
 ## Tecnologias
 
-A stack final tem **13 tecnologias** para o backend e a interface simples, e mais **7** que
-só entram nas fases 7 e 10 (API e interface aprimorada em React). Todos os tipos de
-aprendizagem do plano ficam cobertos. Cada tecnologia tem um único papel; a coluna "Fase"
-diz quando a começas a usar.
+A stack final tem **11 tecnologias** para o backend e mais **10** que só entram nas fases 7
+e 10 (a API e a interface em React). Todos os tipos de aprendizagem do plano ficam cobertos.
+Cada tecnologia tem um único papel; a coluna "Fase" diz quando a começas a usar. Até à fase
+10 havia mais duas, as da interface simples (o Streamlit e o Plotly), que saíram com ela
+(ADR 0031).
 
 ### Ferramentas de desenvolvimento
 
 | Tecnologia | O que é | Para que serve no projeto | Fase |
 |---|---|---|---|
-| Python 3.12+ | Linguagem principal do ecossistema de ML | Todo o backend e a interface simples | 0 |
+| Python 3.12+ | Linguagem principal do ecossistema de ML | Todo o backend | 0 |
 | uv | Gestor de pacotes e ambientes virtuais, muito rápido | Instalar dependências, criar o ambiente, fixar versões (`uv.lock`), correr comandos | 0 |
 | ruff | Linter e formatador numa só ferramenta | Estilo uniforme e deteção de erros comuns antes de correr o código | 0 |
 | mypy | Verificador estático de tipos | Garantir que cada implementação respeita os contratos | 0 |
@@ -127,15 +130,18 @@ diz quando a começas a usar.
 
 | Tecnologia | O que é | Para que serve no projeto | Fase |
 |---|---|---|---|
-| Pydantic v2 | Validação de dados com tipos Python | Hiperparâmetros, configurações de experiência, fichas técnicas; gera os formulários das duas interfaces | 2 |
+| Pydantic v2 | Validação de dados com tipos Python | Hiperparâmetros, configurações de experiência, fichas técnicas; o JSON Schema de onde a interface gera os formulários | 2 |
 | SQLite (módulo `sqlite3`) | Base de dados num único ficheiro, incluída no Python | Registo de experiências, runs e métricas | 5 |
 
 Configuração e logs usam só a biblioteca padrão do Python (um módulo de configuração e o
 módulo `logging`), sem dependências extra.
 
-### Interface simples
+### Interface simples (saiu depois da fase 10)
 
-| Tecnologia | O que é | Para que serve no projeto | Fase |
+Serviu da fase 0 à 10 e saiu quando a interface web ficou com tudo (ADR 0031). Fica aqui o que
+usava, para a história; a última versão com ela está no commit `0ff15ea`.
+
+| Tecnologia | O que é | Para que serviu no projeto | Fase |
 |---|---|---|---|
 | Streamlit | Transforma scripts Python em aplicações web, sem HTML nem JavaScript | Todos os ecrãs da interface simples, construídos a par do backend | 0 |
 | Plotly | Gráficos interativos (zoom, hover, animação) | Gráficos da interface simples (a aprimorada desenha os seus com o D3) | 1 |
@@ -404,8 +410,7 @@ os snapshots só se guardam quando se pede (ADR 0020).
 
 | Camada | Pode importar | Nunca importa |
 |---|---|---|
-| Interface simples | `services`, `schemas` | Modelos, dados, treino ou base de dados diretamente |
-| Interface aprimorada | API (por HTTP e WebSocket) | Nada do Python diretamente |
+| Interface (web) | API (por HTTP e WebSocket) | Nada do Python diretamente |
 | API | `services`, `schemas` | Modelos, dados, treino ou base de dados diretamente |
 | Serviços | Todo o `core` | `api`, `ui` |
 | Núcleo | Fundação, bibliotecas de ML; pandas só em `core/data/`; SQLite e joblib só em `core/tracking/`; PyTorch só nas redes (`models/neural/`, o seu adaptador e o DQN em `rl/agents/dqn.py`) | `api`, `ui`, `services` |
@@ -606,19 +611,15 @@ ml-lab/
 │       └── routes/           # uma rota por método público de cada serviço
 │
 ├── ui/
-│   ├── simple/               # INTERFACE SIMPLES (Streamlit + Plotly)
-│   │   ├── app.py            # entrada e navegação
-│   │   ├── pages/            # um ecrã por etapa (Dados, Agentes, Explorar, Preparar…)
-│   │   ├── components/       # blocos reutilizáveis: cartão de métrica, formulário
-│   │   └── charts/           # desenha com Plotly os dados de visualization_data
-│   └── web/                  # INTERFACE APRIMORADA (React + TypeScript), fase 10
-│       ├── README.md         # como correr e o guia do contrato com o backend
+│   └── web/                  # A INTERFACE (React + TypeScript), fase 10
+│       ├── README.md         # como correr, o guia do contrato e como mexer na interface
 │       ├── openapi.json      # o contrato, gerado pelo Python (o cliente gera-se daqui)
 │       ├── e2e/              # testes de ponta a ponta (Playwright), com a API numa pasta temporária
 │       └── src/
 │           ├── api/          # o cliente gerado, os erros, a cache e o vocabulário
-│           ├── components/   # ui/ (shadcn), shell/ (a moldura), notices/
-│           ├── lib/          # format.ts: os números à portuguesa, como no Python
+│           ├── components/   # ui/ (shadcn), shell/ (a moldura), charts/ (D3), forms/, notices/…
+│           ├── features/     # um ecrã por pasta: dados, treino, agentes, experiências…
+│           ├── lib/          # format.ts (os números à portuguesa, como no Python), as cores
 │           ├── routes/       # um ficheiro por ecrã (TanStack Router)
 │           ├── state/        # o pouco estado do cliente (Zustand)
 │           └── styles/       # globals.css: os tokens do sistema visual (ADR 0029)
@@ -640,9 +641,10 @@ ml-lab/
 - `core/` nunca importa `api/` nem `ui/`.
 - `foundation/` não importa nenhuma outra pasta do projeto.
 - `visualization_data/` só calcula números (grelhas, curvas, coordenadas). Desenhar é
-  trabalho da interface, para que os mesmos dados sirvam a versão simples e a aprimorada.
-- `services/` é a única porta de entrada do núcleo: a interface simples chama-a
-  diretamente; a API chama-a para a interface aprimorada.
+  trabalho da interface, que escolhe a forma e as cores; assim, os números servem qualquer
+  interface (serviram duas até à fase 10).
+- `services/` é a única porta de entrada do núcleo: a API chama-a, e a interface fala com a
+  API.
 - Os métodos públicos dos serviços devolvem só dados simples, que passam a JSON, e as
   regras de domínio ficam no backend: a interface só desenha (ADR 0019, `CONTRIBUTING.md`). O
   teste de contrato da fronteira (`tests/contract/test_service_boundary.py`) verifica-o.
@@ -854,12 +856,15 @@ iguais até 1e-4). É assim que sabes que a tua implementação está certa.
 
 ## Interface
 
-A interface é feita em duas versões com **as mesmas funcionalidades**: primeiro uma simples
-(Streamlit), que cresce a par do backend em cada fase; no fim, uma aprimorada e bem
-desenhada (React), que muda a apresentação mas não o que se pode fazer. Assim validas tudo
-cedo e o redesenho final não obriga a repensar o produto.
+A interface foi feita em duas versões com **as mesmas funcionalidades**: primeiro uma simples
+(Streamlit), que cresceu a par do backend em cada fase; no fim, uma aprimorada e bem
+desenhada (React), que mudou a apresentação mas não o que se pode fazer. Assim validou-se
+tudo cedo, e o redesenho final não obrigou a repensar o produto.
 
-### Ecrãs (iguais nas duas versões)
+Quando a web ficou com tudo, a simples saiu (ADR 0031). A interface do ML Lab é a web, em
+`ui/web`, e fala com o backend só pela API.
+
+### Ecrãs
 
 Os ecrãs seguem a ordem natural de uma experiência, da esquerda para a direita numa barra de
 navegação. Depois de carregar os dados há dois caminhos (fase 9):
@@ -885,6 +890,11 @@ um run como os outros, e qualquer candidato que eles experimentaram se pode trei
 | 10 | Laboratório | Mexe num controlo e vê o efeito imediato | Demos de conceitos: overfitting (complexidade do modelo), taxa de aprendizagem, k do KNN, regularização | 4 |
 | 11 | Reinforcement learning | Escolhe ambiente e agente, inicia o treino | Recompensa por episódio, tabela Q, política aprendida | 8 |
 
+Na interface web, o Treinar e o Avaliar são um só ecrã, "Treinar e avaliar" (o treino ao vivo
+e, quando acaba, a avaliação), e há mais dois: o Início, com os dois caminhos, e as Métricas,
+o glossário das 22. A barra lateral mostra os passos do caminho escolhido (ver as notas da
+[fase 10](#fase-10)).
+
 ### Elementos comuns a todos os ecrãs
 
 - Barra lateral com o estado da experiência atual: dataset, tarefa, modelo, último
@@ -894,6 +904,8 @@ um run como os outros, e qualquer candidato que eles experimentaram se pode trei
 - Botão para guardar a experiência em qualquer momento.
 
 ### Simples vs. aprimorada
+
+As duas, como foram planeadas (a simples saiu depois da fase 10, ADR 0031):
 
 | Aspeto | Interface simples | Interface aprimorada |
 |---|---|---|
@@ -905,22 +917,27 @@ um run como os outros, e qualquer candidato que eles experimentaram se pode trei
 | Objetivo | Validar funcionalidades e aprender depressa | Experiência polida para usar e mostrar |
 | Quando | Cresce a cada fase, a partir da fase 1 | Fase 10, com a API estável |
 
-### Regras para as duas versões partilharem tudo
+### Regras da interface
+
+Nasceram para as duas versões partilharem tudo, e continuam com a web sozinha (as regras
+completas do backend estão no `CONTRIBUTING.md`):
 
 1. Nenhuma lógica de ML ou de dados vive na interface; a interface só pede e mostra.
 2. Os gráficos são desenhados a partir dos dados preparados por `visualization_data/`: a
-   versão simples e a aprimorada recebem exatamente os mesmos números.
-3. Os formulários de hiperparâmetros são gerados a partir das fichas técnicas dos modelos,
-   nas duas versões.
-4. Os textos didáticos vêm do backend (fichas e explicações de métricas), por isso só se
-   escrevem uma vez.
-5. Cada ecrã da versão simples é o rascunho funcional do mesmo ecrã da versão aprimorada.
+   interface recebe os números prontos e só escolhe como os desenhar.
+3. Os formulários de hiperparâmetros são gerados a partir das fichas técnicas dos modelos
+   (o JSON Schema de cada uma).
+4. Os textos didáticos vêm do backend (fichas, explicações de métricas, temas do "Porquê?"),
+   por isso só se escrevem uma vez.
+
+Até à fase 10 havia uma quinta: cada ecrã da versão simples era o rascunho funcional do mesmo
+ecrã da aprimorada. Cumpriu-se, e a simples saiu.
 
 ## Roadmap por fases
 
 Onze fases (0 a 10). Cada uma termina com algo que funciona, está testado e já se vê na
-interface simples. Cada fase introduz poucas tecnologias novas, para as aprenderes uma de
-cada vez.
+interface (na simples até à fase 9, na web desde a 10). Cada fase introduz poucas
+tecnologias novas, para as aprenderes uma de cada vez.
 
 | Fase | Backend | Interface simples (ecrãs que ganha) | Tecnologias novas | Pronto quando |
 |---|---|---|---|---|
@@ -975,7 +992,7 @@ navegação entre ecrãs vazios.
 | 0002 | pandas isolado em `core/data/` | Fronteira clara entre dados tabulares e cálculo numérico; substituível |
 | 0003 | Stack enxuta, extensões atrás de contratos | Menos tecnologias para aprender de cada vez, sem fechar portas |
 | 0004 | SQLite com `sqlite3` | Sem dependências extra; o contrato do registo permite trocar mais tarde |
-| 0005 | Interface simples (Streamlit) primeiro, React no fim | Validar todas as funcionalidades cedo; o redesenho final só muda a apresentação |
+| 0005 | Interface simples (Streamlit) primeiro, React no fim | Validar todas as funcionalidades cedo; o redesenho final só muda a apresentação (substituída pela 0031: depois da fase 10, a simples saiu) |
 
 ### Regra para cada fase
 
@@ -1696,10 +1713,10 @@ de ML teria.
 | 10.5 | Modelos: a lista, a transição do nome e a página de cada modelo | Os 34 modelos abrem com exemplo e ficha (um teste percorre-os todos) e mudar um hiperparâmetro muda o exemplo | ✅ |
 | 10.6 | Treinar e avaliar: o treino ao vivo e a gaveta de cada métrica | Um teste treina um modelo de ponta a ponta e abre todas as métricas, e tudo funciona com o movimento reduzido | ✅ |
 | 10.7 | Agentes: o fluxograma ao vivo, a conversa e a classificação | Uma procura pequena passa por todas as fases no fluxograma, e pausar, retomar e parar funcionam | ✅ |
-| 10.8 | Explicar, Experiências, Laboratório, RL, o glossário das métricas e o acabamento | Os 11 ecrãs da interface simples têm equivalente e passam todas as verificações; aí decide-se o que fazer à interface Streamlit | |
+| 10.8 | Explicar, Experiências, Laboratório, RL, o glossário das métricas e o acabamento | Os 11 ecrãs da interface simples têm equivalente e passam todas as verificações; aí decide-se o que fazer à interface Streamlit | ✅ |
 
 O ecrã Avaliar deixa de existir à parte: entra em "Treinar e avaliar". A interface Streamlit
-continua a funcionar até à 10.8.
+continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última nota desta fase).
 
 **10.1, a base** (ADR 0027):
 
@@ -1878,4 +1895,96 @@ continua a funcionar até à 10.8.
   acaba; outra pára a meio e acaba com o melhor até aí. O fluxograma mostra a triagem e o fim.
   As fases mais curtas que o intervalo do WebSocket (0,25 s), como a do agente de dados ou o
   treino do vencedor, podem começar e acabar entre duas mensagens; por isso o teste
-  confirma-as na conversa, que as tem todas.
+  confirma-as na conversa, que as tem todas. E o fluxograma só aparece quando chega o plano
+  da procura: se o plano chegar depois das primeiras mensagens, o fluxograma nasce já numa
+  fase. O teste regista também a fase com que ele aparece, e não só as mudanças do atributo
+  (sem isso, falhou uma vez, sem a triagem).
+
+**10.8, o resto e o acabamento**:
+
+- **Explicar**: as três perguntas, pela ordem em que se fazem. O que pesa no conjunto (a
+  importância por permutação, a pedido, porque volta a prever o teste muitas vezes); como a
+  previsão muda com uma feature (a dependência parcial, com as curvas individuais e os traços
+  onde há dados); e uma previsão de perto, linha a linha. O "como se lê" dos contributos vem
+  com eles (`RowExplanation.how_to_read`), porque depende do método; os dos outros dois
+  gráficos são temas (`importance_bars`, `dependence_curves`).
+- **Reabrir um run pelo histórico**: quando a API responde `run_not_in_memory` (só guarda os
+  últimos runs), o Treinar e avaliar, o Explicar e o ecrã do RL pedem o run ao histórico, como
+  o plano previa. Um run guardado volta com o modelo, e com ele os gráficos e o Explicar; só se
+  perdeu um run que também não está no histórico. O botão "Guardar experiência", que a
+  interface simples tinha na barra lateral, está nos dois ecrãs de treino.
+- **Experiências**: a tabela com os filtros no endereço; a comparação de dois a cinco runs (a
+  leitura do backend, as métricas com o melhor marcado, as percentagens em pontos de 0 a 100%,
+  as escolhas que mudam e as curvas da loss); e a gaveta de cada run, para o abrir no ecrã que
+  é o dele, reproduzir, guardar, mudar o nome e apagar (com confirmação). As escolhas da
+  preparação passaram a escrever-se com nomes ("Divisão · estratégia: Estratificada",
+  "Limpeza: Remover colunas (Cabin)") em vez do JSON da configuração e do nome do campo.
+- **Laboratório**: as quatro demonstrações em separadores, com a aberta no endereço (a página
+  de um modelo liga-se à que o explica). Os valores de cada controlo estavam nas páginas do
+  Streamlit; passaram para o backend (`LaboratoryService.demos`), com o resumo de cada
+  demonstração, e as duas interfaces leem-nos (regra 4: de onde a taxa de aprendizagem se
+  arrasta até onde explode é uma escolha didática). As demonstrações recusam, com a razão, os
+  valores que não podem usar; antes, um grau fora de 1 a 15 dava um `ValueError` em inglês.
+  Gráficos novos: as curvas de nível da taça do erro, com o caminho dos pesos por cima, e as
+  escalas logarítmicas em x.
+- **Reinforcement learning**: o pedido (o ambiente, o agente com a ficha didática, os
+  hiperparâmetros e a seed); o treino ao vivo (a recompensa de cada episódio e a política no
+  último snapshot); e, no fim, as métricas no treino e no teste, a recompensa e a parte dos
+  episódios que chega ao objetivo, em dois gráficos (a interface simples punha-as num só, com
+  dois eixos), a grelha episódio a episódio e a tabela Q em quatro grelhas. As paredes, as
+  armadilhas e o objetivo têm um símbolo e o nome na legenda, não só uma cor. As métricas de
+  cada episódio entraram no registo `step_metrics`, com um teste de contrato.
+- **Métricas**: o glossário das 22, com o filtro pela tarefa e uma âncora por métrica (a
+  gaveta de cada métrica liga-se a ela). Os símbolos das fórmulas passaram a desenhar o LaTeX do
+  seu significado ("do exemplo $i$"), também na gaveta.
+- **Um só comando** para trabalhar na interface: `uv run python scripts/dev.py` arranca a API
+  e o Vite, e `Ctrl+C` pára os dois; se um parar sozinho (uma porta ocupada), o outro pára
+  também. No Windows, o npm corre dentro de um `cmd.exe`: parar só esse processo deixava o
+  Vite órfão, por isso pára-se a árvore toda (`taskkill /T`).
+- **A acessibilidade**: o axe passa em todos os ecrãs. Os que abrem sem nada antes passam no
+  teste da moldura; os outros, nos seus testes, com os dados à vista (um run explicado, a
+  comparação aberta, as quatro demonstrações, um agente treinado e o glossário). A auditoria
+  encontrou dois problemas, corrigidos em todos os ecrãs:
+  - o esbatido do resultado anterior, enquanto o novo chega, baixava o contraste do texto
+    abaixo de 4,5:1 (o axe apanhou-o a meio da transição, na página de um modelo). Agora só os
+    desenhos se esbatem (a classe `.stale`);
+  - no telemóvel, os textos só para leitores de ecrã dentro das tabelas, e o MathML que o
+    KaTeX junta às fórmulas, têm posição absoluta e escapavam às caixas que deslizam,
+    alargando a página. As caixas passaram a ser posicionadas (`relative`), e uma fórmula larga
+    desliza dentro da sua. Um teste confirma que nenhum ecrã desliza para o lado no telemóvel.
+- **O guia para mexer na interface** está no `ui/web/README.md`: que ficheiro muda as cores,
+  os tipos de letra, os componentes, a moldura, os gráficos e cada ecrã, e as regras do sistema
+  visual que dão coerência ao todo.
+- **A prova** (`e2e/explain`, `history`, `laboratory`, `reinforcement` e `metrics`): um run
+  explicado nas três partes; dois runs comparados, renomeados, guardados, apagados e
+  reproduzidos; as quatro demonstrações, com um controlo que muda o resultado; um agente
+  treinado, percorrido episódio a episódio e guardado, e outro pausado e retomado; e o glossário
+  com as 22 fórmulas e o filtro pela tarefa. Com as etapas anteriores, os 11 ecrãs da interface
+  simples têm equivalente na web.
+- **A interface Streamlit**: funcionou até ao fim desta etapa, com os textos novos (as duas
+  liam os mesmos temas e os mesmos controlos). A decisão sobre ela veio logo a seguir: saiu
+  (ADR 0031, na nota seguinte).
+
+**Depois da 10.8, a interface Streamlit sai** (ADR 0031):
+
+- **Porquê**: com a web a fazer tudo o que a simples fazia (os 11 ecrãs têm equivalente, com
+  testes), manter as duas era fazer cada ecrã duas vezes, ter duas portas para o núcleo (os
+  serviços chamados no mesmo processo, e a API) e instalar o Streamlit e o Plotly só para ela.
+- **O que saiu**: `ui/simple/` (os ecrãs, os componentes e os gráficos em Plotly),
+  `.streamlit/`, a configuração `ml-lab-ui` do `launch.json` das pré-visualizações, o grupo de dependências
+  `ui` (o Streamlit, o Plotly e o que só eles traziam: 19 pacotes) e o que o ruff e o mypy
+  tinham só para a interface (a pasta `ui` nos caminhos, a exceção do Plotly).
+- **O que ficou**: o backend todo. Uma procura de código morto (o `vulture`, com e sem
+  `ui/simple`) não encontrou nada que só servisse a interface simples: os serviços, os
+  textos, os temas e os dados dos gráficos servem a API. Mudaram só os textos que nomeavam os
+  ecrãs do Streamlit (docstrings, fichas e um aviso do histórico): "o ecrã Avaliar" passou a
+  "a avaliação", e "o ecrã Treinar" a "o Treinar e avaliar" ou "o treino passo a passo".
+- **Os testes** em Python passaram de 2091 para 2044. Saíram os que usavam o `AppTest` (o
+  `test_simple_ui.py` e as partes da interface nos testes de integração de cada fase) e os
+  que liam o código do Streamlit. Ficaram os dos serviços, que provam o critério de cada fase,
+  e a interface tem os seus testes de ponta a ponta, na web. A regra "a
+  interface e a API só importam `services` e `schemas`" passou a ser só da API. A que proíbe o
+  núcleo de importar bibliotecas de interface ou de gráficos (o Streamlit e o Plotly
+  incluídos) ficou, para não voltarem pela porta das traseiras. A procura dos temas pedidos
+  pelo nome (`test_topics_in_use.py`) lê agora só o código da web.
+- **Para a ver outra vez**: a última versão com a interface simples está no commit `0ff15ea`.

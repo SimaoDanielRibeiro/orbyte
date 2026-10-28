@@ -48,6 +48,6 @@ previsões das árvores.
 
 ## O que observar no treino
 
-No ecrã **Treinar**, cada passo é uma etapa. Com *stumps*, a primeira fronteira é uma só reta
+No ecrã **Treinar e avaliar**, cada passo é uma etapa. Com *stumps*, a primeira fronteira é uma só reta
 paralela a um eixo. A cada etapa junta-se mais um corte, e a fronteira constrói-se aos
 bocadinhos, como uma escada. A loss é a proporção de erros (ou o erro quadrático) no treino.

@@ -67,7 +67,7 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
       </div>
       <ErrorNote error={error} className="mt-4" />
       {summary !== undefined && error === null && (
-        <div className={cn("mt-5 transition-opacity", pending && "opacity-60")}>
+        <div className={cn("mt-5", pending && "stale")}>
           <StackedBars
             rows={[
               {

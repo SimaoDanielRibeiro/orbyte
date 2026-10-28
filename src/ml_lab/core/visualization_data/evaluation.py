@@ -1,4 +1,4 @@
-"""Dados dos gráficos do ecrã Avaliar, calculados no teste (só números; desenhar é da interface).
+"""Dados dos gráficos da avaliação, calculados no teste (só números; desenhar é da interface).
 
 Cada tipo de tarefa tem os seus gráficos:
 
@@ -140,7 +140,7 @@ class EvaluationCharts:
 
 
 def evaluation_charts(model: LabModel[Any], dataset: Dataset) -> EvaluationCharts:
-    """Os dados dos gráficos do ecrã Avaliar, no teste (no treino, se o modelo só souber esse)."""
+    """Os dados dos gráficos da avaliação, no teste (no treino, se o modelo só souber esse)."""
     partition = Partition.TEST if model.info.supports_new_data else Partition.TRAIN
     task = dataset.task_type
     if task.is_classification:

@@ -1,17 +1,18 @@
-# Interface aprimorada (React + TypeScript)
+# A interface do ML Lab (React + TypeScript)
 
-Fase 10. As mesmas funcionalidades da interface simples, com design próprio, animações
-suaves e treino em tempo real. Fala com o backend só através da API (HTTP para pedidos,
-WebSocket para o treino) e nunca importa código Python.
+Feita na fase 10, é a interface do ML Lab: a interface simples, em Streamlit, saiu depois dela
+(ADR 0031). Tem design próprio, animações suaves e o treino em tempo real. Fala com o backend
+só através da API (HTTP para os pedidos, WebSocket para o treino) e nunca importa código
+Python.
 
 Tecnologias: React 19, TypeScript 6, Vite 8, Tailwind CSS 4, shadcn/ui (com o Radix) e
 Motion; TanStack Router e TanStack Query; o cliente gerado pelo `@hey-api/openapi-ts`; D3 para
 os gráficos e KaTeX para as fórmulas. As razões estão na ADR 0027; o sistema visual, na
 ADR 0029.
 
-Este ficheiro tem duas partes: como correr a interface e o **guia do contrato com o
-backend**, tudo o que o frontend precisa de saber para falar com a API sem adivinhar (as
-razões estão nas ADRs 0019, 0022 e 0026).
+Este ficheiro tem três partes: como correr a interface, **como mexer nela** (que ficheiro muda
+o quê) e o **guia do contrato com o backend**, tudo o que o frontend precisa de saber para
+falar com a API sem adivinhar (as razões estão nas ADRs 0019, 0022 e 0026).
 
 ## Como correr
 
@@ -21,13 +22,15 @@ Precisa do Node 24 (traz o npm). Na primeira vez, nesta pasta:
 npm install
 ```
 
-Depois, a API e a interface, cada uma no seu terminal (a interface abre em
-<http://localhost:5173>):
+Depois, a API e a interface juntas, com um só comando na raiz do projeto (a interface abre em
+<http://localhost:5173> e recarrega sozinha ao gravar; `Ctrl+C` pára as duas):
 
 ```bash
-uv run python -m ml_lab.api
-npm run dev
+uv run python scripts/dev.py
 ```
+
+Na primeira vez, se ainda não correste o `npm install`, o script corre-o. Também se arrancam à
+parte, cada uma no seu terminal: `uv run python -m ml_lab.api` na raiz e `npm run dev` aqui.
 
 Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço de
 `ML_LAB_API_HOST` e `ML_LAB_API_PORT` (os mesmos do `.env` da raiz do projeto).
@@ -55,15 +58,47 @@ src/
 ├── components/  ui/ (os do shadcn, adaptados), shell/ (a moldura), charts/ (os gráficos, em
 │                D3 e SVG), forms/ (o formulário gerado de um JSON Schema), markdown/ (o texto
 │                com fórmulas), data/ (a tabela de dados), notices/ (os avisos)
-├── features/    um ecrã por pasta: home, data, explore, prepare, models, training, agents
+├── features/    um ecrã por pasta: home, data, explore, prepare, models, training, explain,
+│                agents, history (Experiências), laboratory, metrics, reinforcement
 ├── hooks/       hooks partilhados (o tamanho de um elemento, um valor com atraso)
 ├── lib/         format.ts (os números à portuguesa), colors.ts e classes.ts (as cores dos
-│                dados), utils.ts
+│                dados), seed.ts (a seed de um pedido), utils.ts
 ├── routes/      um ficheiro por rota, que só aponta para o ecrã (o TanStack Router gera
 │                routeTree.gen.ts)
 ├── state/       o pouco estado do cliente (session.ts)
 └── styles/      globals.css: os tokens do sistema visual
 ```
+
+## Mexer na interface
+
+Um mapa do que muda o quê, para pôr a interface como queres sem partir o contrato com o
+backend.
+
+| Para mudar | Onde |
+|---|---|
+| As cores da moldura (o fundo, o texto, o amarelo do agora, os contornos) | `src/styles/globals.css`, no `:root`: cada cor tem o nome da ADR 0029 (`--slate`, `--chalk`, `--chalk-yellow`…), e os papéis que os componentes leem apontam para elas (`--background`, `--primary`, `--ring`…) |
+| Os tipos de letra e a escala | `src/main.tsx` (as fontes que se carregam) e o `@theme` de `globals.css` (`--font-sans`, `--font-serif` e os tamanhos) |
+| As cores dos dados (as classes, as séries, as escalas) | `src/lib/colors.ts`: a paleta categórica e as rampas. Uma paleta nova tem de se validar outra vez contra o fundo (o contraste, e a distinção para quem não vê bem as cores) |
+| Os componentes de base (botões, campos, gavetas, separadores) | `src/components/ui/`: são os do shadcn, copiados para o projeto para se adaptarem |
+| A moldura (a barra lateral, o cabeçalho das páginas, os blocos) | `src/components/shell/` |
+| O nome de cada ecrã, a ordem na barra e os ícones | `src/components/shell/screens.ts` |
+| Um gráfico (todos partilham a moldura de `chart.tsx`: os eixos, a legenda, a dica) | `src/components/charts/` |
+| Um ecrã (a disposição, as secções, o que aparece primeiro) | `src/features/<ecrã>/`; a rota, em `src/routes/`, só aponta para ele |
+| Os textos didáticos (o "Porquê?", as legendas dos gráficos, os avisos, as fichas) | No backend, não aqui (regra 5 do `CONTRIBUTING.md`): os temas em `core/*/explanations.py` e `core/evaluation/topics.py`, as fichas em `docs/algorithms/` |
+
+O sistema visual tem algumas regras que dão coerência ao todo (ADR 0029):
+
+- o amarelo marca só o agora (o passo atual, o agente que trabalha, o foco do teclado);
+- o que se lê é serifado (Literata) e o que se usa é sem serifa (Atkinson);
+- a cor é dos dados, e segue a entidade: a classe "1" tem a mesma cor em todos os gráficos;
+- um gráfico nunca tem dois eixos de y, e tem legenda a partir de duas séries;
+- as páginas reorganizam-se pela largura que têm (`@container/main`), não pela do ecrã.
+
+Enquanto se mexe, o `uv run python scripts/dev.py` recarrega a página ao gravar. Antes de dar
+uma mudança por pronta: `npm run lint && npm run typecheck && npm test`, e `npm run e2e`. Os
+testes de ponta a ponta procuram os elementos pelo papel e pelo nome visível
+(`getByRole("button", { name: "Treinar o agente" })`): ao mudar o texto de um botão ou de um
+título, muda-se também no teste que o usa (procura-se o texto em `e2e/`).
 
 ## A API
 
@@ -110,14 +145,15 @@ Os textos escrevem-se uma vez, no backend (regra 5 do `CONTRIBUTING.md`). Pede-s
   - `tasks`: o que muda com cada tarefa (o paradigma, se precisa de alvo, a métrica
     principal, o modelo sugerido, se os agentes trabalham nela);
   - `step_metrics`: as métricas que os modelos reportam em cada passo do treino, além da
-    loss (`StepRecord.metrics`: `accuracy`, `val_loss`, `oob_score`), com o nome a mostrar,
-    se são percentagem e se são uma loss (a de validação desenha-se com a do treino).
+    loss (`StepRecord.metrics`: `accuracy`, `val_loss`, `oob_score`), e as de cada episódio de
+    um agente de RL (`reward`, `length`, `success`, `epsilon`), com o nome a mostrar, se são
+    percentagem e se são uma loss (a de validação desenha-se com a do treino).
 - `GET /explanations` dá todos os temas (`{tema: {title, text}}`), e
   `GET /explanations/{tema}` um só. São os do painel "Porquê?" e também o "como ler" de cada
   gráfico (`correlation_matrix`, `confusion_matrix`, `lineage`, `train_vs_test`…): a interface
   mostra-os por baixo dos gráficos. Pedem-se ao arrancar, como o vocabulário, e a interface
   pede cada um pelo nome; `tests/contract/test_topics_in_use.py` procura esses nomes no código
-  das duas interfaces e falha se algum não existir. Os temas que explicam a página de cada
+  da interface e falha se algum não existir. Os temas que explicam a página de cada
   modelo vêm no cartão (`topics`), e o "como ler" do campo de decisão vem na própria animação
   (`TrainingAnimation.how_to_read`), porque depende do que os valores são.
 - `GET /catalog/metrics` dá cada métrica com o que mede, como se lê, a **fórmula em LaTeX**
@@ -191,7 +227,7 @@ portuguesa (`Intl.NumberFormat("pt-PT")`), como em `ml_lab/formatting.py`:
 
 ## O que se calcula com o que já vem
 
-Algumas coisas que a interface simples lê de propriedades do Python não vêm no JSON, porque
+Algumas coisas não vêm no JSON como campo próprio (as propriedades do Python não vão nele), porque
 se calculam com campos que vêm:
 
 | Precisas de | Calcula-se com |
@@ -214,6 +250,8 @@ se calculam com campos que vêm:
 | As colunas de uma matriz de confusão | `column_labels`; vazio quer dizer as mesmas classes de `labels` (e a diagonal são os acertos) |
 | Os avisos do diagnóstico de um run | `notices` sem os que também estão em `training_notices` |
 | A cor de cada classe | a posição em `class_labels`; no perfil, que não os traz, a mesma ordem do backend (numérica se os valores forem todos números, senão a do texto) |
+| O ecrã que abre um run do histórico | `tasks[task_type].learns_from_data` do vocabulário: falso é o controlo (um agente de RL, no ecrã do RL); verdadeiro, um modelo (Treinar e avaliar) |
+| O valor da métrica principal de uma entrada do histórico | `metrics[primary_metric]`, escrito com `primary_as_percent` |
 
 As regras de domínio vêm sempre do backend, já decididas: se os dados podem seguir
 (`validation.is_usable`), que divisões existem para uma tarefa
@@ -231,26 +269,37 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 
 | Ecrã | Operações |
 |---|---|
-| 1 · Dados | `datasets_samples`, `datasets_generators`, `datasets_load_sample`, `datasets_generate`, `datasets_upload`, `datasets_load`, `datasets_loaded`, `datasets_summary`, `datasets_preview` |
-| 2 · Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar) |
-| 3 · Explorar | `datasets_profile` |
-| 4 · Preparar | `datasets_suggest_task`, `datasets_task_options`, `datasets_suggest_cleaning`, `datasets_cleaning_operations`, `datasets_prepare` |
-| 5 · Modelo | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `catalog_demo`, `experiments_start` |
-| 6 · Treinar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` |
-| 7 · Avaliar | `experiments_result`, `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics` |
-| 8 · Explicar | `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
-| 9 · Experiências | `history_runs`, `history_entry`, `history_open`, `history_open_reinforcement`, `history_save`, `history_rename`, `history_delete`, `history_compare`, `history_reproduce` |
-| 10 · Laboratório | `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization` |
-| 11 · Reinforcement learning | `reinforcement_environments`, `reinforcement_agents`, `reinforcement_start`, `reinforcement_updates` (e o WebSocket), `reinforcement_pause`, `reinforcement_resume`, `reinforcement_cancel`, `reinforcement_job`, `reinforcement_result` |
+| Dados | `datasets_samples`, `datasets_generators`, `datasets_load_sample`, `datasets_generate`, `datasets_upload`, `datasets_load`, `datasets_loaded`, `datasets_summary`, `datasets_preview` |
+| Explorar | `datasets_profile` |
+| Preparar | `datasets_suggest_task`, `datasets_task_options`, `datasets_suggest_cleaning`, `datasets_cleaning_operations`, `datasets_prepare` |
+| Modelos (a lista e a página de cada modelo) | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `catalog_demo`, `experiments_start` |
+| Treinar e avaliar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` (ou `history_open`), `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics`, `history_entry`, `history_save` |
+| Explicar | `experiments_result` (ou `history_open`), `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
+| Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar) |
+| Métricas | `catalog_metrics` |
+| Laboratório | `laboratory_demos` (o que cada demonstração mostra, os valores do seu controlo e o de partida), `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization` |
+| Reinforcement learning | `reinforcement_environments`, `reinforcement_agents`, `reinforcement_start`, `reinforcement_updates` (e o WebSocket), `reinforcement_pause`, `reinforcement_resume`, `reinforcement_cancel`, `reinforcement_job`, `reinforcement_result` (ou `history_open_reinforcement`), `history_entry`, `history_save` |
+| Experiências | `history_runs`, `history_entry`, `history_open`, `history_open_reinforcement`, `history_save`, `history_rename`, `history_delete`, `history_compare`, `history_reproduce` |
 | Todos | `explanations_vocabulary`, `explanations_topics`, `explanations_explain`, `meta_health` |
 
-Na interface web, o Treinar (6) e o Avaliar (7) são um só ecrã, "Treinar e avaliar": o treino
-ao vivo e, quando acaba, a avaliação, com uma gaveta por métrica (a fórmula de
-`catalog_metrics` e os `terms` do run).
+O Treinar e avaliar é o treino ao vivo e, quando acaba, a avaliação, com uma gaveta por
+métrica (a fórmula de `catalog_metrics` e os `terms` do run).
 
 O WebSocket de uma procura manda uma mensagem também quando só muda o trabalho a decorrer (o
 candidato que um agente mede, o fold em que vai, a fase): é com isso que o fluxograma mostra
 quem trabalha agora, entre um candidato e o seguinte.
+
+**Um run que a API já não tem em memória** (só ficam os últimos, e nenhum depois de ela
+recomeçar) responde `run_not_in_memory`. O ecrã Treinar e avaliar, o Explicar e o do RL pedem-no
+então ao histórico (`history_open`, `history_open_reinforcement`): um run guardado volta com o
+modelo (e com ele os gráficos e o Explicar); um só registado volta com tudo menos isso. Só um
+run que também não está no histórico (`run_not_found`) se perdeu. O botão "Guardar experiência"
+desses ecrãs lê a entrada do histórico (`history_entry`) e guarda com `history_save`.
+
+**Os controlos do Laboratório** desenham-se do `laboratory_demos`: os valores que cada um
+oferece (de onde a taxa de aprendizagem se arrasta até onde explode, os alphas de cada modelo)
+são uma escolha didática, e decidem-se no backend. Um valor que a demonstração não pode usar
+(um grau fora dos que compara, um alpha que não é positivo) responde 422, com a razão.
 
 A página de cada modelo usa o cartão (`catalog_model`: a ficha já dividida em `sections`,
 as demonstrações do Laboratório que se aplicam em `laboratory` e os conjuntos de exemplo em

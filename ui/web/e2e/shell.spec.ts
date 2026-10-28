@@ -126,13 +126,50 @@ test("no telemóvel, a barra é uma gaveta que se fecha ao escolher um ecrã", a
   await expect(page.getByRole("heading", { level: 1, name: "Experiências" })).toBeVisible();
 });
 
+test("no telemóvel, nenhum ecrã desliza para o lado", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize(WIDTHS[2]);
+  for (const path of [
+    "/",
+    "/dados",
+    "/modelos",
+    "/modelos/knn",
+    "/metricas",
+    "/laboratorio",
+    "/rl",
+    "/experiencias",
+  ]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // Os gráficos e as fórmulas chegam depois do título: espera-se que a página assente.
+    await page.waitForLoadState("networkidle");
+    expect(await noHorizontalScroll(page), path).toBe(true);
+  }
+});
+
 test("um endereço desconhecido diz que o ecrã não existe", async ({ page }) => {
   await page.goto("/nada-disto");
 
   await expect(page.getByRole("heading", { name: "Este ecrã não existe" })).toBeVisible();
 });
 
-for (const path of ["/", "/dados", "/modelos"]) {
+// Os ecrãs que abrem sem nada antes; os outros passam pelo axe nos seus próprios testes (o
+// Explicar, as Experiências, o Laboratório, o RL e as Métricas, com os dados à vista).
+for (const path of [
+  "/",
+  "/dados",
+  "/explorar",
+  "/preparar",
+  "/modelos",
+  "/modelos/knn",
+  "/treinar",
+  "/explicar",
+  "/agentes",
+  "/metricas",
+  "/laboratorio",
+  "/rl",
+  "/experiencias",
+]) {
   test(`sem problemas de acessibilidade em ${path}`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

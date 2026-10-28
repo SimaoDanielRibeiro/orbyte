@@ -110,11 +110,11 @@ Só no gradiente descendente:
 
 ## O que observar no treino
 
-A versão **scikit-learn** treina de uma vez: no ecrã **Treinar** vês só a fronteira final e, no
-**Avaliar**, os pesos aprendidos, as métricas no treino e no teste e a matriz de confusão.
+A versão **scikit-learn** treina de uma vez: no ecrã **Treinar e avaliar** vês só a fronteira
+final e, mais abaixo, os pesos aprendidos, as métricas no treino e no teste e a matriz de confusão.
 Experimenta baixar o `C` e ver os pesos a encolher e a diferença entre treino e teste a mudar.
 
-A versão **didática** treina época a época, e o ecrã **Treinar** fotografa-a pelo caminho:
+A versão **didática** treina época a época, e o ecrã **Treinar e avaliar** fotografa-a pelo caminho:
 
 - a **curva da loss** desce depressa nas primeiras épocas e depois devagar, e a exatidão no
   treino sobe aos saltos (cada salto é um exemplo que passou para o lado certo da fronteira);

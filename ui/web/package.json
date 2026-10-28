@@ -2,7 +2,7 @@
   "name": "ml-lab-web",
   "private": true,
   "version": "0.1.0",
-  "description": "Interface aprimorada do ML Lab (fase 10): React, TypeScript e Vite, a falar com a API.",
+  "description": "A interface do ML Lab (fase 10): React, TypeScript e Vite, a falar com a API.",
   "type": "module",
   "engines": {
     "node": ">=24"

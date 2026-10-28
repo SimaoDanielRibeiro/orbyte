@@ -45,7 +45,7 @@ marcar a fração de anomalias esperada (`contamination`).
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar**, as cores mostram a pontuação de anomalia em cada ponto
-do plano: as zonas longe dos dados ficam mais "anómalas". No ecrã **Avaliar** estão a
+Treina de uma vez. No ecrã **Treinar e avaliar**, as cores mostram a pontuação de anomalia em
+cada ponto do plano: as zonas longe dos dados ficam mais "anómalas". Na avaliação estão a
 distribuição das pontuações com o limiar e, se escolheste a coluna de referência (por exemplo,
 no gerador "Anomalias"), a precisão, a recall e a ROC AUC.

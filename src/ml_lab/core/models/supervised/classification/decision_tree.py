@@ -2,7 +2,7 @@
 
 Faz perguntas do tipo "``idade`` ≤ 30?" e segue para um lado ou para o outro até chegar
 a uma folha, que dá a classe. Em cada nó escolhe a pergunta que deixa os dois lados mais
-"puros" (mais dominados por uma só classe). No ecrã Treinar, cada passo é a árvore com
+"puros" (mais dominados por uma só classe). No treino passo a passo, cada passo é a árvore com
 mais um nível de profundidade (ver ``adapters/growth.py``). Ficha didática:
 ``docs/algorithms/decision_tree.md``.
 """

@@ -47,7 +47,7 @@ senão, é ruído. Os pontos de treino ficam exatamente com o grupo que o DBSCAN
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar**, as zonas coloridas são os grupos (com a regra dos
+Treina de uma vez. No ecrã **Treinar e avaliar**, as zonas coloridas são os grupos (com a regra dos
 pontos novos) e as cinzentas são o ruído. Experimenta o `eps`: vês os grupos a partirem-se
-em bocados (pequeno) ou a fundirem-se num só (grande). No ecrã **Avaliar**, a métrica "Ruído"
+em bocados (pequeno) ou a fundirem-se num só (grande). Na avaliação, a métrica "Ruído"
 diz que fração dos pontos ficou de fora.

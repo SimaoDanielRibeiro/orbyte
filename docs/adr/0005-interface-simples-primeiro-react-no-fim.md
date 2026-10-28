@@ -1,6 +1,6 @@
 # 0005 — Interface simples (Streamlit) primeiro, React no fim
 
-- **Estado:** Aceite
+- **Estado:** Substituída por 0031 (a interface Streamlit saiu depois da fase 10)
 - **Data:** 2026-10-22
 
 ## Contexto

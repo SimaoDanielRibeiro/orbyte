@@ -34,7 +34,7 @@ class Lab:
         datasets: Carregar, explorar e preparar dados.
         catalog: O catálogo de modelos.
         experiments: Treinar e avaliar (usa os datasets já carregados).
-        analysis: O que se pergunta a um modelo depois do treino (Avaliar e Explicar).
+        analysis: O que se pergunta a um modelo depois do treino (a avaliação e o Explicar).
         laboratory: As demonstrações do ecrã Laboratório.
         history: O histórico de runs: registar, guardar, comparar e reproduzir.
         reinforcement: Treinar agentes de reinforcement learning (ecrã Reinforcement learning).

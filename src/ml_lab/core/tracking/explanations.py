@@ -23,6 +23,14 @@ TRACKING_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "hiperparâmetro diferente. Se mudarem duas coisas ao mesmo tempo, não se sabe qual "
             "delas fez a diferença. Por isso, a comparação mostra só as escolhas que mudam.",
         ),
+        "run_history": Explanation(
+            "Como ler o histórico",
+            "Os runs vêm do mais recente para o mais antigo, com a métrica principal de cada um "
+            "na parte que o resume (o teste, quase sempre). Os guardados voltam a abrir com o "
+            "modelo e o treino passo a passo; os outros, com tudo menos isso: as métricas, a "
+            "configuração e o que o modelo aprendeu, mas sem os gráficos que precisam do modelo "
+            "nem o ecrã Explicar.",
+        ),
         "reproducibility": Explanation(
             "Reprodutibilidade",
             "Um resultado só conta se se puder repetir. No ML Lab, a seed raiz decide todas as "

@@ -4,7 +4,7 @@ Muitas árvores de decisão, cada uma treinada com uma amostra diferente das lin
 (com reposição: o *bootstrap*) e com features sorteadas em cada nó. A floresta dá a
 classe mais votada. Cada árvore não viu cerca de um terço das linhas (as que ficaram
 "fora do saco"): prevê-las dá uma estimativa do erro sem precisar do teste, o erro
-OOB. No ecrã Treinar, cada passo junta mais árvores e mostra esse erro. Ficha
+OOB. No treino passo a passo, cada passo junta mais árvores e mostra esse erro. Ficha
 didática: ``docs/algorithms/random_forest.md``.
 """
 

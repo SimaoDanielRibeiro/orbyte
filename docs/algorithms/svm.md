@@ -59,7 +59,7 @@ passe a menos de $\varepsilon$ de cada ponto. Os erros dentro desse "tubo" não 
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar**, vê como a fronteira muda com o `gamma`: pequeno dá
-uma curva suave, grande dá ilhas à volta dos pontos. Em **O que o modelo aprendeu** (ecrã
-Avaliar) está o número de vetores de suporte. Muitos vetores (perto do número de linhas)
+Treina de uma vez. No ecrã **Treinar e avaliar**, vê como a fronteira muda com o `gamma`:
+pequeno dá uma curva suave, grande dá ilhas à volta dos pontos. Em **O que aprendeu** está o
+número de vetores de suporte. Muitos vetores (perto do número de linhas)
 indicam uma margem que quase não separa nada.

@@ -52,8 +52,8 @@ def configure_logging(
 ) -> logging.Logger:
     """Configura os logs do ML Lab.
 
-    Pode chamar-se várias vezes (o Streamlit, por exemplo, volta a correr o
-    script a cada interação): cada chamada substitui a configuração anterior.
+    Pode chamar-se várias vezes (os testes, por exemplo, configuram-no com
+    formatos diferentes): cada chamada substitui a configuração anterior.
     Só mexe no logger ``ml_lab``; as bibliotecas externas mantêm a sua.
 
     Args:

@@ -102,7 +102,7 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
       ) : (
         learned.tree_rules.length > 0 && (
           <Block title="As regras da árvore">
-            <pre className="overflow-x-auto rounded-md border bg-card p-3 text-xs leading-relaxed">
+            <pre className="relative overflow-x-auto rounded-md border bg-card p-3 text-xs leading-relaxed">
               {learned.tree_rules.join("\n")}
             </pre>
           </Block>

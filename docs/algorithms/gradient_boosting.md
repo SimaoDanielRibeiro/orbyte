@@ -53,7 +53,7 @@ log-loss.
 
 ## O que observar no treino
 
-No ecrã **Treinar**, cada passo é uma etapa (uma árvore a mais). A loss é a do treino. Desce
+No ecrã **Treinar e avaliar**, cada passo é uma etapa (uma árvore a mais). A loss é a do treino. Desce
 sempre, porque cada árvore corrige o treino, e é por isso que o teste é que diz quando parar.
 A fronteira (ou a previsão) começa grosseira e vai ganhando pormenor etapa a etapa. Na
 regressão com uma feature, vês a função em degraus a aproximar-se dos pontos.

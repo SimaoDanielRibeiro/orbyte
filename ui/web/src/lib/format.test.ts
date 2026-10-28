@@ -8,6 +8,7 @@ import {
   formatCount,
   formatList,
   formatMetric,
+  formatMoment,
   formatNumber,
   formatPercent,
   formatQuantity,
@@ -122,6 +123,15 @@ describe("formatStatistic", () => {
     expect(formatStatistic(2_635.76)).toBe("2636");
     expect(formatStatistic(0.0000123)).toBe("1,23 × 10⁻⁵");
     expect(formatStatistic(0)).toBe("0");
+  });
+});
+
+describe("formatMoment", () => {
+  it("escreve o dia e a hora locais, por extenso curto", () => {
+    // Sem fuso no texto, o momento lê-se na hora local: o resultado não depende de onde se corre.
+    expect(formatMoment("2026-10-24T15:30:00")).toBe("24/10/2026 15:30");
+    expect(formatMoment("2026-01-05T09:05:00")).toBe("05/01/2026 09:05");
+    expect(formatMoment("ontem")).toBe("—");
   });
 });
 

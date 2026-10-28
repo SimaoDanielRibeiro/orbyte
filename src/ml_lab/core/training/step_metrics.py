@@ -1,9 +1,10 @@
 """As métricas que um modelo iterativo reporta em cada passo do treino, além da loss.
 
-Os modelos guardam-nas em ``StepRecord.metrics`` pelo nome (``"accuracy"``, ``"val_loss"``…).
-O nome a mostrar e se se escrevem em percentagem estão aqui, para as interfaces as
-desenharem sem os escrever outra vez; o vocabulário (``GET /vocabulary``) leva-as ao frontend.
-Um teste de contrato garante que cada métrica que um modelo reporta está aqui.
+Os modelos guardam-nas em ``StepRecord.metrics`` pelo nome (``"accuracy"``, ``"val_loss"``…),
+e os agentes de reinforcement learning também, em cada episódio (``"reward"``, ``"length"``…).
+O nome a mostrar e se se escrevem em percentagem estão aqui, para a interface as desenhar
+sem os escrever outra vez; o vocabulário (``GET /vocabulary``) leva-as ao frontend.
+Os testes de contrato garantem que cada métrica que um modelo ou um agente reporta está aqui.
 """
 
 from collections.abc import Mapping
@@ -36,6 +37,11 @@ STEP_METRICS: Final[Mapping[str, StepMetric]] = MappingProxyType(
             StepMetric("accuracy", "Exatidão no treino", as_percent=True, is_loss=False),
             StepMetric("val_loss", "Loss na validação", as_percent=False, is_loss=True),
             StepMetric("oob_score", "Pontuação fora do saco (OOB)", as_percent=True, is_loss=False),
+            # As de cada episódio de um agente de reinforcement learning.
+            StepMetric("reward", "Recompensa do episódio", as_percent=False, is_loss=False),
+            StepMetric("length", "Passos do episódio", as_percent=False, is_loss=False),
+            StepMetric("success", "Chegou ao objetivo", as_percent=True, is_loss=False),
+            StepMetric("epsilon", "Exploração (ε)", as_percent=False, is_loss=False),
         )
     }
 )

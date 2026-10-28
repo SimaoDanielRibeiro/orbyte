@@ -16,8 +16,8 @@ Para um exemplo com features $x$, a previsão é
 
 $$\hat y = w \cdot x + b$$
 
-e o treino procura os $w$ e $b$ que minimizam o **erro quadrático médio** (EQM; no ecrã
-Avaliar aparece com a sigla inglesa, MSE) no treino:
+e o treino procura os $w$ e $b$ que minimizam o **erro quadrático médio** (EQM; na
+avaliação aparece com a sigla inglesa, MSE) no treino:
 
 $$\text{EQM}(w, b) = \frac{1}{n} \sum_i (\hat y_i - y_i)^2$$
 
@@ -93,7 +93,7 @@ Só no gradiente descendente:
 
 ## O que observar no treino
 
-No ecrã **Treinar**, a versão didática mostra, época a época:
+No ecrã **Treinar e avaliar**, a versão didática mostra, época a época:
 
 - a **curva da loss** (o EQM no treino): desce depressa no início e depois cada vez mais devagar,
   à medida que se aproxima do fundo da taça;
@@ -106,5 +106,5 @@ explode logo nas primeiras épocas, e o treino pára com o aviso "a loss explodi
 demonstração "Taxa de aprendizagem" do ecrã Laboratório desenha o caminho dos pesos na própria
 taça.
 
-A versão do scikit-learn treina de uma vez: compara os pesos das duas no ecrã **Avaliar**. Quando
+A versão do scikit-learn treina de uma vez: compara os pesos das duas em **O que aprendeu**. Quando
 o gradiente descendente converge, coincidem.

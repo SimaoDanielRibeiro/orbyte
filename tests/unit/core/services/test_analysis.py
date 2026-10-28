@@ -55,6 +55,7 @@ def test_a_linear_prediction_is_the_intercept_plus_the_contributions(lab: Lab) -
     )
     effects = [abs(item.effect) for item in explanation.contributions]
     assert effects == sorted(effects, reverse=True)
+    assert "ordenada" in explanation.how_to_read  # como se lê, para este método
 
 
 def test_other_models_are_explained_by_replacing_each_feature_with_its_mean(lab: Lab) -> None:
@@ -66,6 +67,7 @@ def test_other_models_are_explained_by_replacing_each_feature_with_its_mean(lab:
     assert len(explanation.contributions) == 4
     assert sum(p for _, p in explanation.probabilities) == pytest.approx(1.0)
     assert "probabilidade" in explanation.effect_label.lower()
+    assert "aproximação" in explanation.how_to_read
 
 
 def test_rows_and_tasks_are_checked(lab: Lab) -> None:

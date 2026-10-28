@@ -57,7 +57,7 @@ melhor margem, e lidam bem com classes que se sobrepõem.
 
 ## O que observar no treino
 
-No ecrã **Treinar**, cada passo é uma época. A curva da loss mostra a proporção de exemplos
+No ecrã **Treinar e avaliar**, cada passo é uma época. A curva da loss mostra a proporção de exemplos
 corrigidos nessa época. Em dados separáveis chega a zero e o treino pára; nos outros
 oscila sem nunca chegar lá. A fronteira salta de época para época, porque só se mexe com os
 erros: é o contraste com a descida suave do gradiente descendente da regressão logística.

@@ -1,8 +1,7 @@
 """Explicações didáticas de cada etapa da camada de dados.
 
-São os textos do painel "Porquê?" da interface. Vivem no backend para as duas
-interfaces (a simples e a aprimorada) mostrarem exatamente o mesmo, escrito uma
-só vez.
+São os textos do painel "Porquê?" da interface. Vivem no backend, escritos uma só vez, e a
+interface pede-os pela API.
 """
 
 from collections.abc import Mapping
@@ -101,8 +100,8 @@ EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "do alvo viram números 0, 1, 2… É aqui que acaba o pandas: daqui para a frente, os "
             "modelos só veem números, mas os nomes das features e das classes seguem com eles.",
         ),
-        # Como ler cada gráfico e cada tabela dos ecrãs de dados: as interfaces mostram-nos
-        # por baixo deles, e o painel "Porquê?" também os pode juntar.
+        # Como ler cada gráfico e cada tabela dos ecrãs de dados: a interface mostra-os por
+        # baixo deles, e o painel "Porquê?" também os pode juntar.
         "upload": Explanation(
             "Carregar um ficheiro",
             "Aceita CSV (separado por vírgulas, por ponto e vírgula ou por tabulações, também "

@@ -1,7 +1,7 @@
 """O processo do ML Lab: pedir ao sistema operativo que não o trave.
 
 No Windows 11, um processo sem janela em primeiro plano (um servidor lançado de um terminal,
-como o Streamlit ou a API) pode ficar em modo de poupança de energia (*EcoQoS*). Num
+como a API) pode ficar em modo de poupança de energia (*EcoQoS*). Num
 processador híbrido, com núcleos de desempenho e de eficiência, passa para os núcleos lentos
 ou para uma frequência baixa. Num i7-13620H, o treino de uma rede pequena ficava cinco vezes
 mais lento ao fim de um segundo (de 3,5 para 19,5 ms por época), e o resto do ML Lab também.

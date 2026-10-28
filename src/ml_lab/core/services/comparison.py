@@ -14,11 +14,14 @@ são o ambiente, os seus parâmetros, o agente e os seus hiperparâmetros.
 
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+from enum import Enum
 from typing import Any, Final
 
 import numpy as np
 
+from ml_lab.core.data.cleaning.base import CLEANING, CleaningStep
+from ml_lab.core.data.preparation import PreparationConfig
 from ml_lab.core.evaluation.base import PRIMARY_METRIC
 from ml_lab.core.evaluation.report import EvaluationReport, MetricResult
 from ml_lab.core.foundation.errors import ComponentNotFoundError
@@ -42,13 +45,25 @@ MAX_COMPARED: Final = 5
 LOSS_POINTS: Final = 300
 """Pontos de cada curva da loss, no máximo."""
 
-_PREPARATION_LABELS: Final[Mapping[str, str]] = {
-    "target": "Alvo",
-    "cleaning": "Limpeza",
-    "split": "Divisão",
-    "transforms": "Transformações",
-    "projection": "Projeção",
+_PREPARATION_FIELDS: Final[Mapping[str, str]] = {
+    # A divisão.
+    "strategy": "estratégia",
+    "test_size": "parte de teste",
+    "validation_size": "parte de validação",
+    "time_column": "coluna do tempo",
+    # As transformações.
+    "numeric_imputation": "nulos numéricos",
+    "categorical_imputation": "nulos categóricos",
+    "scaling": "escala",
+    "date_features": "features das datas",
+    "polynomial_degree": "grau polinomial",
+    "binned_columns": "colunas em intervalos",
+    "n_bins": "número de intervalos",
+    # A projeção 2D.
+    "method": "método",
+    "columns": "colunas",
 }
+"""O nome a mostrar de cada escolha da preparação (o resto do nome é a parte a que pertence)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,14 +200,40 @@ def _choices(result: Compared) -> dict[str, str]:
     titles = _titles(lambda: MODELS.get(result.model_name).info.hyperparameters)
     for name, value in result.hyperparameters.items():
         choices[f"Hiperparâmetro · {titles.get(name, name)}"] = _text(value)
-    preparation = to_json(result.config.preparation)
-    for key, value in preparation.items():
-        label = _PREPARATION_LABELS.get(key)
-        if label is None:  # a tarefa já está em cima, como foi usada
-            continue
-        for path, leaf in _flatten(value).items():
-            choices[f"{label} · {path}" if path else label] = _text(leaf)
+    return choices | _preparation_choices(result.config.preparation)
+
+
+def _preparation_choices(preparation: PreparationConfig) -> dict[str, str]:
+    """As escolhas da preparação, com o nome a mostrar de cada uma (a tarefa já está em cima)."""
+    choices = {
+        "Alvo": _text(preparation.target),
+        "Limpeza": _cleaning_text(preparation.cleaning),
+    }
+    parts = (
+        ("Divisão", preparation.split),
+        ("Transformações", preparation.transforms),
+        ("Projeção", preparation.projection),
+    )
+    for part, config in parts:
+        for item in fields(config):
+            title = _PREPARATION_FIELDS.get(item.name, item.name)
+            choices[f"{part} · {title}"] = _text(getattr(config, item.name))
     return choices
+
+
+def _cleaning_text(steps: Sequence[CleaningStep]) -> str:
+    """A receita de limpeza por extenso: o nome de cada operação e os seus parâmetros."""
+    if not steps:
+        return "nenhuma"
+    written = []
+    for step in steps:
+        try:
+            title = CLEANING.get(step.operation).title
+        except ComponentNotFoundError:  # uma operação que já não existe: fica o nome técnico
+            title = step.operation
+        params = ", ".join(_text(value) for value in step.params.values())
+        written.append(f"{title} ({params})" if params else title)
+    return "; ".join(written)
 
 
 def _agent_choices(result: ReinforcementResult) -> dict[str, str]:
@@ -230,26 +271,20 @@ def _titles(form: Callable[[], type[Hyperparameters]]) -> dict[str, str]:
         return {}
 
 
-def _flatten(value: Any, path: str = "") -> dict[str, Any]:
-    """Um dicionário aninhado com os caminhos por extenso ("split.test_size")."""
-    if not isinstance(value, Mapping) or not value:
-        return {path: value}
-    flat: dict[str, Any] = {}
-    for key, inner in value.items():
-        flat.update(_flatten(inner, f"{path}.{key}" if path else str(key)))
-    return flat
-
-
 def _text(value: Any) -> str:
     if value is None:
         return "—"
+    if isinstance(value, Enum):  # antes do texto: um StrEnum também é um str
+        return str(getattr(value, "label", value.value))
     if isinstance(value, bool):
         return "sim" if value else "não"
     if isinstance(value, float):
         return format_significant(value)
     if isinstance(value, int | str):
         return str(value)
-    return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, list | tuple) and all(isinstance(item, str) for item in value):
+        return ", ".join(value) if value else "—"
+    return json.dumps(to_json(value), ensure_ascii=False)
 
 
 def _differences(choices: Sequence[Mapping[str, str]]) -> tuple[ConfigDifference, ...]:

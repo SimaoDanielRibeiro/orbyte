@@ -1,7 +1,7 @@
 """Explicações didáticas da avaliação, da explicabilidade e do Laboratório (painel "Porquê?").
 
-Como as das outras camadas, vivem no backend para as duas interfaces mostrarem o mesmo
-texto, escrito uma só vez; ``services/explanations.py`` junta-as todas.
+Como as das outras camadas, vivem no backend, escritas uma só vez, e a interface pede-as pela
+API; ``services/explanations.py`` junta-as todas.
 """
 
 from collections.abc import Mapping
@@ -105,7 +105,7 @@ EVALUATION_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "exatamente a zero. Alpha a mais apaga também o que importa; o melhor alpha "
             "escolhe-se pelo teste.",
         ),
-        # Como ler os gráficos da avaliação: as interfaces mostram-nos por baixo deles.
+        # Como ler os gráficos da avaliação: a interface mostra-os por baixo deles.
         "train_vs_test": Explanation(
             "Treino e teste",
             "O modelo aprendeu com o treino; o teste mostra como se sai com dados que nunca "
@@ -168,6 +168,21 @@ EVALUATION_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "A ROC da pontuação",
             "A curva ROC da pontuação contra as anomalias verdadeiras (da coluna de "
             "referência): não depende do limiar.",
+        ),
+        # Como ler os gráficos do ecrã Explicar.
+        "importance_bars": Explanation(
+            "Como ler a importância",
+            "Cada barra é quanto a métrica principal piora no teste quando se baralha a "
+            "feature, e o traço à volta da ponta é o desvio entre as repetições. Perto de zero, "
+            "ou negativa: o modelo não precisa dessa feature, ou outra correlacionada "
+            "substitui-a.",
+        ),
+        "dependence_curves": Explanation(
+            "Como ler a dependência parcial",
+            "A linha forte é a previsão média quando todas as linhas do teste recebem esse "
+            "valor da feature; as ténues são algumas linhas, uma a uma. Os traços em baixo "
+            "mostram onde há dados: longe deles, a curva é pura extrapolação. Os valores da "
+            "feature estão na escala depois da preparação (padronizados, se for o caso).",
         ),
         # Como ler o que um modelo aprendeu (a página de cada modelo e o fim de um treino).
         "impurity_importance": Explanation(

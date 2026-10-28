@@ -47,7 +47,7 @@ calculada no treino, porque pontuá-los de novo contaria cada ponto como vizinho
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar**, as cores mostram a pontuação de anomalia no plano. Ao
+Treina de uma vez. No ecrã **Treinar e avaliar**, as cores mostram a pontuação de anomalia no plano. Ao
 contrário da Isolation Forest, a pontuação sobe logo à volta dos grupos apertados e mais
-devagar à volta dos espalhados. No ecrã **Avaliar**, compara a distribuição das pontuações e o
+devagar à volta dos espalhados. Na avaliação, compara a distribuição das pontuações e o
 limiar com os dos outros detetores.

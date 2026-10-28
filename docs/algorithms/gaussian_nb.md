@@ -48,6 +48,6 @@ para os produtos de números pequenos não darem zero.
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar**, as cruzes são as médias de cada classe no plano da
+Treina de uma vez. No ecrã **Treinar e avaliar**, as cruzes são as médias de cada classe no plano da
 projeção, e a fronteira passa entre elas, mais perto da classe com menor variância. Em
-**O que o modelo aprendeu** (ecrã Avaliar) estão as médias e as variâncias de cada classe.
+**O que aprendeu** estão as médias e as variâncias de cada classe.

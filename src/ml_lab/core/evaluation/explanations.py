@@ -1,10 +1,10 @@
 """Explicação de cada métrica: o que mede, como se lê e a fórmula.
 
-Os cartões de métricas das duas interfaces mostram estes textos, escritos uma só vez.
-Um teste de contrato confirma que todas as métricas registadas têm explicação, com a
+A gaveta de cada métrica e o glossário das Métricas mostram estes textos, escritos uma só
+vez. Um teste de contrato confirma que todas as métricas registadas têm explicação, com a
 fórmula e o significado de cada símbolo.
 
-As fórmulas estão em LaTeX (a interface aprimorada mostra-as com o KaTeX). Os símbolos que
+As fórmulas estão em LaTeX (a interface mostra-as com o KaTeX). Os símbolos que
 uma métrica dá como termos, com os números de um run (``Metric.breakdown``), aparecem
 escritos na fórmula exatamente da mesma maneira.
 """

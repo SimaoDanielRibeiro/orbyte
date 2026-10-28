@@ -1,15 +1,28 @@
 /**
- * Linhas ao longo de um eixo: a loss por passo, as curvas ROC, a curva de aprendizagem.
+ * Linhas ao longo de um eixo: a loss por passo, as curvas ROC, a curva de aprendizagem, as
+ * curvas das demonstrações do Laboratório.
  *
- * Uma linha vertical segue o rato e encaixa no ponto mais próximo; a dica mostra o valor de
- * todas as séries nesse sítio. Uma série com `band` ganha a faixa da média ± desvio.
+ * Uma linha vertical segue o rato e encaixa no valor de x mais próximo; a dica mostra o valor de
+ * todas as séries nesse sítio. Uma série com `band` ganha a faixa da média ± desvio; uma série
+ * `faint` (as curvas individuais de uma dependência parcial) fica fina e translúcida, fora da
+ * dica, e tem uma só chave na legenda. Por baixo das linhas, ou por cima, podem ir nuvens de
+ * pontos (`dots`). Tudo se recorta à área do desenho: com um domínio fixo, o que sai dele não
+ * pinta os eixos.
  */
-import { area, bisector, extent, line, scaleLinear, scaleLog } from "d3";
-import { useState, type ReactNode } from "react";
+import { area, extent, line, scaleLinear, scaleLog } from "d3";
+import { useId, useState, type ReactNode } from "react";
 
-import { formatNumber, formatScientific } from "@/lib/format";
+import { formatNumber, formatScientific, formatValue } from "@/lib/format";
 
-import { AxisBottom, AxisLeft, Chart, ChartTooltip, Legend, TooltipRow } from "./chart";
+import {
+  AxisBottom,
+  AxisLeft,
+  Chart,
+  ChartTooltip,
+  Legend,
+  TooltipRow,
+  type LegendItem,
+} from "./chart";
 import { stepDecimals } from "./ticks";
 
 export interface LinePoint {
@@ -25,6 +38,30 @@ export interface LineSeries {
   /** A faixa à volta da linha (por exemplo, a média ± o desvio padrão). */
   band?: readonly { x: number; lower: number; upper: number }[];
   dashed?: boolean;
+  /** Pontilhada: uma série que serve de referência (os pesos das features que não contam). */
+  dotted?: boolean;
+  /** A espessura, em px (por omissão, 2). */
+  width?: number;
+  /** Um ponto em cada valor (curvas com poucos valores, como o erro de cada grau). */
+  markers?: boolean;
+  /** Fina e translúcida, fora da dica: as curvas individuais, que só se leem em conjunto. */
+  faint?: boolean;
+  /** O nome escrito no fim da linha, para a identificar sem procurar na legenda (também nas
+   * ténues: é o que distingue umas das outras). */
+  endLabel?: string;
+}
+
+/** Uma nuvem de pontos desenhada com as linhas (os pontos de treino e de teste, por exemplo). */
+export interface DotCloud {
+  key: string;
+  label: string;
+  color: string;
+  points: readonly { x: number; y: number }[];
+  /** O raio, em px (por omissão, 3,5). */
+  radius?: number;
+  opacity?: number;
+  /** Por baixo das linhas, em vez de por cima. */
+  below?: boolean;
 }
 
 interface LineChartProps {
@@ -43,20 +80,24 @@ interface LineChartProps {
   diagonal?: boolean;
   /** Uma linha horizontal de referência. */
   reference?: { y: number; label: string };
+  /** Uma linha vertical num valor de x (o valor escolhido num controlo). */
+  markerX?: { x: number; label: string };
   /** Pinta a área por baixo da primeira série (a AUC). */
   fillFirst?: boolean;
   /** O eixo de y em escala logarítmica (valores que variam em ordens de grandeza). */
   logY?: boolean;
+  /** O eixo de x em escala logarítmica (o k do KNN, o alpha da regularização). */
+  logX?: boolean;
   /** As marcas do eixo de x, quando só alguns valores fazem sentido (os números dos folds). */
   xTicks?: readonly number[];
+  /** Nuvens de pontos, por baixo ou por cima das linhas. */
+  dots?: readonly DotCloud[];
+  /** Os valores de x onde há dados: um traço curto em cada um, junto ao eixo. */
+  rug?: readonly number[];
 }
 
-const center = bisector<number, number>((value) => value);
-
-/** A posição, em `xs` (por ordem), do valor mais perto de `x`. */
-function byX(xs: readonly number[], x: number): number {
-  return center.center(xs, x);
-}
+/** O mínimo de uma escala logarítmica (os zeros e os negativos não têm lugar nela). */
+const LOG_FLOOR = 1e-12;
 
 export function LineChart({
   series,
@@ -71,57 +112,83 @@ export function LineChart({
   formatX,
   diagonal = false,
   reference,
+  markerX,
   fillFirst = false,
   logY = false,
+  logX = false,
   xTicks: fixedTicks,
+  dots = [],
+  rug = [],
 }: LineChartProps) {
   const [hoverX, setHoverX] = useState<number | null>(null);
+  const clipId = `linhas-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const solid = series.filter((one) => one.faint !== true);
+  const faint = series.filter((one) => one.faint === true);
   const all = series.flatMap((one) => one.points);
   const defined = all.filter(
     (point): point is { x: number; y: number } => point.y !== null && (!logY || point.y > 0),
   );
-  const xs = [...new Set(all.map((point) => point.x))].sort((a, b) => a - b);
-  const [xMin = 0, xMax = 1] = xDomain ?? extent(xs);
+  const dotPoints = dots.flatMap((cloud) => cloud.points);
+  const xs = [...new Set(solid.flatMap((one) => one.points.map((point) => point.x)))].sort(
+    (a, b) => a - b,
+  );
+  const [xMin = 0, xMax = 1] =
+    xDomain ?? extent([...all.map((point) => point.x), ...dotPoints.map((point) => point.x)]);
   const bandValues = series.flatMap((one) => (one.band ?? []).flatMap((b) => [b.lower, b.upper]));
   const [yMin = 0, yMax = 1] =
     yDomain ??
     extent(
-      [...defined.map((point) => point.y), ...bandValues, reference?.y ?? NaN].filter(
-        Number.isFinite,
-      ),
+      [
+        ...defined.map((point) => point.y),
+        ...dotPoints.map((point) => point.y),
+        ...bandValues,
+        reference?.y ?? NaN,
+      ].filter(Number.isFinite),
     );
 
+  /** A escala de x numa largura: linear, ou logarítmica (só com valores positivos). */
+  const xScale = (plotWidth: number) =>
+    logX
+      ? scaleLog()
+          .domain([Math.max(xMin, LOG_FLOOR), Math.max(xMax, Math.max(xMin, LOG_FLOOR) * 10)])
+          .range([0, plotWidth])
+      : scaleLinear().domain([xMin, xMax]).range([0, plotWidth]);
   /** A escala de y numa altura: linear, ou logarítmica (só com valores positivos). */
   const yScale = (plotHeight: number) =>
     logY
       ? scaleLog()
-          .domain([Math.max(yMin, 1e-12), Math.max(yMax, Math.max(yMin, 1e-12) * 10)])
+          .domain([Math.max(yMin, LOG_FLOOR), Math.max(yMax, Math.max(yMin, LOG_FLOOR) * 10)])
           .nice()
           .range([plotHeight, 0])
       : scaleLinear().domain([yMin, yMax]).nice().range([plotHeight, 0]);
+
+  const legend: LegendItem[] = [
+    ...solid.map((one) => ({ label: one.label, color: one.color, kind: "line" as const })),
+    ...faint
+      .slice(0, 1)
+      .map((one) => ({ label: one.label, color: one.color, kind: "line" as const })),
+    ...dots.map((cloud) => ({ label: cloud.label, color: cloud.color, kind: "dot" as const })),
+  ];
+  const endLabels = series.some((one) => one.endLabel !== undefined);
 
   return (
     <Chart
       height={height}
       description={description}
       caption={caption}
-      margin={{ bottom: xLabel === undefined ? 24 : 40, left: yLabel === undefined ? 48 : 60 }}
-      legend={
-        <Legend
-          items={series.map((one) => ({
-            label: one.label,
-            color: one.color,
-            kind: "line" as const,
-          }))}
-        />
-      }
+      margin={{
+        bottom: xLabel === undefined ? 24 : 40,
+        left: yLabel === undefined ? 48 : 60,
+        right: endLabels ? 52 : 16,
+      }}
+      legend={<Legend items={legend} />}
       overlay={(plot) => {
         if (hoverX === null) {
           return null;
         }
-        const x = scaleLinear().domain([xMin, xMax]).range([0, plot.width]);
+        const x = xScale(plot.width);
         const y = yScale(plot.height);
-        const rows = series
+        const rows = solid
           .map((one) => ({ one, point: nearest(one.points, hoverX) }))
           .filter(
             (row): row is { one: LineSeries; point: { x: number; y: number } } =>
@@ -131,7 +198,11 @@ export function LineChart({
         if (first === undefined) {
           return null;
         }
-        const writeX = formatX ?? ((value: number) => formatNumber(value, 0));
+        const writeX =
+          formatX ??
+          (logX
+            ? (value: number) => formatValue(value)
+            : (value: number) => formatNumber(value, 0));
         const writeY = formatY ?? ((value: number) => formatNumber(value, 3));
         return (
           <ChartTooltip x={x(hoverX)} y={y(first.point.y)} plot={plot}>
@@ -153,10 +224,14 @@ export function LineChart({
       }}
     >
       {(plot) => {
-        const x = scaleLinear().domain([xMin, xMax]).range([0, plot.width]);
+        const x = xScale(plot.width);
         const y = yScale(plot.height);
-        const xTicks = fixedTicks ?? x.ticks(Math.max(2, Math.floor(plot.width / 90)));
-        // Na escala logarítmica, uma marca por potência de 10 (as do meio enchiam o eixo).
+        // Nas escalas logarítmicas, uma marca por potência de 10 (as do meio enchiam o eixo).
+        const xTicks =
+          fixedTicks ??
+          (logX
+            ? x.ticks().filter((tick) => Math.abs(Math.log10(tick) % 1) < 1e-9)
+            : x.ticks(Math.max(2, Math.floor(plot.width / 90))));
         const yTicks = logY
           ? y.ticks().filter((tick) => Math.abs(Math.log10(tick) % 1) < 1e-9)
           : y.ticks(5);
@@ -166,9 +241,30 @@ export function LineChart({
           .defined((point) => point.y !== null && (!logY || point.y > 0))
           .x((point) => x(point.x))
           .y((point) => y(point.y ?? 0));
-        const firstSeries = series[0];
+        const firstSeries = solid[0];
+        const cloud = (one: DotCloud) => (
+          <g key={one.key} pointerEvents="none">
+            {one.points.map((point, index) => (
+              <circle
+                key={index}
+                cx={x(point.x)}
+                cy={y(point.y)}
+                r={one.radius ?? 3.5}
+                fill={one.color}
+                fillOpacity={one.opacity ?? 1}
+                stroke="var(--background)"
+                strokeWidth={1.5}
+              />
+            ))}
+          </g>
+        );
         return (
           <>
+            <defs>
+              <clipPath id={clipId}>
+                <rect x={-6} y={-6} width={plot.width + 12} height={plot.height + 12} />
+              </clipPath>
+            </defs>
             <AxisLeft
               ticks={yTicks}
               position={y}
@@ -184,87 +280,178 @@ export function LineChart({
             <AxisBottom
               ticks={xTicks}
               position={x}
-              format={formatX ?? ((value) => formatNumber(value, xDecimals))}
+              format={
+                formatX ??
+                (logX ? (value) => formatValue(value) : (value) => formatNumber(value, xDecimals))
+              }
               plot={plot}
               label={xLabel}
             />
-            {diagonal && (
-              <line
-                x1={x(0)}
-                y1={y(0)}
-                x2={x(1)}
-                y2={y(1)}
-                stroke="var(--input)"
-                strokeDasharray="4 4"
-              />
-            )}
-            {reference !== undefined && (
-              <g>
+            <g clipPath={`url(#${clipId})`}>
+              {diagonal && (
                 <line
-                  x1={0}
-                  x2={plot.width}
-                  y1={y(reference.y)}
-                  y2={y(reference.y)}
+                  x1={x(0)}
+                  y1={y(0)}
+                  x2={x(1)}
+                  y2={y(1)}
                   stroke="var(--input)"
                   strokeDasharray="4 4"
                 />
+              )}
+              {reference !== undefined && (
+                <g>
+                  <line
+                    x1={0}
+                    x2={plot.width}
+                    y1={y(reference.y)}
+                    y2={y(reference.y)}
+                    stroke="var(--input)"
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={plot.width}
+                    y={y(reference.y) - 6}
+                    textAnchor="end"
+                    className="fill-muted-foreground text-[11px]"
+                  >
+                    {reference.label}
+                  </text>
+                </g>
+              )}
+              {dots.filter((one) => one.below === true).map(cloud)}
+              {fillFirst && firstSeries !== undefined && (
+                <path
+                  d={
+                    area<LinePoint>()
+                      .defined((point) => point.y !== null)
+                      .x((point) => x(point.x))
+                      .y0(plot.height)
+                      .y1((point) => y(point.y ?? 0))(firstSeries.points as LinePoint[]) ?? ""
+                  }
+                  fill={firstSeries.color}
+                  fillOpacity={0.12}
+                />
+              )}
+              {series.map((one) =>
+                one.band === undefined ? null : (
+                  <path
+                    key={`${one.key}-band`}
+                    d={
+                      area<{ x: number; lower: number; upper: number }>()
+                        .x((point) => x(point.x))
+                        .y0((point) => y(point.lower))
+                        .y1((point) => y(point.upper))(
+                        one.band as { x: number; lower: number; upper: number }[],
+                      ) ?? ""
+                    }
+                    fill={one.color}
+                    fillOpacity={0.1}
+                  />
+                ),
+              )}
+              {faint.map((one) => (
+                <path
+                  key={one.key}
+                  d={draw(one.points as LinePoint[]) ?? ""}
+                  fill="none"
+                  stroke={one.color}
+                  strokeWidth={one.width ?? 1}
+                  strokeOpacity={0.35}
+                  strokeLinejoin="round"
+                />
+              ))}
+              {solid.map((one) => (
+                <path
+                  key={one.key}
+                  d={draw(one.points as LinePoint[]) ?? ""}
+                  fill="none"
+                  stroke={one.color}
+                  strokeWidth={one.width ?? 2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  strokeDasharray={
+                    one.dotted === true ? "1 4" : one.dashed === true ? "6 4" : undefined
+                  }
+                />
+              ))}
+              {solid
+                .filter((one) => one.markers === true)
+                .map((one) => (
+                  <g key={`${one.key}-markers`} pointerEvents="none">
+                    {one.points.map((point) =>
+                      point.y === null || (logY && point.y <= 0) ? null : (
+                        <circle
+                          key={point.x}
+                          cx={x(point.x)}
+                          cy={y(point.y)}
+                          r={3}
+                          fill={one.color}
+                          stroke="var(--background)"
+                          strokeWidth={1.5}
+                        />
+                      ),
+                    )}
+                  </g>
+                ))}
+              {dots.filter((one) => one.below !== true).map(cloud)}
+            </g>
+            {series.map((one) => {
+              const last = [...one.points]
+                .reverse()
+                .find((point): point is { x: number; y: number } => point.y !== null);
+              return one.endLabel === undefined || last === undefined ? null : (
                 <text
-                  x={plot.width}
-                  y={y(reference.y) - 6}
-                  textAnchor="end"
-                  className="fill-muted-foreground text-[11px]"
+                  key={`${one.key}-end`}
+                  x={x(last.x) + 6}
+                  y={y(last.y)}
+                  dy="0.32em"
+                  className="fill-muted-foreground text-[11px] tabular-nums"
+                  aria-hidden="true"
                 >
-                  {reference.label}
+                  {one.endLabel}
+                </text>
+              );
+            })}
+            {rug.length > 0 && (
+              <g aria-hidden="true" pointerEvents="none">
+                {rug.map((value, index) => (
+                  <line
+                    key={index}
+                    x1={x(value)}
+                    x2={x(value)}
+                    y1={plot.height - 7}
+                    y2={plot.height}
+                    stroke="var(--muted-foreground)"
+                    strokeOpacity={0.5}
+                  />
+                ))}
+              </g>
+            )}
+            {markerX !== undefined && (
+              <g aria-hidden="true" pointerEvents="none">
+                <line
+                  x1={x(markerX.x)}
+                  x2={x(markerX.x)}
+                  y1={0}
+                  y2={plot.height}
+                  stroke="var(--foreground)"
+                  strokeDasharray="4 3"
+                />
+                <text
+                  x={x(markerX.x) + (x(markerX.x) > plot.width * 0.75 ? -4 : 4)}
+                  y={10}
+                  textAnchor={x(markerX.x) > plot.width * 0.75 ? "end" : "start"}
+                  className="fill-foreground text-[11px]"
+                >
+                  {markerX.label}
                 </text>
               </g>
             )}
-            {fillFirst && firstSeries !== undefined && (
-              <path
-                d={
-                  area<LinePoint>()
-                    .defined((point) => point.y !== null)
-                    .x((point) => x(point.x))
-                    .y0(plot.height)
-                    .y1((point) => y(point.y ?? 0))(firstSeries.points as LinePoint[]) ?? ""
-                }
-                fill={firstSeries.color}
-                fillOpacity={0.12}
-              />
-            )}
-            {series.map((one) =>
-              one.band === undefined ? null : (
-                <path
-                  key={`${one.key}-band`}
-                  d={
-                    area<{ x: number; lower: number; upper: number }>()
-                      .x((point) => x(point.x))
-                      .y0((point) => y(point.lower))
-                      .y1((point) => y(point.upper))(
-                      one.band as { x: number; lower: number; upper: number }[],
-                    ) ?? ""
-                  }
-                  fill={one.color}
-                  fillOpacity={0.1}
-                />
-              ),
-            )}
-            {series.map((one) => (
-              <path
-                key={one.key}
-                d={draw(one.points as LinePoint[]) ?? ""}
-                fill="none"
-                stroke={one.color}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                strokeDasharray={one.dashed === true ? "6 4" : undefined}
-              />
-            ))}
             {hoverX !== null && (
               <line x1={x(hoverX)} x2={x(hoverX)} y1={0} y2={plot.height} stroke="var(--input)" />
             )}
             {hoverX !== null &&
-              series.map((one) => {
+              solid.map((one) => {
                 const point = nearest(one.points, hoverX);
                 return point === null ? null : (
                   <circle
@@ -284,9 +471,7 @@ export function LineChart({
               fill="transparent"
               onPointerMove={(event) => {
                 const box = event.currentTarget.getBoundingClientRect();
-                const value = x.invert(event.clientX - box.left);
-                const index = byX(xs, value);
-                setHoverX(xs[index] ?? null);
+                setHoverX(closest(xs, (value) => x(value), event.clientX - box.left));
               }}
               onPointerLeave={() => {
                 setHoverX(null);
@@ -297,6 +482,21 @@ export function LineChart({
       }}
     </Chart>
   );
+}
+
+/** O valor de `xs` cuja posição no desenho fica mais perto de `pixel` (em qualquer escala). */
+function closest(
+  xs: readonly number[],
+  position: (value: number) => number,
+  pixel: number,
+): number | null {
+  let best: number | null = null;
+  for (const value of xs) {
+    if (best === null || Math.abs(position(value) - pixel) < Math.abs(position(best) - pixel)) {
+      best = value;
+    }
+  }
+  return best;
 }
 
 /** O ponto definido de `points` mais perto de `x`. */

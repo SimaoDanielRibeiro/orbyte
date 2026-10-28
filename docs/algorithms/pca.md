@@ -51,7 +51,7 @@ componente é arbitrário; as duas escolhem o que torna positivo o maior valor d
 
 ## O que observar no treino
 
-Treina de uma vez. No ecrã **Treinar** vês o **mapa**: os pontos de treino nas duas primeiras
-componentes, pintados com a coluna de referência, se a escolheste no ecrã Preparar. No ecrã
-**Avaliar**, a variância explicada de cada componente e a "confiança dos vizinhos" dizem quanto
+Treina de uma vez. No ecrã **Treinar e avaliar** vês o **mapa**: os pontos de treino nas duas
+primeiras componentes, pintados com a coluna de referência, se a escolheste no ecrã Preparar.
+Na avaliação, a variância explicada de cada componente e a "confiança dos vizinhos" dizem quanto
 o mapa guardou dos dados originais.

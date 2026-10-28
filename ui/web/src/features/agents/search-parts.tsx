@@ -84,7 +84,7 @@ export function CandidateFeed({ candidates, objective, leader, limit = 12 }: Fee
     );
   }
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="relative overflow-x-auto rounded-md border">
       <table className="w-full text-sm whitespace-nowrap">
         <thead>
           <tr className="border-b text-left">
@@ -157,7 +157,7 @@ export function Board({ result }: { result: AutoMlResult }) {
     (candidate) => !result.ranking.includes(candidate.number),
   );
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="relative overflow-x-auto rounded-md border">
       <table className="w-full text-sm whitespace-nowrap">
         <thead>
           <tr className="border-b text-left">

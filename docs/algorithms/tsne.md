@@ -37,7 +37,7 @@ distâncias entre eles não são de confiança.
 ## Armadilhas
 
 - **Não serve para pontos novos:** não aprende uma função, só coloca no mapa os pontos com
-  que treinou. Por isso o ecrã Avaliar só tem relatório do treino.
+  que treinou. Por isso a avaliação só tem o relatório do treino.
 - **Não leias distâncias nem tamanhos:** só a vizinhança é fiável.
 - **Lento com muitos dados** (dezenas de milhares de linhas levam minutos).
 - **A perplexidade muda o mapa todo:** experimenta vários valores antes de tirar conclusões.
@@ -46,7 +46,7 @@ distâncias entre eles não são de confiança.
 
 ## O que observar no treino
 
-Treina de uma vez (o scikit-learn não mostra as iterações). No ecrã **Treinar** vês o mapa,
+Treina de uma vez (o scikit-learn não mostra as iterações). No ecrã **Treinar e avaliar** vês o mapa,
 pintado com a coluna de referência, se a escolheste. Compara com o mapa da PCA dos mesmos
-dados: no t-SNE os grupos ficam muito mais separados, e o ecrã Avaliar mostra se os vizinhos
+dados: no t-SNE os grupos ficam muito mais separados, e a avaliação mostra se os vizinhos
 no mapa eram vizinhos nos dados (a "confiança dos vizinhos").

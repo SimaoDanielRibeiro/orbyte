@@ -1,4 +1,4 @@
-"""Dados dos gráficos do ecrã Avaliar, para cada tipo de tarefa."""
+"""Dados dos gráficos da avaliação, para cada tipo de tarefa."""
 
 from typing import Any
 

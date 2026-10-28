@@ -1,4 +1,4 @@
-"""Rotas do treino (ecrã Treinar): lançar em segundo plano, acompanhar e controlar.
+"""Rotas do treino (ecrã Treinar e avaliar): lançar em segundo plano, acompanhar e controlar.
 
 O treino é sempre em segundo plano: ``POST /experiments`` valida a configuração, começa o
 treino e responde logo (202) com o estado. Quem quer acompanhar pode:
