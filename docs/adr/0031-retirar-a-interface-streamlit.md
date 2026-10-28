@@ -54,6 +54,6 @@ ficam no backend. Esta ADR substitui a 0005.
   com o frontend previa (ADR 0026). Para a usar, a API tem de estar a correr
   (`uv run python scripts/dev.py` arranca as duas).
 - Perde-se uma interface escrita em Python, mais curta e mais fácil de ler para quem aprende.
-  Fica no histórico do Git: a última versão completa está no commit `0ff15ea`, no ramo
+  Fica no histórico do Git: a última versão completa está no commit `dcdcc5e`, no ramo
   `feat/interface-web`.
 - Os testes de ponta a ponta da web passam a ser a única prova de que os ecrãs funcionam.

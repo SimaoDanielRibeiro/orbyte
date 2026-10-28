@@ -139,7 +139,7 @@ módulo `logging`), sem dependências extra.
 ### Interface simples (saiu depois da fase 10)
 
 Serviu da fase 0 à 10 e saiu quando a interface web ficou com tudo (ADR 0031). Fica aqui o que
-usava, para a história; a última versão com ela está no commit `0ff15ea`.
+usava, para a história; a última versão com ela está no commit `dcdcc5e`.
 
 | Tecnologia | O que é | Para que serviu no projeto | Fase |
 |---|---|---|---|
@@ -1989,7 +1989,7 @@ continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última n
   núcleo de importar bibliotecas de interface ou de gráficos (o Streamlit e o Plotly
   incluídos) ficou, para não voltarem pela porta das traseiras. A procura dos temas pedidos
   pelo nome (`test_topics_in_use.py`) lê agora só o código da web.
-- **Para a ver outra vez**: a última versão com a interface simples está no commit `0ff15ea`.
+- **Para a ver outra vez**: a última versão com a interface simples está no commit `dcdcc5e`.
 
 **10.9, o redesenho** (ADR 0032 e 0033):
 
