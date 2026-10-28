@@ -6,13 +6,13 @@ import { cn } from "cn";
 import { Toggle as TogglePrimitive } from "radix-ui";
 
 const toggleVariants = cva(
-  "group/toggle inline-flex items-center justify-center gap-1 rounded-md text-sm font-medium whitespace-nowrap transition-[color,box-shadow] outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-secondary aria-pressed:text-foreground dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/toggle inline-flex items-center justify-center gap-1 rounded-[10px] text-sm font-normal whitespace-nowrap text-soft transition-[color,box-shadow,background-color,border-color] outline-none hover:bg-surface-high hover:text-strong focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-surface-high aria-pressed:font-medium aria-pressed:text-strong dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-transparent",
         outline:
-          "border border-input bg-transparent shadow-xs hover:bg-muted aria-pressed:border-foreground/70 data-[state=on]:border-foreground/70",
+          "border border-[#2a2a2a] bg-surface hover:bg-surface-high aria-pressed:border-[#444] aria-pressed:shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] data-[state=on]:border-[#444]",
       },
       size: {
         default:

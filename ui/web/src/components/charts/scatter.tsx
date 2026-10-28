@@ -135,7 +135,7 @@ export function Scatter({
                 d={SHAPE_PATHS[point.shape ?? "circle"]}
                 transform={`translate(${String(x(point.x))},${String(y(point.y))})`}
                 fill={point.color}
-                stroke="var(--background)"
+                stroke="var(--card)"
                 strokeWidth={1.5}
               />
             ))}

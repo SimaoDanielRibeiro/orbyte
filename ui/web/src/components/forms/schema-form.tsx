@@ -12,6 +12,7 @@
  */
 import { cn } from "cn";
 
+import { Explain } from "@/components/explain/explain";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -72,21 +73,22 @@ function Control({ id, property, value, onChange }: ControlProps) {
         : formatValue(value);
 
   return (
-    <div className="flex flex-col gap-2 py-3.5 first:pt-0 last:pb-0">
-      <div className="flex items-baseline justify-between gap-3">
-        <Label id={labelId(id)} htmlFor={id} className="text-sm font-medium">
-          {title}
-        </Label>
+    <div className="flex flex-col gap-2.5 py-3.5 first:pt-0 last:pb-0">
+      <div className="flex min-h-6 items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          <Label id={labelId(id)} htmlFor={id} className="text-sm text-soft">
+            {title}
+          </Label>
+          {/* O que o hiperparâmetro faz fica no "?", não à vista (ADR 0032). */}
+          {property.description !== undefined && (
+            <Explain title={title}>{property.description}</Explain>
+          )}
+        </div>
         {shown !== null && property.enum === undefined && (
-          <span className="text-sm text-foreground tabular-nums">{shown}</span>
+          <span className="font-mono text-sm text-strong tabular-nums">{shown}</span>
         )}
       </div>
       <Field id={id} property={property} value={value} onChange={onChange} />
-      {property.description !== undefined && (
-        <p className="font-serif text-sm leading-relaxed text-muted-foreground">
-          {property.description}
-        </p>
-      )}
     </div>
   );
 }

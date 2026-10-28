@@ -61,13 +61,19 @@ A interface abre em <http://localhost:5173> e, como a API, só este computador l
 Recarrega sozinha quando gravas um ficheiro, e `Ctrl+C` pára as duas. Na primeira vez, o
 comando instala as dependências da interface (`npm install`, em `ui/web`).
 
-No **Início** há dois caminhos: **Começar à mão** (Explorar, Preparar, Modelo e "Treinar e
-avaliar") e **Começar com os agentes** (o ecrã Agentes). Os dois começam nos Dados e acabam
-nos mesmos ecrãs: o "Treinar e avaliar", o Explicar e as Experiências.
+A página de entrada tem as duas interfaces, cada uma com as suas secções na barra lateral:
+
+- o **Manual** ("Começar à mão"): Dados, Explorar, Preparar, Modelos, "Treinar e avaliar" e
+  Explicar, e, para aprender, o Laboratório, as Métricas e o reinforcement learning;
+- os **Agentes** ("Começar com os agentes"): Dados, Agentes, "Treinar e avaliar" e Explicar.
+
+As duas começam nos Dados e acabam nos mesmos ecrãs: o "Treinar e avaliar", o Explicar e as
+Experiências. Troca-se de interface no topo da barra, e `Ctrl K` procura um ecrã, um modelo
+ou uma métrica. As explicações estão no "?" ao lado de cada título.
 
 Para o modo automático: em **Dados**, carrega o Titanic e escolhe "Pedir aos agentes". No
-ecrã **Agentes**, o alvo `Survived` já vem escolhido, e ao lado estão o plano do agente de
-dados, com as razões de cada escolha, e os agentes que vão trabalhar. Carrega em "Pedir aos
+ecrã **Agentes**, o alvo `Survived` já vem escolhido, e ao lado estão os agentes que vão
+trabalhar e o plano do agente de dados (a razão de cada escolha está no "?" dela). Carrega em "Pedir aos
 agentes". Enquanto procuram, o fluxograma mostra o agente que mede cada candidato (e o fold em
 que vai), e por baixo ficam o melhor até agora, os candidatos medidos e a conversa dos
 agentes. No fim:

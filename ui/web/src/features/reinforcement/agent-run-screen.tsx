@@ -27,10 +27,11 @@ import {
 import { useLabel } from "@/api/vocabulary";
 import { GridWorld } from "@/components/charts/grid-world";
 import { LineChart } from "@/components/charts/line-chart";
+import { Explain } from "@/components/explain/explain";
 import { OptionSlider } from "@/components/forms/option-slider";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts, NeedsStep } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -99,39 +100,49 @@ function AgentRun({ runId }: { runId: string }) {
     <>
       <Link
         to="/rl"
-        className="-ml-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         {SCREENS.reinforcement.title}
       </Link>
-      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-start @3xl/main:justify-between">
-        <div className="max-w-[68ch]">
-          <h1 className="text-4xl leading-tight">
-            {data?.agent_display_name ?? "O treino do agente"}
-          </h1>
+      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-end @3xl/main:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">
+              {data?.agent_display_name ?? "O treino do agente"}
+            </h1>
+            <WhyButton
+              title={SCREENS.reinforcement.title}
+              description={SCREENS.reinforcement.description}
+              topics={[
+                "reinforcement_learning",
+                "q_values",
+                "temporal_difference",
+                "exploration",
+                "discount",
+                "rl_evaluation",
+              ]}
+            />
+          </div>
           {data !== undefined && (
-            <p className="mt-3 font-serif text-reading text-muted-foreground">
-              Em {data.environment_name}.
+            <p className="mt-2 font-mono text-xs text-dim">
+              {data.environment_name}
+              {fromHistory ? ", aberto do histórico" : ""}
             </p>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-start gap-2">
-          {data !== undefined && <SaveRunButton runId={runId} />}
-          <WhyButton
-            topics={[
-              "reinforcement_learning",
-              "q_values",
-              "temporal_difference",
-              "exploration",
-              "discount",
-              "rl_evaluation",
-            ]}
-          />
-        </div>
+        {data !== undefined && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <SaveRunButton runId={runId} />
+            <Button asChild variant="outline">
+              <Link to="/experiencias">Ver nas experiências</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/rl">Treinar outro agente</Link>
+            </Button>
+          </div>
+        )}
       </header>
-      {fromHistory && data !== undefined && (
-        <p className="mt-4 text-sm text-muted-foreground">Aberto do histórico.</p>
-      )}
       {inProgress && data === undefined && <Live live={live} runId={runId} />}
       {status === "failed" && (
         <ErrorNote
@@ -161,19 +172,25 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
   const paused = state?.status === "paused";
 
   return (
-    <section aria-label="O treino a decorrer" className="mt-10 flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <section aria-label="O treino a decorrer" className="mt-8 flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-y py-4">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
             {!paused && (
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-now opacity-60 motion-reduce:animate-none" />
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-positive opacity-60 motion-reduce:animate-none" />
             )}
-            <span className="relative inline-flex size-2.5 rounded-full bg-now" />
+            <span
+              className={
+                paused
+                  ? "relative inline-flex size-2.5 rounded-full bg-warning"
+                  : "relative inline-flex size-2.5 rounded-full bg-positive shadow-[0_0_10px_var(--positive)]"
+              }
+            />
           </span>
-          <span className="font-medium">
+          <span className="font-medium text-strong">
             {state === null ? "A ligar" : label("JobStatus", state.status)}
           </span>
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="font-mono text-xs text-dim tabular-nums">
             Episódio {formatCount(episodes)}
             {planned === null ? "" : ` de ${formatCount(planned)}`}
           </span>
@@ -225,22 +242,26 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
         />
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
-      <div className="grid gap-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        {live.preview === null || live.layout === null ? (
-          <div className="flex h-72 items-center justify-center rounded-md border border-dashed font-serif text-sm text-muted-foreground">
-            À espera da primeira fotografia do treino.
-          </div>
-        ) : (
-          <GridWorld
-            layout={live.layout}
-            values={live.preview.values}
-            actions={live.preview.actions}
-            path={live.preview.path}
-            description={`O que o agente sabia no episódio ${String(live.preview.episode)}: o valor de cada célula, a política e o caminho.`}
-            caption={`No episódio ${formatCount(live.preview.episode)}.`}
-          />
-        )}
-        <RewardDots episodes={live.episodes} />
+      <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="min-w-0 border-t pt-5">
+          {live.preview === null || live.layout === null ? (
+            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim">
+              À espera da primeira fotografia do treino.
+            </div>
+          ) : (
+            <GridWorld
+              layout={live.layout}
+              values={live.preview.values}
+              actions={live.preview.actions}
+              path={live.preview.path}
+              description={`O que o agente sabia no episódio ${String(live.preview.episode)}: o valor de cada célula, a política e o caminho.`}
+              caption={`No episódio ${formatCount(live.preview.episode)}.`}
+            />
+          )}
+        </div>
+        <div className="min-w-0 border-t pt-5">
+          <RewardDots episodes={live.episodes} />
+        </div>
       </div>
     </section>
   );
@@ -287,27 +308,38 @@ function Finished({ result }: { result: ReinforcementResult }) {
       : result.learned;
   const steps = result.history.at(-1)?.step ?? 0;
 
+  const stats = [
+    { label: "Treino", value: `${formatCount(steps)} episódios` },
+    { label: "Duração", value: `${formatNumber(result.duration_seconds, 2)} s` },
+    { label: "Seed", value: String(result.config.seed ?? "—") },
+  ];
   return (
     <>
-      <Facts
-        className="mt-6"
-        size="sm"
-        facts={[
-          { label: "Treino", value: `${formatCount(steps)} episódios` },
-          { label: "Duração", value: `${formatNumber(result.duration_seconds, 2)} s` },
-          { label: "Seed", value: result.config.seed ?? "—" },
-          { label: "Run", value: result.run_id },
+      <StatStrip
+        className="mt-8"
+        items={[
+          ...stats.map((stat) => ({ key: stat.label, ...stat })),
+          {
+            key: "run",
+            label: "Run",
+            value: <span className="font-mono text-lg font-normal">{result.run_id}</span>,
+          },
         ]}
       />
-      <NoticeList notices={result.notices} className="mt-6" />
+      {result.notices.length > 0 && (
+        <div className="mt-6">
+          <NoticeList notices={result.notices} />
+        </div>
+      )}
 
-      <Part id="metricas" title="As métricas">
-        <ReportsTable reports={result.reports} main={result.main_partition} />
-        <TopicText topic="rl_evaluation" className="mt-4 max-w-[68ch]" />
+      <Part id="metricas" title="As métricas" topic="rl_evaluation">
+        <div className="border-t pt-5">
+          <ReportsTable reports={result.reports} main={result.main_partition} />
+        </div>
       </Part>
 
       <Part id="recompensa" title="A recompensa ao longo do treino">
-        <div className="grid gap-10 @5xl/main:grid-cols-2">
+        <div className="grid gap-x-12 gap-y-10 *:min-w-0 *:border-t *:pt-5 @5xl/main:grid-cols-2">
           <LineChart
             series={[
               {
@@ -368,8 +400,8 @@ function Finished({ result }: { result: ReinforcementResult }) {
       </Part>
 
       <Part id="aprendeu" title="O que o agente aprendeu">
-        <div className="grid gap-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-5">
+        <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="flex min-w-0 flex-col gap-5 border-t pt-5">
             {frames.length > 1 ? (
               <OptionSlider
                 label="Episódio"
@@ -380,7 +412,7 @@ function Finished({ result }: { result: ReinforcementResult }) {
               />
             ) : (
               result.trace === null && (
-                <p className="font-serif text-sm text-muted-foreground">
+                <p className="text-sm text-soft">
                   Este run abriu do histórico sem os episódios intermédios (só ficam nos runs
                   guardados): vês o que o agente sabia no fim.
                 </p>
@@ -398,16 +430,6 @@ function Finished({ result }: { result: ReinforcementResult }) {
           <QTable result={result} frame={frame} />
         </div>
       </Part>
-
-      <div className="mt-16 flex flex-wrap items-center gap-4 border-t pt-6">
-        <p className="font-serif text-reading text-muted-foreground">E agora?</p>
-        <Button asChild>
-          <Link to="/rl">Treinar outro agente</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/experiencias">Ver nas experiências</Link>
-        </Button>
-      </div>
     </>
   );
 }
@@ -415,14 +437,20 @@ function Finished({ result }: { result: ReinforcementResult }) {
 /** A tabela Q: uma grelha por ação, duas a duas, na mesma escala da grelha dos valores. */
 function QTable({ result, frame }: { result: ReinforcementResult; frame: PolicyFrame }) {
   return (
-    <section aria-labelledby="tabela-q-titulo" className="flex min-w-0 flex-col gap-4">
-      <h3 id="tabela-q-titulo" className="text-xl">
-        A tabela Q, ação a ação
-      </h3>
+    <section
+      aria-labelledby="tabela-q-titulo"
+      className="flex min-w-0 flex-col gap-4 border-t pt-5"
+    >
+      <div className="flex items-center gap-1">
+        <h3 id="tabela-q-titulo" className="text-[0.9375rem] font-normal tracking-normal text-soft">
+          A tabela Q, ação a ação
+        </h3>
+        <Explain topic="q_table" />
+      </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-6">
         {result.layout.action_labels.map((name, action) => (
           <div key={name} className="flex min-w-0 flex-col gap-1.5">
-            <p className="text-sm capitalize">{name}</p>
+            <p className="font-mono text-xs text-dim capitalize">{name}</p>
             <GridWorld
               layout={result.layout}
               values={frame.q_values.map((q, cell) =>
@@ -436,7 +464,6 @@ function QTable({ result, frame }: { result: ReinforcementResult; frame: PolicyF
           </div>
         ))}
       </div>
-      <TopicText topic="q_table" className="max-w-[68ch]" />
     </section>
   );
 }
@@ -456,11 +483,14 @@ function ReportsTable({
     return null;
   }
   return (
-    <div className="relative max-w-2xl overflow-x-auto rounded-md border">
+    <div className="relative max-w-2xl overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th scope="col" className="px-3 py-2 text-left font-medium">
+            <th
+              scope="col"
+              className="px-3 py-2.5 text-left font-mono text-xs font-normal text-dim"
+            >
               Métrica
             </th>
             {partitions.map((partition) => (
@@ -469,8 +499,8 @@ function ReportsTable({
                 scope="col"
                 className={
                   partition === main
-                    ? "px-3 py-2 text-right font-medium"
-                    : "px-3 py-2 text-right font-medium text-muted-foreground"
+                    ? "px-3 py-2.5 text-right font-mono text-xs font-normal text-soft"
+                    : "px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
                 }
               >
                 {label("Partition", partition)}
@@ -480,8 +510,8 @@ function ReportsTable({
         </thead>
         <tbody>
           {mainReport.metrics.map((metric) => (
-            <tr key={metric.name} className="border-b border-border/50 last:border-0">
-              <th scope="row" className="px-3 py-1.5 text-left font-normal">
+            <tr key={metric.name} className="border-b border-border/60 last:border-0">
+              <th scope="row" className="px-3 py-2.5 text-left font-normal">
                 <Tooltip>
                   <TooltipTrigger className="cursor-help text-left underline decoration-input decoration-dotted underline-offset-4">
                     {metric.display_name}
@@ -496,8 +526,8 @@ function ReportsTable({
                     key={partition}
                     className={
                       partition === main
-                        ? "px-3 py-1.5 text-right tabular-nums"
-                        : "px-3 py-1.5 text-right text-muted-foreground tabular-nums"
+                        ? "px-3 py-2.5 text-right font-medium text-strong tabular-nums"
+                        : "px-3 py-2.5 text-right text-soft tabular-nums"
                     }
                   >
                     {found === undefined ? "—" : formatMetric(found)}
@@ -512,12 +542,23 @@ function ReportsTable({
   );
 }
 
-function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+interface PartProps {
+  id: string;
+  title: string;
+  /** O tema que explica a parte (no "?" ao lado do título). */
+  topic?: string;
+  children: ReactNode;
+}
+
+function Part({ id, title, topic, children }: PartProps) {
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-14 scroll-mt-6">
-      <h2 id={`${id}-titulo`} className="mb-6 text-2xl">
-        {title}
-      </h2>
+    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-10 scroll-mt-6">
+      <div className="mb-4 flex items-center gap-1.5">
+        <h2 id={`${id}-titulo`} className="text-xl">
+          {title}
+        </h2>
+        {topic !== undefined && <Explain topic={topic} />}
+      </div>
       {children}
     </section>
   );

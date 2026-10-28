@@ -1,6 +1,7 @@
 /**
  * As três fontes de dados do ecrã Dados: os datasets de exemplo, um ficheiro do computador e os
- * geradores de dados sintéticos.
+ * geradores de dados sintéticos. Cada exemplo é um cartão com os seus números; a descrição e a
+ * fonte ficam no "?".
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
@@ -16,9 +17,9 @@ import {
   datasetsUploadMutation,
 } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
 import { schemaDefaults, type Values } from "@/components/forms/schema";
 import { SchemaForm } from "@/components/forms/schema-form";
-import { TopicText } from "@/components/markdown/topic-text";
 import { ErrorNote, Facts } from "@/components/shell/blocks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,18 +48,27 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
     return <ListSkeleton />;
   }
   return (
-    <div className="flex flex-col gap-6">
-      <ul className="grid gap-x-12 gap-y-8 @4xl/main:grid-cols-2">
+    <div className="flex flex-col gap-5">
+      <ul className="grid gap-4 @3xl/main:grid-cols-2">
         {samples.data.map((sample) => {
           const pending = load.isPending && load.variables.path.name === sample.name;
           const isOpen = open?.kind === "sample" && open.params?.name === sample.name;
           return (
-            <li key={sample.name} className="flex flex-col gap-3 border-t pt-5">
+            <li key={sample.name} className="flex flex-col gap-5 border-t pt-5">
               <div className="flex items-start justify-between gap-4">
-                <h3 className="text-lg font-medium">
-                  {sample.title}
-                  {isOpen && <span className="ml-3 text-sm font-normal text-now">aberto</span>}
-                </h3>
+                <div className="flex min-w-0 items-center gap-1">
+                  <h3 className="text-base font-medium">{sample.title}</h3>
+                  <Explain title={sample.title}>
+                    <p>{sample.description}</p>
+                    <p className="mt-2 font-mono text-xs text-dim">Fonte: {sample.source}</p>
+                  </Explain>
+                  {isOpen && (
+                    <span className="ml-2 flex items-center gap-1.5 text-xs text-positive">
+                      <span aria-hidden="true" className="size-1.5 rounded-full bg-positive" />
+                      aberto
+                    </span>
+                  )}
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -72,9 +82,6 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
                   {isOpen ? "Carregar outra vez" : "Carregar"}
                 </Button>
               </div>
-              <p className="max-w-[62ch] font-serif text-reading text-muted-foreground">
-                {sample.description}
-              </p>
               <Facts
                 size="sm"
                 facts={[
@@ -84,7 +91,6 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
                   { label: "Tarefa", value: label("TaskType", sample.task_type) },
                 ]}
               />
-              <p className="text-xs text-muted-foreground">Fonte: {sample.source}</p>
             </li>
           );
         })}
@@ -118,7 +124,7 @@ export function FileSource() {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-5">
+    <div className="flex max-w-2xl flex-col gap-5 border-t pt-5">
       <label
         htmlFor="dados-ficheiro"
         onDragOver={(event) => {
@@ -130,16 +136,16 @@ export function FileSource() {
         }}
         onDrop={drop}
         className={cn(
-          "flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-input px-6 py-12 text-center transition-colors",
-          "focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 hover:border-foreground/40",
-          dragging && "border-foreground/60 bg-muted/40",
+          "flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-input bg-ground px-6 py-12 text-center transition-colors",
+          "focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 hover:border-[#555]",
+          dragging && "border-strong/60 bg-surface-high",
         )}
       >
-        <FileUp aria-hidden="true" className="size-6 text-muted-foreground" />
-        <span className="text-base">
+        <FileUp aria-hidden="true" className="size-6 text-dim" />
+        <span className="text-[0.9375rem] text-strong">
           {file === null ? "Arrasta um ficheiro para aqui, ou escolhe-o no computador" : file.name}
         </span>
-        <span className="text-sm text-muted-foreground tabular-nums">
+        <span className="font-mono text-xs text-dim tabular-nums">
           {file === null ? "CSV, TSV, TXT, GZ, XLSX ou XLSM" : fileSize(file.size)}
         </span>
         <input
@@ -153,8 +159,7 @@ export function FileSource() {
           }}
         />
       </label>
-      <TopicText topic="upload" />
-      <div>
+      <div className="flex items-center gap-2">
         <Button
           disabled={file === null || upload.isPending}
           onClick={() => {
@@ -166,6 +171,7 @@ export function FileSource() {
           {upload.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
           Carregar ficheiro
         </Button>
+        <Explain topic="upload" />
       </div>
       <ErrorNote error={upload.error} />
     </div>
@@ -198,7 +204,7 @@ export function SyntheticSource() {
   const validSeed = isValidSeed(seed);
 
   return (
-    <div className="grid gap-8 @3xl/main:grid-cols-[15rem_minmax(0,1fr)] @6xl/main:grid-cols-[17rem_minmax(0,42rem)]">
+    <div className="grid gap-x-12 gap-y-10 @3xl/main:grid-cols-[16rem_minmax(0,1fr)] @6xl/main:grid-cols-[18rem_minmax(0,44rem)]">
       <ToggleGroup
         type="single"
         orientation="vertical"
@@ -211,28 +217,26 @@ export function SyntheticSource() {
           }
         }}
         aria-label="Gerador"
-        className="w-full"
+        className="w-full gap-0.5 panel p-2"
       >
         {generators.data.map((item) => (
           <ToggleGroupItem
             key={item.name}
             value={item.name}
-            className="h-auto flex-col items-start gap-0.5 px-3 py-2 text-left"
+            className="h-auto w-full flex-col items-start gap-0.5 border border-transparent px-3 py-2 text-left data-[state=on]:border-[#333]"
           >
-            <span className="text-sm font-medium">{item.title}</span>
-            <span className="text-xs font-normal text-muted-foreground">
+            <span className="text-sm">{item.title}</span>
+            <span className="font-mono text-[0.6875rem] font-normal text-dim">
               {label("TaskType", item.task_type)}
             </span>
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
 
-      <div className="flex min-w-0 flex-col gap-6">
-        <div>
-          <h3 className="text-lg font-medium">{generator.title}</h3>
-          <p className="mt-1.5 max-w-[62ch] font-serif text-reading text-muted-foreground">
-            {generator.description}
-          </p>
+      <div className="flex min-w-0 flex-col gap-6 border-t pt-5">
+        <div className="flex items-center gap-1">
+          <h3 className="text-base font-medium">{generator.title}</h3>
+          <Explain title={generator.title}>{generator.description}</Explain>
         </div>
         <SchemaForm
           schema={generator.parameters_schema}
@@ -242,12 +246,14 @@ export function SyntheticSource() {
           }}
           idPrefix={`gerador-${generator.name}`}
         />
-        <div className="flex flex-col gap-2 border-t pt-4">
-          <Label htmlFor="gerador-seed" className="text-sm font-medium">
+        <div className="flex flex-col gap-2 border-t pt-5">
+          <Label htmlFor="gerador-seed" className="text-sm">
             Seed
           </Label>
           <Input
             id="gerador-seed"
+            name="seed"
+            autoComplete="off"
             type="number"
             inputMode="numeric"
             min={0}
@@ -261,7 +267,7 @@ export function SyntheticSource() {
             aria-describedby="gerador-seed-ajuda"
             className="w-40 tabular-nums"
           />
-          <p id="gerador-seed-ajuda" className="font-serif text-sm text-muted-foreground">
+          <p id="gerador-seed-ajuda" className="mono-label">
             A mesma seed dá sempre os mesmos pontos.
           </p>
         </div>
@@ -291,7 +297,7 @@ export function SyntheticSource() {
 function ListSkeleton() {
   return (
     <div
-      className="grid gap-8 @4xl/main:grid-cols-2"
+      className="grid gap-x-12 gap-y-10 @3xl/main:grid-cols-2"
       role="status"
       aria-busy="true"
       aria-label="A carregar"

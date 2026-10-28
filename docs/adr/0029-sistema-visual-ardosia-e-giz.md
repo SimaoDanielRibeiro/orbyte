@@ -1,6 +1,6 @@
 # 0029 — O sistema visual: ardósia e giz
 
-- **Estado:** Proposta
+- **Estado:** Substituída por 0032
 - **Data:** 2026-10-25
 
 ## Contexto

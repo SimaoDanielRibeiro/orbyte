@@ -1,8 +1,9 @@
 /**
- * Os ecrãs da interface: o caminho de cada um, o nome, o que se faz nele e o ícone.
+ * Os ecrãs da interface: o caminho de cada um, o nome, o que se faz nele e o ícone, e as secções
+ * de cada uma das duas interfaces (a manual e a dos agentes).
  *
- * A barra lateral, os cabeçalhos das páginas e os estados vazios leem daqui, para que um
- * ecrã tenha o mesmo nome em todo o lado.
+ * A barra lateral, os cabeçalhos das páginas, a pesquisa e os estados vazios leem daqui, para que
+ * um ecrã tenha o mesmo nome em todo o lado.
  */
 import type { LucideIcon } from "lucide-react";
 import {
@@ -40,7 +41,7 @@ export interface Screen {
   to: ScreenPath;
   /** O nome na barra lateral e o título da página. */
   title: string;
-  /** O que se faz no ecrã, numa frase. */
+  /** O que se faz no ecrã, numa frase (aparece no "?" do cabeçalho, não à vista). */
   description: string;
   icon: LucideIcon;
 }
@@ -49,8 +50,7 @@ export const SCREENS = {
   home: {
     to: "/",
     title: "Início",
-    description:
-      "Escolhe como queres trabalhar: testar um modelo à mão ou deixar os agentes procurar.",
+    description: "Escolhe a interface: testar um modelo à mão ou deixar os agentes procurar.",
     icon: House,
   },
   data: {
@@ -71,16 +71,10 @@ export const SCREENS = {
     description: "Escolhe o alvo e a tarefa, limpa os dados, transforma as colunas e divide-os.",
     icon: SlidersHorizontal,
   },
-  model: {
-    to: "/modelos",
-    title: "Modelo",
-    description: "Escolhe o modelo, vê como funciona e ajusta os hiperparâmetros.",
-    icon: Boxes,
-  },
   models: {
     to: "/modelos",
     title: "Modelos",
-    description: "Todos os modelos do laboratório, com o que cada um faz e como aprende.",
+    description: "Escolhe o modelo, vê como funciona e ajusta os hiperparâmetros.",
     icon: Boxes,
   },
   train: {
@@ -128,36 +122,63 @@ export const SCREENS = {
   },
 } as const satisfies Record<string, Screen>;
 
-/** O nome de cada caminho, como aparece no início e na barra lateral. */
-export const PATH_NAMES: Readonly<Record<WorkPath, string>> = {
-  manual: "Testar à mão",
-  agents: "Procurar com agentes",
+/** O nome de cada interface, como aparece na landing, na troca e na pesquisa. */
+export const INTERFACE_NAMES: Readonly<Record<WorkPath, string>> = {
+  manual: "Manual",
+  agents: "Agentes",
 };
 
-/** Os passos de cada caminho, pela ordem: a barra lateral numera-os. */
-export const PATH_STEPS: Readonly<Record<WorkPath, readonly Screen[]>> = {
-  manual: [
-    SCREENS.data,
-    SCREENS.explore,
-    SCREENS.prepare,
-    SCREENS.model,
-    SCREENS.train,
-    SCREENS.explain,
-  ],
-  agents: [SCREENS.data, SCREENS.agents, SCREENS.train, SCREENS.explain],
-};
+export interface NavGroup {
+  /** O rótulo pequeno do grupo (em mono, como na referência). */
+  label: string;
+  screens: readonly Screen[];
+}
 
 /**
- * Os ecrãs para aprender. No caminho manual, os modelos já são o passo 4, por isso não se
- * repetem aqui: um ecrã aparece uma só vez na barra.
+ * As secções da barra lateral de cada interface. O fluxo vem primeiro, pela ordem em que se
+ * trabalha; depois o que serve para aprender (ou consultar) e o histórico.
  */
-export const LEARN_SCREENS: Readonly<Record<WorkPath, readonly Screen[]>> = {
-  manual: [SCREENS.metrics, SCREENS.laboratory],
-  agents: [SCREENS.models, SCREENS.metrics, SCREENS.laboratory],
+export const NAVIGATION: Readonly<Record<WorkPath, readonly NavGroup[]>> = {
+  manual: [
+    {
+      label: "Fluxo",
+      screens: [
+        SCREENS.data,
+        SCREENS.explore,
+        SCREENS.prepare,
+        SCREENS.models,
+        SCREENS.train,
+        SCREENS.explain,
+      ],
+    },
+    { label: "Aprender", screens: [SCREENS.laboratory, SCREENS.metrics, SCREENS.reinforcement] },
+    { label: "Histórico", screens: [SCREENS.history] },
+  ],
+  agents: [
+    { label: "Fluxo", screens: [SCREENS.data, SCREENS.agents, SCREENS.train, SCREENS.explain] },
+    { label: "Consultar", screens: [SCREENS.models, SCREENS.metrics] },
+    { label: "Histórico", screens: [SCREENS.history] },
+  ],
 };
 
-/** Os outros ecrãs, fora dos dois caminhos. */
-export const OTHER_SCREENS: readonly Screen[] = [SCREENS.reinforcement, SCREENS.history];
+/** Os ecrãs que só existem numa das interfaces: abri-los leva para ela. */
+const ONLY_IN: readonly (readonly [ScreenPath, WorkPath])[] = [
+  ["/explorar", "manual"],
+  ["/preparar", "manual"],
+  ["/laboratorio", "manual"],
+  ["/rl", "manual"],
+  ["/agentes", "agents"],
+];
+
+/** A interface a que a página aberta pertence, se só existir numa delas. */
+export function interfaceOf(pathname: string): WorkPath | null {
+  return ONLY_IN.find(([to]) => isCurrent(to, pathname))?.[1] ?? null;
+}
+
+/** Se o ecrã `to` existe na interface `path`. */
+export function belongsTo(to: ScreenPath, path: WorkPath): boolean {
+  return NAVIGATION[path].some((group) => group.screens.some((screen) => screen.to === to));
+}
 
 /** Se o ecrã `to` é o da página aberta (ou o de uma página dentro dele). */
 export function isCurrent(to: ScreenPath, pathname: string): boolean {

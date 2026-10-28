@@ -34,8 +34,9 @@ import {
 import { useLabel, useTaskInfo } from "@/api/vocabulary";
 import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart, type LineSeries } from "@/components/charts/line-chart";
+import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
-import { ErrorNote, Facts } from "@/components/shell/blocks";
+import { ErrorNote, Stat } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -109,20 +110,24 @@ function Explained({ result }: { result: ExperimentResult }) {
       <Link
         to="/treinar/$runId"
         params={{ runId: result.run_id }}
-        className="-ml-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         {result.model_display_name}
       </Link>
-      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-start @3xl/main:justify-between">
-        <div className="max-w-[68ch]">
-          <h1 className="text-4xl leading-tight">{SCREENS.explain.title}</h1>
-          <p className="mt-3 font-serif text-reading text-muted-foreground">
-            {result.model_display_name} em {result.dataset_name},{" "}
-            {label("TaskType", result.task_type).toLowerCase()}.
-          </p>
+      <header className="mt-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">{SCREENS.explain.title}</h1>
+          <WhyButton
+            title={SCREENS.explain.title}
+            description={SCREENS.explain.description}
+            topics={["permutation_importance", "partial_dependence", "local_explanation"]}
+          />
         </div>
-        <WhyButton topics={["permutation_importance", "partial_dependence", "local_explanation"]} />
+        <p className="mt-2 font-mono text-xs text-dim">
+          {result.model_display_name} em {result.dataset_name},{" "}
+          {label("TaskType", result.task_type).toLowerCase()}
+        </p>
       </header>
 
       {task?.requires_target !== true ? (
@@ -143,17 +148,21 @@ function Explained({ result }: { result: ExperimentResult }) {
           <ErrorNote error={rows.error} className="mt-10" />
         )
       ) : (
-        <>
-          <Part id="importancia" title="O que pesa no conjunto">
+        <div className="mt-8 flex flex-col gap-4">
+          <Part id="importancia" title="O que pesa no conjunto" topic="permutation_importance">
             <Importance runId={result.run_id} />
           </Part>
-          <Part id="dependencia" title="Como a previsão muda com uma feature">
+          <Part
+            id="dependencia"
+            title="Como a previsão muda com uma feature"
+            topic="partial_dependence"
+          >
             <Dependence result={result} />
           </Part>
-          <Part id="previsao" title="Uma previsão de perto">
+          <Part id="previsao" title="Uma previsão de perto" topic="local_explanation">
             <OneRow result={result} rows={rows.data} />
           </Part>
-        </>
+        </div>
       )}
     </>
   );
@@ -169,11 +178,7 @@ function Importance({ runId }: { runId: string }) {
   });
   if (!asked) {
     return (
-      <div className="flex max-w-[68ch] flex-col items-start gap-4">
-        <p className="font-serif text-reading text-muted-foreground">
-          Baralha cada feature várias vezes no teste e mede quanto o modelo piora. Com muitas
-          features, demora um pouco.
-        </p>
+      <div className="flex flex-wrap items-center gap-3">
         <Button
           onClick={() => {
             setAsked(true);
@@ -181,6 +186,7 @@ function Importance({ runId }: { runId: string }) {
         >
           Calcular a importância
         </Button>
+        <span className="font-mono text-xs text-dim">com muitas features, demora um pouco</span>
       </div>
     );
   }
@@ -189,7 +195,7 @@ function Importance({ runId }: { runId: string }) {
   }
   if (importance.data === undefined) {
     return (
-      <div role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div role="status" className="flex items-center gap-2 font-mono text-xs text-dim">
         <LoaderCircle
           aria-hidden="true"
           className="size-4 animate-spin motion-reduce:animate-none"
@@ -206,16 +212,13 @@ function ImportanceChart({ importance }: { importance: PermutationImportance }) 
     importance.as_percent ? `${formatNumber(value * 100, 1)} p.p.` : formatNumber(value, 3);
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <Facts
-        size="sm"
-        facts={[
-          {
-            label: `${importance.metric_label} no teste, sem baralhar`,
-            value: importance.as_percent
-              ? formatPercent(importance.baseline)
-              : formatNumber(importance.baseline, 3),
-          },
-        ]}
+      <Stat
+        label={`${importance.metric_label} no teste, sem baralhar`}
+        value={
+          importance.as_percent
+            ? formatPercent(importance.baseline)
+            : formatNumber(importance.baseline, 3)
+        }
       />
       <BarChart
         items={importance.importances.map((item) => ({
@@ -248,7 +251,7 @@ function Dependence({ result }: { result: ExperimentResult }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex max-w-sm flex-col gap-1.5">
-        <label htmlFor="explicar-feature" className="text-xs text-muted-foreground">
+        <label htmlFor="explicar-feature" className="mono-label">
           Feature
         </label>
         <Select value={feature} onValueChange={setFeature}>
@@ -335,7 +338,7 @@ function OneRow({ result, rows }: { result: ExperimentResult; rows: number }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="explicar-linha" className="text-xs text-muted-foreground">
+          <label htmlFor="explicar-linha" className="mono-label">
             Linha do teste (de 1 a {rows})
           </label>
           <div className="flex items-center gap-1.5">
@@ -352,6 +355,8 @@ function OneRow({ result, rows }: { result: ExperimentResult; rows: number }) {
             </Button>
             <Input
               id="explicar-linha"
+              name="linha"
+              autoComplete="off"
               type="number"
               inputMode="numeric"
               min={1}
@@ -405,20 +410,18 @@ function RowView({
   );
   const shown = explanation.contributions.slice(0, TOP_CONTRIBUTIONS);
   return (
-    <div className="grid gap-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+    <div className="grid gap-8 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
       <div className="flex min-w-0 flex-col gap-6">
-        <Facts
-          facts={[
-            { label: "Previsão", value: explanation.prediction },
-            { label: "Valor real", value: explanation.actual ?? "—" },
-            ...(best === null
-              ? []
-              : [{ label: `Probabilidade de «${best[0]}»`, value: formatPercent(best[1]) }]),
-            ...(explanation.base === null
-              ? []
-              : [{ label: "Ordenada", value: formatStatistic(explanation.base) }]),
-          ]}
-        />
+        <div className="flex flex-wrap gap-x-10 gap-y-4">
+          <Stat label="Previsão" value={explanation.prediction} />
+          <Stat label="Valor real" value={explanation.actual ?? "—"} />
+          {best !== null && (
+            <Stat label={`Probabilidade de «${best[0]}»`} value={formatPercent(best[1])} />
+          )}
+          {explanation.base !== null && (
+            <Stat label="Ordenada" value={formatStatistic(explanation.base)} />
+          )}
+        </div>
         {explanation.probabilities.length > 0 && (
           <BarChart
             items={explanation.probabilities.map(([name, probability]) => ({
@@ -436,7 +439,7 @@ function RowView({
         )}
       </div>
       <div className="flex min-w-0 flex-col gap-3">
-        <h3 className="text-sm font-medium">{explanation.effect_label}</h3>
+        <h3 className="text-sm font-normal text-soft">{explanation.effect_label}</h3>
         <BarChart
           items={shown.map((item) => ({
             key: item.feature,
@@ -455,7 +458,7 @@ function RowView({
           caption={explanation.how_to_read}
         />
         {explanation.contributions.length > TOP_CONTRIBUTIONS && (
-          <p className="text-xs text-muted-foreground">
+          <p className="mono-label">
             As {TOP_CONTRIBUTIONS} features que mais pesam, de {explanation.contributions.length}.
           </p>
         )}
@@ -475,8 +478,8 @@ function Blocked({
   history?: boolean;
 }) {
   return (
-    <div className="mt-10 flex max-w-[68ch] flex-col items-start gap-4 border-t pt-6">
-      <p className="font-serif text-reading text-muted-foreground">{message}</p>
+    <div className="mt-8 flex max-w-2xl flex-col items-start gap-2 panel p-6">
+      <p className="text-sm text-soft">{message}</p>
       <Actions runId={runId} history={history} />
     </div>
   );
@@ -499,12 +502,28 @@ function Actions({ runId, history = true }: { runId: string; history?: boolean }
   );
 }
 
-function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+interface PartProps {
+  id: string;
+  title: string;
+  /** O tema que explica a parte (no "?"). */
+  topic: string;
+  children: ReactNode;
+}
+
+/** Uma das três perguntas, num cartão. */
+function Part({ id, title, topic, children }: PartProps) {
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-14 scroll-mt-6">
-      <h2 id={`${id}-titulo`} className="mb-6 text-2xl">
-        {title}
-      </h2>
+    <section
+      id={id}
+      aria-labelledby={`${id}-titulo`}
+      className="flex scroll-mt-6 flex-col gap-5 border-t pt-5"
+    >
+      <div className="flex items-center gap-1">
+        <h2 id={`${id}-titulo`} className="text-base">
+          {title}
+        </h2>
+        <Explain topic={topic} />
+      </div>
       {children}
     </section>
   );

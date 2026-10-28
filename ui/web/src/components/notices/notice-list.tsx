@@ -5,8 +5,8 @@ import type { Notice, NoticeLevel } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 
 const LEVEL_STYLES: Readonly<Record<NoticeLevel, { icon: LucideIcon; className: string }>> = {
-  info: { icon: Info, className: "text-muted-foreground" },
-  warning: { icon: TriangleAlert, className: "text-now" },
+  info: { icon: Info, className: "text-dim" },
+  warning: { icon: TriangleAlert, className: "text-warning" },
   error: { icon: CircleAlert, className: "text-destructive" },
 };
 
@@ -33,7 +33,7 @@ export function NoticeList({
         return (
           <li key={`${notice.code}-${String(index)}`} className="flex gap-3">
             <Icon aria-hidden="true" className={cn("mt-0.5 size-4 shrink-0", tone)} />
-            <p className="max-w-[68ch] font-serif text-reading">
+            <p className="max-w-[72ch] text-sm leading-relaxed text-foreground/90">
               <span className="sr-only">{label("NoticeLevel", notice.level)}: </span>
               {notice.message}
             </p>

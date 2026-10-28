@@ -155,7 +155,7 @@ usava, para a história; a última versão com ela está no commit `0ff15ea`.
 | React | Biblioteca para interfaces feitas de componentes | Interface aprimorada e personalizada | 10 |
 | TypeScript | JavaScript com tipos | Evitar erros; tipos gerados a partir do contrato da API (`openapi.json`) | 10 |
 | Vite | Ferramenta de desenvolvimento e build para front-end | Servidor local rápido, o proxy para a API e o build final | 10 |
-| Tailwind CSS | CSS por classes utilitárias | Sistema de design próprio: os tokens de cor, tipo e raio (ADR 0029) | 10 |
+| Tailwind CSS | CSS por classes utilitárias | Sistema de design próprio: os tokens de cor, tipo e raio (ADR 0032) | 10 |
 | shadcn/ui (com o Radix) | Componentes acessíveis cujo código fica no projeto | A barra lateral, as gavetas, as dicas, os botões | 10 |
 | Motion | Animações para React | Transições que respondem a uma ação e o fluxograma dos agentes | 10 |
 | TanStack Router e Query | Rotas tipadas e cache dos pedidos | Um ficheiro por ecrã; os dados da API pedidos uma vez e guardados | 10 |
@@ -622,7 +622,7 @@ ml-lab/
 │           ├── lib/          # format.ts (os números à portuguesa, como no Python), as cores
 │           ├── routes/       # um ficheiro por ecrã (TanStack Router)
 │           ├── state/        # o pouco estado do cliente (Zustand)
-│           └── styles/       # globals.css: os tokens do sistema visual (ADR 0029)
+│           └── styles/       # globals.css: os tokens do sistema visual (ADR 0032)
 │
 └── tests/
     ├── unit/                 # espelha src/ml_lab/
@@ -1700,7 +1700,8 @@ desenha: fundo de ardósia, texto a giz, a cor só para os dados e um giz amarel
 agora (o passo atual, o agente que trabalha, o foco do teclado). O que se lê é serifado
 (Literata); o que se usa é sem serifa (Atkinson Hyperlegible Next). O plano passou pelo
 processo do skill `frontend-design`, com uma revisão contra o que qualquer interface escura
-de ML teria.
+de ML teria. Na 10.9, a ardósia e giz deu lugar ao sistema visual de uma imagem de referência
+(ADR 0032), e a interface separou-se em duas, o Manual e os Agentes (ADR 0033).
 
 **As etapas**, cada uma com o seu "Pronto quando":
 
@@ -1714,6 +1715,7 @@ de ML teria.
 | 10.6 | Treinar e avaliar: o treino ao vivo e a gaveta de cada métrica | Um teste treina um modelo de ponta a ponta e abre todas as métricas, e tudo funciona com o movimento reduzido | ✅ |
 | 10.7 | Agentes: o fluxograma ao vivo, a conversa e a classificação | Uma procura pequena passa por todas as fases no fluxograma, e pausar, retomar e parar funcionam | ✅ |
 | 10.8 | Explicar, Experiências, Laboratório, RL, o glossário das métricas e o acabamento | Os 11 ecrãs da interface simples têm equivalente e passam todas as verificações; aí decide-se o que fazer à interface Streamlit | ✅ |
+| 10.9 | O redesenho: a entrada, as duas interfaces, o sistema visual da referência e as explicações atrás do "?" | As duas interfaces abrem da entrada, cada uma com a sua barra; os temas, o "como se lê" dos gráficos e as ajudas dos campos estão no "?"; a paleta passa no validador (menos a banda de luminosidade, de propósito); os testes de ponta a ponta e o axe passam, e nenhum ecrã desliza para o lado a 390 px | ✅ |
 
 O ecrã Avaliar deixa de existir à parte: entra em "Treinar e avaliar". A interface Streamlit
 continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última nota desta fase).
@@ -1988,3 +1990,137 @@ continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última n
   incluídos) ficou, para não voltarem pela porta das traseiras. A procura dos temas pedidos
   pelo nome (`test_topics_in_use.py`) lê agora só o código da web.
 - **Para a ver outra vez**: a última versão com a interface simples está no commit `0ff15ea`.
+
+**10.9, o redesenho** (ADR 0032 e 0033):
+
+- **O pedido**:
+  - separar a interface dos agentes da de testar à mão;
+  - uma página de entrada com o nome da app e as duas escolhas, sem barra lateral;
+  - cada interface com as suas secções na barra;
+  - as cores, a letra e o contraste de uma imagem de referência: preto, cinzentos escuros e
+    branco, com muita cor nos gráficos;
+  - menos texto à vista, com as explicações atrás de um botão discreto;
+  - o espaçamento devido entre cartões, ícones e tabelas.
+- **As skills**: instalaram-se as da Vercel (`web-design-guidelines`, `react-best-practices` e
+  `composition-patterns`). Nenhuma desenha um aspeto: são regras de qualidade, de desempenho e
+  de composição. Por isso:
+  - o desenho seguiu o `frontend-design` (os tokens primeiro, medidos na referência);
+  - as cores dos gráficos seguiram o `dataviz`, com o validador da paleta;
+  - a `web-design-guidelines` ficou para a auditoria final.
+- **A entrada e as duas interfaces** (ADR 0033):
+  - a entrada (`/`) fica fora da moldura, com um cartão por interface. O do Manual tem a rede
+    neuronal a aprender as luas; o dos Agentes, o coordenador a distribuir o trabalho;
+  - `NAVIGATION` diz as secções da barra de cada interface. Os ecrãs que só existem numa
+    (`ONLY_IN`) trazem a interface deles quando se abrem pelo endereço;
+  - a troca fica no topo da barra, e `Ctrl K` abre uma pesquisa de ecrãs, modelos e métricas
+    (`cmdk`).
+- **O sistema visual** (ADR 0032):
+  - a Geist e a Geist Mono substituem a Literata e a Atkinson;
+  - os cinzentos são os da referência, com o dos rótulos pequenos um degrau mais claro, para
+    chegar aos 4,5:1;
+  - a paleta dos dados tem oito cores validadas, com rampas azul e âmbar e uma escala
+    divergente laranja e azul;
+  - as linhas têm um brilho (uma cópia desfocada por baixo).
+- **Menos texto**:
+  - `Explain` é o "?" ao lado de cada título de cartão ou de secção, e o "Como se lê" de cada
+    gráfico, que deixou de ficar escrito por baixo;
+  - `PageExplain` é o "?" do título da página: abre a gaveta com o que se faz no ecrã e as
+    ideias por trás (o antigo "Porquê?");
+  - as ajudas dos campos dos formulários passaram para o "?" ao lado do nome;
+  - os temas continuam a pedir-se pelo nome, e `test_topics_in_use.py` continua a
+    encontrá-los.
+- **Os ecrãs** passaram para cartões (`Panel`), com os números grandes em `Stat` e o mesmo
+  espaço entre cartões. As tabelas têm o cabeçalho em mono pequeno e a linha escolhida um
+  degrau acima. Na ficha de cada modelo, as secções passaram a separadores, a começar pela
+  intuição.
+- **O que a revisão nos ecrãs apanhou**:
+  - Com os gráficos todos em mono, os nomes das categorias saíam das margens (no gráfico de
+    pontos da comparação, "Recall (sensibilidade)" passava 30 px para fora). Ficaram em mono só
+    os eixos.
+  - O fluxograma dos agentes rolava na horizontal a 1440 px. A coluna do pedido ficou mais
+    estreita (22rem), e o fluxograma passou a caber a partir de 640 px, com a coluna do
+    coordenador mais larga para o nome não se cortar.
+  - Nas Experiências, a explicação do histórico passou para o "?" ao lado da contagem, e a
+    comparação ficou em cartões, com o melhor de cada métrica marcado a branco.
+- **Os testes de ponta a ponta** mudaram onde a interface mudou:
+  - a entrada já não tem barra;
+  - a troca de interface é um grupo de alternância (`radio`);
+  - a ficha abre-se por separadores;
+  - o tipo de cada coluna tem a razão no "?";
+  - a tabela das métricas encontra-se pelo nome.
+
+  Há testes novos: um ecrã de uma só interface traz a barra dela, e a pesquisa salta para um
+  ecrã. Os 39 passam, e o axe passa em todos os ecrãs, como antes. Numa das corridas, os dois
+  servidores do teste (a API e o `vite preview`) caíram a meio, sem mensagem. Nas seguintes,
+  com o `PYTHONFAULTHANDLER` ligado (para um crash nativo deixar rasto), não voltou a
+  acontecer. Se voltar, é por aí que se começa.
+- **A auditoria final**, com a skill `web-design-guidelines` da Vercel, encontrou e corrigiu:
+  - transições `all` nos botões, nos distintivos, nos interruptores e na barra de progresso
+    (passaram a listar as propriedades);
+  - a falta de um atalho "Saltar para o conteúdo", que agora é o primeiro Tab de cada ecrã;
+  - o conteúdo dos separadores sem foco visível;
+  - o espaço entre "Ctrl" e "K", que podia partir a linha;
+  - os campos soltos sem `name` e sem `autocomplete="off"`;
+  - as gavetas e a pesquisa sem `overscroll-behavior: contain`;
+  - o nome da app sem `translate="no"` e o título das páginas sem `text-wrap: balance`.
+
+  Ficaram de fora, de propósito: o "Title Case" e as aspas curvas inglesas (em pt-PT usa-se
+  maiúscula só no início e «»); as datas com formato fixo (`dd/mm/aaaa hh:mm`, iguais em
+  qualquer browser); e os separadores dos Dados, do Explorar e da ficha de cada modelo, que não
+  passam para o endereço.
+
+**Depois da 10.9, a página larga e os agentes vivos** (ADR 0034):
+
+- **O espaço:**
+  - as páginas largas ocupam o ecrã, com 2 cm de margem de cada lado;
+  - o `Panel` passou a secção aberta (um filete por cima), e os números grandes a uma faixa
+    (`StatStrip`);
+  - a caixa ficou só para o que se escolhe, os avisos e os diálogos;
+  - entre colunas, o mesmo espaço largo em todos os ecrãs.
+- **O fluxograma dos agentes** segue o movimento de um vídeo de referência:
+  - os nós entram coluna a coluna e as ligações desenham-se;
+  - na ligação ativa corre uma luz com a cor do agente;
+  - nas dos agentes que já trabalharam passa, de vez em quando, uma luz lenta;
+  - as etiquetas em pílula mostram as linhas, o fold e o teste.
+
+  Para ver o vídeo, tiraram-se fotogramas com o `ffmpeg`: o X não deixa ler a página sem
+  conta. Os nós passaram a HTML (botões), com as colunas laterais de largura fixa.
+- **O painel de cada agente:** clicar num nó abre-o ao lado, sem tapar o fluxograma, com o que o
+  agente faz agora, os números do seu melhor, os modelos que experimenta, cada candidato (com a
+  nota em cada fold) e o que disse. O agente de dados, o coordenador e o líder têm os seus. Usa
+  só o que a procura já devolvia: o backend não mudou.
+- **A conversa:** cada agente tem a sua cor, a mesma do nó, no ícone e num filete ao lado da
+  mensagem.
+- **A verificação:**
+  - Para ver uma procura a decorrer sem tocar no histórico de quem usa o laboratório, correu-se
+    uma API à parte, com os dados numa pasta temporária, e uma interface ligada a ela.
+  - Os 56 testes da web e os 39 de ponta a ponta passam sem mudanças: os títulos e os papéis que
+    procuram ficaram iguais.
+
+**O histórico visual das trocas** (ADR 0035):
+
+- **O backend:** cada mensagem da conversa diz o que é na troca (`kind`: relatório, anúncio,
+  pedido, resposta, decisão ou teste) e a quem se dirige (`recipients`). O coordenador passou a
+  deixar na conversa o pedido que faz a cada agente antes de cada candidato. Antes, só se via a
+  resposta. Os dois enums novos têm nome no vocabulário, e o tema `exchange_history` explica como
+  se lê o histórico.
+- **A interface:** um interruptor por cima do fluxograma ("Ao vivo" e "Histórico das trocas")
+  repete a procura mensagem a mensagem:
+  - cada troca é uma luz que vai de quem fala para quem ouve, pelas ligações (ao contrário,
+    numa resposta);
+  - a decisão e o teste passam pelo agente do vencedor;
+  - o fluxograma mostra a procura como estava nesse momento;
+  - por baixo ficam o que se disse e uma linha do tempo, com uma marca por mensagem na cor de
+    quem a disse e as fases por baixo. Arrasta-se como um cursor, com o rato ou o teclado;
+  - a conversa acompanha o histórico, diz a quem cada mensagem se dirige e mostra os pedidos
+    numa linha.
+- **A verificação:**
+  - Viu-se de ponta a ponta numa API à parte, com os dados numa pasta temporária: 60 mensagens
+    numa procura de 24 candidatos, com os pedidos, as respostas, a decisão pelo agente dos
+    modelos probabilísticos até ao vencedor, e o teste.
+  - Os testes novos do Python verificam a troca (um pedido seguido da resposta por candidato,
+    os anúncios para os agentes, a decisão para o vencedor, o fim da conversa). O teste de
+    ponta a ponta dos agentes percorre o histórico até à decisão e ao teste.
+  - O `pytest` encontrou uma instabilidade antiga em `tests/api/test_training.py`, fora destas
+    mudanças: o treino que o teste pausa e para às vezes acaba antes de a paragem chegar
+    (falhou 1 vez em 3).

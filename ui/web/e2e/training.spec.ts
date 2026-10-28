@@ -16,10 +16,7 @@ test.use({ reducedMotion: "reduce" });
 
 /** Abre a gaveta de cada métrica da tabela e devolve os nomes das que abriu. */
 async function openEveryMetric(page: Page): Promise<string[]> {
-  const table = page
-    .getByRole("heading", { level: 3, name: "As métricas" })
-    .locator("..")
-    .getByRole("table");
+  const table = page.getByRole("table", { name: "As métricas" });
   await expect(table).toBeVisible({ timeout: 60_000 });
   // Os nomes leem-se antes de abrir a primeira gaveta: com uma aberta, o resto da página fica
   // escondido dos leitores de ecrã (e das procuras por papel).

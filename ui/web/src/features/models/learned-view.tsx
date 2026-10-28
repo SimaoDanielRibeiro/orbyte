@@ -14,7 +14,7 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { NetworkView } from "@/components/charts/network-view";
 import { TreeDiagram } from "@/components/charts/tree-diagram";
 import { TopicText } from "@/components/markdown/topic-text";
-import { Facts } from "@/components/shell/blocks";
+import { Facts, Panel } from "@/components/shell/blocks";
 import { diverging } from "@/lib/colors";
 import {
   formatList,
@@ -48,21 +48,25 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
     return null;
   }
   return (
-    <div className="flex flex-col gap-10">
-      {learned.properties.length > 0 && (
-        <Facts
-          size="sm"
-          facts={learned.properties.map((property) => ({
-            label: property.label,
-            value: formatValue(property.value),
-          }))}
-        />
-      )}
-      {learned.notes.length > 0 && (
-        <div className="flex max-w-[68ch] flex-col gap-2 font-serif text-reading">
-          {learned.notes.map((note) => (
-            <p key={note}>{note}</p>
-          ))}
+    <div className="flex flex-col gap-4">
+      {(learned.properties.length > 0 || learned.notes.length > 0) && (
+        <div className="flex flex-col gap-4 border-t pt-5">
+          {learned.properties.length > 0 && (
+            <Facts
+              size="sm"
+              facts={learned.properties.map((property) => ({
+                label: property.label,
+                value: formatValue(property.value),
+              }))}
+            />
+          )}
+          {learned.notes.length > 0 && (
+            <div className="flex max-w-[72ch] flex-col gap-2 text-sm text-soft">
+              {learned.notes.map((note) => (
+                <p key={note}>{note}</p>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {network !== null && (
@@ -102,7 +106,7 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
       ) : (
         learned.tree_rules.length > 0 && (
           <Block title="As regras da árvore">
-            <pre className="relative overflow-x-auto rounded-md border bg-card p-3 text-xs leading-relaxed">
+            <pre className="relative overflow-x-auto rounded-xl border bg-ground p-4 font-mono text-xs leading-relaxed text-soft">
               {learned.tree_rules.join("\n")}
             </pre>
           </Block>
@@ -115,13 +119,9 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
   );
 }
 
+/** Uma parte do que o modelo aprendeu, num cartão. */
 function Block({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex min-w-0 flex-col gap-3">
-      <h3 className="text-lg">{title}</h3>
-      {children}
-    </section>
-  );
+  return <Panel title={title}>{children}</Panel>;
 }
 
 /** Os pesos de um modelo linear: barras com uma saída, um mapa de cores com várias. */

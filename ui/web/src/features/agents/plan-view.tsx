@@ -1,49 +1,69 @@
 /**
  * O plano de uma procura: as linhas que os agentes vão usar, o que o agente de dados decidiu,
  * os agentes de modelo e o que cada um procura, e os modelos que ficam de fora.
+ *
+ * Fica à vista o que se decidiu; o porquê de cada decisão, e o que cada modelo procura, ficam
+ * nos "?" (ADR 0032).
  */
+import { Check } from "lucide-react";
+
 import type { AutoMlPlan } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
+import { Stat } from "@/components/shell/blocks";
 import { formatCount } from "@/lib/format";
 
 export function PlanView({ plan }: { plan: AutoMlPlan }) {
   const label = useLabel();
   const sampled = plan.search_rows < plan.train_rows;
   return (
-    <div className="flex flex-col gap-8">
-      <p className="max-w-[68ch] font-serif text-reading text-muted-foreground">
-        {formatCount(plan.train_rows)} linhas de treino e {formatCount(plan.test_rows)} de teste,
-        guardadas até ao fim para o vencedor.
-        {sampled &&
-          ` A validação cruzada usa uma amostra de ${formatCount(plan.search_rows)} linhas do treino, para a procura ser rápida.`}
-      </p>
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-wrap gap-x-10 gap-y-4">
+        <Stat label="Linhas de treino" value={formatCount(plan.train_rows)} />
+        <Stat
+          label="Linhas de teste"
+          value={formatCount(plan.test_rows)}
+          detail="guardadas para o vencedor"
+        />
+        {sampled && (
+          <Stat
+            label="Amostra da procura"
+            value={formatCount(plan.search_rows)}
+            detail="para a validação cruzada ser rápida"
+          />
+        )}
+      </div>
+
       <section className="flex flex-col gap-3">
-        <h3 className="text-lg">
+        <h3 className="mono-label">
           {plan.adopted ? "A tua preparação" : "O que o agente de dados decidiu"}
         </h3>
-        <ul className="flex max-w-[68ch] flex-col gap-2 font-serif text-reading">
+        <ul className="flex flex-col gap-2">
           {plan.decisions.map((decision) => (
-            <li key={decision.title}>
-              <strong className="font-semibold">{decision.title}.</strong> {decision.reason}
+            <li key={decision.title} className="flex items-center gap-2 text-sm">
+              <Check aria-hidden="true" className="size-4 shrink-0 text-positive" />
+              <span className="text-strong">{decision.title}</span>
+              <Explain title={decision.title}>{decision.reason}</Explain>
             </li>
           ))}
         </ul>
       </section>
+
       <section className="flex flex-col gap-3">
-        <h3 className="text-lg">Os agentes de modelo e o que procuram</h3>
-        <ul className="grid gap-x-10 gap-y-5 @4xl/main:grid-cols-2">
+        <h3 className="mono-label">Os agentes de modelo e o que procuram</h3>
+        <ul className="grid gap-3 @4xl/main:grid-cols-2">
           {plan.agents.map((agent) => (
-            <li key={agent.family} className="border-t pt-3">
-              <p className="font-medium">{label("ModelFamily", agent.family)}</p>
-              <ul className="mt-2 flex flex-col gap-2">
+            <li key={agent.family} className="rounded-xl border bg-ground p-4">
+              <p className="text-sm text-strong">{label("ModelFamily", agent.family)}</p>
+              <ul className="mt-2 flex flex-col gap-1">
                 {agent.models.map((model) => (
-                  <li key={model.name} className="text-sm">
-                    <span>{model.display_name}</span>
-                    <span className="block font-serif text-muted-foreground">
+                  <li key={model.name} className="flex items-center gap-1 text-sm text-soft">
+                    {model.display_name}
+                    <Explain title={model.display_name}>
                       {model.searches.length === 0
                         ? "Só os valores por omissão."
                         : model.searches.join("; ")}
-                    </span>
+                    </Explain>
                   </li>
                 ))}
               </ul>
@@ -51,13 +71,18 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
           ))}
         </ul>
       </section>
+
       {plan.skipped.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h3 className="text-lg">Ficam de fora</h3>
-          <ul className="flex max-w-[68ch] flex-col gap-1.5 font-serif text-sm text-muted-foreground">
+          <h3 className="mono-label">Ficam de fora</h3>
+          <ul className="flex flex-wrap gap-2">
             {plan.skipped.map((skipped) => (
-              <li key={skipped.model}>
-                <span className="text-foreground">{skipped.display_name}</span>: {skipped.reason}.
+              <li
+                key={skipped.model}
+                className="flex items-center gap-1 rounded-full border border-[#2a2a2a] py-0.5 pr-1 pl-3 text-xs text-soft"
+              >
+                {skipped.display_name}
+                <Explain title={skipped.display_name}>{skipped.reason}.</Explain>
               </li>
             ))}
           </ul>

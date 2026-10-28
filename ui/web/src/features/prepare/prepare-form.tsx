@@ -3,7 +3,8 @@
  * limpeza, a divisão e as transformações.
  *
  * Cada controlo muda as escolhas (`PrepareChoices`); o que não se toca segue as sugestões do
- * backend. Os nomes e as explicações das operações de limpeza vêm do backend.
+ * backend. Os nomes e as explicações das operações de limpeza vêm do backend, e as explicações
+ * ficam no "?" de cada controlo.
  */
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
@@ -23,6 +24,7 @@ import type {
 } from "@/api/generated";
 import { datasetsCleaningOperationsOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
 import { ChipGroup } from "@/components/forms/chip-group";
 import { NoticeList } from "@/components/notices/notice-list";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -78,7 +80,7 @@ export function PrepareForm({
   taskType,
 }: PrepareFormProps) {
   return (
-    <div className="@container/form flex flex-col gap-12">
+    <div className="@container/form flex flex-col gap-4">
       <Step number={1} title="Alvo e tarefa">
         <TaskControls
           dataset={dataset}
@@ -125,14 +127,17 @@ export function PrepareForm({
   );
 }
 
-/** Um passo da preparação: são uma sequência, por isso vão numerados. */
+/** Um passo da preparação, num cartão: são uma sequência, por isso vão numerados. */
 function Step({ number, title, children }: { number: number; title: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={`passo-${String(number)}`} className="flex flex-col gap-5">
-      <h2 id={`passo-${String(number)}`} className="flex items-center gap-3 text-xl">
+    <section
+      aria-labelledby={`passo-${String(number)}`}
+      className="flex flex-col gap-5 border-t pt-5"
+    >
+      <h2 id={`passo-${String(number)}`} className="flex items-center gap-3 text-base">
         <span
           aria-hidden="true"
-          className="flex size-7 items-center justify-center rounded-full border text-sm font-medium tabular-nums"
+          className="flex size-6 items-center justify-center rounded-full border border-[#333] bg-surface-high font-mono text-xs text-soft tabular-nums"
         >
           {number}
         </span>
@@ -146,7 +151,7 @@ function Step({ number, title, children }: { number: number; title: string; chil
 interface FieldProps {
   label: string;
   htmlFor?: string;
-  /** A explicação por baixo do controlo. */
+  /** A explicação do controlo: fica no "?" ao lado do nome, não à vista. */
   help?: ReactNode;
   /** O valor escrito à direita do nome (o de um controlo deslizante). */
   readout?: string;
@@ -157,20 +162,24 @@ interface FieldProps {
 function Field({ label, htmlFor, help, readout, children, className }: FieldProps) {
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-baseline justify-between gap-3">
-        {htmlFor === undefined ? (
-          <span className="text-sm font-medium">{label}</span>
-        ) : (
-          <Label id={`${htmlFor}-rotulo`} htmlFor={htmlFor} className="text-sm font-medium">
-            {label}
-          </Label>
+      <div className="flex min-h-6 items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          {htmlFor === undefined ? (
+            <span className="text-sm text-soft">{label}</span>
+          ) : (
+            <Label id={`${htmlFor}-rotulo`} htmlFor={htmlFor} className="text-sm text-soft">
+              {label}
+            </Label>
+          )}
+          {help !== undefined && help !== null && help !== "" && (
+            <Explain title={label}>{help}</Explain>
+          )}
+        </div>
+        {readout !== undefined && (
+          <span className="font-mono text-sm text-strong tabular-nums">{readout}</span>
         )}
-        {readout !== undefined && <span className="text-sm tabular-nums">{readout}</span>}
       </div>
       {children}
-      {help !== undefined && (
-        <div className="font-serif text-sm leading-relaxed text-muted-foreground">{help}</div>
-      )}
     </div>
   );
 }
@@ -229,13 +238,25 @@ function TaskControls({
         <ControlsSkeleton />
       ) : (
         <>
-          <p className="font-serif text-reading">{suggestion.reason}</p>
+          {(taskType === null || suggestion.allowed.length === 0) && (
+            <p className="text-sm text-soft">{suggestion.reason}</p>
+          )}
           <NoticeList notices={suggestion.notices} />
           {taskType !== null && suggestion.allowed.length > 0 && (
             <Field
               label="Tipo de tarefa"
               htmlFor="preparar-tarefa"
-              help="A sugerida vem primeiro; as outras também fazem sentido para este alvo."
+              help={
+                <>
+                  <p>{suggestion.reason}</p>
+                  <p className="mt-2">
+                    A sugerida vem primeiro; as outras também fazem sentido para este alvo.
+                  </p>
+                  {options?.reference_note !== undefined && options.reference_note !== null && (
+                    <p className="mt-2">{options.reference_note}</p>
+                  )}
+                </>
+              }
             >
               <Select
                 value={taskType}
@@ -255,11 +276,6 @@ function TaskControls({
                 </SelectContent>
               </Select>
             </Field>
-          )}
-          {options?.reference_note !== undefined && options.reference_note !== null && (
-            <p className="border-l-2 pl-3 font-serif text-sm leading-relaxed text-muted-foreground">
-              {options.reference_note}
-            </p>
           )}
         </>
       )}
@@ -299,14 +315,14 @@ function CleaningControls({
         const id = `limpeza-${key.replace(/[^a-z0-9]+/gi, "-")}`;
         const operation = byName.get(suggestion.step.operation);
         return (
-          <div key={key} className="flex items-start justify-between gap-4">
-            <div>
-              <Label htmlFor={id} className="text-sm font-medium">
+          <div key={key} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1">
+              <Label htmlFor={id} className="text-sm">
                 {operation?.title ?? suggestion.step.operation}
               </Label>
-              <p className="mt-1 font-serif text-sm leading-relaxed text-muted-foreground">
+              <Explain title={operation?.title ?? suggestion.step.operation}>
                 {suggestion.reason}
-              </p>
+              </Explain>
             </div>
             <Switch
               id={id}
@@ -323,7 +339,7 @@ function CleaningControls({
         );
       })}
       {!suggestions.some((suggestion) => suggestion.step.operation === "drop_duplicates") && (
-        <p className="text-sm text-muted-foreground">Não há linhas duplicadas.</p>
+        <p className="mono-label">Não há linhas duplicadas.</p>
       )}
       <Field
         label={dropColumns?.title ?? "Remover colunas"}
@@ -358,7 +374,7 @@ function CleaningControls({
         defaultOpen={cleaning.dropMissing.length > 0 || cleaning.outliers.length > 0}
         className="flex flex-col gap-5"
       >
-        <CollapsibleTrigger className="group flex items-center gap-2 self-start text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
+        <CollapsibleTrigger className="group flex items-center gap-2 self-start rounded-md text-sm text-soft outline-none hover:text-strong focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronDown
             aria-hidden="true"
             className="size-4 transition-transform group-data-[state=open]:rotate-180"
@@ -495,6 +511,8 @@ function SplitControls({
       <Field label="Seed" htmlFor="divisao-seed" help="A mesma seed dá sempre a mesma divisão.">
         <Input
           id="divisao-seed"
+          name="seed"
+          autoComplete="off"
           type="number"
           inputMode="numeric"
           min={0}
@@ -618,8 +636,8 @@ function TransformControls({
           ))}
         </ToggleGroup>
       </Field>
-      <div className="flex items-start justify-between gap-4">
-        <Label htmlFor="transformar-datas" className="text-sm font-medium">
+      <div className="flex items-center justify-between gap-4">
+        <Label htmlFor="transformar-datas" className="text-sm text-soft">
           Extrair o ano, o mês, o dia e o dia da semana das datas
         </Label>
         <Switch

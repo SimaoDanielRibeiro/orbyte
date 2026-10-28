@@ -8,7 +8,7 @@ Python.
 Tecnologias: React 19, TypeScript 6, Vite 8, Tailwind CSS 4, shadcn/ui (com o Radix) e
 Motion; TanStack Router e TanStack Query; o cliente gerado pelo `@hey-api/openapi-ts`; D3 para
 os gráficos e KaTeX para as fórmulas. As razões estão na ADR 0027; o sistema visual, na
-ADR 0029.
+ADR 0032; as duas interfaces (Manual e Agentes) e a entrada, na ADR 0033.
 
 Este ficheiro tem três partes: como correr a interface, **como mexer nela** (que ficheiro muda
 o quê) e o **guia do contrato com o backend**, tudo o que o frontend precisa de saber para
@@ -55,14 +55,15 @@ Depois de mudar um serviço do backend: `uv run python scripts/export_openapi.py
 src/
 ├── api/         o cliente (gerado em generated/), os erros, a cache, o vocabulário, os temas,
 │                a demonstração de um modelo e o acompanhamento pelo WebSocket (stream.ts)
-├── components/  ui/ (os do shadcn, adaptados), shell/ (a moldura), charts/ (os gráficos, em
-│                D3 e SVG), forms/ (o formulário gerado de um JSON Schema), markdown/ (o texto
-│                com fórmulas), data/ (a tabela de dados), notices/ (os avisos)
+├── components/  ui/ (os do shadcn, adaptados), shell/ (a moldura), explain/ (o "?"), charts/
+│                (os gráficos, em D3 e SVG), forms/ (o formulário gerado de um JSON Schema),
+│                markdown/ (o texto com fórmulas), data/ (a tabela de dados), notices/ (os
+│                avisos)
 ├── features/    um ecrã por pasta: home, data, explore, prepare, models, training, explain,
 │                agents, history (Experiências), laboratory, metrics, reinforcement
 ├── hooks/       hooks partilhados (o tamanho de um elemento, um valor com atraso)
 ├── lib/         format.ts (os números à portuguesa), colors.ts e classes.ts (as cores dos
-│                dados), seed.ts (a seed de um pedido), utils.ts
+│                dados), seed.ts (a seed de um pedido), keys.ts (os atalhos), utils.ts
 ├── routes/      um ficheiro por rota, que só aponta para o ecrã (o TanStack Router gera
 │                routeTree.gen.ts)
 ├── state/       o pouco estado do cliente (session.ts)
@@ -76,22 +77,34 @@ backend.
 
 | Para mudar | Onde |
 |---|---|
-| As cores da moldura (o fundo, o texto, o amarelo do agora, os contornos) | `src/styles/globals.css`, no `:root`: cada cor tem o nome da ADR 0029 (`--slate`, `--chalk`, `--chalk-yellow`…), e os papéis que os componentes leem apontam para elas (`--background`, `--primary`, `--ring`…) |
-| Os tipos de letra e a escala | `src/main.tsx` (as fontes que se carregam) e o `@theme` de `globals.css` (`--font-sans`, `--font-serif` e os tamanhos) |
-| As cores dos dados (as classes, as séries, as escalas) | `src/lib/colors.ts`: a paleta categórica e as rampas. Uma paleta nova tem de se validar outra vez contra o fundo (o contraste, e a distinção para quem não vê bem as cores) |
+| As cores da moldura (o fundo, os cartões, o texto, os contornos) | `src/styles/globals.css`, no `:root`: cada cor tem o nome da ADR 0032 (`--ground`, `--surface`, `--text-soft`, `--line`…), e os papéis que os componentes leem apontam para elas (`--background`, `--card`, `--primary`, `--ring`…) |
+| Os tipos de letra e a escala | `src/main.tsx` (a Geist e a Geist Mono) e o `@theme` de `globals.css` (`--font-sans`, `--font-mono` e os tamanhos) |
+| As cores dos dados (as classes, as séries, as escalas) | `src/lib/colors.ts` e as `--data-1` a `--data-8` de `globals.css`: a paleta categórica e as rampas. Uma paleta nova tem de se validar outra vez contra o cartão (`#191919`): o contraste, e a distinção para quem não vê bem as cores |
 | Os componentes de base (botões, campos, gavetas, separadores) | `src/components/ui/`: são os do shadcn, copiados para o projeto para se adaptarem |
-| A moldura (a barra lateral, o cabeçalho das páginas, os blocos) | `src/components/shell/` |
-| O nome de cada ecrã, a ordem na barra e os ícones | `src/components/shell/screens.ts` |
-| Um gráfico (todos partilham a moldura de `chart.tsx`: os eixos, a legenda, a dica) | `src/components/charts/` |
+| A moldura (a barra lateral, a pesquisa, o cabeçalho das páginas) | `src/components/shell/` |
+| Os blocos das páginas: o cartão (`Panel`), o número grande (`Stat`), a secção (`Section`) e os factos | `src/components/shell/blocks.tsx`; a classe `panel` e o rótulo `mono-label` estão em `globals.css` |
+| O "?" das explicações: ao lado de um título (`Explain`) e no título da página (`PageExplain`) | `src/components/explain/explain.tsx` |
+| As secções de cada interface na barra (o Manual e os Agentes), os nomes e os ícones dos ecrãs | `src/components/shell/screens.ts`: `NAVIGATION` diz os grupos de cada interface, e `ONLY_IN` os ecrãs que só existem numa |
+| A página de entrada | `src/features/home/` (fica fora da moldura: não tem barra) |
+| Um gráfico (todos partilham a moldura de `chart.tsx`: os eixos, a legenda, a dica e o "Como se lê") | `src/components/charts/` |
 | Um ecrã (a disposição, as secções, o que aparece primeiro) | `src/features/<ecrã>/`; a rota, em `src/routes/`, só aponta para ele |
-| Os textos didáticos (o "Porquê?", as legendas dos gráficos, os avisos, as fichas) | No backend, não aqui (regra 5 do `CONTRIBUTING.md`): os temas em `core/*/explanations.py` e `core/evaluation/topics.py`, as fichas em `docs/algorithms/` |
+| Os textos didáticos (o "?" de cada coisa, o "Como se lê" dos gráficos, os avisos, as fichas) | No backend, não aqui (regra 5 do `CONTRIBUTING.md`): os temas em `core/*/explanations.py` e `core/evaluation/topics.py`, as fichas em `docs/algorithms/` |
 
-O sistema visual tem algumas regras que dão coerência ao todo (ADR 0029):
+O sistema visual tem algumas regras que dão coerência ao todo (ADR 0032):
 
-- o amarelo marca só o agora (o passo atual, o agente que trabalha, o foco do teclado);
-- o que se lê é serifado (Literata) e o que se usa é sem serifa (Atkinson);
-- a cor é dos dados, e segue a entidade: a classe "1" tem a mesma cor em todos os gráficos;
+- a moldura é preto, cinzentos escuros e branco; a cor é dos dados, e segue a entidade (a
+  classe "1" tem a mesma cor em todos os gráficos);
+- as páginas largas ocupam o ecrã, com 2 cm de margem de cada lado (ADR 0034);
+- cada coisa vive numa secção aberta (`Panel`: um filete por cima, o nome pequeno e cinzento e o
+  "?"), não numa caixa; os números grandes ficam numa faixa (`StatStrip`); entre colunas há
+  sempre o mesmo espaço largo (`gap-x-12 gap-y-10`). A caixa (`panel`) é só para o que se
+  escolhe, os avisos de um passo em falta e os diálogos;
+- as explicações não ficam à vista: cada título tem o seu "?", e os textos vêm do backend pelo
+  nome (`topic="…"`);
+- o texto é Geist; os números pequenos, os eixos e os rótulos são Geist Mono (`mono-label`);
+  dentro dos gráficos, os nomes das categorias ficam em Geist, que cabe nas margens;
 - um gráfico nunca tem dois eixos de y, e tem legenda a partir de duas séries;
+- o texto pequeno nunca é mais escuro do que `--text-dim` (4,5:1 no cartão);
 - as páginas reorganizam-se pela largura que têm (`@container/main`), não pela do ecrã.
 
 Enquanto se mexe, o `uv run python scripts/dev.py` recarrega a página ao gravar. Antes de dar
@@ -149,9 +162,10 @@ Os textos escrevem-se uma vez, no backend (regra 5 do `CONTRIBUTING.md`). Pede-s
     um agente de RL (`reward`, `length`, `success`, `epsilon`), com o nome a mostrar, se são
     percentagem e se são uma loss (a de validação desenha-se com a do treino).
 - `GET /explanations` dá todos os temas (`{tema: {title, text}}`), e
-  `GET /explanations/{tema}` um só. São os do painel "Porquê?" e também o "como ler" de cada
-  gráfico (`correlation_matrix`, `confusion_matrix`, `lineage`, `train_vs_test`…): a interface
-  mostra-os por baixo dos gráficos. Pedem-se ao arrancar, como o vocabulário, e a interface
+  `GET /explanations/{tema}` um só. São os do "?" de cada página e de cada secção, e também o
+  "como ler" de cada gráfico (`correlation_matrix`, `confusion_matrix`, `lineage`,
+  `train_vs_test`…): a interface mostra-os no "?" ao lado do que explicam (`Explain`, ADR
+  0032), e não à vista. Pedem-se ao arrancar, como o vocabulário, e a interface
   pede cada um pelo nome; `tests/contract/test_topics_in_use.py` procura esses nomes no código
   da interface e falha se algum não existir. Os temas que explicam a página de cada
   modelo vêm no cartão (`topics`), e o "como ler" do campo de decisão vem na própria animação

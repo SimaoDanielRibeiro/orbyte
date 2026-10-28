@@ -16,7 +16,6 @@ import { useLabel } from "@/api/vocabulary";
 import { ErrorNote } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { WhyButton } from "@/components/shell/why-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -39,9 +38,11 @@ export function LaboratoryScreen() {
 
   return (
     <Page>
-      <PageHeader title={SCREENS.laboratory.title} description={SCREENS.laboratory.description}>
-        <WhyButton topics={cards.map((card) => card.topic)} />
-      </PageHeader>
+      <PageHeader
+        title={SCREENS.laboratory.title}
+        description={SCREENS.laboratory.description}
+        topics={cards.map((card) => card.topic)}
+      />
       <ErrorNote error={demos.error} className="mt-8" />
       {open === undefined ? (
         demos.error === null && <Skeleton className="mt-10 h-96 w-full" />

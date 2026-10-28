@@ -1,6 +1,7 @@
 /**
  * Os runs lado a lado: a leitura da comparação (do backend), as métricas (com o melhor
- * marcado), as escolhas que mudam de um run para outro e as curvas da loss.
+ * marcado), as escolhas que mudam de um run para outro e as curvas da loss, cada uma no seu
+ * cartão.
  *
  * Cada run tem uma cor, pela letra que o backend lhe dá (A, B, C…): a mesma no gráfico das
  * métricas e no das curvas. As métricas em percentagem desenham-se como pontos numa linha de 0 a
@@ -15,25 +16,24 @@ import type { RunComparison } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { DotPlot } from "@/components/charts/dot-plot";
 import { LineChart } from "@/components/charts/line-chart";
-import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote } from "@/components/shell/blocks";
+import { ErrorNote, Panel } from "@/components/shell/blocks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { categoryColor } from "@/lib/colors";
 import { formatPercent, formatStatistic } from "@/lib/format";
 
 import { comparedValue } from "./values";
 
+/** O cabeçalho de uma coluna das tabelas da comparação. */
+const HEAD = "px-3 py-2.5 font-mono text-xs font-normal text-dim";
+
 export function ComparisonView({ runIds }: { runIds: readonly string[] }) {
   const comparison = useQuery(comparisonQuery(runIds));
   if (runIds.length < 2) {
     return (
-      <div className="flex max-w-[68ch] flex-col gap-3">
-        <p className="font-serif text-reading text-muted-foreground">
-          Escolhe dois a cinco runs na tabela para os ver lado a lado.
-        </p>
-        <TopicText topic="comparing_runs" />
-      </div>
+      <p className="text-sm text-soft">
+        Escolhe dois a cinco runs na tabela para os ver lado a lado.
+      </p>
     );
   }
   if (comparison.error !== null) {
@@ -54,13 +54,16 @@ function Compared({ comparison }: { comparison: RunComparison }) {
   })();
 
   return (
-    <div className="flex flex-col gap-10">
-      <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+    <div className="flex flex-col gap-4">
+      <ul aria-label="Os runs comparados" className="flex flex-wrap gap-2">
         {comparison.labels.map((name, index) => (
-          <li key={name} className="flex items-center gap-2">
+          <li
+            key={name}
+            className="flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-surface px-3 py-1 text-xs text-soft"
+          >
             <span
               aria-hidden="true"
-              className="size-2.5 rounded-full"
+              className="size-2 rounded-full"
               style={{ background: categoryColor(index) }}
             />
             {name}
@@ -69,19 +72,13 @@ function Compared({ comparison }: { comparison: RunComparison }) {
       </ul>
 
       {comparison.notices.length > 0 && (
-        <section aria-labelledby="leitura-titulo" className="flex flex-col gap-3">
-          <h3 id="leitura-titulo" className="text-xl">
-            A leitura da comparação
-          </h3>
+        <Panel title="A leitura da comparação">
           <NoticeList notices={comparison.notices} />
-        </section>
+        </Panel>
       )}
 
-      <section aria-labelledby="comparadas-titulo" className="flex flex-col gap-4">
-        <h3 id="comparadas-titulo" className="text-xl">
-          As métricas no {label("Partition", comparison.partition).toLowerCase()}
-        </h3>
-        <div className="grid gap-8 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <Panel title={`As métricas no ${label("Partition", comparison.partition).toLowerCase()}`}>
+        <div className="grid gap-6 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @5xl/main:items-start">
           <MetricsTable comparison={comparison} />
           {percent.length > 0 && (
             <DotPlot
@@ -102,74 +99,76 @@ function Compared({ comparison }: { comparison: RunComparison }) {
             />
           )}
         </div>
-      </section>
+      </Panel>
 
-      <section aria-labelledby="mudancas-titulo" className="flex flex-col gap-4">
-        <h3 id="mudancas-titulo" className="text-xl">
-          O que muda entre os runs
-        </h3>
-        {comparison.differences.length === 0 ? (
-          <p className="font-serif text-reading text-muted-foreground">
-            Os runs têm exatamente a mesma configuração e a mesma seed.
-          </p>
-        ) : (
-          <div className="relative max-w-full overflow-x-auto rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th scope="col" className="px-3 py-2 text-left font-medium">
-                    Escolha
-                  </th>
-                  {comparison.labels.map((name) => (
-                    <th key={name} scope="col" className="px-3 py-2 text-left font-medium">
-                      {name.split(" · ")[0]}
+      <div
+        className={cn(
+          "grid gap-x-12 gap-y-10",
+          comparison.losses.length > 0 && "@5xl/main:grid-cols-2",
+        )}
+      >
+        <Panel title="O que muda entre os runs">
+          {comparison.differences.length === 0 ? (
+            <p className="text-sm text-soft">
+              Os runs têm exatamente a mesma configuração e a mesma seed.
+            </p>
+          ) : (
+            <div className="relative max-w-full overflow-x-auto">
+              <table className="w-full text-sm">
+                <caption className="sr-only">As escolhas que mudam de um run para outro</caption>
+                <thead>
+                  <tr className="border-b">
+                    <th scope="col" className={cn("text-left", HEAD)}>
+                      Escolha
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.differences.map((difference) => (
-                  <tr key={difference.label} className="border-b border-border/50 last:border-0">
-                    <th scope="row" className="px-3 py-1.5 text-left font-normal">
-                      {difference.label}
-                    </th>
-                    {difference.values.map((value, index) => (
-                      <td key={index} className="px-3 py-1.5 tabular-nums">
-                        {value}
-                      </td>
+                    {comparison.labels.map((name) => (
+                      <th key={name} scope="col" className={cn("text-left", HEAD)}>
+                        {name.split(" · ")[0]}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {comparison.differences.map((difference) => (
+                    <tr key={difference.label} className="border-b border-border/60 last:border-0">
+                      <th scope="row" className="px-3 py-2 text-left font-normal text-soft">
+                        {difference.label}
+                      </th>
+                      {difference.values.map((value, index) => (
+                        <td key={index} className="px-3 py-2 text-strong tabular-nums">
+                          {value}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
 
-      {comparison.losses.length > 0 && (
-        <section aria-labelledby="curvas-titulo" className="flex max-w-4xl flex-col gap-4">
-          <h3 id="curvas-titulo" className="text-xl">
-            A loss ao longo do treino
-          </h3>
-          <LineChart
-            series={comparison.losses.map((series) => {
-              const index = comparison.labels.indexOf(series.label);
-              return {
-                key: series.label,
-                label: series.label,
-                color: categoryColor(index < 0 ? 0 : index),
-                points: series.steps.map((step, i) => ({ x: step, y: series.losses[i] ?? null })),
-              };
-            })}
-            // Losses de ordens de grandeza diferentes só se comparam em escala logarítmica.
-            logY={spread > 100}
-            xLabel="Passo do treino"
-            yLabel="Loss"
-            formatY={formatStatistic}
-            description="A loss de cada run ao longo do treino."
-          />
-        </section>
-      )}
+        {comparison.losses.length > 0 && (
+          <Panel title="A loss ao longo do treino">
+            <LineChart
+              series={comparison.losses.map((series) => {
+                const index = comparison.labels.indexOf(series.label);
+                return {
+                  key: series.label,
+                  label: series.label,
+                  color: categoryColor(index < 0 ? 0 : index),
+                  points: series.steps.map((step, i) => ({ x: step, y: series.losses[i] ?? null })),
+                };
+              })}
+              // Losses de ordens de grandeza diferentes só se comparam em escala logarítmica.
+              logY={spread > 100}
+              xLabel="Passo do treino"
+              yLabel="Loss"
+              formatY={formatStatistic}
+              description="A loss de cada run ao longo do treino."
+            />
+          </Panel>
+        )}
+      </div>
     </div>
   );
 }
@@ -177,15 +176,16 @@ function Compared({ comparison }: { comparison: RunComparison }) {
 /** As métricas de cada run, com o melhor de cada uma marcado com uma estrela. */
 function MetricsTable({ comparison }: { comparison: RunComparison }) {
   return (
-    <div className="relative max-w-full overflow-x-auto rounded-md border">
+    <div className="relative max-w-full overflow-x-auto">
       <table className="w-full text-sm">
+        <caption className="sr-only">As métricas de cada run, com a melhor marcada</caption>
         <thead>
           <tr className="border-b">
-            <th scope="col" className="px-3 py-2 text-left font-medium">
+            <th scope="col" className={cn("text-left", HEAD)}>
               Métrica
             </th>
             {comparison.labels.map((name, index) => (
-              <th key={name} scope="col" className="px-3 py-2 text-right font-medium">
+              <th key={name} scope="col" className={cn("text-right", HEAD)}>
                 <span className="inline-flex items-center gap-1.5">
                   <span
                     aria-hidden="true"
@@ -200,8 +200,8 @@ function MetricsTable({ comparison }: { comparison: RunComparison }) {
         </thead>
         <tbody>
           {comparison.metrics.map((metric) => (
-            <tr key={metric.name} className="border-b border-border/50 last:border-0">
-              <th scope="row" className="px-3 py-1.5 text-left font-normal">
+            <tr key={metric.name} className="border-b border-border/60 last:border-0">
+              <th scope="row" className="px-3 py-2 text-left font-normal text-soft">
                 {metric.display_name}
               </th>
               {metric.values.map((value, index) => {
@@ -210,8 +210,8 @@ function MetricsTable({ comparison }: { comparison: RunComparison }) {
                   <td
                     key={index}
                     className={cn(
-                      "px-3 py-1.5 text-right tabular-nums",
-                      best ? "font-semibold text-foreground" : "text-muted-foreground",
+                      "px-3 py-2 text-right tabular-nums",
+                      best ? "font-medium text-strong" : "text-soft",
                     )}
                   >
                     <span className="inline-flex items-center justify-end gap-1">

@@ -18,10 +18,10 @@ export function RootError({ error }: ErrorComponentProps) {
   return (
     <div className="flex min-h-svh items-center">
       <Page width="reading">
-        <Logo className="mb-8 size-10" />
+        <Logo className="mb-8 h-8 w-10" />
         <PageHeader
           title={unreachable ? "A API não responde" : "Esta página não abriu"}
-          description={
+          subtitle={
             unreachable
               ? "A interface pede tudo à API, a começar pelos nomes do vocabulário. Arranca-a num terminal, na raiz do projeto:"
               : message
@@ -51,7 +51,7 @@ export function NotFound() {
     <Page width="reading">
       <PageHeader
         title="Este ecrã não existe"
-        description="O endereço não corresponde a nenhum ecrã do ML Lab."
+        subtitle="O endereço não corresponde a nenhum ecrã do ML Lab."
       />
       <Button asChild variant="outline" className="mt-8">
         <Link to="/">Ir para o início</Link>

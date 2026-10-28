@@ -2,7 +2,7 @@
  * Os textos didáticos do backend, em Markdown, com as fórmulas em LaTeX (`$…$` e `$$…$$`)
  * desenhadas pelo KaTeX: as fichas, os temas do "Porquê?", as explicações das métricas.
  *
- * É a voz do livro: serifada, com a entrelinha generosa e linhas curtas (ADR 0029).
+ * Na mesma Geist do resto, com a entrelinha mais generosa e linhas curtas (ADR 0032).
  */
 import "katex/dist/katex.min.css";
 
@@ -13,9 +13,9 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 
 const COMPONENTS: Components = {
-  h1: ({ children }) => <h2 className="mt-8 mb-3 text-2xl">{children}</h2>,
-  h2: ({ children }) => <h3 className="mt-6 mb-2 text-xl">{children}</h3>,
-  h3: ({ children }) => <h4 className="mt-5 mb-2 font-sans text-base font-medium">{children}</h4>,
+  h1: ({ children }) => <h2 className="mt-8 mb-3 text-xl">{children}</h2>,
+  h2: ({ children }) => <h3 className="mt-6 mb-2 text-lg">{children}</h3>,
+  h3: ({ children }) => <h4 className="mt-5 mb-2 text-sm font-medium text-strong">{children}</h4>,
   p: ({ children }) => <p className="my-3">{children}</p>,
   ul: ({ children }) => (
     <ul className="my-3 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">{children}</ul>
@@ -69,10 +69,10 @@ export function Prose({ text, size = "reading", className }: ProseProps) {
   return (
     <div
       className={cn(
-        "max-w-[68ch] font-serif",
+        "max-w-[68ch]",
         size === "reading"
           ? "text-reading text-foreground/90"
-          : "text-sm leading-relaxed text-muted-foreground [&_p]:my-0 [&_p+p]:mt-2",
+          : "text-[0.8125rem] leading-relaxed text-soft [&_p]:my-0 [&_p+p]:mt-2",
         className,
       )}
     >

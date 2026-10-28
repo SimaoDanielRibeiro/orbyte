@@ -119,7 +119,7 @@ export function DotPlot({
               <text
                 x={0}
                 y={center + 15}
-                className="fill-muted-foreground text-[10px] tabular-nums"
+                className="fill-dim font-mono text-[10px] tabular-nums"
                 aria-hidden="true"
               >
                 {format(row.min)}
@@ -128,7 +128,7 @@ export function DotPlot({
                 x={plot.width}
                 y={center + 15}
                 textAnchor="end"
-                className="fill-muted-foreground text-[10px] tabular-nums"
+                className="fill-dim font-mono text-[10px] tabular-nums"
                 aria-hidden="true"
               >
                 {format(row.max)}
@@ -142,7 +142,7 @@ export function DotPlot({
                     cy={center}
                     r={5}
                     fill={one.color}
-                    stroke="var(--background)"
+                    stroke="var(--card)"
                     strokeWidth={2}
                   />
                 );

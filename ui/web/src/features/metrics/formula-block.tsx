@@ -9,7 +9,7 @@ export function FormulaBlock({ card }: { card: MetricCard }) {
       className="flex min-w-0 flex-col gap-3"
       aria-label={`A fórmula de ${card.display_name}`}
     >
-      <div className="relative overflow-x-auto rounded-md border bg-card px-3 py-4">
+      <div className="relative overflow-x-auto rounded-xl border bg-ground px-4 py-5 text-strong">
         <Formula tex={card.formula} />
       </div>
       {card.symbols.length > 0 && (

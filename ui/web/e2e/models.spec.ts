@@ -17,7 +17,9 @@ test("os 34 modelos abrem com o exemplo e a ficha", async ({ page, request }) =>
   for (const model of models) {
     await page.goto(`/modelos/${model.name}`);
     await expect(page.getByRole("heading", { level: 1, name: model.display_name })).toBeVisible();
+    // A ficha abre na intuição; as outras secções estão nos separadores.
     await expect(page.getByRole("heading", { level: 2, name: "Intuição" })).toBeVisible();
+    await page.getByRole("tab", { name: "Matemática essencial" }).click();
     await expect(
       page.getByRole("heading", { level: 2, name: "Matemática essencial" }),
     ).toBeVisible();

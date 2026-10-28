@@ -15,7 +15,10 @@ test("do início aos modelos da tarefa, pelos dados, o perfil e a preparação",
   await page.getByRole("button", { name: "Carregar Titanic" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Titanic" })).toBeVisible();
   await page.getByRole("tab", { name: "Colunas e tipos" }).click();
-  await expect(page.getByRole("cell", { name: "Identificador", exact: true })).toBeVisible();
+  // O tipo de cada coluna, com a razão no "?" ao lado.
+  await expect(
+    page.getByRole("button", { name: "Porque é que PassengerId é identificador" }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Explorar este dataset" }).click();
 
   await expect(page).toHaveURL(/\/explorar$/);

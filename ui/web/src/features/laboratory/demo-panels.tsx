@@ -3,7 +3,7 @@
  *
  * Os valores de cada controlo e o de partida vêm do cartão da demonstração (o backend decide-os:
  * são uma escolha didática). As cores seguem as do resto da interface: o treino a azul, o teste
- * a laranja, e o que o modelo desenha (a curva, o caminho dos pesos) a giz.
+ * a amarelo, e o que o modelo desenha (a curva, o caminho dos pesos) a branco.
  */
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -22,14 +22,13 @@ import { LineChart } from "@/components/charts/line-chart";
 import { OptionSlider } from "@/components/forms/option-slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useDebounced } from "@/hooks/use-debounced";
-import { CATEGORICAL, OTHER } from "@/lib/colors";
+import { CATEGORICAL, LIGHT_INK, OTHER } from "@/lib/colors";
 import { formatNumber, formatPercent, formatStatistic, formatValue } from "@/lib/format";
 
 import { DemoFrame } from "./demo-frame";
 
 const TRAIN = CATEGORICAL[0];
 const TEST = CATEGORICAL[1];
-const CHALK = "#ece7dd";
 /** O tempo que um controlo fica parado antes de se pedir a demonstração outra vez. */
 const SETTLE_MS = 150;
 const HEIGHT = 340;
@@ -79,7 +78,7 @@ export function OverfittingDemo({ card }: { card: DemoCard }) {
               {
                 key: "curva",
                 label: `O polinómio de grau ${String(data.degree)}`,
-                color: CHALK,
+                color: LIGHT_INK,
                 width: 2.5,
                 points: data.curve.x.map((x, i) => ({ x, y: data.curve.y[i] ?? null })),
               },
@@ -194,7 +193,7 @@ export function LearningRateDemo({ card }: { card: DemoCard }) {
               return {
                 key: String(curve.rate),
                 label: chosen ? `Taxa ${name}` : "Outras taxas",
-                color: chosen ? CHALK : OTHER,
+                color: chosen ? LIGHT_INK : OTHER,
                 width: chosen ? 3 : 1.5,
                 faint: !chosen,
                 endLabel: name,
@@ -237,9 +236,7 @@ export function KnnDemo({ card }: { card: DemoCard }) {
       {data === undefined ? null : (
         <>
           {data.boundary === null ? (
-            <p className="font-serif text-reading text-muted-foreground">
-              Sem fronteira para desenhar com este k.
-            </p>
+            <p className="text-sm text-soft">Sem fronteira para desenhar com este k.</p>
           ) : (
             <FieldView
               animation={data.boundary}
@@ -415,7 +412,7 @@ export function RegularizationDemo({ card }: { card: DemoCard }) {
                 {
                   key: "escolhido",
                   label: `Peso com alpha ${formatValue(data.alpha)}`,
-                  color: CHALK,
+                  color: LIGHT_INK,
                 },
                 { key: "verdadeiro", label: "Peso verdadeiro", color: OTHER },
               ]}

@@ -20,7 +20,8 @@ import {
   historySaveMutation,
 } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel } from "@/api/vocabulary";
-import { ErrorNote, Facts } from "@/components/shell/blocks";
+import { Explain } from "@/components/explain/explain";
+import { ErrorNote, Facts, Stat } from "@/components/shell/blocks";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,35 +122,32 @@ function RunDetails({
 
   return (
     <>
-      <SheetHeader>
-        <SheetTitle className="pr-8 font-serif text-2xl font-medium">{entry.name}</SheetTitle>
-        <SheetDescription>
+      <SheetHeader className="gap-2 border-b p-6">
+        <SheetTitle className="pr-8 text-xl font-medium text-strong">{entry.name}</SheetTitle>
+        <SheetDescription className="text-sm leading-relaxed text-soft">
           {entry.model_display_name} em {entry.dataset_name},{" "}
           {label("TaskType", entry.task_type).toLowerCase()}.
         </SheetDescription>
       </SheetHeader>
-      <div className="flex flex-col gap-8 px-4 pb-10">
-        <Facts
-          size="sm"
-          facts={[
-            {
-              label: entry.primary_label ?? "Métrica principal",
-              value: <span className="text-2xl">{primaryValue(entry)}</span>,
-            },
-            { label: "Parte", value: label("Partition", entry.partition) },
-          ]}
-        />
-        <Facts
-          size="sm"
-          facts={[
-            { label: "Quando", value: formatMoment(entry.created_at) },
-            { label: "Seed", value: entry.seed },
-            { label: "Run", value: entry.run_id },
-            { label: "Guardado", value: entry.saved ? "Sim" : "Não" },
-          ]}
-        />
+      <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-5 border-t pt-5">
+          <Stat
+            label={entry.primary_label ?? "Métrica principal"}
+            value={primaryValue(entry)}
+            detail={label("Partition", entry.partition)}
+          />
+          <Facts
+            size="sm"
+            facts={[
+              { label: "Quando", value: formatMoment(entry.created_at) },
+              { label: "Seed", value: entry.seed },
+              { label: "Run", value: <span className="font-mono text-xs">{entry.run_id}</span> },
+              { label: "Guardado", value: entry.saved ? "Sim" : "Não" },
+            ]}
+          />
+        </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             onClick={() => {
               onClose();
@@ -179,12 +177,12 @@ function RunDetails({
             {entry.saved ? <Check aria-hidden="true" /> : <Save aria-hidden="true" />}
             {entry.saved ? "Guardado" : "Guardar"}
           </Button>
+          <Explain title="Reproduzir e guardar" align="end">
+            Reproduzir treina outra vez com a mesma configuração e a mesma seed: o run novo entra no
+            histórico, para os comparares. Guardar só funciona nos runs que a API ainda tem em
+            memória (os últimos).
+          </Explain>
         </div>
-        <p className="-mt-5 font-serif text-sm leading-relaxed text-muted-foreground">
-          Reproduzir treina outra vez com a mesma configuração e a mesma seed: o run novo entra no
-          histórico, para os comparares. Guardar só funciona nos runs que a API ainda tem em memória
-          (os últimos).
-        </p>
         <ErrorNote error={reproduce.error ?? save.error} />
 
         <form
@@ -194,12 +192,14 @@ function RunDetails({
             rename.mutate({ path, body: { name } });
           }}
         >
-          <label htmlFor="run-nome" className="text-sm font-medium">
+          <label htmlFor="run-nome" className="text-sm text-soft">
             Nome
           </label>
           <div className="flex gap-2">
             <Input
               id="run-nome"
+              name="nome"
+              autoComplete="off"
               value={name}
               onChange={(event) => {
                 setName(event.target.value);

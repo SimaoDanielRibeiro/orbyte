@@ -1,10 +1,10 @@
 /**
  * A página de um modelo: como funciona, a trabalhar.
  *
- * Lê-se como um capítulo: a intuição primeiro; depois o modelo ao vivo num conjunto de exemplo
- * pequeno, que volta a treinar quando se muda um hiperparâmetro (a fotografia anterior fica à
- * vista, esbatida, até chegar a nova); o que ele aprendeu; o resto da ficha (a matemática,
- * quando usar, as armadilhas); e as demonstrações do Laboratório que o mostram.
+ * Em cima, o modelo ao vivo num conjunto de exemplo pequeno, ao lado dos hiperparâmetros: volta
+ * a treinar quando se muda um (a fotografia anterior fica à vista, esbatida, até chegar a nova).
+ * Depois, o que ele aprendeu; a ficha, uma secção de cada vez (a intuição, a matemática, quando
+ * usar, as armadilhas); e as demonstrações do Laboratório que o mostram.
  *
  * O nome chega da lista dos modelos a deslizar para o título (o mesmo `layoutId`).
  */
@@ -20,15 +20,17 @@ import type { ModelCard, ModelDemo } from "@/api/generated";
 import { catalogModelOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel, useVocabulary } from "@/api/vocabulary";
 import { FieldPlayer } from "@/components/charts/field-player";
+import { Explain } from "@/components/explain/explain";
 import { schemaDefaults, type Values } from "@/components/forms/schema";
 import { SchemaForm } from "@/components/forms/schema-form";
 import { Prose } from "@/components/markdown/prose";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts } from "@/components/shell/blocks";
+import { ErrorNote, Panel, Stat } from "@/components/shell/blocks";
 import { Page } from "@/components/shell/page";
 import { WhyButton } from "@/components/shell/why-button";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useStartTraining } from "@/features/training/use-start-training";
 import { useDebounced } from "@/hooks/use-debounced";
@@ -68,124 +70,85 @@ function ModelPage({ card }: { card: ModelCard }) {
     ...demoQuery(card.name, settled.values, settled.example),
     placeholderData: keepPreviousData,
   });
-  const [intuition, ...rest] = card.sections;
-  const hasLearned = demo.data !== undefined;
-
-  const anchors = [
-    ...(intuition === undefined ? [] : [{ id: `ficha-${intuition.key}`, title: intuition.title }]),
-    { id: "ao-vivo", title: "Ao vivo" },
-    ...(hasLearned ? [{ id: "aprendeu", title: "O que aprendeu" }] : []),
-    ...rest.map((section) => ({ id: `ficha-${section.key}`, title: section.title })),
-    ...(card.laboratory.length > 0 ? [{ id: "laboratorio", title: "No Laboratório" }] : []),
-  ];
-
   return (
     <Page>
       <Link
         to="/modelos"
-        className="-ml-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         Modelos
       </Link>
-      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-start @3xl/main:justify-between">
-        <div className="max-w-[68ch]">
+      <header className="mt-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
           <motion.h1
             layoutId={nameLayoutId(card.name)}
-            className="inline-block text-4xl leading-tight"
+            className="inline-block text-[2rem] leading-tight tracking-[-0.025em]"
           >
             {card.display_name}
           </motion.h1>
-          <p className="mt-3 font-serif text-reading text-muted-foreground">{card.summary}</p>
+          <WhyButton title={card.display_name} description={card.summary} topics={card.topics} />
         </div>
-        <WhyButton topics={card.topics} />
-      </header>
-      <Facts
-        size="sm"
-        className="mt-6"
-        facts={[
-          { label: "Família", value: label("ModelFamily", card.family) },
-          {
-            label: "Tarefas",
-            value: formatList(card.task_types.map((task) => label("TaskType", task))),
-          },
-          { label: "Implementação", value: label("Implementation", card.implementation) },
-          { label: "Treino", value: card.iterative ? "Passo a passo" : "De uma vez" },
-        ]}
-      />
-      <nav aria-label="Nesta página" className="mt-8 border-y py-3">
-        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-          {anchors.map((anchor) => (
-            <li key={anchor.id}>
-              <a
-                href={`#${anchor.id}`}
-                className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                {anchor.title}
-              </a>
+        <ul className="flex flex-wrap gap-2" aria-label="A ficha técnica">
+          {[
+            label("ModelFamily", card.family),
+            formatList(card.task_types.map((task) => label("TaskType", task))),
+            label("Implementation", card.implementation),
+            card.iterative ? "Treina passo a passo" : "Treina de uma vez",
+          ].map((fact) => (
+            <li
+              key={fact}
+              className="rounded-full border border-[#2a2a2a] bg-surface px-3 py-1 font-mono text-xs text-soft"
+            >
+              {fact}
             </li>
           ))}
         </ul>
-      </nav>
+      </header>
 
-      {intuition !== undefined && (
-        <DocBlock id={`ficha-${intuition.key}`} title={intuition.title} text={intuition.text} />
-      )}
-
-      <section id="ao-vivo" aria-labelledby="ao-vivo-titulo" className="mt-14 scroll-mt-6">
-        <h2 id="ao-vivo-titulo" className="text-2xl">
-          Ao vivo
-        </h2>
-        <div className="mt-6 grid gap-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-          <div className="min-w-0 @5xl/main:sticky @5xl/main:top-6 @5xl/main:self-start">
-            <Example
-              card={card}
-              example={example}
-              onExample={setExample}
-              demo={demo.data}
-              reloading={demo.isPlaceholderData || demo.isFetching}
-              onStepChange={setStep}
-            />
-          </div>
-          <Controls card={card} values={values} onValues={setValues} error={demo.error} />
-        </div>
-      </section>
+      <div className="mt-8 grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,23rem)]">
+        <Panel id="ao-vivo" title="Ao vivo" as="h2" className="min-w-0">
+          <Example
+            card={card}
+            example={example}
+            onExample={setExample}
+            demo={demo.data}
+            reloading={demo.isPlaceholderData || demo.isFetching}
+            onStepChange={setStep}
+          />
+        </Panel>
+        <Controls card={card} values={values} onValues={setValues} error={demo.error} />
+      </div>
 
       {demo.data !== undefined && (
-        <section id="aprendeu" aria-labelledby="aprendeu-titulo" className="mt-14 scroll-mt-6">
-          <h2 id="aprendeu-titulo" className="mb-6 text-2xl">
+        <section aria-labelledby="aprendeu-titulo" className="mt-10">
+          <h2 id="aprendeu-titulo" className="mb-4 text-xl">
             O que aprendeu
           </h2>
           <LearnedViewPanel learned={demo.data.learned} network={demo.data.network} step={step} />
         </section>
       )}
 
-      {rest.map((section) => (
-        <DocBlock
-          key={section.key}
-          id={`ficha-${section.key}`}
-          title={section.title}
-          text={section.text}
-        />
-      ))}
-      {card.sections.length === 0 && card.doc !== "" && <Prose text={card.doc} className="mt-14" />}
+      {card.sections.length > 0 ? (
+        <DocTabs sections={card.sections} />
+      ) : (
+        card.doc !== "" && (
+          <div className="mt-10 border-t pt-6">
+            <Prose text={card.doc} />
+          </div>
+        )
+      )}
 
       {card.laboratory.length > 0 && (
-        <section
-          id="laboratorio"
-          aria-labelledby="laboratorio-titulo"
-          className="mt-14 scroll-mt-6"
+        <Panel
+          title="No Laboratório"
+          explain="Mexe num controlo e vê o efeito no modelo."
+          className="mt-4"
         >
-          <h2 id="laboratorio-titulo" className="text-2xl">
-            No Laboratório
-          </h2>
-          <p className="mt-2 max-w-[62ch] font-serif text-reading text-muted-foreground">
-            Mexe num controlo e vê o efeito no modelo.
-          </p>
-          <ul className="mt-4 flex flex-wrap gap-3">
+          <ul className="flex flex-wrap gap-2">
             {card.laboratory.map((demoName) => (
               <li key={demoName}>
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" size="sm">
                   <Link to="/laboratorio" search={{ demo: demoName }}>
                     {label("LaboratoryDemo", demoName)}
                   </Link>
@@ -193,19 +156,35 @@ function ModelPage({ card }: { card: ModelCard }) {
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       )}
     </Page>
   );
 }
 
-function DocBlock({ id, title, text }: { id: string; title: string; text: string }) {
+/** A ficha didática, uma secção de cada vez: a intuição primeiro, como num capítulo. */
+function DocTabs({ sections }: { sections: ModelCard["sections"] }) {
+  const first = sections[0]?.key ?? "";
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-14 scroll-mt-6">
-      <h2 id={`${id}-titulo`} className="text-2xl">
-        {title}
-      </h2>
-      <Prose text={text} className="mt-3" />
+    <section aria-label="A ficha" className="mt-10 border-t pt-5">
+      <Tabs defaultValue={first}>
+        <TabsList
+          aria-label="As secções da ficha"
+          className="flex-wrap group-data-horizontal/tabs:h-auto"
+        >
+          {sections.map((section) => (
+            <TabsTrigger key={section.key} value={section.key}>
+              {section.title}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {sections.map((section) => (
+          <TabsContent key={section.key} value={section.key} className="mt-6">
+            <h2 className="text-lg">{section.title}</h2>
+            <Prose text={section.text} className="mt-3" />
+          </TabsContent>
+        ))}
+      </Tabs>
     </section>
   );
 }
@@ -235,35 +214,33 @@ function Example({ card, example, onExample, demo, reloading, onStepChange }: Ex
   return (
     <div className="flex flex-col gap-4">
       {card.examples.length > 1 && (
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          value={chosen?.name ?? ""}
-          onValueChange={(value) => {
-            if (value !== "") {
-              onExample(value);
-            }
-          }}
-          aria-label="Conjunto de exemplo"
-          className="flex-wrap justify-start"
-        >
-          {card.examples.map((one) => (
-            <ToggleGroupItem key={one.name} value={one.name} className="px-3">
-              {one.title}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      )}
-      {chosen !== undefined && (
-        <p className="max-w-[62ch] font-serif text-sm leading-relaxed text-muted-foreground">
-          {chosen.description}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={chosen?.name ?? ""}
+            onValueChange={(value) => {
+              if (value !== "") {
+                onExample(value);
+              }
+            }}
+            aria-label="Conjunto de exemplo"
+            className="flex-wrap justify-start"
+          >
+            {card.examples.map((one) => (
+              <ToggleGroupItem key={one.name} value={one.name} className="px-3">
+                {one.title}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          {chosen !== undefined && <Explain title={chosen.title}>{chosen.description}</Explain>}
+        </div>
       )}
       <div className={cn("relative", reloading && "stale")} aria-busy={reloading}>
         {demo === undefined ? (
           <div
-            className="flex items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground"
+            className="flex items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim"
             style={{ height: FIELD_HEIGHT }}
           >
             <LoaderCircle aria-hidden="true" className="mr-2 size-4 animate-spin" />A treinar o
@@ -275,7 +252,7 @@ function Example({ card, example, onExample, demo, reloading, onStepChange }: Ex
         {reloading && demo !== undefined && (
           <span
             role="status"
-            className="absolute top-2 right-2 flex items-center gap-1.5 rounded-md bg-popover px-2 py-1 text-xs"
+            className="absolute top-10 right-2 flex items-center gap-1.5 rounded-lg border border-[#2a2a2a] bg-popover px-2.5 py-1 font-mono text-xs text-soft"
           >
             <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />A treinar com os
             valores novos
@@ -283,18 +260,12 @@ function Example({ card, example, onExample, demo, reloading, onStepChange }: Ex
         )}
       </div>
       {metric !== undefined && (
-        <Facts
-          size="sm"
-          facts={[
-            {
-              label: `${metric.display_name} no teste`,
-              value: formatMetric(metric),
-            },
-            ...(trainMetric === undefined || report?.partition === "train"
-              ? []
-              : [{ label: "No treino", value: formatMetric(trainMetric) }]),
-          ]}
-        />
+        <div className="flex flex-wrap gap-x-10 gap-y-3 border-t pt-4">
+          <Stat label={`${metric.display_name} no teste`} value={formatMetric(metric)} />
+          {trainMetric !== undefined && report?.partition !== "train" && (
+            <Stat label="No treino" value={formatMetric(trainMetric)} />
+          )}
+        </div>
       )}
       {demo !== undefined && <NoticeList notices={demo.notices} />}
     </div>
@@ -347,21 +318,24 @@ function Controls({ card, values, onValues, error }: ControlsProps) {
   const defaults = { ...schemaDefaults(card.hyperparameters_schema), ...card.defaults };
   const changed = JSON.stringify(values) !== JSON.stringify(defaults);
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-lg">Hiperparâmetros</h3>
-        {changed && (
+    <Panel
+      title="Hiperparâmetros"
+      className="self-start"
+      actions={
+        changed && (
           <Button
             variant="ghost"
             size="sm"
+            className="-my-1"
             onClick={() => {
               onValues(defaults);
             }}
           >
             Repor os de omissão
           </Button>
-        )}
-      </div>
+        )
+      }
+    >
       <SchemaForm
         schema={card.hyperparameters_schema}
         values={values}
@@ -370,7 +344,7 @@ function Controls({ card, values, onValues, error }: ControlsProps) {
       />
       <ErrorNote error={error} />
       <TrainHere card={card} values={values} />
-    </div>
+    </Panel>
   );
 }
 
@@ -383,7 +357,7 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
     <div className="flex flex-col items-start gap-3 border-t pt-5">
       {preparation === null ? (
         <>
-          <p className="font-serif text-sm leading-relaxed text-muted-foreground">
+          <p className="text-sm text-soft">
             Para treinar este modelo com os teus dados, prepara-os primeiro.
           </p>
           <Button asChild variant="outline">
@@ -392,7 +366,7 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
         </>
       ) : !card.task_types.includes(preparation.taskType) ? (
         <>
-          <p className="font-serif text-sm leading-relaxed text-muted-foreground">
+          <p className="text-sm text-soft">
             Os dados que preparaste são para {label("TaskType", preparation.taskType).toLowerCase()}
             , e este modelo faz{" "}
             {formatList(card.task_types.map((task) => label("TaskType", task).toLowerCase()))}.
@@ -415,10 +389,14 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
             Treinar com estes valores
           </Button>
           {training.datasetName !== null && (
-            <p className="font-serif text-sm leading-relaxed text-muted-foreground">
-              Com {training.datasetName}, preparado para{" "}
-              {label("TaskType", preparation.taskType).toLowerCase()}, e a seed {preparation.seed},
-              a mesma da divisão: o resultado repete-se.
+            <p className="flex items-center gap-1 font-mono text-xs text-dim">
+              {training.datasetName}, {label("TaskType", preparation.taskType).toLowerCase()}, seed{" "}
+              {preparation.seed}
+              <Explain title="Com que dados treina">
+                Com {training.datasetName}, preparado para{" "}
+                {label("TaskType", preparation.taskType).toLowerCase()}, e a seed {preparation.seed}
+                , a mesma da divisão: o resultado repete-se.
+              </Explain>
             </p>
           )}
           <ErrorNote error={training.error} />

@@ -1,9 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet, useRouterState } from "@tanstack/react-router";
 
 import { topicsQuery } from "@/api/topics";
 import { vocabularyQuery } from "@/api/vocabulary";
-import { AppShell } from "@/components/shell/app-shell";
+import { AppFrame, Providers } from "@/components/shell/app-shell";
 import { NotFound, RootError } from "@/components/shell/root-error";
 
 export interface RouterContext {
@@ -23,10 +23,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   notFoundComponent: NotFound,
 });
 
+/** A landing (o início) ocupa o ecrã todo; as outras páginas têm a moldura com a barra lateral. */
 function RootLayout() {
+  const landing = useRouterState({ select: (state) => state.location.pathname === "/" });
   return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
+    <Providers>
+      {landing ? (
+        <Outlet />
+      ) : (
+        <AppFrame>
+          <Outlet />
+        </AppFrame>
+      )}
+    </Providers>
   );
 }

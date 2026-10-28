@@ -1,7 +1,5 @@
-import "@fontsource-variable/literata/opsz.css";
-import "@fontsource-variable/literata/opsz-italic.css";
-import "@fontsource-variable/atkinson-hyperlegible-next";
-import "@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 import "./styles/globals.css";
 import "./api/client";
 

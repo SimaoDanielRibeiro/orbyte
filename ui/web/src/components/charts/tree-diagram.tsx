@@ -9,6 +9,7 @@ import { hierarchy, tree, type HierarchyPointNode } from "d3";
 import type { ReactNode } from "react";
 
 import type { TreeNode } from "@/api/generated";
+import { Explain } from "@/components/explain/explain";
 import { categoryColor } from "@/lib/colors";
 import { formatCount, formatPercent, formatStatistic } from "@/lib/format";
 
@@ -56,7 +57,14 @@ export function TreeDiagram({ nodes, description, caption }: TreeDiagramProps) {
   const shift = (point: HierarchyPointNode<Branch>) => point.x - minX + NODE_WIDTH / 2 + 4;
 
   return (
-    <figure className="flex min-w-0 flex-col gap-2">
+    <figure className="flex min-w-0 flex-col gap-3">
+      {caption !== undefined && caption !== null && caption !== false && (
+        <div className="flex min-h-6 justify-end">
+          <Explain title="Como se lê" label="Como se lê este gráfico" align="end">
+            {caption}
+          </Explain>
+        </div>
+      )}
       <div className="relative overflow-x-auto" tabIndex={0} role="region" aria-label={description}>
         <svg width={width} height={height} role="img" aria-label={description} className="block">
           {layout.links().map((link) => {
@@ -95,11 +103,6 @@ export function TreeDiagram({ nodes, description, caption }: TreeDiagramProps) {
           ))}
         </svg>
       </div>
-      {caption !== undefined && (
-        <figcaption className="max-w-[68ch] font-serif text-sm leading-relaxed text-muted-foreground">
-          {caption}
-        </figcaption>
-      )}
     </figure>
   );
 }

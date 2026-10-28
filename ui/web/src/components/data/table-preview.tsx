@@ -30,7 +30,7 @@ export function TablePreviewView({
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <div
-        className="max-h-[28rem] overflow-auto rounded-md border"
+        className="max-h-[28rem] overflow-auto rounded-xl border"
         role="region"
         aria-label={label}
         tabIndex={0}
@@ -43,13 +43,13 @@ export function TablePreviewView({
                   key={column}
                   scope="col"
                   className={cn(
-                    "px-3 py-2 align-bottom font-medium whitespace-nowrap",
+                    "px-4 py-2.5 align-bottom font-mono text-xs font-normal whitespace-nowrap text-dim",
                     numeric[index] === true ? "text-right" : "text-left",
                   )}
                 >
                   {column}
                   {showTypes && (
-                    <span className="block text-xs font-normal text-muted-foreground">
+                    <span className="block text-[0.6875rem] text-faint">
                       {preview.dtypes[index]}
                     </span>
                   )}
@@ -59,12 +59,15 @@ export function TablePreviewView({
           </thead>
           <tbody>
             {preview.rows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-border/50 last:border-0">
+              <tr
+                key={rowIndex}
+                className="border-b border-border/60 transition-colors last:border-0 hover:bg-surface-high/50"
+              >
                 {row.map((value, index) => (
                   <td
                     key={preview.columns[index] ?? index}
                     className={cn(
-                      "max-w-[22rem] truncate px-3 py-1.5 whitespace-nowrap",
+                      "max-w-[22rem] truncate px-4 py-2.5 whitespace-nowrap",
                       numeric[index] === true && "text-right tabular-nums",
                     )}
                     title={typeof value === "string" && value.length > 40 ? value : undefined}
@@ -77,7 +80,7 @@ export function TablePreviewView({
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="mono-label">
         {preview.rows.length < preview.n_rows
           ? `As primeiras ${formatCount(preview.rows.length)} de ${formatQuantity(preview.n_rows, "linha", "linhas")}.`
           : formatQuantity(preview.n_rows, "linha", "linhas")}

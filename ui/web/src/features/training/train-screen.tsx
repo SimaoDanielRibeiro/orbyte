@@ -2,10 +2,11 @@
  * O ecrã Treinar e avaliar de um run: o treino ao vivo e, quando acaba, o treino para rever,
  * a avaliação e o que o modelo aprendeu.
  *
- * Ao vivo, o que chega pelo WebSocket: o estado (com o ponto amarelo, que marca o agora), o
- * passo, a loss e a fronteira no último snapshot, com os botões para pausar, retomar e parar.
- * No fim, o resultado completo: o campo passo a passo (a rede, se for uma), as métricas no
- * treino e no teste (cada uma abre a sua gaveta), os gráficos da tarefa e o que aprendeu.
+ * Ao vivo, o que chega pelo WebSocket: o estado (com o ponto verde a pulsar, que marca o agora),
+ * o passo, a loss e a fronteira no último snapshot, com os botões para pausar, retomar e parar.
+ * No fim, o resultado completo, em cartões: o campo passo a passo (a rede, se for uma), as
+ * métricas no treino e no teste (cada uma abre a sua gaveta), os gráficos da tarefa e o que
+ * aprendeu.
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
@@ -24,7 +25,7 @@ import { FieldView } from "@/components/charts/field";
 import { FieldPlayer } from "@/components/charts/field-player";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts, NeedsStep } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -92,37 +93,49 @@ function TrainRun({ runId }: { runId: string }) {
       <Link
         to={data === undefined ? "/modelos" : "/modelos/$name"}
         params={data === undefined ? undefined : { name: data.model_name }}
-        className="-ml-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         {data === undefined ? "Modelos" : data.model_display_name}
       </Link>
-      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-start @3xl/main:justify-between">
-        <div className="max-w-[68ch]">
-          <h1 className="text-4xl leading-tight">{title}</h1>
+      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-end @3xl/main:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">{title}</h1>
+            <WhyButton
+              title={SCREENS.train.title}
+              description={SCREENS.train.description}
+              topics={[
+                "loss",
+                "snapshots",
+                "decision_boundary",
+                "train_vs_test",
+                "cross_validation",
+                "learning_curve",
+              ]}
+            />
+          </div>
           {data !== undefined && (
-            <p className="mt-3 font-serif text-reading text-muted-foreground">
-              Em {data.dataset_name}, {label("TaskType", data.task_type).toLowerCase()}.
+            <p className="mt-2 font-mono text-xs text-dim">
+              {data.dataset_name}, {label("TaskType", data.task_type).toLowerCase()}
+              {fromHistory ? ", aberto do histórico" : ""}
             </p>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-start gap-2">
-          {data !== undefined && <SaveRunButton runId={runId} />}
-          <WhyButton
-            topics={[
-              "loss",
-              "snapshots",
-              "decision_boundary",
-              "train_vs_test",
-              "cross_validation",
-              "learning_curve",
-            ]}
-          />
-        </div>
+        {data !== undefined && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <SaveRunButton runId={runId} />
+            <Button asChild variant="outline">
+              <Link to="/modelos">Experimentar outro modelo</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/explicar/$runId" params={{ runId }}>
+                Explicar as previsões
+              </Link>
+            </Button>
+          </div>
+        )}
       </header>
-      {fromHistory && data !== undefined && (
-        <p className="mt-4 text-sm text-muted-foreground">Aberto do histórico.</p>
-      )}
       {live_ && data === undefined && <Live live={live} runId={runId} />}
       {status === "failed" && (
         <ErrorNote
@@ -153,19 +166,25 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
   const paused = state?.status === "paused";
 
   return (
-    <section aria-label="O treino a decorrer" className="mt-10 flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <section aria-label="O treino a decorrer" className="mt-8 flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-y py-4">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
             {!paused && (
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-now opacity-60 motion-reduce:animate-none" />
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-positive opacity-60 motion-reduce:animate-none" />
             )}
-            <span className="relative inline-flex size-2.5 rounded-full bg-now" />
+            <span
+              className={
+                paused
+                  ? "relative inline-flex size-2.5 rounded-full bg-warning"
+                  : "relative inline-flex size-2.5 rounded-full bg-positive shadow-[0_0_10px_var(--positive)]"
+              }
+            />
           </span>
-          <span className="font-medium">
+          <span className="font-medium text-strong">
             {state === null ? "A ligar" : label("JobStatus", state.status)}
           </span>
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="font-mono text-xs text-dim tabular-nums">
             Passo {formatCount(steps)}
             {planned === null ? "" : ` de ${formatCount(planned)}, no máximo`}
             {loss === null ? "" : `, loss ${formatStatistic(loss)}`}
@@ -218,23 +237,27 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
         />
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
-      <div className="grid gap-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        {live.preview === null ? (
-          <div
-            className="flex items-center justify-center rounded-md border border-dashed font-serif text-sm text-muted-foreground"
-            style={{ height: FIELD_HEIGHT }}
-          >
-            À espera da primeira fotografia do treino.
-          </div>
-        ) : (
-          <FieldView
-            animation={live.preview}
-            height={FIELD_HEIGHT}
-            description="O que o modelo responde em cada ponto do plano, no último snapshot."
-            caption={live.preview.how_to_read}
-          />
-        )}
-        <LossCharts steps={live.steps} />
+      <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="min-w-0 border-t pt-5">
+          {live.preview === null ? (
+            <div
+              className="flex items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim"
+              style={{ height: FIELD_HEIGHT }}
+            >
+              À espera da primeira fotografia do treino.
+            </div>
+          ) : (
+            <FieldView
+              animation={live.preview}
+              height={FIELD_HEIGHT}
+              description="O que o modelo responde em cada ponto do plano, no último snapshot."
+              caption={live.preview.how_to_read}
+            />
+          )}
+        </div>
+        <div className="min-w-0 border-t pt-5">
+          <LossCharts steps={live.steps} />
+        </div>
       </div>
     </section>
   );
@@ -244,26 +267,33 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
 function Finished({ result }: { result: ExperimentResult }) {
   const [step, setStep] = useState<number | undefined>(undefined);
   const steps = result.history.at(-1)?.step ?? 0;
+  const stats = [
+    { label: "Treino", value: steps > 0 ? `${formatCount(steps)} passos` : "De uma vez" },
+    { label: "Duração", value: `${formatNumber(result.duration_seconds, 2)} s` },
+    { label: "Seed", value: String(result.config.seed ?? "—") },
+  ];
   return (
     <>
-      <Facts
-        className="mt-6"
-        size="sm"
-        facts={[
+      <StatStrip
+        className="mt-8"
+        items={[
+          ...stats.map((stat) => ({ key: stat.label, ...stat })),
           {
-            label: "Treino",
-            value: steps > 0 ? `${formatCount(steps)} passos` : "De uma vez",
+            key: "run",
+            label: "Run",
+            value: <span className="font-mono text-lg font-normal">{result.run_id}</span>,
           },
-          { label: "Duração", value: `${formatNumber(result.duration_seconds, 2)} s` },
-          { label: "Seed", value: result.config.seed ?? "—" },
-          { label: "Run", value: result.run_id },
         ]}
       />
-      <NoticeList notices={result.training_notices} className="mt-6" />
+      {result.training_notices.length > 0 && (
+        <div className="mt-6">
+          <NoticeList notices={result.training_notices} />
+        </div>
+      )}
 
       <Part id="treino" title="O treino">
-        <div className="grid gap-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-          <div className="min-w-0">
+        <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <div className="min-w-0 border-t pt-5">
             {result.animation !== null ? (
               <FieldPlayer
                 animation={result.animation}
@@ -281,25 +311,29 @@ function Finished({ result }: { result: ExperimentResult }) {
                 caption={<TopicText topic="embedding" />}
               />
             ) : (
-              <p className="font-serif text-reading text-muted-foreground">
+              <p className="text-sm text-soft">
                 Não há como desenhar o modelo: os dados não têm uma projeção 2D (escolhe uma no ecrã
                 Preparar), ou o run abriu do histórico sem o treino passo a passo.
               </p>
             )}
           </div>
-          {result.history.length > 0 ? (
-            <LossCharts steps={result.history} />
-          ) : (
-            <p className="font-serif text-reading text-muted-foreground">
-              Este modelo treina de uma vez: não há passos para rever.
-            </p>
-          )}
+          <div className="min-w-0 border-t pt-5">
+            {result.history.length > 0 ? (
+              <LossCharts steps={result.history} />
+            ) : (
+              <p className="text-sm text-soft">
+                Este modelo treina de uma vez: não há passos para rever.
+              </p>
+            )}
+          </div>
         </div>
       </Part>
 
       {result.network !== null && (
         <Part id="rede" title="As camadas da rede">
-          <NetworkPanel network={result.network} step={step} />
+          <div className="border-t pt-5">
+            <NetworkPanel network={result.network} step={step} />
+          </div>
         </Part>
       )}
 
@@ -310,26 +344,14 @@ function Finished({ result }: { result: ExperimentResult }) {
       <Part id="aprendeu" title="O que aprendeu">
         <LearnedViewPanel learned={result.learned} network={null} />
       </Part>
-
-      <div className="mt-16 flex flex-wrap items-center gap-4 border-t pt-6">
-        <p className="font-serif text-reading text-muted-foreground">E agora?</p>
-        <Button asChild>
-          <Link to="/explicar/$runId" params={{ runId: result.run_id }}>
-            Explicar as previsões
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/modelos">Experimentar outro modelo</Link>
-        </Button>
-      </div>
     </>
   );
 }
 
 function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-14 scroll-mt-6">
-      <h2 id={`${id}-titulo`} className="mb-6 text-2xl">
+    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-10 scroll-mt-6">
+      <h2 id={`${id}-titulo`} className="mb-4 text-xl">
         {title}
       </h2>
       {children}

@@ -30,7 +30,7 @@ import { Scatter } from "@/components/charts/scatter";
 import { SilhouetteChart } from "@/components/charts/silhouette-chart";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts } from "@/components/shell/blocks";
+import { ErrorNote, Facts, Panel } from "@/components/shell/blocks";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -59,12 +59,17 @@ export function Evaluation({ result }: { result: ExperimentResult }) {
   // `notices` tem todos os avisos; os do treino já se mostram em cima, junto do treino.
   const shown = new Set(result.training_notices.map((notice) => notice.message));
   const diagnostics = result.notices.filter((notice) => !shown.has(notice.message));
+  const notices = [...diagnostics, ...(main?.notices ?? [])];
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-4">
       <MetricsTable result={result} onOpen={setOpen} />
-      <NoticeList notices={[...diagnostics, ...(main?.notices ?? [])]} />
+      {notices.length > 0 && (
+        <div className="border-t pt-5">
+          <NoticeList notices={notices} />
+        </div>
+      )}
       {charts.error !== null ? (
-        <p className="max-w-[68ch] font-serif text-reading text-muted-foreground">
+        <p className="text-sm text-soft">
           Os gráficos precisam do modelo, e a API já não o tem: só ficam os últimos runs, e um run
           do histórico só volta com o modelo se tiver sido guardado. Para os ver, reproduz este run
           no ecrã Experiências.
@@ -104,16 +109,20 @@ function MetricsTable({
     return null;
   }
   return (
-    <section aria-labelledby="metricas-titulo" className="flex flex-col gap-4">
-      <h3 id="metricas-titulo" className="text-xl">
-        As métricas
-      </h3>
-      <TopicText topic="train_vs_test" />
-      <div className="relative max-w-3xl overflow-x-auto rounded-md border">
+    <Panel
+      title="As métricas"
+      topic="train_vs_test"
+      explain="Carrega no nome de uma métrica para ver a fórmula e a conta deste run."
+    >
+      <div className="relative max-w-3xl overflow-x-auto">
         <table className="w-full text-sm">
+          <caption className="sr-only">As métricas</caption>
           <thead>
             <tr className="border-b">
-              <th scope="col" className="px-3 py-2 text-left font-medium">
+              <th
+                scope="col"
+                className="px-3 py-2.5 text-left font-mono text-xs font-normal text-dim"
+              >
                 Métrica
               </th>
               {partitions.map((partition) => (
@@ -121,8 +130,8 @@ function MetricsTable({
                   key={partition}
                   scope="col"
                   className={cn(
-                    "px-3 py-2 text-right font-medium",
-                    partition !== result.main_partition && "text-muted-foreground",
+                    "px-3 py-2.5 text-right font-mono text-xs font-normal",
+                    partition === result.main_partition ? "text-soft" : "text-dim",
                   )}
                 >
                   {label("Partition", partition)}
@@ -132,19 +141,22 @@ function MetricsTable({
           </thead>
           <tbody>
             {main.metrics.map((metric) => (
-              <tr key={metric.name} className="border-b border-border/50 last:border-0">
-                <th scope="row" className="px-3 py-1.5 text-left font-normal">
+              <tr
+                key={metric.name}
+                className="border-b border-border/60 transition-colors last:border-0 hover:bg-surface-high/50"
+              >
+                <th scope="row" className="px-3 py-2.5 text-left font-normal">
                   <button
                     type="button"
                     onClick={() => {
                       onOpen(metric.name);
                     }}
-                    className="group inline-flex items-center gap-1.5 rounded-sm text-left underline decoration-input decoration-dotted underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="group inline-flex items-center gap-1.5 rounded-sm text-left text-foreground underline decoration-[#444] decoration-dotted underline-offset-4 outline-none hover:text-strong hover:decoration-strong focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {metric.display_name}
                     <Sigma
                       aria-hidden="true"
-                      className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                      className="size-3.5 text-dim opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
                     />
                   </button>
                 </th>
@@ -156,8 +168,10 @@ function MetricsTable({
                     <td
                       key={partition}
                       className={cn(
-                        "px-3 py-1.5 text-right tabular-nums",
-                        partition !== result.main_partition && "text-muted-foreground",
+                        "px-3 py-2.5 text-right tabular-nums",
+                        partition === result.main_partition
+                          ? "font-medium text-strong"
+                          : "text-soft",
                       )}
                     >
                       {found === undefined ? "—" : formatMetric(found)}
@@ -169,27 +183,31 @@ function MetricsTable({
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Carrega no nome de uma métrica para ver a fórmula e a conta deste run.
-      </p>
-    </section>
+    </Panel>
   );
 }
 
-function Block({
-  title,
-  children,
-  wide = false,
-}: {
+interface BlockProps {
   title: string;
+  /** O tema que explica o cartão (no "?"). */
+  topic?: string;
+  /** O que fica à direita do nome (um número, um controlo). */
+  actions?: ReactNode;
   children: ReactNode;
   wide?: boolean;
-}) {
+}
+
+/** Um cartão da avaliação; `wide` ocupa as duas colunas. */
+function Block({ title, topic, actions, children, wide = false }: BlockProps) {
   return (
-    <section className={cn("flex min-w-0 flex-col gap-3", wide && "@5xl/main:col-span-2")}>
-      <h3 className="text-xl">{title}</h3>
+    <Panel
+      title={title}
+      topic={topic}
+      actions={actions}
+      className={cn(wide && "@5xl/main:col-span-2")}
+    >
       {children}
-    </section>
+    </Panel>
   );
 }
 
@@ -198,7 +216,7 @@ function TaskCharts({ result, charts }: { result: ExperimentResult; charts: Eval
   const task = result.task_type;
   const classification = task === "binary_classification" || task === "multiclass_classification";
   return (
-    <div className="grid gap-12 @5xl/main:grid-cols-2">
+    <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
       {classification && (
         <>
           <Confusion
@@ -208,9 +226,9 @@ function TaskCharts({ result, charts }: { result: ExperimentResult; charts: Eval
             columnTitle="Previsto"
             topic="confusion_matrix"
           />
-          <Block title="Curvas ROC e de precisão-recall" wide>
+          <Block title="Curvas ROC e de precisão-recall" topic="roc_pr_chart" wide>
             {charts.roc.length === 0 ? (
-              <p className="font-serif text-reading text-muted-foreground">
+              <p className="text-sm text-soft">
                 Este modelo não dá probabilidades (ou falta uma classe no teste): sem elas, não há
                 curvas.
               </p>
@@ -403,7 +421,7 @@ function RocChart({ charts, caption }: { charts: EvaluationCharts; caption?: Rea
 function Curves({ charts }: { charts: EvaluationCharts }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-8 @3xl/main:grid-cols-2">
+      <div className="grid gap-6 @3xl/main:grid-cols-2">
         <RocChart charts={charts} />
         <LineChart
           series={charts.pr.map((curve, index) => ({
@@ -421,9 +439,6 @@ function Curves({ charts }: { charts: EvaluationCharts }) {
           formatY={(value) => formatPercent(value, 0)}
           description="A curva de precisão-recall de cada classe."
         />
-      </div>
-      <div className="max-w-[68ch] font-serif text-sm leading-relaxed text-muted-foreground">
-        <TopicText topic="roc_pr_chart" />
       </div>
     </div>
   );
@@ -475,7 +490,7 @@ function Residuals({ charts }: { charts: EvaluationCharts }) {
   }
   return (
     <Block title="Os resíduos" wide>
-      <div className="grid gap-8 @3xl/main:grid-cols-2">
+      <div className="grid gap-6 @3xl/main:grid-cols-2">
         <Scatter
           height={260}
           zeroLine
@@ -521,21 +536,22 @@ function Variance({ ratios }: { ratios: readonly number[] }) {
     value: ratio,
   }));
   return (
-    <Block title="Variância explicada" wide>
+    <Block
+      title="Variância explicada"
+      topic="explained_variance"
+      actions={
+        <span className="font-mono text-xs text-dim">
+          {formatPercent(total)} da variância guardada
+        </span>
+      }
+      wide
+    >
       <BarChart
         items={items}
         format={(value) => formatPercent(value)}
         max={1}
         valueLabel="da variância"
         description="A parte da variância dos dados que cada componente guarda."
-        caption={
-          <>
-            <p className="mb-1">
-              As componentes guardadas explicam {formatPercent(total)} da variância.
-            </p>
-            <TopicText topic="explained_variance" />
-          </>
-        }
       />
     </Block>
   );
@@ -564,9 +580,8 @@ function Validation({ result }: { result: ExperimentResult }) {
     asPercent ? formatPercent(value) : formatNumber(value, 3);
 
   return (
-    <div className="grid gap-12 @5xl/main:grid-cols-2">
-      <Block title="Validação cruzada">
-        <TopicText topic="cross_validation" />
+    <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
+      <Block title="Validação cruzada" topic="cross_validation">
         {!crossValidation ? (
           <Button
             variant="outline"
@@ -631,8 +646,7 @@ function Validation({ result }: { result: ExperimentResult }) {
           </>
         )}
       </Block>
-      <Block title="Curva de aprendizagem">
-        <TopicText topic="learning_curve" />
+      <Block title="Curva de aprendizagem" topic="learning_curve">
         {!learningCurve ? (
           <Button
             variant="outline"
@@ -707,8 +721,8 @@ function distributionSeries(distribution: Distribution) {
 
 function Pending({ text }: { text: string }) {
   return (
-    <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-      <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+    <p role="status" className="flex items-center gap-2 font-mono text-xs text-dim">
+      <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
       {text}
     </p>
   );

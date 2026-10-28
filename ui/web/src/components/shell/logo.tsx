@@ -1,22 +1,22 @@
 import type { ComponentProps } from "react";
 
 /**
- * A marca do ML Lab: uma fronteira de decisão a giz entre dois pontos, um de cada classe.
- * É o mesmo desenho do ícone do separador (`public/favicon.svg`).
+ * A marca do ML Lab: uma fronteira de decisão entre dois pontos, um de cada classe, nas duas
+ * primeiras cores dos dados. É o mesmo desenho do ícone do separador (`public/favicon.svg`),
+ * sem o fundo: a barra lateral já é escura.
  */
 export function Logo(props: ComponentProps<"svg">) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" {...props}>
-      <rect width="32" height="32" rx="7" fill="var(--slate)" />
+    <svg viewBox="2 6 28 21" aria-hidden="true" {...props}>
       <path
-        d="M4 22 C11 22 12 9 17 11 S23 23 28 10"
+        d="M5 21.5 C11 21.5 12.5 10 17 11.5 S22.5 22 27 10.5"
         fill="none"
-        stroke="var(--chalk)"
-        strokeWidth="2.4"
+        stroke="var(--text-strong)"
+        strokeWidth="2.6"
         strokeLinecap="round"
       />
-      <circle cx="9" cy="11" r="2.6" fill="var(--data-1)" />
-      <circle cx="22" cy="24" r="2.6" fill="var(--data-2)" />
+      <circle cx="9.5" cy="11" r="2.8" fill="var(--data-1)" />
+      <circle cx="21.5" cy="23.5" r="2.8" fill="var(--data-2)" />
     </svg>
   );
 }

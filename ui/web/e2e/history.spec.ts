@@ -41,8 +41,8 @@ test("compara dois runs, muda o nome, guarda, apaga e reproduz", async ({ page, 
   await sheet.getByRole("textbox", { name: "Nome" }).fill("Histórico C forte, guardado");
   await sheet.getByRole("button", { name: "Mudar o nome" }).click();
   await expect(sheet.getByRole("heading", { name: "Histórico C forte, guardado" })).toBeVisible();
-  await sheet.getByRole("button", { name: "Guardar" }).click();
-  await expect(sheet.getByRole("button", { name: "Guardado" })).toBeDisabled();
+  await sheet.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(sheet.getByRole("button", { name: "Guardado", exact: true })).toBeDisabled();
   await page.keyboard.press("Escape");
 
   // Apagar o outro, com a confirmação.
@@ -53,7 +53,7 @@ test("compara dois runs, muda o nome, guarda, apaga e reproduz", async ({ page, 
 
   // Reproduzir: o run novo treina e abre no ecrã Treinar e avaliar.
   await page.getByRole("button", { name: "Histórico C forte, guardado", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Reproduzir" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Reproduzir", exact: true }).click();
   await expect(page).toHaveURL(/\/treinar\/run-/);
   await expect(page.getByRole("heading", { level: 2, name: "A avaliação" })).toBeVisible({
     timeout: 60_000,

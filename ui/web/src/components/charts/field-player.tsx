@@ -27,6 +27,8 @@ interface FieldPlayerProps {
   autoPlay?: boolean;
   /** Mostrar sempre a fotografia mais recente (o treino ao vivo). */
   follow?: boolean;
+  /** Mostrar os controlos (reproduzir e arrastar). Sem eles, o campo só se reproduz sozinho. */
+  controls?: boolean;
   /** Chamado com o passo à vista, para outro gráfico (a rede) mostrar o mesmo passo. */
   onStepChange?: (step: number) => void;
 }
@@ -38,6 +40,7 @@ export function FieldPlayer({
   height,
   autoPlay = false,
   follow = false,
+  controls = true,
   onStepChange,
 }: FieldPlayerProps) {
   const reduced = useReducedMotion() ?? false;
@@ -85,7 +88,7 @@ export function FieldPlayer({
         caption={caption}
         height={height}
       />
-      {count > 1 && !follow && (
+      {count > 1 && !follow && controls && (
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -118,7 +121,7 @@ export function FieldPlayer({
               setIndex(value ?? last);
             }}
           />
-          <span className="min-w-36 text-right text-xs text-muted-foreground tabular-nums">
+          <span className="min-w-36 text-right font-mono text-xs text-dim tabular-nums">
             {frame === undefined ? "" : `Passo ${formatCount(frame.step)}`}
             {frame?.loss !== null && frame?.loss !== undefined
               ? `, loss ${formatStatistic(frame.loss)}`

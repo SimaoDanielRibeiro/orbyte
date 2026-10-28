@@ -5,7 +5,9 @@ import {
   betweenClasses,
   CATEGORICAL,
   channels,
+  DARK_INK,
   inkOn,
+  LIGHT_INK,
   OTHER,
   sequential,
   withAlpha,
@@ -13,21 +15,22 @@ import {
 
 describe("as cores", () => {
   it("lê os canais de uma cor da paleta e de uma cor de uma escala do d3", () => {
-    expect(channels("#3987e5")).toEqual([57, 135, 229]);
+    expect(channels("#6996d4")).toEqual([105, 150, 212]);
     // As escalas devolvem `rgb(…)`: o campo de decisão pinta-se com estas.
     expect(sequential(1)).toMatch(/^rgb\(/);
-    expect(channels(sequential(1))).toEqual(channels("#cde2fb"));
+    expect(channels(sequential(1))).toEqual(channels("#dbe6f8"));
     expect(channels(betweenClasses(0))).toEqual(channels(CATEGORICAL[0]));
+    expect(channels(betweenClasses(1))).toEqual(channels(CATEGORICAL[1]));
   });
 
   it("junta a transparência a qualquer formato", () => {
-    expect(withAlpha("#3987e5", 0.5)).toBe("rgba(57, 135, 229, 0.5)");
+    expect(withAlpha("#6996d4", 0.5)).toBe("rgba(105, 150, 212, 0.5)");
     expect(withAlpha("rgb(1, 2, 3)", 0.25)).toBe("rgba(1, 2, 3, 0.25)");
   });
 
-  it("escreve a giz nas cores escuras e a ardósia nas claras", () => {
-    expect(inkOn("#0d366b")).toBe("#ece7dd");
-    expect(inkOn("#cde2fb")).toBe("#141a21");
+  it("escreve a branco nas cores escuras e a preto nas claras", () => {
+    expect(inkOn("#33507f")).toBe(LIGHT_INK);
+    expect(inkOn("#dbe6f8")).toBe(DARK_INK);
   });
 });
 

@@ -17,13 +17,13 @@ import {
   reinforcementStartMutation,
 } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
 import { schemaDefaults, type Values } from "@/components/forms/schema";
 import { SchemaForm } from "@/components/forms/schema-form";
 import { Prose } from "@/components/markdown/prose";
 import { ErrorNote } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { WhyButton } from "@/components/shell/why-button";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -50,24 +50,21 @@ export function SetupScreen() {
       <PageHeader
         title={SCREENS.reinforcement.title}
         description={SCREENS.reinforcement.description}
-      >
-        <WhyButton
-          topics={[
-            "reinforcement_learning",
-            "q_values",
-            "temporal_difference",
-            "exploration",
-            "discount",
-            "deep_q_network",
-          ]}
-        />
-      </PageHeader>
+        topics={[
+          "reinforcement_learning",
+          "q_values",
+          "temporal_difference",
+          "exploration",
+          "discount",
+          "deep_q_network",
+        ]}
+      />
       {lastRun !== null && (
-        <p className="mt-6 text-sm text-muted-foreground">
+        <p className="mt-4 text-sm text-soft">
           <Link
             to="/rl/$runId"
             params={{ runId: lastRun }}
-            className="underline-offset-4 hover:text-foreground hover:underline"
+            className="underline-offset-4 hover:text-strong hover:underline"
           >
             Voltar ao último agente treinado
           </Link>
@@ -123,7 +120,7 @@ function Setup({
   const validSeed = isValidSeed(seed);
 
   return (
-    <div className="mt-10 grid gap-14 @5xl/main:grid-cols-2">
+    <div className="mt-8 grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
       <Group title="O ambiente">
         {environments.length > 1 && (
           <Field label="Ambiente" htmlFor="rl-ambiente">
@@ -141,11 +138,9 @@ function Setup({
             </Select>
           </Field>
         )}
-        <div>
-          <h3 className="font-serif text-xl">{environment.display_name}</h3>
-          <p className="mt-1 font-serif text-reading text-muted-foreground">
-            {environment.summary}
-          </p>
+        <div className="flex items-center gap-1">
+          <h3 className="text-lg">{environment.display_name}</h3>
+          <Explain title={environment.display_name}>{environment.summary}</Explain>
         </div>
         <SchemaForm
           schema={environment.parameters_schema}
@@ -176,15 +171,15 @@ function Setup({
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <div>
-          <p className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-[#2a2a2a] px-3 py-1 font-mono text-xs text-soft">
             {label("Implementation", agent.implementation)}
-          </p>
-          <p className="mt-1 font-serif text-reading text-muted-foreground">{agent.summary}</p>
+          </span>
+          <Explain title={agent.display_name}>{agent.summary}</Explain>
         </div>
         {agent.doc !== "" && (
           <Collapsible>
-            <CollapsibleTrigger className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            <CollapsibleTrigger className="rounded-md text-sm text-soft underline-offset-4 outline-none hover:text-strong hover:underline focus-visible:ring-2 focus-visible:ring-ring">
               Ler a ficha didática do {agent.display_name}
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
@@ -193,7 +188,7 @@ function Setup({
           </Collapsible>
         )}
         <section className="flex flex-col gap-3 border-t pt-5">
-          <h3 className="text-lg">Os hiperparâmetros</h3>
+          <h3 className="text-sm font-normal text-soft">Os hiperparâmetros</h3>
           <SchemaForm
             schema={agent.hyperparameters_schema}
             values={agentValues}
@@ -210,6 +205,8 @@ function Setup({
         >
           <Input
             id="rl-seed"
+            name="seed"
+            autoComplete="off"
             type="number"
             inputMode="numeric"
             min={0}
@@ -247,10 +244,11 @@ function Setup({
   );
 }
 
+/** Uma das duas partes do pedido, num cartão. */
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex min-w-0 flex-col gap-6">
-      <h2 className="text-2xl">{title}</h2>
+    <section className="flex min-w-0 flex-col gap-6 self-start border-t pt-5">
+      <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h2>
       {children}
     </section>
   );
@@ -264,18 +262,19 @@ function Field({
 }: {
   label: string;
   htmlFor: string;
+  /** A explicação do controlo: fica no "?" ao lado do nome. */
   help?: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={htmlFor} className="text-sm font-medium">
-        {label}
-      </Label>
+      <div className="flex min-h-6 items-center gap-1">
+        <Label htmlFor={htmlFor} className="text-sm text-soft">
+          {label}
+        </Label>
+        {help !== undefined && <Explain title={label}>{help}</Explain>}
+      </div>
       {children}
-      {help !== undefined && (
-        <p className="font-serif text-sm leading-relaxed text-muted-foreground">{help}</p>
-      )}
     </div>
   );
 }

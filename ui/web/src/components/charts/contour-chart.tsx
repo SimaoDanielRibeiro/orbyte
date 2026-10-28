@@ -4,19 +4,17 @@
  *
  * As curvas de nível calculam-se com os contornos do D3, em escala logarítmica: o fundo da taça
  * e as paredes ficam com o mesmo número de curvas. A cor é a magnitude (a rampa azul, o erro
- * baixo junto ao fundo da ardósia); o caminho e o fundo da taça ficam a giz, por cima.
+ * baixo junto ao escuro do fundo); o caminho e o fundo da taça ficam a branco, por cima.
  */
 import { contours, extent, line, scaleLinear } from "d3";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
-import { sequential } from "@/lib/colors";
+import { LIGHT_INK, SURFACE, sequential } from "@/lib/colors";
 import { formatNumber, formatStatistic } from "@/lib/format";
 
 import { AxisBottom, AxisLeft, Chart, ChartTooltip, Legend, TooltipRow } from "./chart";
 import { stepDecimals } from "./ticks";
 
-const CHALK = "#ece7dd";
-const SLATE = "#141a21";
 const LEVELS = 18;
 
 interface ContourChartProps {
@@ -82,10 +80,10 @@ export function ContourChart({
           items={[
             ...(path === undefined
               ? []
-              : [{ label: path.label, color: CHALK, kind: "line" as const }]),
+              : [{ label: path.label, color: LIGHT_INK, kind: "line" as const }]),
             ...(target === undefined
               ? []
-              : [{ label: target.label, color: CHALK, kind: "dot" as const }]),
+              : [{ label: target.label, color: LIGHT_INK, kind: "dot" as const }]),
           ]}
         />
       }
@@ -152,7 +150,7 @@ export function ContourChart({
                   // Cada nível cobre tudo o que está acima dele: pintados por ordem e opacos, ficam
                   // as bandas, do fundo da taça às paredes.
                   fill={sequential(level / (LEVELS - 1))}
-                  stroke={SLATE}
+                  stroke={SURFACE}
                   strokeOpacity={0.45}
                   strokeWidth={0.75}
                 />
@@ -162,14 +160,14 @@ export function ContourChart({
                   <path
                     d={walk}
                     fill="none"
-                    stroke={SLATE}
+                    stroke={SURFACE}
                     strokeWidth={4.5}
                     strokeLinejoin="round"
                   />
                   <path
                     d={walk}
                     fill="none"
-                    stroke={CHALK}
+                    stroke={LIGHT_INK}
                     strokeWidth={2}
                     strokeLinejoin="round"
                   />
@@ -179,8 +177,8 @@ export function ContourChart({
                       cx={x(px)}
                       cy={y(path.y[i] ?? 0)}
                       r={i === 0 ? 4.5 : 2.5}
-                      fill={i === 0 ? SLATE : CHALK}
-                      stroke={i === 0 ? CHALK : SLATE}
+                      fill={i === 0 ? SURFACE : LIGHT_INK}
+                      stroke={i === 0 ? LIGHT_INK : SURFACE}
                       strokeWidth={1.5}
                     />
                   ))}
@@ -190,13 +188,13 @@ export function ContourChart({
                 <g transform={`translate(${String(x(target.x))},${String(y(target.y))})`}>
                   <path
                     d="M-6,-6L6,6M-6,6L6,-6"
-                    stroke={SLATE}
+                    stroke={SURFACE}
                     strokeWidth={5}
                     strokeLinecap="round"
                   />
                   <path
                     d="M-6,-6L6,6M-6,6L6,-6"
-                    stroke={CHALK}
+                    stroke={LIGHT_INK}
                     strokeWidth={2}
                     strokeLinecap="round"
                   />

@@ -15,11 +15,10 @@ import { useState } from "react";
 import type { RunEntry, TaskType } from "@/api/generated";
 import { historyRunsOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel } from "@/api/vocabulary";
-import { TopicText } from "@/components/markdown/topic-text";
-import { ErrorNote, NeedsStep } from "@/components/shell/blocks";
+import { Explain } from "@/components/explain/explain";
+import { ErrorNote, NeedsStep, Section } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { WhyButton } from "@/components/shell/why-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -76,9 +75,11 @@ export function HistoryScreen() {
 
   return (
     <Page>
-      <PageHeader title={SCREENS.history.title} description={SCREENS.history.description}>
-        <WhyButton topics={["experiment_tracking", "comparing_runs", "reproducibility"]} />
-      </PageHeader>
+      <PageHeader
+        title={SCREENS.history.title}
+        description={SCREENS.history.description}
+        topics={["experiment_tracking", "comparing_runs", "reproducibility"]}
+      />
       <ErrorNote error={everything.error ?? filtered.error} className="mt-8" />
       {everything.data === undefined ? (
         everything.error === null && <Skeleton className="mt-10 h-64 w-full" />
@@ -103,14 +104,12 @@ export function HistoryScreen() {
             onOpen={setOpened}
             loading={filtered.data === undefined}
           />
-          <TopicText topic="run_history" className="mt-4 max-w-[68ch]" />
 
-          <section aria-labelledby="comparacao-titulo" className="mt-16">
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-              <h2 id="comparacao-titulo" className="text-2xl">
-                Comparar runs
-              </h2>
-              {chosen.length > 0 && (
+          <Section
+            title="Comparar runs"
+            topic="comparing_runs"
+            actions={
+              chosen.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -120,10 +119,11 @@ export function HistoryScreen() {
                 >
                   Limpar a escolha ({chosen.length})
                 </Button>
-              )}
-            </div>
+              )
+            }
+          >
             <ComparisonView runIds={chosen} />
-          </section>
+          </Section>
         </>
       )}
       <RunSheet
@@ -164,7 +164,7 @@ function Filters({
   );
   const models = new Map(all.map((entry) => [entry.model_name, entry.model_display_name]));
   return (
-    <div className="mt-10 flex flex-wrap items-end justify-between gap-4 border-b pb-5">
+    <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-wrap gap-4">
         <Filter
           id="historico-tarefa"
@@ -195,9 +195,12 @@ function Filters({
         />
       </div>
       {count !== null && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {formatQuantity(count, "run", "runs")}
-        </p>
+        <div className="flex items-center gap-1">
+          <p role="status" className="font-mono text-xs text-dim">
+            {formatQuantity(count, "run", "runs")}
+          </p>
+          <Explain topic="run_history" />
+        </div>
       )}
     </div>
   );
@@ -218,7 +221,7 @@ function Filter({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-xs text-muted-foreground">
+      <label htmlFor={id} className="mono-label">
         {label}
       </label>
       <Select value={value} onValueChange={onChange}>
@@ -254,48 +257,45 @@ function RunsTable({
 }) {
   const label = useLabel();
   if (loading) {
-    return <Skeleton className="mt-6 h-48 w-full" />;
+    return <Skeleton className="mt-4 h-48 w-full" />;
   }
   if (entries.length === 0) {
-    return (
-      <p className="mt-6 font-serif text-reading text-muted-foreground">
-        Nenhum run corresponde a estes filtros.
-      </p>
-    );
+    return <p className="mt-4 text-sm text-soft">Nenhum run corresponde a estes filtros.</p>;
   }
   const full = chosen.length >= MAX_COMPARED;
+  const head = "px-3 py-2.5 font-mono text-xs font-normal text-dim";
   return (
     // `relative`: os textos só para leitores de ecrã das células (posição absoluta) ficam presos
     // aqui; sem ele, saíam da caixa e a página toda deslizava para o lado no telemóvel.
-    <div className="relative mt-6 max-w-full overflow-x-auto rounded-md border">
+    <div className="relative mt-4 max-w-full overflow-x-auto border-t">
       <table className="w-full text-sm">
         <caption className="sr-only">
           Os runs do histórico, do mais recente para o mais antigo
         </caption>
         <thead>
           <tr className="border-b text-left">
-            <th scope="col" className="w-10 px-3 py-2 font-medium">
+            <th scope="col" className={cn("w-10", head)}>
               <span className="sr-only">Comparar</span>
             </th>
-            <th scope="col" className="px-3 py-2 font-medium whitespace-nowrap">
+            <th scope="col" className={cn("whitespace-nowrap", head)}>
               Quando
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className={head}>
               Nome
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className={head}>
               Dataset
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className={head}>
               Tarefa
             </th>
-            <th scope="col" className="px-3 py-2 text-right font-medium whitespace-nowrap">
+            <th scope="col" className={cn("text-right whitespace-nowrap", head)}>
               Métrica principal
             </th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">
+            <th scope="col" className={cn("text-right", head)}>
               Seed
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className={head}>
               Guardado
             </th>
           </tr>
@@ -307,8 +307,8 @@ function RunsTable({
               <tr
                 key={entry.run_id}
                 className={cn(
-                  "border-b border-border/50 last:border-0 hover:bg-accent/40",
-                  on && "bg-accent/60",
+                  "border-b border-border/60 transition-colors last:border-0 hover:bg-surface-high/50",
+                  on && "bg-surface-high hover:bg-surface-high",
                 )}
               >
                 <td className="px-3 py-2">
@@ -321,43 +321,41 @@ function RunsTable({
                     }}
                   />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground tabular-nums">
+                <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap text-dim tabular-nums">
                   {formatMoment(entry.created_at)}
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                   <button
                     type="button"
                     onClick={() => {
                       onOpen(entry.run_id);
                     }}
-                    className="rounded-sm text-left font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="rounded-sm text-left font-medium text-strong underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {entry.name}
                   </button>
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">{entry.dataset_name}</td>
-                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                <td className="px-3 py-2.5 text-soft">{entry.dataset_name}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-soft">
                   {label("TaskType", entry.task_type)}
                 </td>
-                <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">
+                <td className="px-3 py-2.5 text-right whitespace-nowrap text-strong tabular-nums">
                   {primaryValue(entry)}
                   {entry.primary_label !== null && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">
-                      {entry.primary_label}
-                    </span>
+                    <span className="ml-1.5 font-mono text-xs text-dim">{entry.primary_label}</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                <td className="px-3 py-2.5 text-right font-mono text-xs text-dim tabular-nums">
                   {entry.seed}
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                   {entry.saved ? (
                     <>
-                      <Check aria-hidden="true" className="size-4" />
+                      <Check aria-hidden="true" className="size-4 text-positive" />
                       <span className="sr-only">Sim</span>
                     </>
                   ) : (
-                    <span className="text-muted-foreground">
+                    <span className="text-dim">
                       <span aria-hidden="true">—</span>
                       <span className="sr-only">Não</span>
                     </span>

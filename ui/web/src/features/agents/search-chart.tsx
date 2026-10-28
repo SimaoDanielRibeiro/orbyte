@@ -180,7 +180,7 @@ export function SearchChart({
                     d={SHAPE_PATHS[candidate.phase === "tuning" ? "diamond" : "circle"]}
                     transform={`translate(${String(cx)},${String(y(candidate.mean))})`}
                     fill={color(candidate.family)}
-                    stroke="var(--background)"
+                    stroke="var(--card)"
                     strokeWidth={1.5}
                   />
                 </g>

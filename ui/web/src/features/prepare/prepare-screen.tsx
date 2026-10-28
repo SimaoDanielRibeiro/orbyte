@@ -19,7 +19,6 @@ import {
 import { datasetsPrepare } from "@/api/generated/sdk.gen";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { WhyButton } from "@/components/shell/why-button";
 import { Button } from "@/components/ui/button";
 import { RequireDataset } from "@/features/data/require-dataset";
 import { useDebounced } from "@/hooks/use-debounced";
@@ -38,21 +37,22 @@ export function PrepareScreen() {
   const ready = preparation !== null && preparation.datasetId === datasetId;
   return (
     <Page>
-      <PageHeader title={SCREENS.prepare.title} description={SCREENS.prepare.description}>
-        <WhyButton
-          topics={[
-            "cleaning",
-            "task",
-            "split",
-            "transform",
-            "leakage",
-            "projection",
-            "output",
-            "lineage",
-            "split_classes",
-            "pca_loadings",
-          ]}
-        />
+      <PageHeader
+        title={SCREENS.prepare.title}
+        description={SCREENS.prepare.description}
+        topics={[
+          "cleaning",
+          "task",
+          "split",
+          "transform",
+          "leakage",
+          "projection",
+          "output",
+          "lineage",
+          "split_classes",
+          "pca_loadings",
+        ]}
+      >
         {ready ? (
           <Button asChild>
             <Link to="/modelos">Escolher o modelo</Link>
@@ -147,7 +147,7 @@ function Prepare({ dataset }: { dataset: DatasetSummary }) {
 
   const pending = request !== settled || summary.isFetching;
   return (
-    <div className="mt-10 grid gap-14 @6xl/main:grid-cols-[minmax(0,25rem)_minmax(0,1fr)]">
+    <div className="mt-8 grid gap-6 @6xl/main:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
       <PrepareForm
         dataset={dataset}
         choices={choices}
@@ -159,7 +159,7 @@ function Prepare({ dataset }: { dataset: DatasetSummary }) {
       />
       <div className="min-w-0 @6xl/main:sticky @6xl/main:top-6 @6xl/main:max-h-[calc(100svh-3rem)] @6xl/main:self-start @6xl/main:overflow-y-auto @6xl/main:pr-2">
         {impossible ? (
-          <p className="font-serif text-reading text-muted-foreground">
+          <p className="text-sm text-soft">
             Com este alvo não há nenhuma tarefa possível: escolhe outra coluna-alvo.
           </p>
         ) : (

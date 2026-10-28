@@ -3,8 +3,8 @@
  *
  * É o desenho mais característico do laboratório. O campo pinta-se num canvas, com um véu da
  * cor de cada classe (mais forte onde o modelo tem mais certeza); a fronteira de decisão é uma
- * linha a giz, calculada com os contornos do D3 sobre a mesma grelha; os pontos de treino ficam
- * por cima, com um anel da cor do fundo. Com uma só feature, o campo é uma curva.
+ * linha branca, calculada com os contornos do D3 sobre a mesma grelha; os pontos de treino ficam
+ * por cima, com um anel da cor do cartão. Com uma só feature, o campo é uma curva.
  *
  * Os números vêm todos do backend (`TrainingAnimation`): aqui só se desenha.
  */
@@ -17,9 +17,11 @@ import {
   categoryColor,
   channels,
   COLOR_ONLY_LIMIT,
+  LIGHT_INK,
   OTHER,
   sequential,
   sequentialAlt,
+  SURFACE,
 } from "@/lib/colors";
 import { formatNumber, formatPercent, formatSignificant } from "@/lib/format";
 
@@ -28,14 +30,12 @@ import {
   AxisLeft,
   Chart,
   ChartTooltip,
+  GlowFilter,
   Legend,
   TooltipRow,
   type LegendItem,
 } from "./chart";
 import { stepDecimals } from "./ticks";
-
-const CHALK = "#ece7dd";
-const SLATE = "#141a21";
 
 interface FieldViewProps {
   animation: TrainingAnimation;
@@ -84,18 +84,21 @@ function useEncoding(animation: TrainingAnimation) {
     const allValues = animation.frames.flatMap((frame) => frame.values.flat());
     const [low = 0, high = 1] = extent(allValues);
     const span = high - low || 1;
-    /** A cor de uma célula do campo, já com a transparência do véu. */
+    /**
+     * A cor de uma célula do campo, já com a transparência do véu. O véu é leve: o fundo fica
+     * escuro e são os pontos e a fronteira que brilham por cima (ADR 0032).
+     */
     const cell = (value: number): [string, number] => {
       if (kind === "probability") {
-        return [betweenClasses(value), 0.18 + Math.abs(value - 0.5) * 0.7];
+        return [betweenClasses(value), 0.07 + Math.abs(value - 0.5) * 0.46];
       }
       if (kind === "class") {
         const category = Math.round(value);
         const noise = animation.noise && category === animation.field_labels.length - 1;
-        return [noise ? OTHER : categoryColor(category), 0.32];
+        return [noise ? OTHER : categoryColor(category), 0.22];
       }
       const t = (value - low) / span;
-      return [kind === "score" ? sequentialAlt(t) : sequential(t), 0.55];
+      return [kind === "score" ? sequentialAlt(t) : sequential(t), 0.42];
     };
     /** A cor de um ponto: a da sua classe, ou a do valor (regressão), ou giz (referência). */
     const point = (i: number): string => {
@@ -107,7 +110,7 @@ function useEncoding(animation: TrainingAnimation) {
       if (value !== undefined) {
         return sequential((value - low) / span);
       }
-      return CHALK;
+      return LIGHT_INK;
     };
     /** Na referência do clustering e das anomalias, a classe vai na forma (a cor é do campo). */
     const shapeOf = (i: number): number => {
@@ -218,23 +221,36 @@ function PlaneView({
               <clipPath id={clipId}>
                 <rect width={plot.width} height={plot.height} />
               </clipPath>
+              <GlowFilter id={`${clipId}-brilho`} />
             </defs>
             <g clipPath={`url(#${clipId})`}>
-              {lines.map((rings, k) => (
-                <path
-                  key={k}
-                  d={rings
-                    .map(
-                      (ring) => `M${ring.map(([gx, gy]) => toPlot(gx, gy).join(",")).join("L")}Z`,
-                    )
-                    .join("")}
-                  fill="none"
-                  stroke={CHALK}
-                  strokeWidth={encoding.kind === "probability" ? 2 : 1.25}
-                  strokeOpacity={encoding.kind === "probability" ? 0.95 : 0.7}
-                  strokeLinejoin="round"
-                />
-              ))}
+              {lines.map((rings, k) => {
+                const d = rings
+                  .map((ring) => `M${ring.map(([gx, gy]) => toPlot(gx, gy).join(",")).join("L")}Z`)
+                  .join("");
+                const strong = encoding.kind === "probability";
+                return (
+                  <g key={k}>
+                    {/* A fronteira brilha, como as linhas da referência. */}
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke={LIGHT_INK}
+                      strokeWidth={strong ? 5 : 3}
+                      strokeOpacity={0.3}
+                      filter={`url(#${clipId}-brilho)`}
+                    />
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke={LIGHT_INK}
+                      strokeWidth={strong ? 2 : 1.25}
+                      strokeOpacity={strong ? 0.95 : 0.7}
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                );
+              })}
               {frame?.outlines.map((outline, k) => (
                 <path
                   key={`outline-${String(k)}`}
@@ -244,7 +260,7 @@ function PlaneView({
                       .y((_, i) => y(outline.y[i] ?? 0))(outline.x.map((_, i) => i)) ?? ""
                   }
                   fill="none"
-                  stroke={CHALK}
+                  stroke={LIGHT_INK}
                   strokeWidth={1.25}
                   strokeDasharray="2 4"
                   strokeLinecap="round"
@@ -257,13 +273,13 @@ function PlaneView({
                 >
                   <path
                     d="M-6,-6L6,6M-6,6L6,-6"
-                    stroke={SLATE}
+                    stroke={SURFACE}
                     strokeWidth={5}
                     strokeLinecap="round"
                   />
                   <path
                     d="M-6,-6L6,6M-6,6L6,-6"
-                    stroke={CHALK}
+                    stroke={LIGHT_INK}
                     strokeWidth={2}
                     strokeLinecap="round"
                   />
@@ -429,7 +445,7 @@ function drawMarker(
       context.moveTo(x + r, y - r);
       context.lineTo(x - r, y + r);
       context.lineWidth = 4;
-      context.strokeStyle = SLATE;
+      context.strokeStyle = SURFACE;
       context.stroke();
       context.lineWidth = 2;
       context.strokeStyle = fill;
@@ -439,7 +455,7 @@ function drawMarker(
       context.arc(x, y, r, 0, Math.PI * 2);
   }
   context.lineWidth = 1.5;
-  context.strokeStyle = SLATE;
+  context.strokeStyle = SURFACE;
   context.fillStyle = fill;
   context.fill();
   context.stroke();
@@ -489,7 +505,7 @@ function fieldLegend(
       ...animation.class_labels
         .slice(0, 2)
         .map((label, i) => ({ label, color: categoryColor(i), kind: "dot" as const })),
-      { label: "Fronteira (50%)", color: CHALK, kind: "line" as const },
+      { label: "Fronteira (50%)", color: LIGHT_INK, kind: "line" as const },
     ];
   }
   if (kind === "class") {
@@ -552,7 +568,7 @@ function CurveView({
       legend={
         <Legend
           items={[
-            { label: animation.value_label, color: CHALK, kind: "line" },
+            { label: animation.value_label, color: LIGHT_INK, kind: "line" },
             ...(probability
               ? animation.class_labels
                   .slice(0, 2)
@@ -606,14 +622,14 @@ function CurveView({
                 r={3.5}
                 fill={probability ? encoding.point(i) : sequential(0.6)}
                 fillOpacity={0.85}
-                stroke="var(--background)"
+                stroke="var(--card)"
                 strokeWidth={1.5}
               />
             ))}
             <path
               d={path ?? ""}
               fill="none"
-              stroke={CHALK}
+              stroke={LIGHT_INK}
               strokeWidth={2.5}
               strokeLinejoin="round"
               strokeLinecap="round"

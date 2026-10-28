@@ -101,6 +101,18 @@ test("uma procura passa por todas as fases no fluxograma, com pausa e retoma", a
   await expect(
     page.getByRole("heading", { level: 2, name: "O quadro dos candidatos" }),
   ).toBeVisible();
+
+  // O histórico das trocas repete a procura: no fim, o coordenador passa o melhor ao vencedor,
+  // o vencedor vai ao teste, e a leitura do teste fecha a conversa.
+  await page.getByRole("radio", { name: "Histórico das trocas" }).click();
+  const moment = page.getByRole("slider", { name: "O momento da procura" });
+  await moment.focus();
+  await page.keyboard.press("End");
+  await expect(moment).toHaveAttribute("aria-valuetext", /Coordenador, teste$/);
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect(moment).toHaveAttribute("aria-valuetext", /Coordenador, decisão$/);
+  await expect(conversation.getByText("para Vencedor")).toBeVisible();
 });
 
 test("parar uma procura acaba-a com o melhor até aí", async ({ page }) => {

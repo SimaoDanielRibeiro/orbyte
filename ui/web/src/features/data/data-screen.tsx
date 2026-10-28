@@ -1,8 +1,10 @@
 /**
  * O ecrã Dados: de onde vêm os dados e o que se leu deles.
  *
- * Com um dataset aberto, ele vem primeiro (é com ele que se trabalha), e as fontes ficam por
- * baixo, para abrir outro. Ao chegar um dataset novo, a página volta ao topo para o mostrar.
+ * Com um dataset aberto, ele vem primeiro (é com ele que se trabalha): os números em cartões, os
+ * avisos da validação, as primeiras linhas e as colunas, e o passo seguinte da interface aberta.
+ * As fontes ficam por baixo, para abrir outro. Ao chegar um dataset novo, a página volta ao topo
+ * para o mostrar. As descrições ficam nos "?" (ADR 0032).
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -15,15 +17,13 @@ import {
   datasetsPreviewOptions,
   datasetsSummaryQueryKey,
 } from "@/api/generated/@tanstack/react-query.gen";
-import { useTopic } from "@/api/topics";
 import { useLabel } from "@/api/vocabulary";
 import { TablePreviewView } from "@/components/data/table-preview";
-import { Prose } from "@/components/markdown/prose";
+import { Explain } from "@/components/explain/explain";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts, Section } from "@/components/shell/blocks";
+import { ErrorNote, Panel, Section, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { WhyButton } from "@/components/shell/why-button";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCount } from "@/lib/format";
-import { useSession, type WorkPath } from "@/state/session";
+import { useSession } from "@/state/session";
 
 import { FileSource, SampleSource, SyntheticSource } from "./sources";
 import { useOpenDataset } from "./use-open-dataset";
@@ -53,33 +53,35 @@ export function DataScreen() {
   const dataset = query.data;
   return (
     <Page>
-      <PageHeader title={SCREENS.data.title} description={SCREENS.data.description}>
-        <WhyButton topics={["input", "validation", "upload", "automatic_or_manual"]} />
-      </PageHeader>
+      <PageHeader
+        title={SCREENS.data.title}
+        description={SCREENS.data.description}
+        topics={["input", "validation", "upload", "automatic_or_manual"]}
+      />
       {lost && (
-        <p className="mt-10 max-w-[68ch] border-t pt-6 font-serif text-reading text-muted-foreground">
+        <p className="mt-8 max-w-2xl text-sm text-soft">
           O dataset que estava aberto já não está na API: ela recomeçou, e os datasets carregados
           vivem na memória dela. Carrega-o outra vez aqui em baixo.
         </p>
       )}
       {dataset !== undefined && <OpenDataset dataset={dataset} />}
       <Section
-        title={dataset === undefined ? "De onde vêm os dados" : "Abrir outros dados"}
+        title={dataset === undefined ? "Escolhe os dados" : "Abrir outros dados"}
         className="mt-14"
       >
         <Tabs defaultValue="samples">
-          <TabsList variant="line" aria-label="Fontes de dados">
+          <TabsList aria-label="Fontes de dados">
             <TabsTrigger value="samples">Exemplos</TabsTrigger>
             <TabsTrigger value="file">Ficheiro</TabsTrigger>
             <TabsTrigger value="synthetic">Sintéticos</TabsTrigger>
           </TabsList>
-          <TabsContent value="samples" className="mt-6 text-base">
+          <TabsContent value="samples" className="mt-5">
             <SampleSource open={dataset?.source} />
           </TabsContent>
-          <TabsContent value="file" className="mt-6 text-base">
+          <TabsContent value="file" className="mt-5">
             <FileSource />
           </TabsContent>
-          <TabsContent value="synthetic" className="mt-6 text-base">
+          <TabsContent value="synthetic" className="mt-5">
             <SyntheticSource />
           </TabsContent>
         </Tabs>
@@ -88,7 +90,7 @@ export function DataScreen() {
   );
 }
 
-/** O dataset aberto: o resumo, os avisos da validação, as primeiras linhas e as colunas. */
+/** O dataset aberto: os números, os avisos da validação, as primeiras linhas e as colunas. */
 function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const reduced = useReducedMotion();
@@ -108,50 +110,62 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
   }, [dataset.id, reduced]);
 
   return (
-    <>
-      <section className="mt-12" aria-labelledby="dataset-aberto">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-[68ch]">
-            <h2
-              id="dataset-aberto"
-              ref={heading}
-              tabIndex={-1}
-              className="scroll-mt-16 text-3xl outline-none"
-            >
-              {dataset.name}
-            </h2>
-            {dataset.description !== "" && (
-              <p className="mt-2 font-serif text-reading text-muted-foreground">
-                {dataset.description}
-              </p>
-            )}
-          </div>
-          <LoadedSwitcher current={dataset} />
+    <section className="mt-10" aria-labelledby="dataset-aberto">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h2
+            id="dataset-aberto"
+            ref={heading}
+            tabIndex={-1}
+            className="scroll-mt-16 text-2xl outline-none"
+          >
+            {dataset.name}
+          </h2>
+          {dataset.description !== "" && (
+            <Explain title={dataset.name}>{dataset.description}</Explain>
+          )}
         </div>
-        <Facts
-          className="mt-6"
-          facts={[
-            { label: "Linhas", value: formatCount(dataset.n_rows) },
-            { label: "Colunas", value: formatCount(dataset.n_columns) },
-            { label: "Avisos da validação", value: formatCount(warnings) },
-          ]}
-        />
-        <NoticeList notices={validation.notices} className="mt-6" />
-        {!validation.is_usable ? (
-          <p role="alert" className="mt-4 max-w-[68ch] font-serif text-reading text-destructive">
-            Estes dados não podem seguir para as próximas etapas: corrige os erros acima e carrega o
-            ficheiro outra vez.
-          </p>
-        ) : (
-          validation.notices.length === 0 && (
-            <p className="mt-4 font-serif text-reading text-muted-foreground">
-              Os dados passaram a validação sem avisos.
+        <div className="flex flex-wrap items-end gap-3">
+          <LoadedSwitcher current={dataset} />
+          {validation.is_usable && <NextStep />}
+        </div>
+      </div>
+
+      <StatStrip
+        className="mt-6"
+        items={[
+          { key: "linhas", label: "Linhas", value: formatCount(dataset.n_rows) },
+          { key: "colunas", label: "Colunas", value: formatCount(dataset.n_columns) },
+          {
+            key: "avisos",
+            label: "Avisos da validação",
+            value: formatCount(warnings),
+            detail: !validation.is_usable
+              ? "os dados não podem seguir"
+              : warnings === 0
+                ? "passaram sem avisos"
+                : "vê-os em baixo",
+            tone: !validation.is_usable ? "negative" : warnings === 0 ? "positive" : "neutral",
+          },
+        ]}
+      />
+
+      {validation.notices.length > 0 && (
+        <Panel title="A validação" topic="validation" className="mt-10">
+          <NoticeList notices={validation.notices} />
+          {!validation.is_usable && (
+            <p role="alert" className="text-sm text-destructive">
+              Estes dados não podem seguir para as próximas etapas: corrige os erros acima e carrega
+              o ficheiro outra vez.
             </p>
-          )
-        )}
-        {validation.is_usable && (
-          <Tabs defaultValue="preview" className="mt-8">
-            <TabsList variant="line" aria-label="O que se leu">
+          )}
+        </Panel>
+      )}
+
+      {validation.is_usable && (
+        <Panel className="mt-4">
+          <Tabs defaultValue="preview">
+            <TabsList aria-label="O que se leu">
               <TabsTrigger value="preview">Primeiras linhas</TabsTrigger>
               <TabsTrigger value="columns">Colunas e tipos</TabsTrigger>
             </TabsList>
@@ -162,10 +176,9 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
               <Columns dataset={dataset} />
             </TabsContent>
           </Tabs>
-        )}
-      </section>
-      {validation.is_usable && <NextStep />}
-    </>
+        </Panel>
+      )}
+    </section>
   );
 }
 
@@ -180,28 +193,35 @@ function Preview({ datasetId }: { datasetId: string }) {
   return <TablePreviewView preview={preview.data} label="As primeiras linhas do dataset" />;
 }
 
+/** As colunas: o tipo que o perfil inferiu (o porquê fica no "?" de cada uma) e o do pandas. */
 function Columns({ dataset }: { dataset: DatasetSummary }) {
   const label = useLabel();
   return (
-    <div className="rounded-md border">
+    <div className="overflow-hidden rounded-xl border">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="px-3">Coluna</TableHead>
-            <TableHead className="px-3">Tipo inferido</TableHead>
-            <TableHead className="px-3">Porquê</TableHead>
-            <TableHead className="px-3">Tipo no pandas</TableHead>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="px-4">Coluna</TableHead>
+            <TableHead className="px-4">Tipo inferido</TableHead>
+            <TableHead className="px-4">Tipo no pandas</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {dataset.columns.map((column) => (
-            <TableRow key={column.name} className="hover:bg-transparent">
-              <TableCell className="px-3 font-medium">{column.name}</TableCell>
-              <TableCell className="px-3">{label("ColumnKind", column.kind)}</TableCell>
-              <TableCell className="min-w-[18rem] px-3 font-serif whitespace-normal text-muted-foreground">
-                {column.kind_reason}
+            <TableRow key={column.name}>
+              <TableCell className="px-4 font-medium text-strong">{column.name}</TableCell>
+              <TableCell className="px-4">
+                <span className="inline-flex items-center gap-1">
+                  {label("ColumnKind", column.kind)}
+                  <Explain
+                    title={`Porquê «${label("ColumnKind", column.kind)}»`}
+                    label={`Porque é que ${column.name} é ${label("ColumnKind", column.kind).toLowerCase()}`}
+                  >
+                    {column.kind_reason}
+                  </Explain>
+                </span>
               </TableCell>
-              <TableCell className="px-3 text-muted-foreground">{column.dtype}</TableCell>
+              <TableCell className="px-4 font-mono text-xs text-dim">{column.dtype}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -221,7 +241,7 @@ function LoadedSwitcher({ current }: { current: DatasetSummary }) {
   }
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor="datasets-carregados" className="text-xs text-muted-foreground">
+      <label htmlFor="datasets-carregados" className="mono-label">
         Datasets desta sessão
       </label>
       <Select
@@ -249,60 +269,23 @@ function LoadedSwitcher({ current }: { current: DatasetSummary }) {
   );
 }
 
-const NEXT_STEPS: readonly {
-  path: WorkPath;
-  title: string;
-  text: string;
-  to: "/explorar" | "/agentes";
-  action: string;
-}[] = [
-  {
-    path: "manual",
-    title: "À mão",
-    text: "Exploras, preparas e escolhes o modelo tu, e vês o treino por dentro.",
-    to: "/explorar",
-    action: "Explorar este dataset",
-  },
-  {
-    path: "agents",
-    title: "Com os agentes",
-    text: "Dizes o que queres prever, e os agentes procuram o melhor modelo.",
-    to: "/agentes",
-    action: "Pedir aos agentes",
-  },
-];
-
-/** Os dois caminhos depois dos dados; o escolhido no início vem primeiro. */
+/** O passo seguinte da interface aberta: explorar à mão, ou pedir aos agentes. */
 function NextStep() {
-  const topic = useTopic("automatic_or_manual");
   const path = useSession((state) => state.path);
-  const choosePath = useSession((state) => state.choosePath);
   const navigate = useNavigate();
-  const steps = [...NEXT_STEPS].sort((a, b) => Number(b.path === path) - Number(a.path === path));
+  const step =
+    path === "manual"
+      ? { to: "/explorar" as const, action: "Explorar este dataset" }
+      : { to: "/agentes" as const, action: "Pedir aos agentes" };
   return (
-    <Section title={topic?.title ?? "E agora?"} className="mt-14">
-      {topic !== undefined && <Prose text={topic.text} />}
-      <div className="mt-6 grid gap-10 @3xl/main:grid-cols-2">
-        {steps.map((step, index) => (
-          <div key={step.path} className="flex flex-col items-start gap-3 border-t pt-5">
-            <h3 className="text-lg font-medium">{step.title}</h3>
-            <p className="max-w-[52ch] font-serif text-reading text-muted-foreground">
-              {step.text}
-            </p>
-            <Button
-              asChild
-              variant={index === 0 ? "default" : "outline"}
-              onClick={(event) => {
-                event.preventDefault();
-                choosePath(step.path);
-                void navigate({ to: step.to });
-              }}
-            >
-              <Link to={step.to}>{step.action}</Link>
-            </Button>
-          </div>
-        ))}
-      </div>
-    </Section>
+    <Button
+      asChild
+      onClick={(event) => {
+        event.preventDefault();
+        void navigate({ to: step.to });
+      }}
+    >
+      <Link to={step.to}>{step.action}</Link>
+    </Button>
   );
 }

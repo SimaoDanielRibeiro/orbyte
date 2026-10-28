@@ -1,14 +1,15 @@
 /**
  * A moldura de todos os gráficos: mede a largura que tem, dá a área do desenho e junta a
- * legenda, a dica e a legenda de leitura (a `figcaption`).
+ * legenda, a dica e o "como se lê" (no "?" ao canto, não por baixo: ADR 0032).
  *
  * As especificações vêm do skill de visualização de dados: grelha e eixos numa linha fina e
  * discreta, texto sempre nas cores do texto (nunca na cor dos dados), uma dica ao passar o rato
- * em que o valor vem primeiro.
+ * em que o valor vem primeiro. Os números dos eixos vão em Geist Mono, como na referência.
  */
 import { cn } from "cn";
 import type { ReactNode } from "react";
 
+import { Explain } from "@/components/explain/explain";
 import { useSize } from "@/hooks/use-size";
 
 import { SHAPE_PATHS, type PointShape } from "./shapes";
@@ -35,7 +36,7 @@ interface ChartProps {
   margin?: Partial<Margin>;
   /** O que o gráfico mostra, numa frase, para quem usa um leitor de ecrã. */
   description: string;
-  /** Como se lê o gráfico (mostra-se por baixo dele). */
+  /** Como se lê o gráfico: fica no "?" ao canto, por cima do desenho. */
   caption?: ReactNode;
   legend?: ReactNode;
   /** O desenho em SVG, dentro da área. */
@@ -65,9 +66,19 @@ export function Chart({
     height: Math.max(0, height - full.top - full.bottom),
     margin: full,
   };
+  const hasCaption = caption !== undefined && caption !== null && caption !== false;
   return (
-    <figure className={cn("flex min-w-0 flex-col gap-2", className)}>
-      {legend}
+    <figure className={cn("flex min-w-0 flex-col gap-3", className)}>
+      {(legend !== undefined || hasCaption) && (
+        <div className="flex min-h-6 items-start justify-between gap-3">
+          <div className="min-w-0">{legend}</div>
+          {hasCaption && (
+            <Explain title="Como se lê" label="Como se lê este gráfico" align="end">
+              {caption}
+            </Explain>
+          )}
+        </div>
+      )}
       <div ref={ref} className="relative w-full" style={{ height }}>
         {width > 0 && (
           <>
@@ -87,12 +98,19 @@ export function Chart({
           </>
         )}
       </div>
-      {caption !== undefined && (
-        <figcaption className="max-w-[68ch] font-serif text-sm leading-relaxed text-muted-foreground">
-          {caption}
-        </figcaption>
-      )}
     </figure>
+  );
+}
+
+/**
+ * O brilho das linhas, como na referência: uma cópia desfocada por baixo de cada uma. Põe-se
+ * dentro das `<defs>` do gráfico e usa-se com `filter="url(#id)"`.
+ */
+export function GlowFilter({ id, blur = 3.5 }: { id: string; blur?: number }) {
+  return (
+    <filter id={id} x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation={blur} />
+    </filter>
   );
 }
 
@@ -104,29 +122,28 @@ interface AxisProps {
   label?: string;
 }
 
-/** O eixo de baixo: a linha de base, as marcas e o nome. */
+/**
+ * O eixo de baixo: a linha de base, as marcas e o nome. Os eixos ficam em mono, como os números
+ * da referência; os nomes das categorias, no resto do gráfico, ficam na letra do texto (mais
+ * estreita, cabe nas margens).
+ */
 export function AxisBottom({ ticks, position, format, plot, label }: AxisProps) {
   return (
-    <g aria-hidden="true" className="text-[11px]">
-      <line x1={0} x2={plot.width} y1={plot.height} y2={plot.height} stroke="var(--input)" />
+    <g aria-hidden="true" className="font-mono text-[11px]">
+      <line x1={0} x2={plot.width} y1={plot.height} y2={plot.height} stroke="var(--line-strong)" />
       {ticks.map((tick) => (
         <text
           key={tick}
           x={position(tick)}
           y={plot.height + 16}
           textAnchor="middle"
-          className="fill-muted-foreground tabular-nums"
+          className="fill-dim tabular-nums"
         >
           {format(tick)}
         </text>
       ))}
       {label !== undefined && (
-        <text
-          x={plot.width / 2}
-          y={plot.height + 32}
-          textAnchor="middle"
-          className="fill-muted-foreground"
-        >
+        <text x={plot.width / 2} y={plot.height + 32} textAnchor="middle" className="fill-dim">
           {label}
         </text>
       )}
@@ -137,7 +154,7 @@ export function AxisBottom({ ticks, position, format, plot, label }: AxisProps) 
 /** O eixo da esquerda, com a grelha horizontal: uma linha fina por marca. */
 export function AxisLeft({ ticks, position, format, plot, label }: AxisProps) {
   return (
-    <g aria-hidden="true" className="text-[11px]">
+    <g aria-hidden="true" className="font-mono text-[11px]">
       {ticks.map((tick) => (
         <g key={tick}>
           <line
@@ -152,7 +169,7 @@ export function AxisLeft({ ticks, position, format, plot, label }: AxisProps) {
             y={position(tick)}
             dy="0.32em"
             textAnchor="end"
-            className="fill-muted-foreground tabular-nums"
+            className="fill-dim tabular-nums"
           >
             {format(tick)}
           </text>
@@ -162,7 +179,7 @@ export function AxisLeft({ ticks, position, format, plot, label }: AxisProps) {
         <text
           transform={`translate(${String(-plot.margin.left + 12)},${String(plot.height / 2)}) rotate(-90)`}
           textAnchor="middle"
-          className="fill-muted-foreground"
+          className="fill-dim"
         >
           {label}
         </text>
@@ -242,7 +259,7 @@ export function ChartTooltip({ x, y, plot, children }: TooltipProps) {
   return (
     <div
       role="status"
-      className="pointer-events-none absolute z-10 min-w-28 rounded-md border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground"
+      className="pointer-events-none absolute z-10 min-w-28 rounded-lg border border-[#2a2a2a] bg-popover px-3 py-2 text-xs text-popover-foreground shadow-lg shadow-black/40"
       style={{
         left,
         top,

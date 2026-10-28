@@ -16,9 +16,11 @@ import type {
   ImputationStrategy,
   JobStatus,
   LaboratoryDemo,
+  MessageKind,
   ModelFamily,
   NoticeLevel,
   Paradigm,
+  ParticipantKind,
   Partition,
   ScalingMethod,
   SearchPhase,
@@ -39,9 +41,11 @@ export interface VocabularyKinds {
   ImputationStrategy: ImputationStrategy;
   JobStatus: JobStatus;
   LaboratoryDemo: LaboratoryDemo;
+  MessageKind: MessageKind;
   ModelFamily: ModelFamily;
   NoticeLevel: NoticeLevel;
   Paradigm: Paradigm;
+  ParticipantKind: ParticipantKind;
   Partition: Partition;
   ScalingMethod: ScalingMethod;
   SearchPhase: SearchPhase;

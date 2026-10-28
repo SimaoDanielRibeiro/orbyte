@@ -2,26 +2,25 @@
  * Um ambiente em grelha, visto de cima: o que o agente sabe de cada célula.
  *
  * A cor de cada célula é um valor de −1 (espera perder) a 1 (espera ganhar), na escala
- * divergente (vermelho, cinzento neutro, azul), sempre a mesma, para os episódios se poderem
+ * divergente (laranja, cinzento neutro, azul), sempre a mesma, para os episódios se poderem
  * comparar. As células onde não há nada a escolher (as paredes, o objetivo e as armadilhas) têm
  * um desenho e um símbolo próprios, e o nome na dica: não dependem só da cor. Por cima, as setas
- * da política e, a giz, o caminho a partir da partida.
+ * da política e, a branco, o caminho a partir da partida.
  */
 import { cn } from "cn";
 import { useState, type ReactNode } from "react";
 
 import type { CellKind, GridLayout } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
 import { useSize } from "@/hooks/use-size";
-import { CATEGORICAL, diverging, inkOn } from "@/lib/colors";
+import { CATEGORICAL, diverging, inkOn, LIGHT_INK, SURFACE } from "@/lib/colors";
 import { formatNumber } from "@/lib/format";
 
 import { ChartTooltip, TooltipRow } from "./chart";
 
-const CHALK = "#ece7dd";
-const SLATE = "#141a21";
-const WALL = "#3a434e";
-const EMPTY_KIND = "#1b232c";
+const WALL = "#3a3a3a";
+const EMPTY_KIND = "#1e1e1e";
 const TRAP = CATEGORICAL[7];
 
 interface GridWorldProps {
@@ -72,9 +71,20 @@ export function GridWorld({
     margin: { top: 0, right: 0, bottom: 0, left: 0 },
   };
 
+  const hasCaption = caption !== undefined && caption !== null && caption !== false;
+
   return (
-    <figure className={cn("flex min-w-0 flex-col gap-2", className)}>
-      {legend && <GridLegend />}
+    <figure className={cn("flex min-w-0 flex-col gap-3", className)}>
+      {(legend || hasCaption) && (
+        <div className="flex min-h-6 items-start justify-between gap-3">
+          <div className="min-w-0">{legend && <GridLegend />}</div>
+          {hasCaption && (
+            <Explain title="Como se lê" label="Como se lê este gráfico" align="end">
+              {caption}
+            </Explain>
+          )}
+        </div>
+      )}
       <div ref={ref} className="relative w-full" style={{ height: width > 0 ? gridHeight : 0 }}>
         {width > 0 && (
           <svg
@@ -109,7 +119,7 @@ export function GridWorld({
                     height={cell - 2}
                     rx={3}
                     fill={fill}
-                    stroke={hover === state || kind === "goal" ? CHALK : "none"}
+                    stroke={hover === state || kind === "goal" ? LIGHT_INK : "none"}
                     strokeOpacity={hover === state ? 1 : 0.7}
                     strokeWidth={hover === state ? 1.5 : 1}
                   />
@@ -125,7 +135,7 @@ export function GridWorld({
                 <path
                   d={`M${walk}`}
                   fill="none"
-                  stroke={SLATE}
+                  stroke={SURFACE}
                   strokeWidth={5}
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -133,7 +143,7 @@ export function GridWorld({
                 <path
                   d={`M${walk}`}
                   fill="none"
-                  stroke={CHALK}
+                  stroke={LIGHT_INK}
                   strokeWidth={2.5}
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -155,11 +165,6 @@ export function GridWorld({
           </ChartTooltip>
         )}
       </div>
-      {caption !== undefined && (
-        <figcaption className="max-w-[68ch] font-serif text-sm leading-relaxed text-muted-foreground">
-          {caption}
-        </figcaption>
-      )}
     </figure>
   );
 }
@@ -190,11 +195,11 @@ function CellSymbol({
   const s = size * 0.2;
   if (kind === "goal") {
     return (
-      <g aria-hidden="true" stroke={CHALK} strokeWidth={1.75} strokeLinecap="round" fill="none">
+      <g aria-hidden="true" stroke={LIGHT_INK} strokeWidth={1.75} strokeLinecap="round" fill="none">
         <path d={`M${String(cx - s * 0.6)},${String(cy + s)}V${String(cy - s)}`} />
         <path
           d={`M${String(cx - s * 0.6)},${String(cy - s)}L${String(cx + s)},${String(cy - s * 0.45)}L${String(cx - s * 0.6)},${String(cy + s * 0.1)}`}
-          fill={CHALK}
+          fill={LIGHT_INK}
           fillOpacity={0.85}
         />
       </g>
@@ -219,7 +224,7 @@ function CellSymbol({
         cy={cy}
         r={size * 0.3}
         fill="none"
-        stroke={CHALK}
+        stroke={LIGHT_INK}
         strokeWidth={1.25}
         strokeDasharray="3 3"
       />
@@ -328,7 +333,11 @@ function GridLegend() {
         </li>
       ))}
       <li className="flex items-center gap-1.5">
-        <span aria-hidden="true" className="h-0.5 w-3 rounded-full" style={{ background: CHALK }} />
+        <span
+          aria-hidden="true"
+          className="h-0.5 w-3 rounded-full"
+          style={{ background: LIGHT_INK }}
+        />
         Caminho a partir da partida
       </li>
     </ul>

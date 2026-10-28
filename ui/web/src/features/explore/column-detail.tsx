@@ -1,9 +1,11 @@
 /**
- * Uma coluna em pormenor: o tipo e porquê, as estatísticas, a distribuição e os avisos.
+ * Uma coluna em pormenor: o tipo (o porquê fica no "?"), as estatísticas, a distribuição e os
+ * avisos.
  */
 import type { ColumnProfile } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { BarChart, Histogram } from "@/components/charts/bar-chart";
+import { Explain } from "@/components/explain/explain";
 import { NoticeList } from "@/components/notices/notice-list";
 import { Facts } from "@/components/shell/blocks";
 import { CATEGORICAL } from "@/lib/colors";
@@ -24,9 +26,12 @@ export function ColumnDetail({ column }: { column: ColumnProfile }) {
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <div>
-        <h3 className="text-2xl">{column.name}</h3>
-        <p className="mt-1 max-w-[62ch] font-serif text-reading text-muted-foreground">
-          {label("ColumnKind", column.kind)}: {column.kind_reason}
+        <h3 className="text-xl">{column.name}</h3>
+        <p className="mt-1 flex items-center gap-1 text-sm text-soft">
+          {label("ColumnKind", column.kind)}
+          <Explain title={`Porquê «${label("ColumnKind", column.kind)}»`}>
+            {column.kind_reason}
+          </Explain>
         </p>
       </div>
       <Facts

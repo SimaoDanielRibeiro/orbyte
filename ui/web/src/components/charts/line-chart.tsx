@@ -19,6 +19,7 @@ import {
   AxisLeft,
   Chart,
   ChartTooltip,
+  GlowFilter,
   Legend,
   TooltipRow,
   type LegendItem,
@@ -252,7 +253,7 @@ export function LineChart({
                 r={one.radius ?? 3.5}
                 fill={one.color}
                 fillOpacity={one.opacity ?? 1}
-                stroke="var(--background)"
+                stroke="var(--card)"
                 strokeWidth={1.5}
               />
             ))}
@@ -264,6 +265,7 @@ export function LineChart({
               <clipPath id={clipId}>
                 <rect x={-6} y={-6} width={plot.width + 12} height={plot.height + 12} />
               </clipPath>
+              <GlowFilter id={`${clipId}-brilho`} />
             </defs>
             <AxisLeft
               ticks={yTicks}
@@ -312,7 +314,7 @@ export function LineChart({
                     x={plot.width}
                     y={y(reference.y) - 6}
                     textAnchor="end"
-                    className="fill-muted-foreground text-[11px]"
+                    className="fill-dim text-[11px]"
                   >
                     {reference.label}
                   </text>
@@ -360,6 +362,22 @@ export function LineChart({
                   strokeLinejoin="round"
                 />
               ))}
+              {/* O brilho: uma cópia larga e desfocada por baixo de cada linha cheia. */}
+              {solid
+                .filter((one) => one.dotted !== true && one.dashed !== true)
+                .map((one) => (
+                  <path
+                    key={`${one.key}-brilho`}
+                    d={draw(one.points as LinePoint[]) ?? ""}
+                    fill="none"
+                    stroke={one.color}
+                    strokeWidth={(one.width ?? 2) * 2.5}
+                    strokeOpacity={0.4}
+                    strokeLinejoin="round"
+                    filter={`url(#${clipId}-brilho)`}
+                    pointerEvents="none"
+                  />
+                ))}
               {solid.map((one) => (
                 <path
                   key={one.key}
@@ -386,7 +404,7 @@ export function LineChart({
                           cy={y(point.y)}
                           r={3}
                           fill={one.color}
-                          stroke="var(--background)"
+                          stroke="var(--card)"
                           strokeWidth={1.5}
                         />
                       ),
@@ -405,7 +423,7 @@ export function LineChart({
                   x={x(last.x) + 6}
                   y={y(last.y)}
                   dy="0.32em"
-                  className="fill-muted-foreground text-[11px] tabular-nums"
+                  className="fill-soft text-[11px] tabular-nums"
                   aria-hidden="true"
                 >
                   {one.endLabel}
@@ -460,7 +478,7 @@ export function LineChart({
                     cy={y(point.y)}
                     r={4}
                     fill={one.color}
-                    stroke="var(--background)"
+                    stroke="var(--card)"
                     strokeWidth={2}
                   />
                 );

@@ -80,16 +80,18 @@ export function MetricDrawer({
         }
       }}
     >
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-xl">
         {metric !== null && (
           <>
-            <SheetHeader>
-              <SheetTitle className="font-serif text-2xl font-medium">
+            <SheetHeader className="gap-2 border-b p-6">
+              <SheetTitle className="text-xl font-medium text-strong">
                 {metric.display_name}
               </SheetTitle>
-              <SheetDescription>{directionText(metric.higher_is_better)}</SheetDescription>
+              <SheetDescription className="font-mono text-xs text-dim">
+                {directionText(metric.higher_is_better)}
+              </SheetDescription>
             </SheetHeader>
-            <div className="flex flex-col gap-8 px-4 pb-10">
+            <div className="flex flex-col gap-8 p-6 pb-10">
               <Facts
                 facts={[
                   {
@@ -107,8 +109,8 @@ export function MetricDrawer({
               />
               <Prose text={metric.what} />
               {card !== undefined && <FormulaBlock card={card} />}
-              <section className="flex flex-col gap-3">
-                <h3 className="text-lg">A conta neste run</h3>
+              <section className="flex flex-col gap-3 border-t pt-5">
+                <h3 className="text-base">A conta neste run</h3>
                 <RunAccount
                   key={metric.name}
                   metric={metric}
@@ -117,14 +119,14 @@ export function MetricDrawer({
                 />
               </section>
               <section className="flex flex-col gap-2">
-                <h3 className="text-lg">Como se lê</h3>
+                <h3 className="text-base">Como se lê</h3>
                 <Prose text={metric.how_to_read} />
               </section>
               {card !== undefined && (
                 <Link
                   to="/metricas"
                   hash={metricAnchor(metric.name)}
-                  className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  className="text-sm text-soft underline-offset-4 hover:text-strong hover:underline"
                 >
                   Ver no glossário das métricas
                 </Link>
@@ -196,7 +198,7 @@ function RunAccount({ metric, classLabels, charts }: RunAccountProps) {
     );
   }
   return (
-    <p className="font-serif text-sm leading-relaxed text-muted-foreground">
+    <p className="text-sm text-soft">
       Esta métrica não tem termos para mostrar: o valor sai da fórmula acima, com todos os pontos.
     </p>
   );

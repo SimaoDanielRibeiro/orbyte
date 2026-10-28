@@ -21,9 +21,10 @@ import {
 } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel } from "@/api/vocabulary";
 import { BarChart } from "@/components/charts/bar-chart";
+import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts, NeedsStep } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, Stat, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -37,13 +38,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton } from "@/features/data/require-dataset";
 import { categoryColor } from "@/lib/colors";
 import { formatCount, formatMetric, formatNumber } from "@/lib/format";
 import { useSession } from "@/state/session";
 
-import { Flowchart } from "./flowchart";
+import { AgentDetail } from "./agent-detail";
+import { ExchangeHistory } from "./exchange-history";
+import { Flowchart, type FlowNode } from "./flowchart";
 import { PlanView } from "./plan-view";
 import { SearchChart } from "./search-chart";
 import { Board, CandidateFeed, Conversation, PhaseSteps } from "./search-parts";
@@ -62,6 +66,10 @@ export function SearchScreen() {
 function Search({ searchId }: { searchId: string }) {
   const label = useLabel();
   const { live, status, detached, plan, result } = useAgentSearch(searchId);
+  const [selected, setSelected] = useState<FlowNode | null>(null);
+  // O fluxograma ao vivo, ou o histórico das trocas (com a mensagem à vista, para a conversa).
+  const [view, setView] = useState<"live" | "history">("live");
+  const [moment, setMoment] = useState<number | null>(null);
   const openSearch = useSession((state) => state.openSearch);
   useEffect(() => {
     openSearch(searchId);
@@ -90,46 +98,52 @@ function Search({ searchId }: { searchId: string }) {
       ? null
       : (data.candidates.find((candidate) => candidate.number === data.winner) ?? null);
   const running = status === "pending" || status === "running" || status === "paused";
+  const working = data === undefined ? live.working : null;
+  const leader = winner ?? live.leader;
+  const families = searchPlan?.agents.map((agent) => agent.family) ?? [];
 
   return (
     <>
       <Link
         to="/agentes"
-        className="-ml-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         Agentes
       </Link>
-      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-start @3xl/main:justify-between">
-        <div className="max-w-[68ch]">
-          <h1 className="text-4xl leading-tight">
-            {searchPlan === undefined
-              ? "A procura dos agentes"
-              : `Prever ${searchPlan.target} em ${searchPlan.dataset_name}`}
-          </h1>
+      <header className="mt-4 flex flex-col gap-5 @4xl/main:flex-row @4xl/main:items-end @4xl/main:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">
+              {searchPlan === undefined
+                ? "A procura dos agentes"
+                : `Prever ${searchPlan.target} em ${searchPlan.dataset_name}`}
+            </h1>
+            <WhyButton
+              title="A procura dos agentes"
+              description={SCREENS.agents.description}
+              topics={[
+                "automl",
+                "data_agent",
+                "model_selection",
+                "screening_and_tuning",
+                "random_search",
+                "winners_curse",
+                "train_candidate",
+              ]}
+            />
+          </div>
           {searchPlan !== undefined && (
-            <p className="mt-3 font-serif text-reading text-muted-foreground">
-              {label("TaskType", searchPlan.task_type)}, a otimizar{" "}
-              {searchPlan.objective.label.toLowerCase()}.
+            <p className="mt-2 font-mono text-xs text-dim">
+              {label("TaskType", searchPlan.task_type).toLowerCase()}, a otimizar{" "}
+              {searchPlan.objective.label.toLowerCase()}
             </p>
           )}
         </div>
-        <WhyButton
-          topics={[
-            "automl",
-            "data_agent",
-            "model_selection",
-            "screening_and_tuning",
-            "random_search",
-            "winners_curse",
-            "train_candidate",
-          ]}
-        />
+        {running && data === undefined && (
+          <Controls searchId={searchId} status={status} measured={candidates.length} live={live} />
+        )}
       </header>
-
-      {running && data === undefined && (
-        <Controls searchId={searchId} status={status} measured={candidates.length} live={live} />
-      )}
       {status === "failed" && (
         <ErrorNote
           className="mt-8"
@@ -137,46 +151,110 @@ function Search({ searchId }: { searchId: string }) {
         />
       )}
 
-      <section aria-label="Os agentes a trabalhar" className="mt-10 flex flex-col gap-6">
-        <PhaseSteps phase={phase} />
-        {searchPlan === undefined ? (
-          <PageSkeleton />
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t pt-5">
+        {view === "history" ? (
+          <p className="text-sm text-soft">
+            A procura repetida troca a troca: quem fala a quem, e o que diz.
+          </p>
         ) : (
-          <Flowchart
-            agents={searchPlan.agents}
-            phase={phase}
-            working={data === undefined ? live.working : null}
-            candidates={candidates}
-            objective={objective}
-            leader={winner ?? live.leader}
-            budget={searchPlan.settings.budget ?? null}
-            trainRows={searchPlan.train_rows}
-            test={data?.test ?? null}
-          />
+          <PhaseSteps phase={phase} />
         )}
-      </section>
-
-      <div className="mt-12 grid gap-12 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-        <div className="flex min-w-0 flex-col gap-12">
-          {data === undefined ? (
-            <>
-              <Leader candidate={live.leader} objective={objective} />
-              <Part title="Os candidatos medidos">
-                <CandidateFeed candidates={candidates} objective={objective} leader={live.leader} />
-              </Part>
-            </>
-          ) : (
-            <Finished result={data} winner={winner} />
-          )}
+        <div className="flex items-center gap-1">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            aria-label="O que o fluxograma mostra"
+            value={view}
+            onValueChange={(value) => {
+              if (value === "live" || value === "history") {
+                setView(value);
+                setMoment(null);
+              }
+            }}
+          >
+            <ToggleGroupItem value="live" className="px-3">
+              {data === undefined ? "Ao vivo" : "No fim"}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="history" className="px-3" disabled={messages.length === 0}>
+              Histórico das trocas
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Explain topic="exchange_history" />
         </div>
-        <Part title="A conversa dos agentes">
-          <Conversation messages={messages} className="max-h-[36rem]" />
-        </Part>
       </div>
 
+      <div className="mt-6 grid gap-x-12 gap-y-10 @8xl/main:grid-cols-[minmax(0,1fr)_26rem]">
+        <section
+          aria-label={view === "history" ? "O histórico das trocas" : "Os agentes a trabalhar"}
+          className="flex min-w-0 flex-col gap-3"
+        >
+          <div className="rounded-2xl bg-[radial-gradient(circle,#262626_1px,transparent_1.2px)] bg-size-[22px_22px] p-4">
+            {searchPlan === undefined ? (
+              <PageSkeleton />
+            ) : view === "history" ? (
+              <ExchangeHistory
+                plan={searchPlan}
+                messages={messages}
+                candidates={candidates}
+                objective={objective}
+                test={data?.test ?? null}
+                finished={data !== undefined}
+                onMoment={setMoment}
+                selected={selected}
+                onSelect={setSelected}
+              />
+            ) : (
+              <Flowchart
+                agents={searchPlan.agents}
+                phase={phase}
+                working={working}
+                candidates={candidates}
+                objective={objective}
+                leader={leader}
+                budget={searchPlan.settings.budget ?? null}
+                trainRows={searchPlan.train_rows}
+                test={data?.test ?? null}
+                selected={selected}
+                onSelect={setSelected}
+              />
+            )}
+          </div>
+          {view === "live" && (
+            <p className="mono-label">
+              Clica num agente para veres o que está a fazer e o que já fez.
+            </p>
+          )}
+        </section>
+        <section className="flex min-w-0 flex-col gap-4 @8xl/main:border-l @8xl/main:pl-8">
+          <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">
+            A conversa dos agentes
+          </h2>
+          <Conversation
+            messages={messages}
+            families={families}
+            active={view === "history" ? moment : null}
+            className="max-h-[36rem]"
+          />
+        </section>
+      </div>
+
+      {data === undefined ? (
+        <div className="mt-12 grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+          <Leader candidate={live.leader} objective={objective} />
+          <Part title="Os candidatos medidos">
+            <CandidateFeed candidates={candidates} objective={objective} leader={live.leader} />
+          </Part>
+        </div>
+      ) : (
+        <div className="mt-12 flex flex-col gap-12">
+          <Finished result={data} winner={winner} />
+        </div>
+      )}
+
       {searchPlan !== undefined && (
-        <Collapsible className="mt-14 border-t pt-6">
-          <CollapsibleTrigger className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+        <Collapsible className="mt-12 border-t pt-5">
+          <CollapsibleTrigger className="rounded-md text-sm text-soft underline-offset-4 outline-none hover:text-strong hover:underline focus-visible:ring-2 focus-visible:ring-ring">
             Ver o plano da procura
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-6">
@@ -185,6 +263,27 @@ function Search({ searchId }: { searchId: string }) {
         </Collapsible>
       )}
       {data === undefined && (status === "finished" || detached) && <PageSkeleton />}
+
+      {searchPlan !== undefined && (
+        <AgentDetail
+          node={selected}
+          onClose={() => {
+            setSelected(null);
+          }}
+          agents={searchPlan.agents}
+          candidates={candidates}
+          messages={messages}
+          objective={objective}
+          phase={phase}
+          working={working}
+          leader={leader}
+          budget={searchPlan.settings.budget ?? null}
+          plan={searchPlan}
+          ranking={data?.ranking}
+          test={data?.test ?? null}
+          runId={data?.run_id ?? null}
+        />
+      )}
     </>
   );
 }
@@ -206,19 +305,28 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
   const planned = live.state?.planned_steps ?? null;
   const paused = status === "paused";
   return (
-    <section aria-label="A procura a decorrer" className="mt-8 flex flex-col gap-4">
+    <section
+      aria-label="A procura a decorrer"
+      className="flex w-full flex-col gap-3 @4xl/main:w-96"
+    >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
             {!paused && (
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-now opacity-60 motion-reduce:animate-none" />
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-positive opacity-60 motion-reduce:animate-none" />
             )}
-            <span className="relative inline-flex size-2.5 rounded-full bg-now" />
+            <span
+              className={
+                paused
+                  ? "relative inline-flex size-2.5 rounded-full bg-warning"
+                  : "relative inline-flex size-2.5 rounded-full bg-positive shadow-[0_0_10px_var(--positive)]"
+              }
+            />
           </span>
-          <span className="font-medium">
+          <span className="font-medium text-strong">
             {live.state === null ? "A ligar" : label("JobStatus", live.state.status)}
           </span>
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="font-mono text-xs text-dim tabular-nums">
             {formatCount(measured)}
             {planned === null ? "" : ` de ${formatCount(planned)}`} candidatos medidos
           </span>
@@ -282,23 +390,24 @@ function Leader({
 }) {
   const label = useLabel();
   if (candidate === null) {
-    return null;
+    return (
+      <Part title="O melhor até agora">
+        <p className="text-sm text-soft">Ainda nenhum candidato medido.</p>
+      </Part>
+    );
   }
   return (
     <Part title="O melhor até agora">
-      <p className="text-xl">{candidate.model_display_name}</p>
-      <p className="font-serif text-sm text-muted-foreground">
-        {label("ModelFamily", candidate.family)}, {changesText(candidate)}
-      </p>
-      <Facts
-        size="sm"
-        className="mt-3"
-        facts={[
-          {
-            label: `${objective?.label ?? "Valor"} na validação cruzada`,
-            value: `${objectiveValue(candidate.mean, objective)} ± ${objectiveValue(candidate.std, objective)}`,
-          },
-        ]}
+      <div>
+        <p className="text-xl text-strong">{candidate.model_display_name}</p>
+        <p className="mt-1 font-mono text-xs text-dim">
+          {label("ModelFamily", candidate.family)}, {changesText(candidate)}
+        </p>
+      </div>
+      <Stat
+        label={`${objective?.label ?? "Valor"} na validação cruzada`}
+        value={objectiveValue(candidate.mean, objective)}
+        detail={`± ${objectiveValue(candidate.std, objective)} entre folds`}
       />
     </Part>
   );
@@ -327,45 +436,80 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
 
   return (
     <>
-      <NoticeList notices={result.notices} />
-      {winner !== null && (
-        <Part title="O vencedor">
-          <p className="text-2xl">{winner.model_display_name}</p>
-          <p className="font-serif text-sm text-muted-foreground">
-            {label("ModelFamily", winner.family)}, {changesText(winner)}
-          </p>
-          <Facts
-            className="mt-4"
-            facts={[
-              {
-                label: "Validação cruzada",
-                value: objectiveValue(winner.mean, objective),
-              },
-              { label: "Desvio entre folds", value: `± ${objectiveValue(winner.std, objective)}` },
-              {
-                label: "No teste, uma só vez",
-                value: result.test === null ? "—" : formatMetric(result.test),
-              },
-              ...(baseline === null
-                ? []
-                : [{ label: "A referência", value: objectiveValue(baseline.mean, objective) }]),
-            ]}
-          />
-          <p className="mt-3 text-xs text-muted-foreground tabular-nums">
-            {formatCount(result.candidates.length)} candidatos em{" "}
-            {formatNumber(result.duration_seconds, 1)} s, com o treino do vencedor.
-          </p>
-          {result.run_id !== null && (
-            <div className="mt-4">
-              <Button asChild>
-                <Link to="/treinar/$runId" params={{ runId: result.run_id }}>
-                  Abrir o vencedor
-                </Link>
-              </Button>
+      {result.notices.length > 0 && <NoticeList notices={result.notices} />}
+      <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
+        {winner !== null && (
+          <Part title="O vencedor">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-2xl text-strong">{winner.model_display_name}</p>
+                <p className="mt-1 font-mono text-xs text-dim">
+                  {label("ModelFamily", winner.family)}, {changesText(winner)}
+                </p>
+              </div>
+              {result.run_id !== null && (
+                <Button asChild>
+                  <Link to="/treinar/$runId" params={{ runId: result.run_id }}>
+                    Abrir o vencedor
+                  </Link>
+                </Button>
+              )}
             </div>
-          )}
-        </Part>
-      )}
+            <StatStrip
+              compact
+              items={[
+                {
+                  key: "validacao",
+                  label: "Validação cruzada",
+                  value: objectiveValue(winner.mean, objective),
+                  detail: `± ${objectiveValue(winner.std, objective)} entre folds`,
+                },
+                {
+                  key: "teste",
+                  label: "No teste, uma só vez",
+                  value: result.test === null ? "—" : formatMetric(result.test),
+                },
+                ...(baseline === null
+                  ? []
+                  : [
+                      {
+                        key: "referencia",
+                        label: "A referência",
+                        value: objectiveValue(baseline.mean, objective),
+                      },
+                    ]),
+                {
+                  key: "candidatos",
+                  label: "Candidatos",
+                  value: formatCount(result.candidates.length),
+                  detail: `em ${formatNumber(result.duration_seconds, 1)} s`,
+                },
+              ]}
+            />
+          </Part>
+        )}
+        {best.length > 0 && (
+          <Part title="O melhor de cada agente">
+            <BarChart
+              items={best.map(({ family, candidate }) => ({
+                key: family,
+                label: label("ModelFamily", family),
+                value: candidate.mean ?? 0,
+                color: categoryColor(families.indexOf(family)),
+              }))}
+              format={(value) => objectiveValue(value, objective)}
+              valueLabel={objective.label}
+              labelWidth={190}
+              description="O melhor candidato de cada agente, na validação cruzada."
+              caption={
+                baseline === null
+                  ? undefined
+                  : `A referência (${baseline.model_display_name} com os valores por omissão) tem ${objectiveValue(baseline.mean, objective)}.`
+              }
+            />
+          </Part>
+        )}
+      </div>
       <Part title="A procura">
         <SearchChart
           candidates={result.candidates}
@@ -376,27 +520,6 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
           caption={<TopicText topic="screening_and_tuning" />}
         />
       </Part>
-      {best.length > 0 && (
-        <Part title="O melhor de cada agente">
-          <BarChart
-            items={best.map(({ family, candidate }) => ({
-              key: family,
-              label: label("ModelFamily", family),
-              value: candidate.mean ?? 0,
-              color: categoryColor(families.indexOf(family)),
-            }))}
-            format={(value) => objectiveValue(value, objective)}
-            valueLabel={objective.label}
-            labelWidth={190}
-            description="O melhor candidato de cada agente, na validação cruzada."
-            caption={
-              baseline === null
-                ? undefined
-                : `A referência (${baseline.model_display_name} com os valores por omissão) tem ${objectiveValue(baseline.mean, objective)}.`
-            }
-          />
-        </Part>
-      )}
       <Part title="O quadro dos candidatos">
         <Board result={result} />
       </Part>
@@ -417,9 +540,8 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
   }
   const candidate = result.candidates.find((one) => one.number === chosen);
   return (
-    <Part title="Treinar um candidato à mão">
-      <TopicText topic="train_candidate" />
-      <div className="mt-2 flex flex-wrap items-end gap-3">
+    <Part title="Treinar um candidato à mão" topic="train_candidate">
+      <div className="flex flex-wrap items-end gap-3">
         <Select
           value={chosen === null ? undefined : String(chosen)}
           onValueChange={(value) => {
@@ -467,10 +589,32 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
   );
 }
 
-function Part({ title, children }: { title: string; children: ReactNode }) {
+interface PartProps {
+  title: string;
+  /** O tema que explica a parte (no "?" ao lado do nome). */
+  topic?: string;
+  children: ReactNode;
+}
+
+/**
+ * Uma parte da procura, numa secção aberta (um filete por cima). Sem tema, o título fica filho
+ * direto da secção: quem o procura (um leitor de ecrã, um teste) encontra o conteúdo no mesmo
+ * sítio.
+ */
+function Part({ title, topic, children }: PartProps) {
+  const heading = (
+    <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h2>
+  );
   return (
-    <section className="flex min-w-0 flex-col gap-3">
-      <h2 className="text-xl">{title}</h2>
+    <section className="flex min-w-0 flex-col gap-4 border-t pt-5">
+      {topic === undefined ? (
+        heading
+      ) : (
+        <div className="flex items-center gap-1">
+          {heading}
+          <Explain topic={topic} />
+        </div>
+      )}
       {children}
     </section>
   );

@@ -12,11 +12,11 @@ import { useEffect } from "react";
 import type { MetricCard, TaskType } from "@/api/generated";
 import { catalogMetricsOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel, useVocabulary } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
 import { Prose } from "@/components/markdown/prose";
 import { ErrorNote } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { WhyButton } from "@/components/shell/why-button";
 import {
   Select,
   SelectContent,
@@ -56,12 +56,14 @@ export function MetricsScreen() {
 
   return (
     <Page>
-      <PageHeader title={SCREENS.metrics.title} description={SCREENS.metrics.description}>
-        <WhyButton topics={["train_vs_test", "cross_validation"]} />
-      </PageHeader>
-      <div className="mt-10 flex flex-wrap items-end justify-between gap-4 border-b pb-5">
+      <PageHeader
+        title={SCREENS.metrics.title}
+        description={SCREENS.metrics.description}
+        topics={["train_vs_test", "cross_validation"]}
+      />
+      <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="metricas-tarefa" className="text-xs text-muted-foreground">
+          <label htmlFor="metricas-tarefa" className="mono-label">
             Tarefa
           </label>
           <Select
@@ -87,7 +89,7 @@ export function MetricsScreen() {
           </Select>
         </div>
         {metrics.data !== undefined && (
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="status" className="font-mono text-xs text-dim">
             {formatQuantity(metrics.data.length, "métrica", "métricas")}
           </p>
         )}
@@ -97,15 +99,15 @@ export function MetricsScreen() {
         metrics.error === null && <Skeleton className="mt-8 h-96 w-full" />
       ) : (
         <>
-          <nav aria-label="As métricas" className="mt-8">
-            <ul className="columns-2 gap-x-8 text-sm @3xl/main:columns-3 @5xl/main:columns-4">
+          <nav aria-label="As métricas" className="mt-6">
+            <ul className="flex flex-wrap gap-2">
               {metrics.data.map((card) => (
-                <li key={card.name} className="break-inside-avoid py-1">
+                <li key={card.name}>
                   <Link
                     to="/metricas"
                     search={search}
                     hash={metricAnchor(card.name)}
-                    className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                    className="block rounded-full border border-[#2a2a2a] bg-surface px-3 py-1 text-xs text-soft outline-none hover:border-[#3a3a3a] hover:text-strong focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {card.display_name}
                   </Link>
@@ -113,7 +115,7 @@ export function MetricsScreen() {
               ))}
             </ul>
           </nav>
-          <div className="mt-10">
+          <div className="mt-6 grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
             {metrics.data.map((card) => (
               <MetricArticle key={card.name} card={card} />
             ))}
@@ -124,6 +126,7 @@ export function MetricsScreen() {
   );
 }
 
+/** Uma métrica num cartão: o nome e a fórmula à vista; o que mede e como se lê, no "?". */
 function MetricArticle({ card }: { card: MetricCard }) {
   const label = useLabel();
   const tasks = card.task_types.map((one) => label("TaskType", one));
@@ -131,28 +134,26 @@ function MetricArticle({ card }: { card: MetricCard }) {
     <article
       id={metricAnchor(card.name)}
       aria-labelledby={`${metricAnchor(card.name)}-titulo`}
-      className="grid scroll-mt-6 gap-8 border-t py-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+      className="flex min-w-0 scroll-mt-6 flex-col gap-5 border-t pt-5"
     >
-      <div className="flex max-w-[68ch] min-w-0 flex-col gap-5">
-        <header className="flex flex-col gap-2">
-          <h2 id={`${metricAnchor(card.name)}-titulo`} className="text-3xl">
+      <header className="flex flex-col gap-2">
+        <div className="flex items-center gap-1">
+          <h2 id={`${metricAnchor(card.name)}-titulo`} className="text-lg">
             {card.display_name}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {formatList(tasks)}. {directionText(card.higher_is_better)}
-            {card.as_percent ? " Escreve-se em percentagem." : ""}
-            {card.needs_proba ? " Precisa das probabilidades do modelo." : ""}
-          </p>
-        </header>
-        <section className="flex flex-col gap-1.5">
-          <h3 className="text-lg">O que mede</h3>
-          <Prose text={card.what} />
-        </section>
-        <section className="flex flex-col gap-1.5">
-          <h3 className="text-lg">Como se lê</h3>
-          <Prose text={card.how_to_read} />
-        </section>
-      </div>
+          <Explain title={card.display_name}>
+            <p className="font-medium text-strong">O que mede</p>
+            <Prose text={card.what} size="small" className="mt-1" />
+            <p className="mt-3 font-medium text-strong">Como se lê</p>
+            <Prose text={card.how_to_read} size="small" className="mt-1" />
+          </Explain>
+        </div>
+        <p className="font-mono text-xs text-dim">
+          {formatList(tasks)}. {directionText(card.higher_is_better)}
+          {card.as_percent ? " Em percentagem." : ""}
+          {card.needs_proba ? " Precisa das probabilidades." : ""}
+        </p>
+      </header>
       <FormulaBlock card={card} />
     </article>
   );
