@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { belongsTo, interfaceOf, isCurrent, NAVIGATION, SCREENS } from "./screens";
+import {
+  belongsTo,
+  FIRST_STEPS,
+  interfaceOf,
+  isCurrent,
+  NAVIGATION,
+  SCREENS,
+  stepsOf,
+} from "./screens";
 
 describe("isCurrent", () => {
   it("o início só é o atual na própria página", () => {
@@ -20,17 +28,20 @@ describe("as duas interfaces", () => {
   it.each(["manual", "agents"] as const)(
     "na interface %s, cada ecrã aparece uma só vez",
     (path) => {
-      const paths = NAVIGATION[path].flatMap((group) => group.screens.map((screen) => screen.to));
+      const paths = [
+        ...FIRST_STEPS.map((screen) => screen.to),
+        ...NAVIGATION[path].flatMap((group) => group.screens.map((screen) => screen.to)),
+      ];
 
       expect(new Set(paths).size).toBe(paths.length);
     },
   );
 
-  it("os dois fluxos começam nos dados e acabam a explicar o run", () => {
-    for (const groups of Object.values(NAVIGATION)) {
-      const flow = groups[0]?.screens ?? [];
-      expect(flow[0]).toBe(SCREENS.data);
-      expect(flow.at(-1)).toBe(SCREENS.explain);
+  it("os dois fluxos começam nos dados, passam pela exploração e acabam a explicar o run", () => {
+    for (const path of ["manual", "agents"] as const) {
+      const steps = stepsOf(path);
+      expect(steps.slice(0, 2)).toEqual([SCREENS.data, SCREENS.explore]);
+      expect(steps.at(-1)).toBe(SCREENS.explain);
     }
   });
 
@@ -39,14 +50,17 @@ describe("as duas interfaces", () => {
     expect(interfaceOf("/rl/run-1a2b")).toBe("manual");
     expect(interfaceOf("/agentes/search-1a2b")).toBe("agents");
     expect(interfaceOf("/dados")).toBeNull();
+    expect(interfaceOf("/explorar")).toBeNull();
     expect(interfaceOf("/treinar/run-1a2b")).toBeNull();
   });
 
-  it("um ecrã de uma só interface está só na barra dela", () => {
+  it("um ecrã de uma só interface está só na barra dela, e os primeiros passos nas duas", () => {
     expect(belongsTo("/preparar", "manual")).toBe(true);
     expect(belongsTo("/preparar", "agents")).toBe(false);
     expect(belongsTo("/agentes", "agents")).toBe(true);
     expect(belongsTo("/agentes", "manual")).toBe(false);
+    expect(belongsTo("/explorar", "manual")).toBe(true);
+    expect(belongsTo("/explorar", "agents")).toBe(true);
   });
 
   it("todos os ecrãs, menos o início, estão numa das barras", () => {

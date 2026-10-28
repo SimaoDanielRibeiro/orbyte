@@ -36,7 +36,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart, type LineSeries } from "@/components/charts/line-chart";
 import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
-import { ErrorNote, Stat } from "@/components/shell/blocks";
+import { ErrorNote, NextStep, Proceed, Stat } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -148,21 +148,26 @@ function Explained({ result }: { result: ExperimentResult }) {
           <ErrorNote error={rows.error} className="mt-10" />
         )
       ) : (
-        <div className="mt-8 flex flex-col gap-4">
-          <Part id="importancia" title="O que pesa no conjunto" topic="permutation_importance">
-            <Importance runId={result.run_id} />
-          </Part>
-          <Part
-            id="dependencia"
-            title="Como a previsão muda com uma feature"
-            topic="partial_dependence"
-          >
-            <Dependence result={result} />
-          </Part>
-          <Part id="previsao" title="Uma previsão de perto" topic="local_explanation">
-            <OneRow result={result} rows={rows.data} />
-          </Part>
-        </div>
+        <>
+          <div className="mt-10 flex flex-col gap-16">
+            <Part id="importancia" title="O que pesa no conjunto" topic="permutation_importance">
+              <Importance runId={result.run_id} />
+            </Part>
+            <Part
+              id="dependencia"
+              title="Como a previsão muda com uma feature"
+              topic="partial_dependence"
+            >
+              <Dependence result={result} />
+            </Part>
+            <Part id="previsao" title="Uma previsão de perto" topic="local_explanation">
+              <OneRow result={result} rows={rows.data} />
+            </Part>
+          </div>
+          <NextStep text="É o fim do caminho deste run. Compara-o com os outros nas Experiências, ou volta aos modelos e experimenta outro.">
+            <Proceed to="/experiencias">Comparar nas Experiências</Proceed>
+          </NextStep>
+        </>
       )}
     </>
   );
@@ -513,11 +518,7 @@ interface PartProps {
 /** Uma das três perguntas, num cartão. */
 function Part({ id, title, topic, children }: PartProps) {
   return (
-    <section
-      id={id}
-      aria-labelledby={`${id}-titulo`}
-      className="flex scroll-mt-6 flex-col gap-5 border-t pt-5"
-    >
+    <section id={id} aria-labelledby={`${id}-titulo`} className="flex scroll-mt-6 flex-col gap-5">
       <div className="flex items-center gap-1">
         <h2 id={`${id}-titulo`} className="text-base">
           {title}

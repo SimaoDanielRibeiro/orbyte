@@ -22,7 +22,7 @@ export async function loadSample(page: Page, title: string): Promise<void> {
 /** Prepara o dataset aberto com as sugestões do backend e espera que a preparação sirva. */
 export async function prepareWithSuggestions(page: Page): Promise<void> {
   await page.goto("/preparar");
-  await expect(page.getByRole("link", { name: "Escolher o modelo" })).toBeVisible({
+  await expect(page.getByRole("link", { name: "Escolher o modelo" }).first()).toBeVisible({
     timeout: 30_000,
   });
 }

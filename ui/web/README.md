@@ -84,7 +84,8 @@ backend.
 | A moldura (a barra lateral, a pesquisa, o cabeçalho das páginas) | `src/components/shell/` |
 | Os blocos das páginas: o cartão (`Panel`), o número grande (`Stat`), a secção (`Section`) e os factos | `src/components/shell/blocks.tsx`; a classe `panel` e o rótulo `mono-label` estão em `globals.css` |
 | O "?" das explicações: ao lado de um título (`Explain`) e no título da página (`PageExplain`) | `src/components/explain/explain.tsx` |
-| As secções de cada interface na barra (o Manual e os Agentes), os nomes e os ícones dos ecrãs | `src/components/shell/screens.ts`: `NAVIGATION` diz os grupos de cada interface, e `ONLY_IN` os ecrãs que só existem numa |
+| A ordem da barra, os nomes e os ícones dos ecrãs | `src/components/shell/screens.ts`: `FIRST_STEPS` são os primeiros passos das duas interfaces (por cima da troca), `NAVIGATION` os grupos de cada uma (o primeiro continua os passos), e `ONLY_IN` os ecrãs que só existem numa |
+| O botão de prosseguir e o fim de cada passo | `Proceed` e `NextStep` em `src/components/shell/blocks.tsx`; o aspeto é a variante e o tamanho `proceed` do `Button` |
 | A página de entrada | `src/features/home/` (fica fora da moldura: não tem barra) |
 | Um gráfico (todos partilham a moldura de `chart.tsx`: os eixos, a legenda, a dica e o "Como se lê") | `src/components/charts/` |
 | Um ecrã (a disposição, as secções, o que aparece primeiro) | `src/features/<ecrã>/`; a rota, em `src/routes/`, só aponta para ele |
@@ -95,10 +96,14 @@ O sistema visual tem algumas regras que dão coerência ao todo (ADR 0032):
 - a moldura é preto, cinzentos escuros e branco; a cor é dos dados, e segue a entidade (a
   classe "1" tem a mesma cor em todos os gráficos);
 - as páginas largas ocupam o ecrã, com 2 cm de margem de cada lado (ADR 0034);
-- cada coisa vive numa secção aberta (`Panel`: um filete por cima, o nome pequeno e cinzento e o
-  "?"), não numa caixa; os números grandes ficam numa faixa (`StatStrip`); entre colunas há
-  sempre o mesmo espaço largo (`gap-x-12 gap-y-10`). A caixa (`panel`) é só para o que se
-  escolhe, os avisos de um passo em falta e os diálogos;
+- cada coisa vive numa secção aberta (`Panel`: o nome e o "?"), não numa caixa, e **o espaço
+  separa, não as linhas** (ADR 0036): 12 a 16 px dentro de um grupo, 40 a 48 px entre blocos
+  (`gap-x-12 gap-y-10`), 64 a 80 px entre secções, e mais espaço por cima de um título do que
+  por baixo. Só há linhas onde elas dizem alguma coisa (as tabelas, um total, um eixo). Os
+  números grandes ficam numa faixa (`StatStrip`). A caixa (`panel`) é só para o que se escolhe,
+  os avisos de um passo em falta e os diálogos;
+- prosseguir é sempre o mesmo botão (`Proceed`), no topo à direita e no fim da página
+  (`NextStep`); os outros botões da página são secundários;
 - as explicações não ficam à vista: cada título tem o seu "?", e os textos vêm do backend pelo
   nome (`topic="…"`);
 - o texto é Geist; os números pequenos, os eixos e os rótulos são Geist Mono (`mono-label`);

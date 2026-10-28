@@ -135,35 +135,40 @@ export interface NavGroup {
 }
 
 /**
- * As secções da barra lateral de cada interface. O fluxo vem primeiro, pela ordem em que se
- * trabalha; depois o que serve para aprender (ou consultar) e o histórico.
+ * Os primeiros passos, iguais nas duas interfaces: abrir os dados e explorá-los. Na barra ficam
+ * por cima da troca entre o Manual e os Agentes, porque é a partir daí que os caminhos se
+ * separam (ADR 0036).
+ */
+export const FIRST_STEPS: readonly Screen[] = [SCREENS.data, SCREENS.explore];
+
+/**
+ * As secções da barra lateral de cada interface, por baixo da troca. O primeiro grupo continua
+ * os passos, pela ordem em que se trabalha; depois o que explica (os modelos, as métricas) e,
+ * por fim, o histórico.
  */
 export const NAVIGATION: Readonly<Record<WorkPath, readonly NavGroup[]>> = {
   manual: [
     {
-      label: "Fluxo",
-      screens: [
-        SCREENS.data,
-        SCREENS.explore,
-        SCREENS.prepare,
-        SCREENS.models,
-        SCREENS.train,
-        SCREENS.explain,
-      ],
+      label: "Os passos",
+      screens: [SCREENS.prepare, SCREENS.models, SCREENS.train, SCREENS.explain],
     },
     { label: "Aprender", screens: [SCREENS.laboratory, SCREENS.metrics, SCREENS.reinforcement] },
     { label: "Histórico", screens: [SCREENS.history] },
   ],
   agents: [
-    { label: "Fluxo", screens: [SCREENS.data, SCREENS.agents, SCREENS.train, SCREENS.explain] },
-    { label: "Consultar", screens: [SCREENS.models, SCREENS.metrics] },
+    { label: "Os passos", screens: [SCREENS.agents, SCREENS.train, SCREENS.explain] },
+    { label: "Aprender", screens: [SCREENS.models, SCREENS.metrics] },
     { label: "Histórico", screens: [SCREENS.history] },
   ],
 };
 
+/** Os passos de uma interface, do princípio ao fim: os primeiros e os dela. */
+export function stepsOf(path: WorkPath): readonly Screen[] {
+  return [...FIRST_STEPS, ...(NAVIGATION[path][0]?.screens ?? [])];
+}
+
 /** Os ecrãs que só existem numa das interfaces: abri-los leva para ela. */
 const ONLY_IN: readonly (readonly [ScreenPath, WorkPath])[] = [
-  ["/explorar", "manual"],
   ["/preparar", "manual"],
   ["/laboratorio", "manual"],
   ["/rl", "manual"],
@@ -175,9 +180,12 @@ export function interfaceOf(pathname: string): WorkPath | null {
   return ONLY_IN.find(([to]) => isCurrent(to, pathname))?.[1] ?? null;
 }
 
-/** Se o ecrã `to` existe na interface `path`. */
+/** Se o ecrã `to` existe na interface `path` (os primeiros passos existem nas duas). */
 export function belongsTo(to: ScreenPath, path: WorkPath): boolean {
-  return NAVIGATION[path].some((group) => group.screens.some((screen) => screen.to === to));
+  return (
+    FIRST_STEPS.some((screen) => screen.to === to) ||
+    NAVIGATION[path].some((group) => group.screens.some((screen) => screen.to === to))
+  );
 }
 
 /** Se o ecrã `to` é o da página aberta (ou o de uma página dentro dele). */

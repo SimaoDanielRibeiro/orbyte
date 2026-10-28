@@ -10,7 +10,7 @@
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -25,7 +25,7 @@ import { FieldView } from "@/components/charts/field";
 import { FieldPlayer } from "@/components/charts/field-player";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, NeedsStep, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, NextStep, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -128,11 +128,7 @@ function TrainRun({ runId }: { runId: string }) {
             <Button asChild variant="outline">
               <Link to="/modelos">Experimentar outro modelo</Link>
             </Button>
-            <Button asChild>
-              <Link to="/explicar/$runId" params={{ runId }}>
-                Explicar as previsões
-              </Link>
-            </Button>
+            <ExplainProceed runId={runId} />
           </div>
         )}
       </header>
@@ -146,9 +142,26 @@ function TrainRun({ runId }: { runId: string }) {
       {data === undefined ? (
         (status === "finished" || detached) && <PageSkeleton />
       ) : (
-        <Finished result={data} />
+        <>
+          <Finished result={data} />
+          <NextStep text="O modelo está treinado e avaliado. A seguir, vê porque decide como decide: o que pesa nas previsões e cada previsão de perto.">
+            <ExplainProceed runId={runId} />
+          </NextStep>
+        </>
       )}
     </>
+  );
+}
+
+/** Prosseguir para o Explicar deste run (o mesmo aspeto do `Proceed`, com o id do run). */
+function ExplainProceed({ runId }: { runId: string }) {
+  return (
+    <Button asChild variant="proceed" size="proceed">
+      <Link to="/explicar/$runId" params={{ runId }}>
+        Explicar as previsões
+        <ArrowRight aria-hidden="true" />
+      </Link>
+    </Button>
   );
 }
 
@@ -167,7 +180,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
 
   return (
     <section aria-label="O treino a decorrer" className="mt-8 flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-y py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 py-1">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
             {!paused && (
@@ -238,7 +251,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
       <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div className="min-w-0 border-t pt-5">
+        <div className="min-w-0">
           {live.preview === null ? (
             <div
               className="flex items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim"
@@ -255,7 +268,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
             />
           )}
         </div>
-        <div className="min-w-0 border-t pt-5">
+        <div className="min-w-0">
           <LossCharts steps={live.steps} />
         </div>
       </div>
@@ -293,7 +306,7 @@ function Finished({ result }: { result: ExperimentResult }) {
 
       <Part id="treino" title="O treino">
         <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-          <div className="min-w-0 border-t pt-5">
+          <div className="min-w-0">
             {result.animation !== null ? (
               <FieldPlayer
                 animation={result.animation}
@@ -317,7 +330,7 @@ function Finished({ result }: { result: ExperimentResult }) {
               </p>
             )}
           </div>
-          <div className="min-w-0 border-t pt-5">
+          <div className="min-w-0">
             {result.history.length > 0 ? (
               <LossCharts steps={result.history} />
             ) : (
@@ -331,7 +344,7 @@ function Finished({ result }: { result: ExperimentResult }) {
 
       {result.network !== null && (
         <Part id="rede" title="As camadas da rede">
-          <div className="border-t pt-5">
+          <div>
             <NetworkPanel network={result.network} step={step} />
           </div>
         </Part>
@@ -350,8 +363,8 @@ function Finished({ result }: { result: ExperimentResult }) {
 
 function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-10 scroll-mt-6">
-      <h2 id={`${id}-titulo`} className="mb-4 text-xl">
+    <section id={id} aria-labelledby={`${id}-titulo`} className="mt-20 scroll-mt-6">
+      <h2 id={`${id}-titulo`} className="mb-6 text-xl">
         {title}
       </h2>
       {children}

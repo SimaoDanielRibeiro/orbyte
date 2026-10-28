@@ -6,7 +6,6 @@
  * as correlações, os valores em falta e o alvo. O "como se lê" de cada gráfico fica no "?".
  */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import { useState } from "react";
 
@@ -23,7 +22,7 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { MissingMapView } from "@/components/charts/missing-map";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Facts, Panel, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, Facts, NextStep, Panel, Proceed, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { Button } from "@/components/ui/button";
@@ -68,8 +67,26 @@ export function ExploreScreen() {
   );
 }
 
+/**
+ * O passo seguinte depende da interface: à mão, preparar os dados; com os agentes, fazer-lhes o
+ * pedido (o Explorar é um dos primeiros passos, comum às duas; ADR 0036).
+ */
+const NEXT = {
+  manual: {
+    to: "/preparar",
+    action: "Preparar os dados",
+    text: "Já conheces os dados. A seguir, escolhe o alvo e prepara-os para o modelo: limpar, transformar e dividir.",
+  },
+  agents: {
+    to: "/agentes",
+    action: "Pedir aos agentes",
+    text: "Já conheces os dados. A seguir, diz aos agentes o que queres prever, e eles experimentam os modelos por ti.",
+  },
+} as const;
+
 function Explore({ dataset }: { dataset: DatasetSummary }) {
   const preparation = useSession((state) => state.preparation);
+  const next = NEXT[useSession((state) => state.path)];
   const [target, setTarget] = useState<string | null>(
     preparation?.datasetId === dataset.id
       ? (preparation.config.target ?? null)
@@ -88,17 +105,14 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
 
   return (
     <>
-      <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <span className="mono-label">Dataset aberto</span>
-          <span className="text-lg text-strong">{dataset.name}</span>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="mt-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+          <p className="pb-2.5 text-[0.9375rem] text-soft">
+            A explorar <span className="font-medium text-strong">{dataset.name}</span>
+          </p>
           <TargetPicker dataset={dataset} target={target} onChange={setTarget} />
-          <Button asChild>
-            <Link to="/preparar">Preparar os dados</Link>
-          </Button>
         </div>
+        <Proceed to={next.to}>{next.action}</Proceed>
       </div>
       <ErrorNote error={profile.error} className="mt-6" />
       {profile.data === undefined ? (
@@ -121,7 +135,7 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
             onValueChange={(value) => {
               setTab(value as Tab);
             }}
-            className="mt-10"
+            className="mt-16"
           >
             <TabsList
               aria-label="O perfil por partes"
@@ -145,6 +159,9 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
               <Target dataset={dataset} profile={profile.data} />
             </TabsContent>
           </Tabs>
+          <NextStep text={next.text}>
+            <Proceed to={next.to}>{next.action}</Proceed>
+          </NextStep>
         </div>
       )}
     </>
@@ -234,7 +251,7 @@ function KindStrip({
     .filter((entry) => entry.count > 0);
 
   return (
-    <Panel title="As colunas pelo tipo inferido" className="mt-4">
+    <Panel title="As colunas pelo tipo inferido" className="mt-12">
       <div className="flex h-7 gap-1" role="list" aria-label="As colunas pelo tipo inferido">
         {profile.columns.map((column) => (
           <Tooltip key={column.name}>
@@ -294,7 +311,7 @@ function Notices({ profile }: { profile: DatasetProfile }) {
           {formatCount(notices.length)}
         </span>
       }
-      className="mt-4"
+      className="mt-12"
     >
       {notices.length === 0 ? (
         <p className="text-sm text-soft">Nada que mereça atenção.</p>
@@ -333,7 +350,7 @@ function Columns({ profile, selected, onSelect }: ColumnsProps) {
   const column = profile.columns.find((one) => one.name === selected) ?? profile.columns[0] ?? null;
   return (
     <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
-      <div className="relative self-start overflow-x-auto border-t">
+      <div className="relative self-start overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left">
@@ -401,7 +418,7 @@ function Columns({ profile, selected, onSelect }: ColumnsProps) {
         </table>
       </div>
       {column !== null && (
-        <div className="min-w-0 border-t pt-5">
+        <div className="min-w-0">
           <ColumnDetail key={column.name} column={column} />
         </div>
       )}
@@ -516,7 +533,7 @@ function Target({ dataset, profile }: { dataset: DatasetSummary; profile: Datase
       )}
       {profile.class_balance === null ? (
         column !== undefined && (
-          <div className="border-t pt-5">
+          <div>
             <ColumnDetail column={column} />
           </div>
         )

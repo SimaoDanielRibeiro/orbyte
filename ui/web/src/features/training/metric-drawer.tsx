@@ -109,7 +109,7 @@ export function MetricDrawer({
               />
               <Prose text={metric.what} />
               {card !== undefined && <FormulaBlock card={card} />}
-              <section className="flex flex-col gap-3 border-t pt-5">
+              <section className="flex flex-col gap-3">
                 <h3 className="text-base">A conta neste run</h3>
                 <RunAccount
                   key={metric.name}

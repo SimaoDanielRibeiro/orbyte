@@ -7,7 +7,6 @@
  * acompanha a página.
  */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import type { DatasetSummary, PrepareRequest } from "@/api/generated";
@@ -19,7 +18,7 @@ import {
 import { datasetsPrepare } from "@/api/generated/sdk.gen";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { Button } from "@/components/ui/button";
+import { NextStep, Proceed } from "@/components/shell/blocks";
 import { RequireDataset } from "@/features/data/require-dataset";
 import { useDebounced } from "@/hooks/use-debounced";
 import { useSession } from "@/state/session";
@@ -53,13 +52,9 @@ export function PrepareScreen() {
           "pca_loadings",
         ]}
       >
-        {ready ? (
-          <Button asChild>
-            <Link to="/modelos">Escolher o modelo</Link>
-          </Button>
-        ) : (
-          <Button disabled>Escolher o modelo</Button>
-        )}
+        <Proceed to="/modelos" disabled={!ready}>
+          Escolher o modelo
+        </Proceed>
       </PageHeader>
       <RequireDataset>{(dataset) => <Prepare key={dataset.id} dataset={dataset} />}</RequireDataset>
     </Page>
@@ -147,29 +142,36 @@ function Prepare({ dataset }: { dataset: DatasetSummary }) {
 
   const pending = request !== settled || summary.isFetching;
   return (
-    <div className="mt-8 grid gap-6 @6xl/main:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-      <PrepareForm
-        dataset={dataset}
-        choices={choices}
-        onChange={change}
-        suggestion={suggestion.data}
-        cleaning={cleaning.data}
-        options={options.data}
-        taskType={taskType}
-      />
-      <div className="min-w-0 @6xl/main:sticky @6xl/main:top-6 @6xl/main:max-h-[calc(100svh-3rem)] @6xl/main:self-start @6xl/main:overflow-y-auto @6xl/main:pr-2">
-        {impossible ? (
-          <p className="text-sm text-soft">
-            Com este alvo não há nenhuma tarefa possível: escolhe outra coluna-alvo.
-          </p>
-        ) : (
-          <PrepareResult
-            summary={summary.data}
-            pending={pending && request !== null}
-            error={summary.error}
-          />
-        )}
+    <>
+      <div className="mt-8 grid gap-x-12 gap-y-10 @6xl/main:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <PrepareForm
+          dataset={dataset}
+          choices={choices}
+          onChange={change}
+          suggestion={suggestion.data}
+          cleaning={cleaning.data}
+          options={options.data}
+          taskType={taskType}
+        />
+        <div className="min-w-0 @6xl/main:sticky @6xl/main:top-6 @6xl/main:max-h-[calc(100svh-3rem)] @6xl/main:self-start @6xl/main:overflow-y-auto @6xl/main:pr-2">
+          {impossible ? (
+            <p className="text-sm text-soft">
+              Com este alvo não há nenhuma tarefa possível: escolhe outra coluna-alvo.
+            </p>
+          ) : (
+            <PrepareResult
+              summary={summary.data}
+              pending={pending && request !== null}
+              error={summary.error}
+            />
+          )}
+        </div>
       </div>
-    </div>
+      {current !== null && (
+        <NextStep text="A preparação fica guardada para o treino. A seguir, escolhe o modelo que vai aprender com estes dados.">
+          <Proceed to="/modelos">Escolher o modelo</Proceed>
+        </NextStep>
+      )}
+    </>
   );
 }

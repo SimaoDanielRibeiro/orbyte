@@ -47,16 +47,20 @@ test("a entrada mostra o nome, a API ligada e as duas interfaces, sem barra", as
   await expect(page.getByRole("navigation", { name: "Ecrãs" })).toHaveCount(0);
 });
 
-test("cada interface tem as suas secções na barra, e troca-se no topo dela", async ({ page }) => {
+test("cada interface tem as suas secções na barra, e troca-se por baixo dos primeiros passos", async ({
+  page,
+}) => {
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Ecrãs" });
 
   await page.getByRole("button", { name: "Começar com os agentes" }).click();
 
+  // Os primeiros passos (os Dados e o Explorar) são das duas interfaces; o resto é de cada uma.
   await expect(page).toHaveURL(/\/dados$/);
   await expect(nav.getByRole("radio", { name: "Agentes" })).toBeChecked();
+  await expect(nav.getByRole("link", { name: "Explorar" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Agentes" })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Explorar" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Preparar" })).toHaveCount(0);
   await expect(nav.getByRole("status")).toContainText("API ligada");
 
   // Os Dados existem nas duas: a troca fica no mesmo ecrã.
@@ -64,6 +68,7 @@ test("cada interface tem as suas secções na barra, e troca-se no topo dela", a
 
   await expect(page).toHaveURL(/\/dados$/);
   await expect(nav.getByRole("link", { name: "Explorar" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Preparar" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Agentes" })).toHaveCount(0);
 });
 

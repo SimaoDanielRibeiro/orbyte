@@ -173,7 +173,7 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
 
   return (
     <section aria-label="O treino a decorrer" className="mt-8 flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-y py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 py-1">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
             {!paused && (
@@ -243,7 +243,7 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
       <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <div className="min-w-0 border-t pt-5">
+        <div className="min-w-0">
           {live.preview === null || live.layout === null ? (
             <div className="flex h-72 items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim">
               À espera da primeira fotografia do treino.
@@ -259,7 +259,7 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
             />
           )}
         </div>
-        <div className="min-w-0 border-t pt-5">
+        <div className="min-w-0">
           <RewardDots episodes={live.episodes} />
         </div>
       </div>
@@ -333,13 +333,13 @@ function Finished({ result }: { result: ReinforcementResult }) {
       )}
 
       <Part id="metricas" title="As métricas" topic="rl_evaluation">
-        <div className="border-t pt-5">
+        <div>
           <ReportsTable reports={result.reports} main={result.main_partition} />
         </div>
       </Part>
 
       <Part id="recompensa" title="A recompensa ao longo do treino">
-        <div className="grid gap-x-12 gap-y-10 *:min-w-0 *:border-t *:pt-5 @5xl/main:grid-cols-2">
+        <div className="grid gap-x-12 gap-y-10 *:min-w-0 @5xl/main:grid-cols-2">
           <LineChart
             series={[
               {
@@ -401,7 +401,7 @@ function Finished({ result }: { result: ReinforcementResult }) {
 
       <Part id="aprendeu" title="O que o agente aprendeu">
         <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-5 border-t pt-5">
+          <div className="flex min-w-0 flex-col gap-5">
             {frames.length > 1 ? (
               <OptionSlider
                 label="Episódio"
@@ -437,10 +437,7 @@ function Finished({ result }: { result: ReinforcementResult }) {
 /** A tabela Q: uma grelha por ação, duas a duas, na mesma escala da grelha dos valores. */
 function QTable({ result, frame }: { result: ReinforcementResult; frame: PolicyFrame }) {
   return (
-    <section
-      aria-labelledby="tabela-q-titulo"
-      className="flex min-w-0 flex-col gap-4 border-t pt-5"
-    >
+    <section aria-labelledby="tabela-q-titulo" className="flex min-w-0 flex-col gap-4">
       <div className="flex items-center gap-1">
         <h3 id="tabela-q-titulo" className="text-[0.9375rem] font-normal tracking-normal text-soft">
           A tabela Q, ação a ação

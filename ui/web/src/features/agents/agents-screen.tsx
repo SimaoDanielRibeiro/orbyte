@@ -5,7 +5,7 @@
  */
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LoaderCircle } from "lucide-react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import type {
@@ -170,7 +170,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
     <div className="mt-8 flex flex-col gap-12">
       {preview !== null && <WhoWorks plan={preview} />}
       <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
-        <div className="flex flex-col gap-6 self-start border-t pt-5">
+        <div className="flex flex-col gap-6 self-start">
           <Field
             label="O que queres prever (a coluna-alvo)"
             htmlFor="agentes-alvo"
@@ -198,7 +198,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
             </Select>
           </Field>
           {unsupported ? (
-            <div className="flex flex-col items-start gap-3 border-t pt-5">
+            <div className="flex flex-col items-start gap-3">
               <p className="text-sm text-soft">{suggestion.data.reason}</p>
               <p className="text-sm text-soft">
                 {options.data?.reason ??
@@ -271,7 +271,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                         }}
                       />
                     </Field>
-                    <section className="flex flex-col gap-3 border-t pt-5">
+                    <section className="flex flex-col gap-3">
                       <h2 className="text-sm font-normal text-soft">O tamanho da procura</h2>
                       <SchemaForm
                         schema={options.data.settings_schema}
@@ -320,9 +320,10 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                         <Switch id="agentes-preparacao" checked={own} onCheckedChange={setOwn} />
                       </div>
                     )}
-                    <div className="flex flex-col items-start gap-3 border-t pt-5">
+                    <div className="flex flex-col items-start gap-3">
                       <Button
-                        size="lg"
+                        variant="proceed"
+                        size="proceed"
                         disabled={request === null || plan.data === undefined || start.isPending}
                         onClick={() => {
                           if (request !== null) {
@@ -334,6 +335,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                           <LoaderCircle aria-hidden="true" className="animate-spin" />
                         )}
                         Pedir aos agentes
+                        {!start.isPending && <ArrowRight aria-hidden="true" />}
                       </Button>
                       <ErrorNote error={start.error ?? plan.error ?? options.error} />
                     </div>

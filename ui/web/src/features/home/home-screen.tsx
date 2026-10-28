@@ -16,7 +16,7 @@ import { metaHealthOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { FieldPlayer } from "@/components/charts/field-player";
 import { GlowFilter } from "@/components/charts/chart";
 import { Logo } from "@/components/shell/logo";
-import { INTERFACE_NAMES, NAVIGATION } from "@/components/shell/screens";
+import { INTERFACE_NAMES, stepsOf } from "@/components/shell/screens";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORICAL } from "@/lib/colors";
@@ -105,7 +105,7 @@ interface InterfaceCardProps {
 
 /** Uma interface: o desenho, o nome, o que se faz nela e os passos (as secções da barra). */
 function InterfaceCard({ path, icon: Icon, text, action, onStart, children }: InterfaceCardProps) {
-  const flow = NAVIGATION[path][0]?.screens ?? [];
+  const flow = stepsOf(path);
   return (
     <article className="group relative flex min-w-0 flex-col overflow-hidden panel transition-colors hover:border-[#333]">
       <div

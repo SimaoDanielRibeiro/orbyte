@@ -130,10 +130,7 @@ export function PrepareForm({
 /** Um passo da preparação, num cartão: são uma sequência, por isso vão numerados. */
 function Step({ number, title, children }: { number: number; title: string; children: ReactNode }) {
   return (
-    <section
-      aria-labelledby={`passo-${String(number)}`}
-      className="flex flex-col gap-5 border-t pt-5"
-    >
+    <section aria-labelledby={`passo-${String(number)}`} className="flex flex-col gap-5">
       <h2 id={`passo-${String(number)}`} className="flex items-center gap-3 text-base">
         <span
           aria-hidden="true"

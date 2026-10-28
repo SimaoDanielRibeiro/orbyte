@@ -10,6 +10,10 @@ const buttonVariants = cva(
       variant: {
         // O botão principal acende a branco sobre o escuro; os outros ficam nos cinzentos.
         default: "bg-primary text-primary-foreground hover:bg-primary/85",
+        // Prosseguir para o passo seguinte: o mais saliente da página, com um brilho por baixo
+        // (com o tamanho `proceed`; ADR 0036).
+        proceed:
+          "bg-primary font-semibold text-primary-foreground shadow-[0_10px_32px_-12px_rgb(255_255_255/0.55)] hover:bg-primary/90 hover:shadow-[0_12px_36px_-10px_rgb(255_255_255/0.7)]",
         outline:
           "border-[#2e2e2e] bg-surface text-strong shadow-[inset_0_1px_0_rgb(255_255_255/0.03)] hover:border-[#3a3a3a] hover:bg-surface-high aria-expanded:bg-surface-high",
         secondary:
@@ -26,6 +30,8 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),8px)] px-2 text-xs in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-8 gap-1.5 rounded-[8px] px-3 in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         lg: "h-11 gap-2 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        proceed:
+          "h-12 gap-2.5 rounded-xl px-6 text-[0.9375rem] [&_svg:not([class*='size-'])]:size-[1.125rem]",
         icon: "size-9",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),8px)] in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",

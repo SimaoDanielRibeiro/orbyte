@@ -7,7 +7,7 @@
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LoaderCircle } from "lucide-react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import type { AgentCard, EnvironmentCard } from "@/api/generated";
@@ -187,7 +187,7 @@ function Setup({
             </CollapsibleContent>
           </Collapsible>
         )}
-        <section className="flex flex-col gap-3 border-t pt-5">
+        <section className="flex flex-col gap-3">
           <h3 className="text-sm font-normal text-soft">Os hiperparâmetros</h3>
           <SchemaForm
             schema={agent.hyperparameters_schema}
@@ -220,9 +220,10 @@ function Setup({
             className="w-40 tabular-nums"
           />
         </Field>
-        <div className="flex flex-col items-start gap-3 border-t pt-5">
+        <div className="flex flex-col items-start gap-3">
           <Button
-            size="lg"
+            variant="proceed"
+            size="proceed"
             disabled={!validSeed || start.isPending}
             onClick={() => {
               start.mutate({
@@ -236,6 +237,7 @@ function Setup({
           >
             {start.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
             Treinar o agente
+            {!start.isPending && <ArrowRight aria-hidden="true" />}
           </Button>
           <ErrorNote error={start.error} />
         </div>
@@ -247,7 +249,7 @@ function Setup({
 /** Uma das duas partes do pedido, num cartão. */
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex min-w-0 flex-col gap-6 self-start border-t pt-5">
+    <section className="flex min-w-0 flex-col gap-6 self-start">
       <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h2>
       {children}
     </section>

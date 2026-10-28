@@ -134,7 +134,7 @@ function MetricArticle({ card }: { card: MetricCard }) {
     <article
       id={metricAnchor(card.name)}
       aria-labelledby={`${metricAnchor(card.name)}-titulo`}
-      className="flex min-w-0 scroll-mt-6 flex-col gap-5 border-t pt-5"
+      className="flex min-w-0 scroll-mt-6 flex-col gap-5"
     >
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-1">

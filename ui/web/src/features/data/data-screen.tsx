@@ -7,7 +7,6 @@
  * para o mostrar. As descrições ficam nos "?" (ADR 0032).
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 
@@ -21,10 +20,9 @@ import { useLabel } from "@/api/vocabulary";
 import { TablePreviewView } from "@/components/data/table-preview";
 import { Explain } from "@/components/explain/explain";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, Panel, Section, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, NextStep, Panel, Proceed, Section, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -57,7 +55,11 @@ export function DataScreen() {
         title={SCREENS.data.title}
         description={SCREENS.data.description}
         topics={["input", "validation", "upload", "automatic_or_manual"]}
-      />
+      >
+        {dataset?.validation.is_usable === true && (
+          <Proceed to="/explorar">Explorar este dataset</Proceed>
+        )}
+      </PageHeader>
       {lost && (
         <p className="mt-8 max-w-2xl text-sm text-soft">
           O dataset que estava aberto já não está na API: ela recomeçou, e os datasets carregados
@@ -125,10 +127,7 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
             <Explain title={dataset.name}>{dataset.description}</Explain>
           )}
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <LoadedSwitcher current={dataset} />
-          {validation.is_usable && <NextStep />}
-        </div>
+        <LoadedSwitcher current={dataset} />
       </div>
 
       <StatStrip
@@ -163,20 +162,29 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
       )}
 
       {validation.is_usable && (
-        <Panel className="mt-4">
+        <Panel className="mt-12">
           <Tabs defaultValue="preview">
             <TabsList aria-label="O que se leu">
               <TabsTrigger value="preview">Primeiras linhas</TabsTrigger>
               <TabsTrigger value="columns">Colunas e tipos</TabsTrigger>
             </TabsList>
-            <TabsContent value="preview" className="mt-4">
+            <TabsContent value="preview" className="mt-5">
               <Preview datasetId={dataset.id} />
             </TabsContent>
-            <TabsContent value="columns" className="mt-4">
+            <TabsContent value="columns" className="mt-5">
               <Columns dataset={dataset} />
             </TabsContent>
           </Tabs>
         </Panel>
+      )}
+
+      {validation.is_usable && (
+        <NextStep
+          className="mt-16"
+          text="Os dados estão prontos. A seguir, explora-os: o perfil de cada coluna, as correlações e os avisos."
+        >
+          <Proceed to="/explorar">Explorar este dataset</Proceed>
+        </NextStep>
       )}
     </section>
   );
@@ -266,26 +274,5 @@ function LoadedSwitcher({ current }: { current: DatasetSummary }) {
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-/** O passo seguinte da interface aberta: explorar à mão, ou pedir aos agentes. */
-function NextStep() {
-  const path = useSession((state) => state.path);
-  const navigate = useNavigate();
-  const step =
-    path === "manual"
-      ? { to: "/explorar" as const, action: "Explorar este dataset" }
-      : { to: "/agentes" as const, action: "Pedir aos agentes" };
-  return (
-    <Button
-      asChild
-      onClick={(event) => {
-        event.preventDefault();
-        void navigate({ to: step.to });
-      }}
-    >
-      <Link to={step.to}>{step.action}</Link>
-    </Button>
   );
 }

@@ -267,7 +267,7 @@ function RunsTable({
   return (
     // `relative`: os textos só para leitores de ecrã das células (posição absoluta) ficam presos
     // aqui; sem ele, saíam da caixa e a página toda deslizava para o lado no telemóvel.
-    <div className="relative mt-4 max-w-full overflow-x-auto border-t">
+    <div className="relative mt-4 max-w-full overflow-x-auto">
       <table className="w-full text-sm">
         <caption className="sr-only">
           Os runs do histórico, do mais recente para o mais antigo

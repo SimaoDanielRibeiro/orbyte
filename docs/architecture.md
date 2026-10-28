@@ -2124,3 +2124,30 @@ continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última n
   - O `pytest` encontrou uma instabilidade antiga em `tests/api/test_training.py`, fora destas
     mudanças: o treino que o teste pausa e para às vezes acaba antes de a paragem chegar
     (falhou 1 vez em 3).
+
+**A barra pelos passos, o espaço e o botão de prosseguir** (ADR 0036):
+
+- **A skill:** para a organização e o espaçamento instalou-se a `impeccable`
+  (pbakaus/impeccable), só com o texto revisto (o `layout`, o `distill`, o `typeset`, o `polish`
+  e o `quieter`); o lançador e o detetor ficaram de fora, por serem executáveis por rever. O
+  método dela (avaliar, fixar uma tese espacial, agrupar pela proximidade) guiou o resto.
+- **A barra lateral:**
+  - os primeiros passos (os Dados e o Explorar, agora também na interface dos agentes) ficam
+    em cima;
+  - por baixo, a troca entre o Manual e os Agentes;
+  - depois, os passos de cada interface, o "Aprender" e o "Histórico";
+  - os passos estão ligados por um trilho, com um ponto por passo (aceso no aberto, cheio nos
+    de trás) e uma luz que desce sem parar;
+  - letra de 15 px e barra de 18rem.
+- **O espaço:** os filetes de separação saíram, e o espaço passou a separar (uma escala de base
+  4, com intervalos apertados dentro dos grupos e largos entre eles). Ficaram só as linhas com
+  significado.
+- **Prosseguir:** um botão próprio (`Proceed`: branco, maior, com a seta), no topo à direita e
+  no fim de cada passo (`NextStep`), do Dados ao Explicar, na procura e no RL. Na procura
+  terminada, treinar um candidato à mão passou para baixo do quadro, como ação dele.
+- **Os gráficos:** no "O que aprendeu", a rede e a árvore ocupam a largura toda, os pesos, a
+  importância e as tabelas ficam lado a lado, e um só gráfico de meia largura fica com uma
+  largura de leitura.
+- **Os testes:** os 56 da web e os 39 de ponta a ponta passam. Estes clicam no primeiro dos
+  dois botões de prosseguir de cada página, e o da barra verifica que o Explorar está nas duas
+  interfaces.

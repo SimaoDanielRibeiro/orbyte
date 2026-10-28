@@ -32,7 +32,7 @@ export function DemoFrame({ card, controls, notices, stale, error, children }: D
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-x-12 gap-y-10 @4xl/main:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] @4xl/main:items-stretch">
-        <div className="flex flex-col gap-4 border-t pt-5">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-1">
             <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">O que se vê</h2>
             <Explain title={label("LaboratoryDemo", card.name)}>{card.summary}</Explain>
@@ -40,7 +40,7 @@ export function DemoFrame({ card, controls, notices, stale, error, children }: D
           <ErrorNote error={error} />
           <div aria-live="polite">{notices !== undefined && <NoticeList notices={notices} />}</div>
         </div>
-        <div className="flex flex-col gap-5 border-t pt-5">{controls}</div>
+        <div className="flex flex-col gap-5">{controls}</div>
       </div>
       {children === null ? (
         <Skeleton className="h-80 w-full" />
@@ -48,10 +48,7 @@ export function DemoFrame({ card, controls, notices, stale, error, children }: D
         // Cada gráfico (os filhos diretos) fica no seu cartão.
         <div
           aria-busy={stale}
-          className={cn(
-            "grid gap-x-12 gap-y-10 *:min-w-0 *:border-t *:pt-5 @5xl/main:grid-cols-2",
-            stale && "stale",
-          )}
+          className={cn("grid gap-x-12 gap-y-10 *:min-w-0 @5xl/main:grid-cols-2", stale && "stale")}
         >
           {children}
         </div>

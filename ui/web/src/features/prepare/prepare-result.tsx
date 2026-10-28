@@ -68,7 +68,7 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
       <ErrorNote error={error} className="mt-4" />
       {summary !== undefined && error === null && (
         <div className={cn("mt-4 flex flex-col gap-4", pending && "stale")}>
-          <div className="flex flex-col gap-5 border-t pt-5">
+          <div className="flex flex-col gap-5">
             <StackedBars
               rows={[
                 {
@@ -103,7 +103,7 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
             />
           </div>
           {summary.notices.length > 0 && (
-            <div className="border-t pt-5">
+            <div>
               <NoticeList notices={summary.notices} />
             </div>
           )}
@@ -126,7 +126,7 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
             </TabsContent>
             {summary.class_labels.length > 0 && (
               <TabsContent value="classes" className="mt-3">
-                <div className="border-t pt-5">
+                <div>
                   <ClassesPerPartition summary={summary} />
                 </div>
               </TabsContent>
@@ -306,7 +306,7 @@ function Projection({ summary }: { summary: PreparationSummary }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="border-t pt-5">
+      <div>
         <Scatter
           points={scatter}
           height={360}

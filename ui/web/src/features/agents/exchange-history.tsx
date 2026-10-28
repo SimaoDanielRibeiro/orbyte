@@ -178,7 +178,7 @@ export function ExchangeHistory({
         exchange={exchange}
       />
 
-      <div className="grid gap-x-12 gap-y-6 border-t pt-5 @5xl/main:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="grid gap-x-12 gap-y-6 @5xl/main:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-2">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <Who color={color} name={current.author} />

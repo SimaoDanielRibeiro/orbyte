@@ -11,7 +11,7 @@
 import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { cn } from "cn";
-import { ChevronLeft, LoaderCircle } from "lucide-react";
+import { ArrowRight, ChevronLeft, LoaderCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 
@@ -133,7 +133,7 @@ function ModelPage({ card }: { card: ModelCard }) {
         <DocTabs sections={card.sections} />
       ) : (
         card.doc !== "" && (
-          <div className="mt-10 border-t pt-6">
+          <div className="mt-10">
             <Prose text={card.doc} />
           </div>
         )
@@ -166,7 +166,7 @@ function ModelPage({ card }: { card: ModelCard }) {
 function DocTabs({ sections }: { sections: ModelCard["sections"] }) {
   const first = sections[0]?.key ?? "";
   return (
-    <section aria-label="A ficha" className="mt-10 border-t pt-5">
+    <section aria-label="A ficha" className="mt-10">
       <Tabs defaultValue={first}>
         <TabsList
           aria-label="As secções da ficha"
@@ -260,7 +260,7 @@ function Example({ card, example, onExample, demo, reloading, onStepChange }: Ex
         )}
       </div>
       {metric !== undefined && (
-        <div className="flex flex-wrap gap-x-10 gap-y-3 border-t pt-4">
+        <div className="flex flex-wrap gap-x-10 gap-y-3">
           <Stat label={`${metric.display_name} no teste`} value={formatMetric(metric)} />
           {trainMetric !== undefined && report?.partition !== "train" && (
             <Stat label="No treino" value={formatMetric(trainMetric)} />
@@ -354,7 +354,7 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
   const training = useStartTraining();
   const { preparation } = training;
   return (
-    <div className="flex flex-col items-start gap-3 border-t pt-5">
+    <div className="flex flex-col items-start gap-3">
       {preparation === null ? (
         <>
           <p className="text-sm text-soft">
@@ -380,6 +380,8 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
       ) : (
         <>
           <Button
+            variant="proceed"
+            size="proceed"
             disabled={!training.ready || training.pending}
             onClick={() => {
               training.start(card.name, values, card.display_name);
@@ -387,6 +389,7 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
           >
             {training.pending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
             Treinar com estes valores
+            {!training.pending && <ArrowRight aria-hidden="true" />}
           </Button>
           {training.datasetName !== null && (
             <p className="flex items-center gap-1 font-mono text-xs text-dim">

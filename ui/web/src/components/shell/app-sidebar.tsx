@@ -22,7 +22,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -34,10 +33,12 @@ import { ApiStatus } from "./api-status";
 import { Logo } from "./logo";
 import {
   belongsTo,
+  FIRST_STEPS,
   INTERFACE_NAMES,
   isCurrent,
   NAVIGATION,
   SCREENS,
+  stepsOf,
   type Screen,
   type ScreenPath,
 } from "./screens";
@@ -50,19 +51,29 @@ interface AppSidebarProps {
 }
 
 /**
- * A barra lateral, à maneira da referência: a marca e o botão de a recolher, a pesquisa, a troca
- * entre as duas interfaces e as secções da interface aberta, cada uma com o seu rótulo pequeno.
- * Recolhida, fica só com os ícones, e o nome de cada ecrã aparece numa dica.
+ * A barra lateral, pela ordem em que se trabalha (ADR 0036):
+ *
+ * 1. os primeiros passos, iguais nas duas interfaces (os Dados e o Explorar);
+ * 2. a troca entre o Manual e os Agentes, porque é aí que os caminhos se separam;
+ * 3. os passos da interface aberta, que continuam os primeiros;
+ * 4. o que explica (os modelos, as métricas, o laboratório) e, por fim, o histórico.
+ *
+ * Os passos estão ligados por um trilho, com uma luz que o percorre sem parar e um ponto por
+ * passo: aceso no passo aberto, cheio nos de trás, vazio nos que faltam. Não há filetes a separar
+ * os grupos: o espaço faz isso. Recolhida, a barra fica só com os ícones.
  */
 export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const counts = useCounts();
+  const [flow, ...rest] = NAVIGATION[path];
+  const steps = stepsOf(path);
+  const current = steps.findIndex((screen) => isCurrent(screen.to, pathname));
 
   return (
     <Sidebar collapsible="icon">
       {/* Toda a barra é a navegação (com o estado da API e o botão de a recolher). */}
       <nav aria-label="Ecrãs" className="flex size-full min-h-0 flex-col">
-        <SidebarHeader className="gap-4 px-3 pt-4 pb-3">
+        <SidebarHeader className="gap-4 px-3 pt-4 pb-2">
           <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
             <Link
               to="/"
@@ -72,7 +83,7 @@ export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
               <Logo className="h-5 w-6 shrink-0" />
               <span
                 translate="no"
-                className="truncate text-[1.0625rem] font-semibold text-strong group-data-[collapsible=icon]:hidden"
+                className="truncate text-lg font-semibold tracking-[-0.01em] text-strong group-data-[collapsible=icon]:hidden"
               >
                 ML Lab
               </span>
@@ -80,14 +91,35 @@ export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
             <CollapseButton />
           </div>
           <SearchButton onSearch={onSearch} />
-          <InterfaceSwitch path={path} pathname={pathname} onChoosePath={onChoosePath} />
         </SidebarHeader>
 
-        <SidebarSeparator className="mx-0" />
+        <SidebarContent className="gap-0 px-2 pt-4 pb-6">
+          <SidebarGroup className="py-0">
+            <SidebarGroupLabel>Primeiros passos</SidebarGroupLabel>
+            <StepList screens={FIRST_STEPS} first={0} current={current} pathname={pathname} />
+          </SidebarGroup>
 
-        <SidebarContent className="gap-1 px-1 py-3">
-          {NAVIGATION[path].map((group) => (
-            <SidebarGroup key={group.label} className="py-1">
+          <div className="px-2 pt-4 pb-3 group-data-[collapsible=icon]:px-0">
+            <InterfaceSwitch path={path} pathname={pathname} onChoosePath={onChoosePath} />
+          </div>
+
+          {flow !== undefined && (
+            <SidebarGroup className="py-0">
+              <SidebarGroupLabel className="sr-only">
+                {`${flow.label}: ${INTERFACE_NAMES[path]}`}
+              </SidebarGroupLabel>
+              <StepList
+                screens={flow.screens}
+                first={FIRST_STEPS.length}
+                current={current}
+                pathname={pathname}
+                late
+              />
+            </SidebarGroup>
+          )}
+
+          {rest.map((group) => (
+            <SidebarGroup key={group.label} className="pt-7 pb-0">
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarMenu className="gap-0.5">
                 {group.screens.map((screen) => (
@@ -103,8 +135,7 @@ export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
           ))}
         </SidebarContent>
 
-        <SidebarSeparator className="mx-0" />
-        <SidebarFooter className="px-3 py-3">
+        <SidebarFooter className="px-3 pt-2 pb-4">
           <SidebarMenu>
             <SidebarMenuItem>
               <ApiStatus />
@@ -129,17 +160,75 @@ function useCounts(): Partial<Record<ScreenPath, number>> {
   };
 }
 
+/** Onde um passo está em relação ao passo aberto (sem passo aberto: nenhum se destaca). */
+type StepState = "done" | "now" | "next" | "idle";
+
+interface StepListProps {
+  screens: readonly Screen[];
+  /** A posição do primeiro destes passos entre todos os passos da interface. */
+  first: number;
+  /** A posição do passo aberto (-1 se a página aberta não for um passo). */
+  current: number;
+  pathname: string;
+  /** O segundo troço do trilho: a luz parte mais tarde, como se continuasse o primeiro. */
+  late?: boolean;
+}
+
+/**
+ * Passos ligados por um trilho: uma linha fina que passa pelos pontos de cada passo, e uma luz
+ * que desce por ela sem parar (a classe `rail-light`, que pára com "reduzir movimento").
+ */
+function StepList({ screens, first, current, pathname, late = false }: StepListProps) {
+  return (
+    <SidebarMenu className="relative gap-1">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute top-5 bottom-5 left-[13px] w-px overflow-hidden bg-[#2c2c2c] group-data-[collapsible=icon]:hidden"
+      >
+        <span className={cn("rail-light", late && "rail-light-late")} />
+      </span>
+      {screens.map((screen, index) => {
+        const position = first + index;
+        const state: StepState =
+          current < 0
+            ? "idle"
+            : position < current
+              ? "done"
+              : position === current
+                ? "now"
+                : "next";
+        return <NavItem key={screen.to} screen={screen} pathname={pathname} step={state} />;
+      })}
+    </SidebarMenu>
+  );
+}
+
 interface NavItemProps {
   screen: Screen;
   pathname: string;
   count?: number;
+  /** Num passo: o ponto no trilho, à esquerda. */
+  step?: StepState;
 }
 
-function NavItem({ screen, pathname, count }: NavItemProps) {
+function NavItem({ screen, pathname, count, step }: NavItemProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const Icon = screen.icon;
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem
+      className={cn(step !== undefined && "pl-6 group-data-[collapsible=icon]:pl-0")}
+    >
+      {step !== undefined && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute top-1/2 left-[9px] size-[9px] -translate-y-1/2 rounded-full border transition-colors group-data-[collapsible=icon]:hidden",
+            step === "now" && "border-white bg-white shadow-[0_0_10px_rgb(255_255_255/0.7)]",
+            step === "done" && "border-[#8a8a8a] bg-[#8a8a8a]",
+            (step === "next" || step === "idle") && "border-[#4a4a4a] bg-ink",
+          )}
+        />
+      )}
       <SidebarMenuButton asChild isActive={isCurrent(screen.to, pathname)} tooltip={screen.title}>
         <Link
           to={screen.to}
@@ -205,8 +294,9 @@ interface InterfaceSwitchProps {
 }
 
 /**
- * A troca entre as duas interfaces. Fica-se no mesmo ecrã se ele também existir na outra; se
- * não, vai-se para os Dados, onde as duas começam.
+ * A troca entre as duas interfaces, por baixo dos primeiros passos (que são das duas). Fica-se
+ * no mesmo ecrã se ele também existir na outra; se não, vai-se para os Dados, onde as duas
+ * começam.
  */
 function InterfaceSwitch({ path, pathname, onChoosePath }: InterfaceSwitchProps) {
   const navigate = useNavigate();

@@ -19,7 +19,7 @@ test("do início aos modelos da tarefa, pelos dados, o perfil e a preparação",
   await expect(
     page.getByRole("button", { name: "Porque é que PassengerId é identificador" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Explorar este dataset" }).click();
+  await page.getByRole("link", { name: "Explorar este dataset" }).first().click();
 
   await expect(page).toHaveURL(/\/explorar$/);
   await expect(page.getByRole("heading", { level: 2, name: "Avisos" })).toBeVisible();
@@ -27,7 +27,7 @@ test("do início aos modelos da tarefa, pelos dados, o perfil e a preparação",
   await expect(page.getByRole("img", { name: /correlação de Pearson/ })).toBeVisible();
   await page.getByRole("tab", { name: "Alvo" }).click();
   await expect(page.getByRole("heading", { name: "As classes de Survived" })).toBeVisible();
-  await page.getByRole("link", { name: "Preparar os dados" }).click();
+  await page.getByRole("link", { name: "Preparar os dados" }).first().click();
 
   await expect(page).toHaveURL(/\/preparar$/);
   await expect(page.getByRole("heading", { level: 2, name: "O resultado" })).toBeVisible();
@@ -35,7 +35,7 @@ test("do início aos modelos da tarefa, pelos dados, o perfil e a preparação",
   await expect(
     page.getByText("Removidas as colunas PassengerId, Name, Ticket, Cabin."),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Escolher o modelo" }).click();
+  await page.getByRole("link", { name: "Escolher o modelo" }).first().click();
 
   // Os modelos chegam filtrados pela tarefa preparada: os de regressão ficam de fora.
   await expect(page).toHaveURL(/\/modelos/);
@@ -61,5 +61,5 @@ test("trocar de alvo no Preparar volta a preparar com as sugestões do alvo novo
   await expect(page.getByRole("tab", { name: "Classes em cada parte" })).toHaveCount(0, {
     timeout: 30_000,
   });
-  await expect(page.getByRole("link", { name: "Escolher o modelo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Escolher o modelo" }).first()).toBeVisible();
 });

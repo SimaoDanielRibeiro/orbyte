@@ -130,7 +130,7 @@ function RunDetails({
         </SheetDescription>
       </SheetHeader>
       <div className="flex flex-col gap-6 p-6">
-        <div className="flex flex-col gap-5 border-t pt-5">
+        <div className="flex flex-col gap-5">
           <Stat
             label={entry.primary_label ?? "Métrica principal"}
             value={primaryValue(entry)}
@@ -186,7 +186,7 @@ function RunDetails({
         <ErrorNote error={reproduce.error ?? save.error} />
 
         <form
-          className="flex flex-col gap-2 border-t pt-6"
+          className="flex flex-col gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             rename.mutate({ path, body: { name } });
@@ -216,7 +216,7 @@ function RunDetails({
           <ErrorNote error={rename.error} />
         </form>
 
-        <div className="flex flex-col items-start gap-2 border-t pt-6">
+        <div className="flex flex-col items-start gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">

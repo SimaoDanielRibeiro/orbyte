@@ -7,7 +7,7 @@
  */
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
-import { CircleAlert } from "lucide-react";
+import { ArrowRight, CircleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -31,8 +31,8 @@ interface SectionProps {
 /** Uma parte de uma página, com o título e o "?" que a explica. */
 export function Section({ title, topic, description, actions, children, className }: SectionProps) {
   return (
-    <section className={cn("mt-12 first:mt-0", className)}>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <section className={cn("mt-20 first:mt-0", className)}>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1.5">
           <h2 className="text-xl">{title}</h2>
           <Explain topic={topic} title={topic === undefined ? title : undefined}>
@@ -80,12 +80,12 @@ export function Panel({
 }: PanelProps) {
   const label = typeof title === "string" ? title : undefined;
   return (
-    <section id={id} className={cn("flex min-w-0 flex-col gap-4 border-t pt-5", className)}>
+    <section id={id} className={cn("flex min-w-0 flex-col gap-4", className)}>
       {(title !== undefined || actions !== undefined) && (
         <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-1">
             {title !== undefined && (
-              <Heading className="text-[0.9375rem] font-normal tracking-normal text-soft">
+              <Heading className="text-[0.9375rem] font-medium tracking-normal text-foreground">
                 {title}
               </Heading>
             )}
@@ -158,7 +158,7 @@ export function StatStrip({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-y-5 border-y py-5",
+        "grid grid-cols-2 gap-y-5",
         !compact && "@3xl/main:auto-cols-fr @3xl/main:grid-flow-col @3xl/main:grid-cols-none",
         className,
       )}
@@ -216,6 +216,62 @@ export function Facts({ facts, size = "md", className }: FactsProps) {
         </div>
       ))}
     </dl>
+  );
+}
+
+interface ProceedProps {
+  /** O ecrã do passo seguinte. */
+  to: ScreenPath;
+  children: ReactNode;
+  disabled?: boolean;
+}
+
+/**
+ * Prosseguir para o passo seguinte: o botão mais saliente da página, sempre igual (branco, maior,
+ * com a seta), no topo à direita e no fim da página (ADR 0036).
+ */
+export function Proceed({ to, children, disabled = false }: ProceedProps) {
+  if (disabled) {
+    return (
+      <Button variant="proceed" size="proceed" disabled>
+        {children}
+        <ArrowRight aria-hidden="true" />
+      </Button>
+    );
+  }
+  return (
+    <Button asChild variant="proceed" size="proceed">
+      <Link to={to}>
+        {children}
+        <ArrowRight aria-hidden="true" />
+      </Link>
+    </Button>
+  );
+}
+
+interface NextStepProps {
+  /** O que vem a seguir, numa frase curta. */
+  text: string;
+  /** O botão de prosseguir (um `Proceed`, ou um botão do ecrã com o mesmo aspeto). */
+  children: ReactNode;
+  className?: string;
+}
+
+/**
+ * O fim de um passo: o que vem a seguir e o botão de prosseguir, à direita. Fica longe do que está
+ * por cima (o fim do passo não se mistura com o conteúdo) e sem caixa nem filete.
+ */
+export function NextStep({ text, children, className }: NextStepProps) {
+  return (
+    <div
+      className={cn(
+        "mt-24 flex flex-col items-start gap-5 @3xl/main:flex-row @3xl/main:items-center @3xl/main:justify-end @3xl/main:gap-8",
+        className,
+      )}
+    >
+      <p className="max-w-[56ch] text-[0.9375rem] text-soft @3xl/main:text-right">{text}</p>
+      {children}
+    </div>
   );
 }
 

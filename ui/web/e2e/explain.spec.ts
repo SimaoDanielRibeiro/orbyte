@@ -56,5 +56,5 @@ test("explica um run: a importância, a dependência parcial e uma previsão", a
 test("sem um run, o Explicar diz onde se treina um", async ({ page }) => {
   await page.goto("/explicar");
 
-  await expect(page.getByRole("link", { name: "Escolher o modelo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Escolher o modelo" }).first()).toBeVisible();
 });

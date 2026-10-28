@@ -49,12 +49,12 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
   }
   return (
     <div className="flex flex-col gap-5">
-      <ul className="grid gap-4 @3xl/main:grid-cols-2">
+      <ul className="grid gap-x-12 gap-y-12 @3xl/main:grid-cols-2">
         {samples.data.map((sample) => {
           const pending = load.isPending && load.variables.path.name === sample.name;
           const isOpen = open?.kind === "sample" && open.params?.name === sample.name;
           return (
-            <li key={sample.name} className="flex flex-col gap-5 border-t pt-5">
+            <li key={sample.name} className="flex flex-col gap-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-1">
                   <h3 className="text-base font-medium">{sample.title}</h3>
@@ -124,7 +124,7 @@ export function FileSource() {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-5 border-t pt-5">
+    <div className="flex max-w-2xl flex-col gap-5">
       <label
         htmlFor="dados-ficheiro"
         onDragOver={(event) => {
@@ -233,7 +233,7 @@ export function SyntheticSource() {
         ))}
       </ToggleGroup>
 
-      <div className="flex min-w-0 flex-col gap-6 border-t pt-5">
+      <div className="flex min-w-0 flex-col gap-6">
         <div className="flex items-center gap-1">
           <h3 className="text-base font-medium">{generator.title}</h3>
           <Explain title={generator.title}>{generator.description}</Explain>
@@ -246,7 +246,7 @@ export function SyntheticSource() {
           }}
           idPrefix={`gerador-${generator.name}`}
         />
-        <div className="flex flex-col gap-2 border-t pt-5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="gerador-seed" className="text-sm">
             Seed
           </Label>
@@ -303,7 +303,7 @@ function ListSkeleton() {
       aria-label="A carregar"
     >
       {[0, 1].map((index) => (
-        <div key={index} className="flex flex-col gap-3 border-t pt-5">
+        <div key={index} className="flex flex-col gap-3">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />

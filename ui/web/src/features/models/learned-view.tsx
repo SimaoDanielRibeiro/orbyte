@@ -47,10 +47,18 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
   if (empty) {
     return null;
   }
+  // Os blocos de meia largura (os pesos, a importância, as tabelas) ficam lado a lado; um só
+  // fica sozinho com uma largura de leitura, em vez de esticar as barras de ponta a ponta. A rede
+  // e a árvore precisam de espaço e ocupam a largura toda.
+  const halves =
+    (learned.weights === null ? 0 : 1) +
+    (learned.importances.length > 0 ? 1 : 0) +
+    learned.tables.length;
+  const half = halves === 1 ? "@5xl/main:col-span-2 @5xl/main:max-w-[52rem]" : undefined;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid gap-x-12 gap-y-12 @5xl/main:grid-cols-2">
       {(learned.properties.length > 0 || learned.notes.length > 0) && (
-        <div className="flex flex-col gap-4 border-t pt-5">
+        <div className="flex flex-col gap-4 @5xl/main:col-span-2">
           {learned.properties.length > 0 && (
             <Facts
               size="sm"
@@ -70,7 +78,7 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
         </div>
       )}
       {network !== null && (
-        <Block title="A rede">
+        <Block title="A rede" className="@5xl/main:col-span-2">
           <NetworkView
             network={network}
             step={step}
@@ -79,9 +87,9 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
           />
         </Block>
       )}
-      {learned.weights !== null && <Weights weights={learned.weights} />}
+      {learned.weights !== null && <Weights weights={learned.weights} className={half} />}
       {learned.importances.length > 0 && (
-        <Block title="A importância de cada feature">
+        <Block title="A importância de cada feature" className={half}>
           <BarChart
             items={learned.importances.slice(0, TOP_FEATURES).map(([feature, value]) => ({
               key: feature,
@@ -96,7 +104,7 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
         </Block>
       )}
       {learned.tree.length > 0 ? (
-        <Block title="A árvore">
+        <Block title="A árvore" className="@5xl/main:col-span-2">
           <TreeDiagram
             nodes={learned.tree}
             description="A árvore de decisão: as perguntas de cada nó e a previsão de cada folha."
@@ -105,7 +113,7 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
         </Block>
       ) : (
         learned.tree_rules.length > 0 && (
-          <Block title="As regras da árvore">
+          <Block title="As regras da árvore" className="@5xl/main:col-span-2">
             <pre className="relative overflow-x-auto rounded-xl border bg-ground p-4 font-mono text-xs leading-relaxed text-soft">
               {learned.tree_rules.join("\n")}
             </pre>
@@ -113,19 +121,31 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
         )
       )}
       {learned.tables.map((table) => (
-        <Table key={table.title} table={table} />
+        <Table key={table.title} table={table} className={half} />
       ))}
     </div>
   );
 }
 
-/** Uma parte do que o modelo aprendeu, num cartão. */
-function Block({ title, children }: { title: string; children: ReactNode }) {
-  return <Panel title={title}>{children}</Panel>;
+/** Uma parte do que o modelo aprendeu, numa secção aberta da grelha. */
+function Block({
+  title,
+  className,
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Panel title={title} className={className}>
+      {children}
+    </Panel>
+  );
 }
 
 /** Os pesos de um modelo linear: barras com uma saída, um mapa de cores com várias. */
-function Weights({ weights }: { weights: LinearWeights }) {
+function Weights({ weights, className }: { weights: LinearWeights; className?: string }) {
   const intercepts =
     weights.outputs.length === 1
       ? `A ordenada (b) é ${formatNumber(weights.intercepts[0] ?? 0, 3)}.`
@@ -143,7 +163,7 @@ function Weights({ weights }: { weights: LinearWeights }) {
   if (weights.outputs.length === 1) {
     const row = weights.weights[0] ?? [];
     return (
-      <Block title="Os pesos">
+      <Block title="Os pesos" className={className}>
         <BarChart
           items={weights.features.map((feature, index) => ({
             key: feature,
@@ -160,7 +180,7 @@ function Weights({ weights }: { weights: LinearWeights }) {
   }
   const strongest = Math.max(1e-9, ...weights.weights.flat().map(Math.abs));
   return (
-    <Block title="Os pesos">
+    <Block title="Os pesos" className={className}>
       <div style={{ maxWidth: 140 + weights.outputs.length * 88 }}>
         <Heatmap
           rows={weights.features}
@@ -183,10 +203,10 @@ function Weights({ weights }: { weights: LinearWeights }) {
 }
 
 /** Uma tabela do que o modelo guardou (os centros, as médias de cada classe). */
-function Table({ table }: { table: Matrix }) {
+function Table({ table, className }: { table: Matrix; className?: string }) {
   const strongest = Math.max(1e-9, ...table.values.flat().map(Math.abs));
   return (
-    <Block title={table.title}>
+    <Block title={table.title} className={className}>
       <div style={{ maxWidth: 140 + table.columns.length * 88 }}>
         <Heatmap
           rows={table.rows}

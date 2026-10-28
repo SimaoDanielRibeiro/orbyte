@@ -64,7 +64,7 @@ export function Evaluation({ result }: { result: ExperimentResult }) {
     <div className="flex flex-col gap-4">
       <MetricsTable result={result} onOpen={setOpen} />
       {notices.length > 0 && (
-        <div className="border-t pt-5">
+        <div>
           <NoticeList notices={notices} />
         </div>
       )}

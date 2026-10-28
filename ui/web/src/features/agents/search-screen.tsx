@@ -9,7 +9,7 @@
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ChevronLeft, LoaderCircle } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronLeft, LoaderCircle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import type { AutoMlResult, Candidate } from "@/api/generated";
@@ -24,7 +24,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, NeedsStep, Stat, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, NextStep, Stat, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -143,6 +143,7 @@ function Search({ searchId }: { searchId: string }) {
         {running && data === undefined && (
           <Controls searchId={searchId} status={status} measured={candidates.length} live={live} />
         )}
+        {data?.run_id != null && <WinnerProceed runId={data.run_id} />}
       </header>
       {status === "failed" && (
         <ErrorNote
@@ -151,7 +152,7 @@ function Search({ searchId }: { searchId: string }) {
         />
       )}
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t pt-5">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
         {view === "history" ? (
           <p className="text-sm text-soft">
             A procura repetida troca a troca: quem fala a quem, e o que diz.
@@ -247,22 +248,33 @@ function Search({ searchId }: { searchId: string }) {
           </Part>
         </div>
       ) : (
-        <div className="mt-12 flex flex-col gap-12">
+        <div className="mt-16 flex flex-col gap-16">
           <Finished result={data} winner={winner} />
         </div>
       )}
 
       {searchPlan !== undefined && (
-        <Collapsible className="mt-12 border-t pt-5">
-          <CollapsibleTrigger className="rounded-md text-sm text-soft underline-offset-4 outline-none hover:text-strong hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-            Ver o plano da procura
+        <Collapsible className="group/plano mt-16">
+          <CollapsibleTrigger asChild>
+            <Button variant="outline">
+              Ver o plano da procura
+              <ChevronDown
+                aria-hidden="true"
+                className="transition-transform group-data-[state=open]/plano:rotate-180"
+              />
+            </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-6">
+          <CollapsibleContent className="mt-8">
             <PlanView plan={searchPlan} />
           </CollapsibleContent>
         </Collapsible>
       )}
       {data === undefined && (status === "finished" || detached) && <PageSkeleton />}
+      {data?.run_id != null && (
+        <NextStep text="A procura acabou. O vencedor é um run como os outros: abre-o para o avaliar e explicar.">
+          <WinnerProceed runId={data.run_id} />
+        </NextStep>
+      )}
 
       {searchPlan !== undefined && (
         <AgentDetail
@@ -448,7 +460,7 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
                 </p>
               </div>
               {result.run_id !== null && (
-                <Button asChild>
+                <Button asChild variant="outline">
                   <Link to="/treinar/$runId" params={{ runId: result.run_id }}>
                     Abrir o vencedor
                   </Link>
@@ -522,9 +534,21 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
       </Part>
       <Part title="O quadro dos candidatos">
         <Board result={result} />
+        <TrainCandidate result={result} />
       </Part>
-      <TrainCandidate result={result} />
     </>
+  );
+}
+
+/** Prosseguir para o vencedor, no "Treinar e avaliar" (o mesmo aspeto do `Proceed`). */
+function WinnerProceed({ runId }: { runId: string }) {
+  return (
+    <Button asChild variant="proceed" size="proceed">
+      <Link to="/treinar/$runId" params={{ runId }}>
+        Abrir o vencedor
+        <ArrowRight aria-hidden="true" />
+      </Link>
+    </Button>
   );
 }
 
@@ -539,9 +563,14 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
     return null;
   }
   const candidate = result.candidates.find((one) => one.number === chosen);
+  // Fica por baixo do quadro, alinhada à direita: é uma ação sobre ele, não uma secção à parte.
   return (
-    <Part title="Treinar um candidato à mão" topic="train_candidate">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-col items-end gap-2 pt-4">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <span className="flex items-center gap-1 text-sm text-soft">
+          Treinar um candidato à mão
+          <Explain topic="train_candidate" />
+        </span>
         <Select
           value={chosen === null ? undefined : String(chosen)}
           onValueChange={(value) => {
@@ -585,7 +614,7 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
         </Button>
       </div>
       <ErrorNote error={train.error} />
-    </Part>
+    </div>
   );
 }
 
@@ -597,16 +626,16 @@ interface PartProps {
 }
 
 /**
- * Uma parte da procura, numa secção aberta (um filete por cima). Sem tema, o título fica filho
- * direto da secção: quem o procura (um leitor de ecrã, um teste) encontra o conteúdo no mesmo
- * sítio.
+ * Uma parte da procura, numa secção aberta (sem caixa nem filete: o espaço separa-a das outras).
+ * Sem tema, o título fica filho direto da secção: quem o procura (um leitor de ecrã, um teste)
+ * encontra o conteúdo no mesmo sítio.
  */
 function Part({ title, topic, children }: PartProps) {
   const heading = (
-    <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h2>
+    <h2 className="text-[0.9375rem] font-medium tracking-normal text-foreground">{title}</h2>
   );
   return (
-    <section className="flex min-w-0 flex-col gap-4 border-t pt-5">
+    <section className="flex min-w-0 flex-col gap-4">
       {topic === undefined ? (
         heading
       ) : (

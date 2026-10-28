@@ -40,6 +40,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0033](0033-duas-interfaces-e-a-entrada.md) | Duas interfaces e uma entrada: o Manual e os Agentes, cada um com a sua barra | Proposta |
 | [0034](0034-pagina-larga-seccoes-abertas-e-agentes-vivos.md) | A página larga, as secções abertas e o fluxograma vivo dos agentes | Proposta |
 | [0035](0035-historico-visual-das-trocas.md) | O histórico visual das trocas: cada mensagem diz a quem se dirige | Proposta |
+| [0036](0036-barra-pelos-passos-espaco-e-prosseguir.md) | A barra pelos passos, o espaço em vez dos filetes e o botão de prosseguir | Proposta |
 
 ## Como escrever uma ADR
 
