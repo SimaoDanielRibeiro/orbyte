@@ -178,6 +178,7 @@ test("no telemóvel, nenhum ecrã desliza para o lado", async ({ page }) => {
     "/laboratorio",
     "/rl",
     "/experiencias",
+    "/guardar",
   ]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -209,6 +210,7 @@ for (const path of [
   "/laboratorio",
   "/rl",
   "/experiencias",
+  "/guardar",
 ]) {
   test(`sem problemas de acessibilidade em ${path}`, async ({ page }) => {
     await page.goto(path);

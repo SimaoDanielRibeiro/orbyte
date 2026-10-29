@@ -37,11 +37,11 @@ describe("as duas interfaces", () => {
     },
   );
 
-  it("os dois fluxos começam nos dados, passam pela exploração e acabam a explicar o run", () => {
+  it("os dois fluxos começam nos dados, passam pela exploração e acabam a guardar o modelo", () => {
     for (const path of ["manual", "agents"] as const) {
       const steps = stepsOf(path);
       expect(steps.slice(0, 2)).toEqual([SCREENS.data, SCREENS.explore]);
-      expect(steps.at(-1)).toBe(SCREENS.explain);
+      expect(steps.slice(-2)).toEqual([SCREENS.explain, SCREENS.save]);
     }
   });
 

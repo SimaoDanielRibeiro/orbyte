@@ -46,3 +46,43 @@ export async function trainThroughApi(
     .toBe("finished");
   return runId;
 }
+
+/**
+ * O mesmo pacote `.mllab`, sem a assinatura (`manifest.sig`): continua intacto (os ficheiros
+ * conferem com o manifesto), mas para o ML Lab passa a ser de outra instalação, e o modelo só
+ * abre depois do aviso. As entradas do ZIP copiam-se tal como estão (comprimidas); só se refazem
+ * o diretório central e o registo final, com as posições novas.
+ */
+export function withoutSignature(zip: Buffer): Buffer {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const count = zip.readUInt16LE(end + 10);
+  let entry = zip.readUInt32LE(end + 16);
+  const kept: Buffer[] = [];
+  const directory: Buffer[] = [];
+  let offset = 0;
+  for (let index = 0; index < count; index += 1) {
+    const nameLength = zip.readUInt16LE(entry + 28);
+    const length = 46 + nameLength + zip.readUInt16LE(entry + 30) + zip.readUInt16LE(entry + 32);
+    const header = Buffer.from(zip.subarray(entry, entry + length));
+    const name = header.toString("utf8", 46, 46 + nameLength);
+    entry += length;
+    if (name === "manifest.sig") {
+      continue;
+    }
+    const local = header.readUInt32LE(42);
+    const size =
+      30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28) + header.readUInt32LE(20);
+    kept.push(zip.subarray(local, local + size));
+    header.writeUInt32LE(offset, 42);
+    directory.push(header);
+    offset += size;
+  }
+  const central = Buffer.concat(directory);
+  const record = Buffer.alloc(22);
+  record.writeUInt32LE(0x06054b50, 0);
+  record.writeUInt16LE(directory.length, 8);
+  record.writeUInt16LE(directory.length, 10);
+  record.writeUInt32LE(central.length, 12);
+  record.writeUInt32LE(offset, 16);
+  return Buffer.concat([...kept, central, record]);
+}

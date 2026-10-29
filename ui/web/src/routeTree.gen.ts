@@ -20,6 +20,8 @@ import { Route as AgentesIndexRouteImport } from './routes/agentes/index'
 import { Route as AgentesSearchIdRouteImport } from './routes/agentes/$searchId'
 import { Route as ExplicarIndexRouteImport } from './routes/explicar/index'
 import { Route as ExplicarRunIdRouteImport } from './routes/explicar/$runId'
+import { Route as GuardarIndexRouteImport } from './routes/guardar/index'
+import { Route as GuardarRunIdRouteImport } from './routes/guardar/$runId'
 import { Route as ModelosIndexRouteImport } from './routes/modelos/index'
 import { Route as ModelosNameRouteImport } from './routes/modelos/$name'
 import { Route as RlIndexRouteImport } from './routes/rl/index'
@@ -82,6 +84,16 @@ const ExplicarRunIdRoute = ExplicarRunIdRouteImport.update({
   path: '/explicar/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuardarIndexRoute = GuardarIndexRouteImport.update({
+  id: '/guardar/',
+  path: '/guardar/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuardarRunIdRoute = GuardarRunIdRouteImport.update({
+  id: '/guardar/$runId',
+  path: '/guardar/$runId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ModelosIndexRoute = ModelosIndexRouteImport.update({
   id: '/modelos/',
   path: '/modelos/',
@@ -123,11 +135,13 @@ export interface FileRoutesByFullPath {
   '/preparar': typeof PrepararRoute
   '/agentes/$searchId': typeof AgentesSearchIdRoute
   '/explicar/$runId': typeof ExplicarRunIdRoute
+  '/guardar/$runId': typeof GuardarRunIdRoute
   '/modelos/$name': typeof ModelosNameRoute
   '/rl/$runId': typeof RlRunIdRoute
   '/treinar/$runId': typeof TreinarRunIdRoute
   '/agentes/': typeof AgentesIndexRoute
   '/explicar/': typeof ExplicarIndexRoute
+  '/guardar/': typeof GuardarIndexRoute
   '/modelos/': typeof ModelosIndexRoute
   '/rl/': typeof RlIndexRoute
   '/treinar/': typeof TreinarIndexRoute
@@ -142,11 +156,13 @@ export interface FileRoutesByTo {
   '/preparar': typeof PrepararRoute
   '/agentes/$searchId': typeof AgentesSearchIdRoute
   '/explicar/$runId': typeof ExplicarRunIdRoute
+  '/guardar/$runId': typeof GuardarRunIdRoute
   '/modelos/$name': typeof ModelosNameRoute
   '/rl/$runId': typeof RlRunIdRoute
   '/treinar/$runId': typeof TreinarRunIdRoute
   '/agentes': typeof AgentesIndexRoute
   '/explicar': typeof ExplicarIndexRoute
+  '/guardar': typeof GuardarIndexRoute
   '/modelos': typeof ModelosIndexRoute
   '/rl': typeof RlIndexRoute
   '/treinar': typeof TreinarIndexRoute
@@ -162,11 +178,13 @@ export interface FileRoutesById {
   '/preparar': typeof PrepararRoute
   '/agentes/$searchId': typeof AgentesSearchIdRoute
   '/explicar/$runId': typeof ExplicarRunIdRoute
+  '/guardar/$runId': typeof GuardarRunIdRoute
   '/modelos/$name': typeof ModelosNameRoute
   '/rl/$runId': typeof RlRunIdRoute
   '/treinar/$runId': typeof TreinarRunIdRoute
   '/agentes/': typeof AgentesIndexRoute
   '/explicar/': typeof ExplicarIndexRoute
+  '/guardar/': typeof GuardarIndexRoute
   '/modelos/': typeof ModelosIndexRoute
   '/rl/': typeof RlIndexRoute
   '/treinar/': typeof TreinarIndexRoute
@@ -183,11 +201,13 @@ export interface FileRouteTypes {
     | '/preparar'
     | '/agentes/$searchId'
     | '/explicar/$runId'
+    | '/guardar/$runId'
     | '/modelos/$name'
     | '/rl/$runId'
     | '/treinar/$runId'
     | '/agentes/'
     | '/explicar/'
+    | '/guardar/'
     | '/modelos/'
     | '/rl/'
     | '/treinar/'
@@ -202,11 +222,13 @@ export interface FileRouteTypes {
     | '/preparar'
     | '/agentes/$searchId'
     | '/explicar/$runId'
+    | '/guardar/$runId'
     | '/modelos/$name'
     | '/rl/$runId'
     | '/treinar/$runId'
     | '/agentes'
     | '/explicar'
+    | '/guardar'
     | '/modelos'
     | '/rl'
     | '/treinar'
@@ -221,11 +243,13 @@ export interface FileRouteTypes {
     | '/preparar'
     | '/agentes/$searchId'
     | '/explicar/$runId'
+    | '/guardar/$runId'
     | '/modelos/$name'
     | '/rl/$runId'
     | '/treinar/$runId'
     | '/agentes/'
     | '/explicar/'
+    | '/guardar/'
     | '/modelos/'
     | '/rl/'
     | '/treinar/'
@@ -241,11 +265,13 @@ export interface RootRouteChildren {
   PrepararRoute: typeof PrepararRoute
   AgentesSearchIdRoute: typeof AgentesSearchIdRoute
   ExplicarRunIdRoute: typeof ExplicarRunIdRoute
+  GuardarRunIdRoute: typeof GuardarRunIdRoute
   ModelosNameRoute: typeof ModelosNameRoute
   RlRunIdRoute: typeof RlRunIdRoute
   TreinarRunIdRoute: typeof TreinarRunIdRoute
   AgentesIndexRoute: typeof AgentesIndexRoute
   ExplicarIndexRoute: typeof ExplicarIndexRoute
+  GuardarIndexRoute: typeof GuardarIndexRoute
   ModelosIndexRoute: typeof ModelosIndexRoute
   RlIndexRoute: typeof RlIndexRoute
   TreinarIndexRoute: typeof TreinarIndexRoute
@@ -330,6 +356,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExplicarRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guardar/': {
+      id: '/guardar/'
+      path: '/guardar'
+      fullPath: '/guardar/'
+      preLoaderRoute: typeof GuardarIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guardar/$runId': {
+      id: '/guardar/$runId'
+      path: '/guardar/$runId'
+      fullPath: '/guardar/$runId'
+      preLoaderRoute: typeof GuardarRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/modelos/': {
       id: '/modelos/'
       path: '/modelos'
@@ -385,11 +425,13 @@ const rootRouteChildren: RootRouteChildren = {
   PrepararRoute: PrepararRoute,
   AgentesSearchIdRoute: AgentesSearchIdRoute,
   ExplicarRunIdRoute: ExplicarRunIdRoute,
+  GuardarRunIdRoute: GuardarRunIdRoute,
   ModelosNameRoute: ModelosNameRoute,
   RlRunIdRoute: RlRunIdRoute,
   TreinarRunIdRoute: TreinarRunIdRoute,
   AgentesIndexRoute: AgentesIndexRoute,
   ExplicarIndexRoute: ExplicarIndexRoute,
+  GuardarIndexRoute: GuardarIndexRoute,
   ModelosIndexRoute: ModelosIndexRoute,
   RlIndexRoute: RlIndexRoute,
   TreinarIndexRoute: TreinarIndexRoute,

@@ -15,6 +15,7 @@ import {
   History,
   House,
   Lightbulb,
+  Package,
   ScanSearch,
   Sigma,
   SlidersHorizontal,
@@ -31,6 +32,7 @@ export type ScreenPath =
   | "/modelos"
   | "/treinar"
   | "/explicar"
+  | "/guardar"
   | "/agentes"
   | "/metricas"
   | "/laboratorio"
@@ -88,6 +90,13 @@ export const SCREENS = {
     title: "Explicar",
     description: "Vê que features pesam nas previsões e porque é que o modelo decidiu cada uma.",
     icon: Lightbulb,
+  },
+  save: {
+    to: "/guardar",
+    title: "Guardar",
+    description:
+      "Guarda o que preparaste e o modelo num ficheiro, vê-o antes de o gravar e carrega um modelo já treinado.",
+    icon: Package,
   },
   agents: {
     to: "/agentes",
@@ -150,13 +159,16 @@ export const NAVIGATION: Readonly<Record<WorkPath, readonly NavGroup[]>> = {
   manual: [
     {
       label: "Os passos",
-      screens: [SCREENS.prepare, SCREENS.models, SCREENS.train, SCREENS.explain],
+      screens: [SCREENS.prepare, SCREENS.models, SCREENS.train, SCREENS.explain, SCREENS.save],
     },
     { label: "Aprender", screens: [SCREENS.laboratory, SCREENS.metrics, SCREENS.reinforcement] },
     { label: "Histórico", screens: [SCREENS.history] },
   ],
   agents: [
-    { label: "Os passos", screens: [SCREENS.agents, SCREENS.train, SCREENS.explain] },
+    {
+      label: "Os passos",
+      screens: [SCREENS.agents, SCREENS.train, SCREENS.explain, SCREENS.save],
+    },
     { label: "Aprender", screens: [SCREENS.models, SCREENS.metrics] },
     { label: "Histórico", screens: [SCREENS.history] },
   ],

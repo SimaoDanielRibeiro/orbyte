@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { formatCount, formatNumber } from "@/lib/format";
+import { formatBytes, formatCount } from "@/lib/format";
 import { isValidSeed, MAX_SEED } from "@/lib/seed";
 
 import { useDatasetLoaded } from "./use-dataset-loaded";
@@ -351,8 +351,5 @@ function numbersOnly(values: Values): Record<string, number> {
 }
 
 function fileSize(bytes: number): string {
-  if (bytes < 1024 * 1024) {
-    return `${formatCount(Math.max(1, Math.round(bytes / 1024)))} KB`;
-  }
-  return `${formatNumber(bytes / 1024 ** 2, 1)} MB`;
+  return formatBytes(Math.max(bytes, 1024));
 }

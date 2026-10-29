@@ -19,6 +19,8 @@ import type {
   MessageKind,
   ModelFamily,
   NoticeLevel,
+  PackageFileKind,
+  PackageOrigin,
   Paradigm,
   ParticipantKind,
   Partition,
@@ -44,6 +46,8 @@ export interface VocabularyKinds {
   MessageKind: MessageKind;
   ModelFamily: ModelFamily;
   NoticeLevel: NoticeLevel;
+  PackageFileKind: PackageFileKind;
+  PackageOrigin: PackageOrigin;
   Paradigm: Paradigm;
   ParticipantKind: ParticipantKind;
   Partition: Partition;

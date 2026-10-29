@@ -2484,30 +2484,30 @@ Um excerto das partes que não se veem noutros ecrãs (valores de exemplo):
 
 **Os passos:**
 
-- [ ] **11.1 A preparação que se leva** (`core/data`):
-  - [ ] `learned` e `restore` nas transformações, com um teste de contrato: a restaurada
+- [x] **11.1 A preparação que se leva** (`core/data`):
+  - [x] `learned` e `restore` nas transformações, com um teste de contrato: a restaurada
     transforma igual à original;
-  - [ ] as limpezas com o que aprenderam e a marca das que valem para linhas novas;
-  - [ ] a `FittedPreparation`, guardada no `Dataset`;
-  - [ ] o JSON da preparação e o perfil da entrada;
-  - [ ] as linhas de exemplo em CSV.
-- [ ] **11.2 O pacote** (`core/tracking`): o escritor, o leitor com a verificação, a chave da
+  - [x] as limpezas com o que aprenderam e a marca das que valem para linhas novas;
+  - [x] a `FittedPreparation`, guardada no `Dataset`;
+  - [x] o JSON da preparação e o perfil da entrada;
+  - [x] as linhas de exemplo em CSV.
+- [x] **11.2 O pacote** (`core/tracking`): o escritor, o leitor com a verificação, a chave da
   instalação e a biblioteca.
-- [ ] **11.3 O serviço** (`core/services`):
-  - [ ] guardar: `candidates`, `options`, `preview`, `save`;
-  - [ ] carregar: `load`, `trust`, e o run adotado pelo histórico;
-  - [ ] a biblioteca: `saved`, `contents`, `delete`, `file`;
-  - [ ] a ficha do modelo, os avisos e a marca `keeps_training_rows`;
-  - [ ] os temas do "?" e o vocabulário.
-- [ ] **11.4 A API:** as rotas, o descarregar, o carregar, o `openapi.json` e o guia do
+- [x] **11.3 O serviço** (`core/services`):
+  - [x] guardar: `candidates`, `options`, `preview`, `save`;
+  - [x] carregar: `load`, `trust`, e o run adotado pelo histórico;
+  - [x] a biblioteca: `saved`, `contents`, `delete`, `file`;
+  - [x] a ficha do modelo, os avisos e a marca `keeps_training_rows`;
+  - [x] os temas do "?" e o vocabulário.
+- [x] **11.4 A API:** as rotas, o descarregar, o carregar, o `openapi.json` e o guia do
   contrato.
-- [ ] **11.5 O ecrã Guardar:**
-  - [ ] a rota e a barra;
-  - [ ] as duas colunas e a pré-visualização ao vivo;
-  - [ ] a biblioteca e o leitor de um pacote;
-  - [ ] o carregar, com o aviso;
-  - [ ] o Explicar e o botão do treino a levar ao Guardar;
-  - [ ] os estados.
+- [x] **11.5 O ecrã Guardar:**
+  - [x] a rota e a barra;
+  - [x] as duas colunas e a pré-visualização ao vivo;
+  - [x] a biblioteca e o leitor de um pacote;
+  - [x] o carregar, com o aviso;
+  - [x] o Explicar e o botão do treino a levar ao Guardar;
+  - [x] os estados.
 - [ ] **11.6 O ONNX** (`core/export`): as dependências, o grafo da preparação, os conversores
   dos modelos, a regra de arquitetura e o teste de contrato.
 - [ ] **11.7 Os testes e o fecho:**

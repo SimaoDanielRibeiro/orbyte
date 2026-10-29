@@ -10,6 +10,7 @@ import { cn } from "cn";
 import katex from "katex";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
 const COMPONENTS: Components = {
@@ -62,10 +63,15 @@ interface ProseProps {
   text: string;
   /** `reading` para o texto corrido; `small` para as legendas por baixo dos gráficos. */
   size?: "reading" | "small";
+  /**
+   * As extensões do GitHub (as tabelas): a ficha de um modelo tem uma tabela das métricas. Os
+   * textos didáticos não as usam, e um til sozinho ("~0,5") continua a ser só um til.
+   */
+  gfm?: boolean;
   className?: string;
 }
 
-export function Prose({ text, size = "reading", className }: ProseProps) {
+export function Prose({ text, size = "reading", gfm = false, className }: ProseProps) {
   return (
     <div
       className={cn(
@@ -77,7 +83,7 @@ export function Prose({ text, size = "reading", className }: ProseProps) {
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={gfm ? [[remarkGfm, { singleTilde: false }], remarkMath] : [remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={COMPONENTS}
       >

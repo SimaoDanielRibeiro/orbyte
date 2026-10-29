@@ -18,7 +18,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -39,7 +39,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart, type LineSeries } from "@/components/charts/line-chart";
 import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
-import { ErrorNote, NextStep, Proceed, Stat } from "@/components/shell/blocks";
+import { ErrorNote, NextStep, Stat } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -164,7 +164,12 @@ function Explained({ result }: { result: ExperimentResult }) {
             </Part>
           </div>
           <NextStep>
-            <Proceed to="/experiencias">Comparar nas Experiências</Proceed>
+            <Button asChild variant="proceed" size="proceed">
+              <Link to="/guardar/$runId" params={{ runId: result.run_id }}>
+                Guardar o modelo
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
           </NextStep>
         </>
       )}

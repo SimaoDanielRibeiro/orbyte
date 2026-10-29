@@ -231,9 +231,9 @@ O corpo de um erro é sempre um `ApiError`: `{code, message, problems}`.
 
 | HTTP | Quando | Códigos |
 |---|---|---|
-| 404 | O identificador não existe | `run_not_found`, `dataset_not_found`, `job_not_found`, `search_not_found`, `candidate_not_found`, `run_not_in_memory`, `component_not_found` |
+| 404 | O identificador não existe | `run_not_found`, `dataset_not_found`, `job_not_found`, `search_not_found`, `candidate_not_found`, `run_not_in_memory`, `component_not_found`, `package_not_found` |
 | 409 | O trabalho ainda decorre, ou falhou | `training_in_progress`, `training_failed` |
-| 422 | Os valores do pedido não servem | `invalid_request`, `hyperparameter`, `invalid_parameter`, `column_not_found`, `data`, `data_source`, `data_validation`, `invalid_seed` |
+| 422 | Os valores do pedido não servem | `invalid_request`, `hyperparameter`, `invalid_parameter`, `column_not_found`, `data`, `data_source`, `data_validation`, `invalid_seed`, `package` |
 | 400 | O pedido não se pode cumprir | `model`, `capability`, `not_fitted` |
 | 500 | O registo falhou, ou um erro inesperado | `tracking`, `unexpected` |
 
@@ -298,8 +298,9 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 | Explorar | `datasets_profile` |
 | Preparar | `datasets_suggest_task`, `datasets_task_options`, `datasets_suggest_cleaning`, `datasets_cleaning_operations`, `datasets_prepare` |
 | Modelos (a lista e a página de cada modelo) | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `catalog_demo`, `experiments_start` |
-| Treinar e avaliar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` (ou `history_open`), `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics`, `history_entry`, `history_save` |
+| Treinar e avaliar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` (ou `history_open`), `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics` |
 | Explicar | `experiments_result` (ou `history_open`), `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
+| Guardar | `packages_candidates`, `packages_options`, `packages_preview`, `packages_save`, `packages_saved`, `packages_contents`, `packages_load`, `packages_trust`, `packages_delete`, e o ficheiro (`GET /packages/{package_id}/file`, uma ligação normal) |
 | Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar) |
 | Métricas | `catalog_metrics` |
 | Laboratório | `laboratory_demos` (o que cada demonstração mostra, os valores do seu controlo e o de partida), `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization` |
@@ -319,7 +320,28 @@ recomeçar) responde `run_not_in_memory`. O ecrã Treinar e avaliar, o Explicar 
 então ao histórico (`history_open`, `history_open_reinforcement`): um run guardado volta com o
 modelo (e com ele os gráficos e o Explicar); um só registado volta com tudo menos isso. Só um
 run que também não está no histórico (`run_not_found`) se perdeu. O botão "Guardar experiência"
-desses ecrãs lê a entrada do histórico (`history_entry`) e guarda com `history_save`.
+do RL lê a entrada do histórico (`history_entry`) e guarda com `history_save`; o "Guardar" do
+Treinar e avaliar leva ao ecrã Guardar, onde gravar o pacote também guarda o run.
+
+**Os pacotes (o ecrã Guardar, ADR 0039).** Um `.mllab` é um ZIP com a ficha, o manifesto, a
+preparação, o run e, se se quiser, o modelo e algumas linhas de exemplo:
+
+- `packages_options` diz o nome sugerido e as partes que se podem deixar de fora, em
+  `choices`: cada uma com o título, o que leva, se vai por omissão e, quando o run não a tem, a
+  razão. O `key` de cada uma é o campo do pedido que a liga (`include_model`,
+  `include_examples`, `include_training`): o formulário desenha-se da lista, sem saber quais são;
+- `packages_preview` devolve o ficheiro parte a parte antes de existir, com o mesmo código que o
+  grava: o que se vê é o que se guarda. Pede-se outra vez depois de uma pausa curta, a cada
+  opção que muda;
+- `packages_save` grava na biblioteca, guarda o run no histórico e devolve o `package_id`; o
+  ficheiro descarrega-se pela ligação `GET /packages/{package_id}/file` (a única rota que não
+  devolve JSON);
+- `packages_load` recebe o ficheiro (`multipart/form-data`). Feito neste ML Lab, o run entra
+  logo no histórico (`trusted`); de outra instalação, `trusted` vem falso e o aviso (os
+  `notices`) mostra-se antes de `packages_trust`, porque abrir o modelo corre o código de quem
+  o fez. Um pacote estragado (`intact` falso) só se lê;
+- um run ainda a treinar responde `training_in_progress`, e um só registado (sem o modelo)
+  `run_not_in_memory`.
 
 **Os controlos do Laboratório** desenham-se do `laboratory_demos`: os valores que cada um
 oferece (de onde a taxa de aprendizagem se arrasta até onde explode, os alphas de cada modelo)

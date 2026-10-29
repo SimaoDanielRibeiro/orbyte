@@ -11,10 +11,12 @@
  * No cabeçalho ficam só o título e dois botões (guardar e prosseguir), para o nome do modelo não
  * se partir em três linhas; os dados do run são o primeiro número da faixa, não uma linha por
  * baixo do título, e "Experimentar outro modelo" fica no fim, junto do passo seguinte (ADR 0038).
+ * "Guardar" leva ao ecrã Guardar, com este run: lá vê-se o ficheiro antes de o gravar, e guardar
+ * também guarda o run no histórico (ADR 0039).
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowRight, ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft, Package } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -37,7 +39,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton } from "@/features/data/require-dataset";
-import { SaveRunButton } from "@/features/history/save-run";
 import { EmbeddingView } from "@/features/models/embedding-view";
 import { LearnedViewPanel } from "@/features/models/learned-view";
 import { formatCount, formatNumber, formatStatistic } from "@/lib/format";
@@ -123,7 +124,12 @@ function TrainRun({ runId }: { runId: string }) {
         </div>
         {data !== undefined && (
           <div className="flex flex-wrap items-center gap-2 @3xl/main:ml-auto">
-            <SaveRunButton runId={runId} />
+            <Button asChild variant="outline" size="proceed">
+              <Link to="/guardar/$runId" params={{ runId }}>
+                <Package aria-hidden="true" />
+                Guardar
+              </Link>
+            </Button>
             <ExplainProceed runId={runId} />
           </div>
         )}

@@ -133,6 +133,17 @@ export function formatStatistic(value: number): string {
   return text.includes(",") ? text.replace(/0+$/, "").replace(/,$/, "") : text;
 }
 
+/** Escreve o tamanho de um ficheiro: em bytes até 1 KB, em KB até 1 MB, depois em MB (`3,6 MB`). */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${formatCount(bytes)} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${formatCount(Math.round(bytes / 1024))} KB`;
+  }
+  return `${formatNumber(bytes / 1024 ** 2, 1)} MB`;
+}
+
 /** Escreve uma quantidade com o nome no singular ou no plural (`12 linhas duplicadas`). */
 export function formatQuantity(count: number, singular: string, plural: string): string {
   return `${formatCount(count)} ${count === 1 ? singular : plural}`;
