@@ -98,8 +98,8 @@ def test_the_input_profile_describes_each_column(passengers: pd.DataFrame) -> No
     assert set(columns) == {"Pclass", "Sex", "Age", "Embarked", "Fare"}
     age = columns["Age"]
     assert age.kind is ColumnKind.NUMERIC
-    assert age.minimum is not None
-    assert age.maximum is not None
+    assert isinstance(age.minimum, float)
+    assert isinstance(age.maximum, float)
     assert age.minimum <= 28 <= age.maximum
     assert age.can_be_missing
     assert columns["Sex"].categories == ("female", "male")

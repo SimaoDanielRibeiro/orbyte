@@ -270,3 +270,21 @@ class RunNotFoundError(TrackingError, LookupError):
         super().__init__(
             f"Não há nenhum run '{run_id}' no registo de experiências: pode ter sido apagado."
         )
+
+
+class PackageError(DataError):
+    """Um ficheiro que não é um pacote do ML Lab, ou que está estragado (ADR 0039)."""
+
+
+class PackageNotFoundError(TrackingError, LookupError):
+    """Não há nenhum pacote com o identificador pedido na biblioteca.
+
+    Args:
+        package_id: O identificador pedido.
+    """
+
+    def __init__(self, package_id: str) -> None:
+        self.package_id = package_id
+        super().__init__(
+            f"Não há nenhum pacote '{package_id}' na biblioteca: pode ter sido apagado."
+        )

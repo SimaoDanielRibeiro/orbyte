@@ -36,7 +36,9 @@ TRAIN = pd.DataFrame(
         "fare": [7.25, 71.3, 8.05, 53.1, 13.0],
         "city": ["Porto", "Lisboa", "Porto", None, "Braga"],
         "member": [True, False, True, True, False],
-        "when": pd.to_datetime(["2024-01-05", "2024-03-10", None, "2023-12-24", "2024-07-01"]),
+        "when": pd.to_datetime(
+            pd.Series(["2024-01-05", "2024-03-10", None, "2023-12-24", "2024-07-01"])
+        ),
     }
 )
 NEW = pd.DataFrame(
@@ -45,7 +47,7 @@ NEW = pd.DataFrame(
         "fare": [0.0, 512.3, 20.0],
         "city": ["Faro", "Lisboa", None],
         "member": [False, True, True],
-        "when": pd.to_datetime(["2025-02-28", None, "2020-01-01"]),
+        "when": pd.to_datetime(pd.Series(["2025-02-28", None, "2020-01-01"])),
     }
 )
 
