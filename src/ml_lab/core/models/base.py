@@ -121,6 +121,9 @@ class ModelInfo:
             (por exemplo ``max_epochs``): é o que permite mostrar uma barra de progresso.
         supports_new_data: Se sabe prever (ou projetar) linhas que não viu no treino. O
             t-SNE, por exemplo, só coloca no mapa os pontos com que treinou.
+        keeps_training_rows: Se o modelo treinado guarda linhas do treino dentro dele (o KNN
+            guarda-as todas; uma SVM, os vetores de suporte). Quem tiver o modelo consegue
+            vê-las, já transformadas: o pacote de um modelo destes avisa (ADR 0039).
     """
 
     name: str
@@ -135,6 +138,7 @@ class ModelInfo:
     doc: str
     step_limit: str | None = None
     supports_new_data: bool = True
+    keeps_training_rows: bool = False
 
 
 class LabModel[P: Hyperparameters](ABC):

@@ -169,6 +169,7 @@ class OneClassSVM(SklearnModel[OneClassSVMParams]):
         supports_proba=False,
         hyperparameters=OneClassSVMParams,
         doc="one_class_svm.md",
+        keeps_training_rows=True,
     )
 
     @override
@@ -211,6 +212,7 @@ class LOF(SklearnModel[LOFParams]):
         supports_proba=False,
         hyperparameters=LOFParams,
         doc="lof.md",
+        keeps_training_rows=True,
     )
 
     def __init__(self, hyperparameters: LOFParams | None = None, *, seed: int = 0) -> None:

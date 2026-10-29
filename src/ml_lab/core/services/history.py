@@ -17,7 +17,7 @@ Os runs de reinforcement learning (fase 8) entram no mesmo histórico, com a tar
 guarda a pedido (o agente e o que ele sabia em cada snapshot).
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
@@ -81,6 +81,32 @@ class HistoryService:
         entry = _entry(result)
         # O treino passo a passo fica de fora: é o que mais pesa, e só se guarda a pedido.
         self._store.add(entry, to_json(_light(result)))
+        return entry
+
+    @internal
+    def adopt(
+        self,
+        result: ExperimentResult,
+        model: Any | None,
+        documents: Mapping[str, Any],
+        *,
+        name: str,
+    ) -> RunEntry:
+        """Põe no histórico um run que veio de um pacote (ecrã Guardar, ADR 0039).
+
+        Com o modelo, o run fica guardado (com o treino passo a passo que o pacote trouxer) e
+        volta a abrir com tudo; sem ele (um pacote "só a ficha"), fica só registado.
+
+        Args:
+            result: O run, como o pacote o trouxe.
+            model: O modelo treinado, ou ``None``.
+            documents: O treino passo a passo, pelo nome do ficheiro (``{"animation": ...}``).
+            name: O nome do run no histórico.
+        """
+        entry = replace(_entry(result), name=_name(name), saved=model is not None)
+        self._store.add(entry, to_json(_light(result)))
+        if model is not None:
+            self._files.save(result.run_id, model, documents)
         return entry
 
     def runs(

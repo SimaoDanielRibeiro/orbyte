@@ -25,7 +25,7 @@ import secrets
 import shutil
 import zipfile
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final, Literal
@@ -334,6 +334,10 @@ class LibraryEntry:
         origin: Feito aqui, ou carregado de um ficheiro.
         trusted: Se o modelo se pode abrir (feito aqui, ou a pessoa confirmou que confia).
         run_id: O run que o pacote pôs no histórico desta instalação, se já pôs.
+        made_here: Se a assinatura é desta instalação (lido quando entrou na biblioteca).
+        intact: Se todos os ficheiros conferiam com o manifesto.
+        problems: O que não conferia.
+        manifest: O manifesto, para mostrar o pacote sem voltar a abrir o ZIP.
     """
 
     package_id: str
@@ -344,6 +348,10 @@ class LibraryEntry:
     origin: Origin
     trusted: bool
     run_id: str | None = None
+    made_here: bool = False
+    intact: bool = True
+    problems: tuple[str, ...] = ()
+    manifest: Mapping[str, Any] = field(default_factory=dict)
 
 
 class PackageLibrary:
@@ -363,6 +371,7 @@ class PackageLibrary:
         file_name: str,
         origin: Origin,
         trusted: bool,
+        opened: OpenedPackage | None = None,
         package_id: str | None = None,
         run_id: str | None = None,
     ) -> LibraryEntry:
@@ -373,8 +382,9 @@ class PackageLibrary:
             file_name: O nome do ficheiro.
             origin: Feito aqui, ou carregado.
             trusted: Se o modelo se pode abrir.
-            package_id: O identificador a usar (o do manifesto, num pacote feito aqui); se
-                faltar, ou já existir, cria-se outro.
+            opened: O pacote já lido (o manifesto e se confere), para a biblioteca o mostrar
+                sem voltar a abrir o ZIP.
+            package_id: O identificador a usar; se faltar, ou já existir, cria-se outro.
             run_id: O run do histórico a que o pacote corresponde.
         """
         identifier = package_id
@@ -391,6 +401,10 @@ class PackageLibrary:
             origin=origin,
             trusted=trusted,
             run_id=run_id,
+            made_here=opened is not None and opened.made_here,
+            intact=opened is None or opened.intact,
+            problems=() if opened is None else opened.problems,
+            manifest={} if opened is None else opened.manifest,
         )
         folder = self._folder(identifier)
         folder.mkdir(parents=True, exist_ok=True)
@@ -476,6 +490,10 @@ class PackageLibrary:
             "origin": entry.origin,
             "trusted": entry.trusted,
             "run_id": entry.run_id,
+            "made_here": entry.made_here,
+            "intact": entry.intact,
+            "problems": list(entry.problems),
+            "manifest": dict(entry.manifest),
         }
         text = json.dumps(record, ensure_ascii=False, indent=2)
         (self._folder(entry.package_id) / _LIBRARY_FILE).write_text(text, encoding="utf-8")
@@ -493,6 +511,10 @@ class PackageLibrary:
                 origin="made_here" if record["origin"] == "made_here" else "loaded",
                 trusted=bool(record["trusted"]),
                 run_id=record.get("run_id"),
+                made_here=bool(record.get("made_here", False)),
+                intact=bool(record.get("intact", True)),
+                problems=tuple(str(problem) for problem in record.get("problems", [])),
+                manifest=dict(record.get("manifest", {})),
             )
         except (OSError, ValueError, KeyError) as error:
             raise TrackingError(

@@ -74,6 +74,7 @@ class TSNE(SklearnModel[TSNEParams]):
         hyperparameters=TSNEParams,
         doc="tsne.md",
         supports_new_data=False,
+        keeps_training_rows=True,
     )
 
     def __init__(self, hyperparameters: TSNEParams | None = None, *, seed: int = 0) -> None:

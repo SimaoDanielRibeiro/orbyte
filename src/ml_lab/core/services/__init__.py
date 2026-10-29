@@ -65,6 +65,7 @@ from ml_lab.core.rl.environments.base import CellKind, GridLayout
 from ml_lab.core.rl.lesson import LessonEpisode, LessonStep, ReinforcementLesson
 from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.schemas.packages import PackageRequest
 from ml_lab.core.schemas.reinforcement import AgentSpec, EnvironmentSpec, ReinforcementConfig
 from ml_lab.core.services.analysis import AnalysisService, Contribution, RowExplanation
 from ml_lab.core.services.automl import (
@@ -112,6 +113,17 @@ from ml_lab.core.services.laboratory import (
     OverfittingDemo,
     Points,
     RegularizationDemo,
+)
+from ml_lab.core.services.packages import (
+    PackageCandidate,
+    PackageFileKind,
+    PackageOptions,
+    PackageOrigin,
+    PackagePart,
+    PackagePreview,
+    PackageService,
+    PackageView,
+    SavedPackage,
 )
 from ml_lab.core.services.reinforcement import (
     AgentCard,
@@ -254,6 +266,15 @@ __all__ = [
     "OperationSummary",
     "Outline",
     "OverfittingDemo",
+    "PackageCandidate",
+    "PackageFileKind",
+    "PackageOptions",
+    "PackageOrigin",
+    "PackagePart",
+    "PackagePreview",
+    "PackageRequest",
+    "PackageService",
+    "PackageView",
     "PartialDependence",
     "Participant",
     "ParticipantKind",
@@ -282,6 +303,7 @@ __all__ = [
     "RunComparison",
     "RunEntry",
     "SampleSummary",
+    "SavedPackage",
     "ScalingMethod",
     "SearchPhase",
     "SearchSettings",

@@ -53,6 +53,7 @@ class Svm(SklearnModel[KernelParams]):
         supports_proba=True,
         hyperparameters=KernelParams,
         doc="svm.md",
+        keeps_training_rows=True,
     )
 
     def __init__(self, hyperparameters: KernelParams | None = None, *, seed: int = 0) -> None:

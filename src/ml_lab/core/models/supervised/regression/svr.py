@@ -50,6 +50,7 @@ class Svr(SklearnModel[SvrParams]):
         supports_proba=False,
         hyperparameters=SvrParams,
         doc="svm.md",
+        keeps_training_rows=True,
     )
 
     @override

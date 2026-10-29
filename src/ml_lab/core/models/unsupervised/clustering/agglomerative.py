@@ -100,6 +100,7 @@ class Agglomerative(SklearnModel[AgglomerativeParams]):
         supports_proba=False,
         hyperparameters=AgglomerativeParams,
         doc="agglomerative.md",
+        keeps_training_rows=True,
     )
 
     def __init__(

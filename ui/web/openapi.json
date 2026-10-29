@@ -6146,6 +6146,820 @@
         }
       }
     },
+    "/packages/candidates": {
+      "get": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Os runs do histórico que se podem guardar num pacote (ou porque não se podem).",
+        "operationId": "packages_candidates",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PackageCandidate"
+                  },
+                  "type": "array",
+                  "title": "Response Packages Candidates"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/runs/{run_id}/options": {
+      "get": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "O nome e as partes sugeridas para o pacote de um run.",
+        "operationId": "packages_options",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/runs/{run_id}/preview": {
+      "post": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "O pacote de um run, parte a parte, antes de existir (é o que o guardar grava).",
+        "operationId": "packages_preview",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/runs/{run_id}": {
+      "post": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Grava o pacote de um run na biblioteca e guarda o run no histórico.",
+        "operationId": "packages_save",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedPackage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages": {
+      "get": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Os pacotes da biblioteca, do mais recente para o mais antigo.",
+        "operationId": "packages_saved",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedPackage"
+                  },
+                  "type": "array",
+                  "title": "Response Packages Saved"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/uploads": {
+      "post": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Carrega um ficheiro .mllab: entra na biblioteca e, se não houver risco, no histórico.",
+        "description": "Um pacote feito neste ML Lab (ou sem o modelo) entra logo no histórico. Um de outra\ninstalação fica só para ler até se confirmar que se confia nele (``trust``).",
+        "operationId": "packages_load",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_packages_load"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedPackage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/{package_id}": {
+      "get": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Um pacote da biblioteca, aberto parte a parte.",
+        "operationId": "packages_contents",
+        "parameters": [
+          {
+            "name": "package_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Package Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Apaga um pacote da biblioteca (o run que ele pôs no histórico fica lá).",
+        "operationId": "packages_delete",
+        "parameters": [
+          {
+            "name": "package_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Package Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/{package_id}/trust": {
+      "post": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Abre o modelo de um pacote de outra instalação, depois do aviso, e põe o run no histórico.",
+        "operationId": "packages_trust",
+        "parameters": [
+          {
+            "name": "package_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Package Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedPackage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/{package_id}/file": {
+      "get": {
+        "tags": [
+          "packages"
+        ],
+        "summary": "Descarrega o ficheiro .mllab de um pacote da biblioteca",
+        "description": "O ficheiro vem com o nome do pacote, pronto a guardar no disco.",
+        "operationId": "packages_download",
+        "parameters": [
+          {
+            "name": "package_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Package Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O ficheiro .mllab.",
+            "content": {
+              "application/zip": {}
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vocabulary": {
       "get": {
         "tags": [
@@ -7029,6 +7843,20 @@
           "file"
         ],
         "title": "Body_datasets_upload"
+      },
+      "Body_packages_load": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_packages_load"
       },
       "Candidate": {
         "properties": {
@@ -10692,6 +11520,352 @@
         "title": "OverfittingDemo",
         "description": "O erro no treino e no teste para cada grau, e a curva do grau escolhido."
       },
+      "PackageCandidate": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "model_display_name": {
+            "type": "string",
+            "title": "Model Display Name"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelFamily"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataset_name": {
+            "type": "string",
+            "title": "Dataset Name"
+          },
+          "task_type": {
+            "$ref": "#/components/schemas/TaskType"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "primary_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Label"
+          },
+          "primary_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Value"
+          },
+          "primary_as_percent": {
+            "type": "boolean",
+            "title": "Primary As Percent"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "name",
+          "model_display_name",
+          "family",
+          "dataset_name",
+          "task_type",
+          "created_at",
+          "primary_label",
+          "primary_value",
+          "primary_as_percent",
+          "available",
+          "reason"
+        ],
+        "title": "PackageCandidate",
+        "description": "Um run do histórico que se pode guardar num pacote (ou porque não se pode).\n\nAttributes:\n    run_id: O run.\n    name: O nome do run no histórico.\n    model_display_name: O modelo.\n    family: A família do modelo (a cor dele na interface).\n    dataset_name: O dataset.\n    task_type: A tarefa.\n    created_at: Quando terminou.\n    primary_label: O nome da métrica principal.\n    primary_value: O valor dela na parte que resume o run.\n    primary_as_percent: Se se mostra como percentagem.\n    available: Se o modelo está à mão (desta sessão, ou guardado).\n    reason: Porque não se pode guardar (``None`` se se pode)."
+      },
+      "PackageFileKind": {
+        "type": "string",
+        "enum": [
+          "markdown",
+          "json",
+          "csv",
+          "text",
+          "binary"
+        ],
+        "title": "PackageFileKind",
+        "description": "O tipo de um ficheiro de um pacote (diz como se pré-visualiza)."
+      },
+      "PackageOptions": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "include_model": {
+            "type": "boolean",
+            "title": "Include Model"
+          },
+          "include_examples": {
+            "type": "boolean",
+            "title": "Include Examples"
+          },
+          "examples": {
+            "type": "integer",
+            "title": "Examples"
+          },
+          "max_examples": {
+            "type": "integer",
+            "title": "Max Examples"
+          },
+          "examples_available": {
+            "type": "boolean",
+            "title": "Examples Available"
+          },
+          "include_training": {
+            "type": "boolean",
+            "title": "Include Training"
+          },
+          "training_available": {
+            "type": "boolean",
+            "title": "Training Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "name",
+          "file_name",
+          "include_model",
+          "include_examples",
+          "examples",
+          "max_examples",
+          "examples_available",
+          "include_training",
+          "training_available"
+        ],
+        "title": "PackageOptions",
+        "description": "O que se sugere para o pacote de um run, e o que se pode escolher.\n\nAttributes:\n    run_id: O run.\n    name: O nome sugerido.\n    file_name: O nome do ficheiro que esse nome dá.\n    include_model: Se leva o modelo, por omissão.\n    include_examples: Se leva linhas de exemplo, por omissão (sim nos datasets de exemplo\n        e nos sintéticos; não num ficheiro carregado, que pode ser de alguém).\n    examples: Quantas linhas de exemplo, por omissão.\n    max_examples: Quantas linhas de exemplo há, no máximo.\n    examples_available: Se o run tem linhas de exemplo para dar.\n    include_training: Se leva o treino passo a passo, por omissão.\n    training_available: Se o run tem o treino passo a passo."
+      },
+      "PackageOrigin": {
+        "type": "string",
+        "enum": [
+          "made_here",
+          "loaded"
+        ],
+        "title": "PackageOrigin",
+        "description": "De onde veio um pacote da biblioteca."
+      },
+      "PackagePart": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PackageFileKind"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "title",
+          "description",
+          "kind",
+          "size",
+          "content",
+          "truncated"
+        ],
+        "title": "PackagePart",
+        "description": "Um ficheiro de um pacote, como o ecrã o mostra.\n\nAttributes:\n    path: O nome no pacote.\n    title: O nome a mostrar.\n    description: O que tem, numa frase.\n    kind: Como se pré-visualiza.\n    size: O tamanho, em bytes, sem comprimir.\n    content: O texto (os primeiros ``PREVIEW_CHARACTERS``); ``None`` num binário.\n    truncated: Se o texto ficou cortado."
+      },
+      "PackagePreview": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "format_version": {
+            "type": "integer",
+            "title": "Format Version"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/PackagePart"
+            },
+            "type": "array",
+            "title": "Parts"
+          },
+          "has_model": {
+            "type": "boolean",
+            "title": "Has Model"
+          },
+          "has_onnx": {
+            "type": "boolean",
+            "title": "Has Onnx"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "file_name",
+          "format_version",
+          "size",
+          "parts",
+          "has_model",
+          "has_onnx",
+          "notices"
+        ],
+        "title": "PackagePreview",
+        "description": "Um pacote parte a parte: o que vai no ficheiro (ou o que um ficheiro tem).\n\nAttributes:\n    name: O nome do pacote.\n    file_name: O nome do ficheiro.\n    format_version: A versão do formato.\n    size: O tamanho de todas as partes, sem comprimir.\n    parts: As partes, pela ordem do ZIP.\n    has_model: Se leva o modelo (e por isso se pode prever com ele).\n    has_onnx: Se leva o ``model.onnx``, para outras apps.\n    notices: O que convém saber antes de o guardar ou de o abrir."
+      },
+      "PackageRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "include_model": {
+            "type": "boolean",
+            "title": "Include Model",
+            "default": true
+          },
+          "include_examples": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Examples"
+          },
+          "examples": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Examples",
+            "default": 5
+          },
+          "include_training": {
+            "type": "boolean",
+            "title": "Include Training",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PackageRequest",
+        "description": "O que vai num pacote, além das partes que vão sempre.\n\nAttributes:\n    name: O nome do pacote (dá o nome do ficheiro); ``None`` usa o dataset e o modelo.\n    include_model: Se leva o modelo treinado (sem ele, é \"só a ficha\": lê-se, mas não\n        prevê, e não tem pickle nenhum).\n    include_examples: Se leva linhas de exemplo; ``None`` aceita a sugestão do serviço\n        (sim nos datasets de exemplo e nos sintéticos, não num ficheiro carregado).\n    examples: Quantas linhas de exemplo.\n    include_training: Se leva o treino passo a passo (para o rever depois de carregar)."
+      },
+      "PackageView": {
+        "properties": {
+          "package": {
+            "$ref": "#/components/schemas/SavedPackage"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/PackagePreview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "package",
+          "preview"
+        ],
+        "title": "PackageView",
+        "description": "Um pacote da biblioteca, aberto: o que se sabe dele e as suas partes.\n\nAttributes:\n    package: O pacote.\n    preview: As partes, no mesmo formato da pré-visualização."
+      },
       "Paradigm": {
         "type": "string",
         "enum": [
@@ -12165,6 +13339,169 @@
         "type": "object",
         "title": "SaveRequest",
         "description": "Guardar um run (com um nome novo, se se quiser)."
+      },
+      "SavedPackage": {
+        "properties": {
+          "package_id": {
+            "type": "string",
+            "title": "Package Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Added At"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/PackageOrigin"
+          },
+          "made_here": {
+            "type": "boolean",
+            "title": "Made Here"
+          },
+          "intact": {
+            "type": "boolean",
+            "title": "Intact"
+          },
+          "trusted": {
+            "type": "boolean",
+            "title": "Trusted"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "model_display_name": {
+            "type": "string",
+            "title": "Model Display Name"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelFamily"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataset_name": {
+            "type": "string",
+            "title": "Dataset Name"
+          },
+          "task_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "primary_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Label"
+          },
+          "primary_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Value"
+          },
+          "primary_as_percent": {
+            "type": "boolean",
+            "title": "Primary As Percent"
+          },
+          "has_model": {
+            "type": "boolean",
+            "title": "Has Model"
+          },
+          "has_onnx": {
+            "type": "boolean",
+            "title": "Has Onnx"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "package_id",
+          "name",
+          "file_name",
+          "size",
+          "sha256",
+          "created_at",
+          "added_at",
+          "origin",
+          "made_here",
+          "intact",
+          "trusted",
+          "run_id",
+          "model_display_name",
+          "family",
+          "dataset_name",
+          "task_type",
+          "primary_label",
+          "primary_value",
+          "primary_as_percent",
+          "has_model",
+          "has_onnx",
+          "notices"
+        ],
+        "title": "SavedPackage",
+        "description": "Um pacote da biblioteca.\n\nAttributes:\n    package_id: O identificador na biblioteca.\n    name: O nome do pacote.\n    file_name: O nome do ficheiro.\n    size: O tamanho do ficheiro (comprimido), em bytes.\n    sha256: A impressão digital do ficheiro.\n    created_at: Quando foi feito (do manifesto).\n    added_at: Quando entrou na biblioteca.\n    origin: Feito aqui, ou carregado.\n    made_here: Se a assinatura é desta instalação.\n    intact: Se os ficheiros conferem com o manifesto.\n    trusted: Se o modelo se pode abrir (feito aqui, sem modelo, ou depois de confirmar).\n    run_id: O run que o pacote pôs no histórico, se já pôs.\n    model_display_name: O modelo.\n    family: A família do modelo.\n    dataset_name: O dataset.\n    task_type: A tarefa.\n    primary_label: O nome da métrica principal.\n    primary_value: O valor dela.\n    primary_as_percent: Se se mostra como percentagem.\n    has_model: Se o pacote leva o modelo.\n    has_onnx: Se leva o ``model.onnx``.\n    notices: O que convém saber (de outra instalação, estragado, outras versões)."
       },
       "ScalingMethod": {
         "type": "string",

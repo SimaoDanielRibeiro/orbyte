@@ -50,6 +50,7 @@ class KnnNumpy(LabModel[KnnParams]):
         supports_proba=True,
         hyperparameters=KnnParams,
         doc="knn.md",
+        keeps_training_rows=True,
     )
 
     def __init__(self, hyperparameters: KnnParams | None = None, *, seed: int = 0) -> None:

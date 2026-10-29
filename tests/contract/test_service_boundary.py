@@ -20,6 +20,7 @@ from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.models.base import ModelFamily
 from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.schemas.packages import PackageRequest
 from ml_lab.core.schemas.serialization import from_json, is_internal, json_schema, to_json
 from ml_lab.core.services import vocabulary
 from ml_lab.core.services.lab import Lab
@@ -89,6 +90,7 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
     )
     automl = lab.automl.start(search)
     automl.wait(timeout=60)
+    saved = lab.packages.save(result.run_id, PackageRequest(examples=2))
     outputs = [
         lab.automl.options(TaskType.BINARY_CLASSIFICATION),
         lab.automl.plan(search),
@@ -112,6 +114,11 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
         lab.analysis.explain_row(result.run_id, 0),
         lab.laboratory.knn(5),
         lab.reinforcement.lesson(),
+        list(lab.packages.candidates()),
+        lab.packages.options(result.run_id),
+        lab.packages.preview(result.run_id, PackageRequest()),
+        saved,
+        lab.packages.contents(saved.package_id),
         list(lab.laboratory.demos()),
         vocabulary(),
     ]

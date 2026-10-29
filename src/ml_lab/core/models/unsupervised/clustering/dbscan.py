@@ -77,6 +77,7 @@ class DBSCAN(SklearnModel[DBSCANParams]):
         supports_proba=False,
         hyperparameters=DBSCANParams,
         doc="dbscan.md",
+        keeps_training_rows=True,
     )
 
     def __init__(self, hyperparameters: DBSCANParams | None = None, *, seed: int = 0) -> None:

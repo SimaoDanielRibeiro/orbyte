@@ -31,6 +31,7 @@ from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.rl.environments.base import CellKind
 from ml_lab.core.services.catalog import SUGGESTED_MODELS
 from ml_lab.core.services.laboratory import LaboratoryDemo
+from ml_lab.core.services.packages import PackageFileKind, PackageOrigin
 from ml_lab.core.training.jobs import JobStatus
 from ml_lab.core.training.step_metrics import STEP_METRICS, StepMetric
 
@@ -103,6 +104,8 @@ def vocabulary() -> Vocabulary:
         "MessageKind": _labels(MessageKind),
         "ModelFamily": _labels(ModelFamily),
         "NoticeLevel": _labels(NoticeLevel),
+        "PackageFileKind": _labels(PackageFileKind),
+        "PackageOrigin": _labels(PackageOrigin),
         "Paradigm": _labels(Paradigm),
         "ParticipantKind": _labels(ParticipantKind),
         "Partition": _labels(Partition),

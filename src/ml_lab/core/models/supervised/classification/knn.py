@@ -93,6 +93,7 @@ class Knn(SklearnModel[KnnParams]):
         supports_proba=True,
         hyperparameters=KnnParams,
         doc="knn.md",
+        keeps_training_rows=True,
     )
 
     @override

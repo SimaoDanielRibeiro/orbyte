@@ -17,6 +17,7 @@ from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import ExperimentService
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.laboratory import LaboratoryService
+from ml_lab.core.services.packages import PackageService
 from ml_lab.core.services.reinforcement import ReinforcementService
 from ml_lab.core.tracking.artifacts import ArtifactStore
 from ml_lab.core.tracking.sqlite_store import SqliteStore
@@ -40,6 +41,8 @@ class Lab:
         reinforcement: Treinar agentes de reinforcement learning (ecrã Reinforcement learning).
         automl: Os agentes do modo automático: procuram o melhor modelo para um pedido
             (ecrã Agentes).
+        packages: Os pacotes dos modelos: guardar o que se preparou e aprendeu num ficheiro,
+            a biblioteca e carregar um modelo treinado (ecrã Guardar).
     """
 
     datasets: DatasetService
@@ -50,6 +53,7 @@ class Lab:
     history: HistoryService
     reinforcement: ReinforcementService
     automl: AutoMLService
+    packages: PackageService
 
     @classmethod
     def create(
@@ -93,4 +97,5 @@ class Lab:
             history=history,
             reinforcement=reinforcement,
             automl=AutoMLService(datasets, experiments, history=history, settings=settings),
+            packages=PackageService(experiments, history, settings),
         )
