@@ -13,7 +13,8 @@
 
 ``run`` faz tudo e devolve o resultado; ``start`` treina em segundo plano, e ``job``,
 ``updates``, ``pause``, ``resume``, ``cancel`` e ``result`` servem quem só sabe o
-identificador do run (a API, ADR 0022).
+identificador do run (a API, ADR 0022). ``lesson`` é a animação que abre o ecrã: um
+Q-learning pequeno, passo a passo, que não é um run (ADR 0037).
 """
 
 import threading
@@ -53,6 +54,7 @@ from ml_lab.core.rl.evaluation import (
     reading,
     training_outcomes,
 )
+from ml_lab.core.rl.lesson import ReinforcementLesson, lesson
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.schemas.reinforcement import ReinforcementConfig
 from ml_lab.core.schemas.serialization import internal, to_json
@@ -272,6 +274,7 @@ class ReinforcementService:
         self._active: dict[str, _Plan] = {}
         self._jobs: JobRegistry[ReinforcementResult] = JobRegistry(KEPT_RUNS)
         self._lock = threading.Lock()
+        self._lesson: ReinforcementLesson | None = None
 
     @property
     def bus(self) -> EventBus:
@@ -312,6 +315,18 @@ class ReinforcementService:
                 )
             )
         return sorted(cards, key=lambda card: card.name != "q_learning")  # o didático primeiro
+
+    def lesson(self) -> ReinforcementLesson:
+        """A lição do ecrã: um Q-learning no penhasco, visto passo a passo.
+
+        É o que a animação "Como um agente aprende" mostra (``core/rl/lesson.py``): alguns
+        episódios inteiros, com cada passo (o estado, a ação, se explorou, a recompensa, a
+        surpresa e o valor novo) e uma frase sobre cada episódio. Não é um run: não vai para o
+        histórico. É sempre a mesma (a seed é fixa), por isso calcula-se uma vez e fica guardada.
+        """
+        if self._lesson is None:
+            self._lesson = lesson()
+        return self._lesson
 
     def run(self, config: ReinforcementConfig) -> ReinforcementResult:
         """Treina o agente descrito por ``config`` e espera pelo resultado.

@@ -62,6 +62,22 @@ EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "contínuo pede regressão; sem alvo, só há tarefas não supervisionadas. O sistema "
             "sugere, mas és tu que decides.",
         ),
+        "supervised": Explanation(
+            "Aprendizagem supervisionada",
+            "O modelo aprende com exemplos já respondidos: cada linha traz as features e o "
+            "**alvo**, a resposta certa. Treinar é ajustar o modelo para acertar no alvo do "
+            "treino; avaliar é ver se acerta em linhas que nunca viu. A **classificação** prevê "
+            "uma classe (sobreviveu ou não, a espécie de uma flor); a **regressão** prevê um "
+            "número (o preço de uma casa).",
+        ),
+        "unsupervised": Explanation(
+            "Aprendizagem não supervisionada",
+            "Não há alvo: o modelo procura sozinho a estrutura dos dados. O **clustering** junta "
+            "as linhas parecidas em grupos; a **deteção de anomalias** aponta as que não se "
+            "parecem com as outras; a **redução de dimensionalidade** resume muitas colunas em "
+            "poucas, para se verem num gráfico. Como não há resposta certa, avalia-se pela forma "
+            "dos grupos, ou comparando-os com uma coluna de referência que o modelo não viu.",
+        ),
         "split": Explanation(
             "Divisão",
             "O modelo aprende com o **treino** e é avaliado no **teste**, em linhas que nunca "

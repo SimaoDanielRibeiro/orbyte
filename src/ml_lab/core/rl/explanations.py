@@ -16,6 +16,30 @@ RL_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "**episódios** (tentativas, do início ao fim), aprende que ações levam a mais "
             "recompensa: é aprender por tentativa e erro.",
         ),
+        "rl_state": Explanation(
+            "O estado",
+            "O agente vê onde está: a célula da grelha. Não vê o mapa nem sabe onde fica o "
+            "objetivo; sabe só o que já aprendeu sobre cada célula, os seus valores Q.",
+        ),
+        "rl_action": Explanation(
+            "A ação",
+            "Escolhe para onde ir. Com probabilidade ε, escolhe ao acaso: **explora**. No resto "
+            "das vezes, escolhe a ação de maior Q: **aproveita** o que já sabe. O ε começa em 1 "
+            "e desce ao longo do treino.",
+        ),
+        "rl_reward": Explanation(
+            "A recompensa",
+            "O ambiente responde com a célula onde o agente foi parar e uma recompensa: −0,01 "
+            "por cada passo, −1 numa armadilha e +1 no objetivo. As duas últimas acabam o "
+            "episódio.",
+        ),
+        "rl_update": Explanation(
+            "A correção",
+            "O agente compara o que esperava, Q(s, a), com o que viu: a recompensa mais o "
+            "melhor Q da célula seguinte, descontado por γ. A diferença é a **surpresa**, e o "
+            "Q anda uma fração α dela. Na grelha, a cor da célula muda: é assim que o valor do "
+            "objetivo se espalha para trás.",
+        ),
         "q_values": Explanation(
             "Valores Q e política",
             "O **Q(estado, ação)** é a recompensa que o agente espera ganhar até ao fim do "

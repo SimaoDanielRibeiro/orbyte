@@ -18,6 +18,7 @@ from ml_lab.core.services import (
     EnvironmentCard,
     JobState,
     ReinforcementConfig,
+    ReinforcementLesson,
     ReinforcementResult,
     ReinforcementUpdate,
 )
@@ -35,6 +36,12 @@ def environments(lab: LabDep) -> list[EnvironmentCard]:
 def agents(lab: LabDep) -> list[AgentCard]:
     """Os agentes, com o formulário dos hiperparâmetros e a ficha didática de cada um."""
     return lab.reinforcement.agents()
+
+
+@router.get("/lesson")
+def lesson(lab: LabDep) -> ReinforcementLesson:
+    """A lição que abre o ecrã: um Q-learning pequeno, passo a passo (não é um run)."""
+    return lab.reinforcement.lesson()
 
 
 @router.post("", status_code=202)

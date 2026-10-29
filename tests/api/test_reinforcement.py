@@ -23,6 +23,16 @@ def test_the_catalogue_lists_environments_and_agents(client: TestClient) -> None
     assert agents[0]["implementation"] == "didactic"
 
 
+def test_the_lesson_comes_step_by_step(client: TestClient) -> None:
+    lesson = client.get("/reinforcement/lesson").json()
+
+    first = lesson["kept"][0]
+    assert lesson["agent_display_name"] == "Q-learning"
+    assert first["episode"] == 1
+    assert {"state", "action", "explored", "reward", "surprise", "value"} <= set(first["steps"][0])
+    assert lesson["kept"][-1]["reached"] is True
+
+
 def test_an_agent_trains_in_the_background_and_lands_in_the_history(
     client: TestClient, finished: Waiter
 ) -> None:

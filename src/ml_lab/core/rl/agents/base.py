@@ -283,13 +283,21 @@ class EpisodicAgent[P: EpisodicParams](Agent[P]):
 
     def _choose(self, state: int, n_actions: int) -> int:
         """ε-greedy: ao acaso com probabilidade ε; senão, a ação de maior Q."""
+        return self._decide(state, n_actions)[0]
+
+    def _decide(self, state: int, n_actions: int) -> tuple[int, bool]:
+        """A ação ε-greedy, e se foi ao acaso (explorar) ou a melhor que se conhece (aproveitar).
+
+        A lição do ecrã (``core/rl/lesson.py``) mostra a diferença em cada passo; o treino só
+        precisa da ação (``_choose``).
+        """
         if self._rng.random() < self._epsilon:
-            return int(self._rng.integers(n_actions))
+            return int(self._rng.integers(n_actions)), True
         values = self._q(state)
         # Num empate (no início, todos os Q são iguais), escolhe-se ao acaso entre os melhores:
         # escolher sempre o primeiro faria o agente ir sempre para cima.
         best = np.flatnonzero(values == values.max())
-        return int(best[0] if len(best) == 1 else self._rng.choice(best))
+        return int(best[0] if len(best) == 1 else self._rng.choice(best)), False
 
     def state(self) -> dict[str, Any]:
         """O que o agente aprendeu, e o ε com que acabou."""

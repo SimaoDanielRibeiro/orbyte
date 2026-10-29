@@ -62,6 +62,7 @@ from ml_lab.core.foundation.notices import Notice, NoticeLevel
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.rl.environments.base import CellKind, GridLayout
+from ml_lab.core.rl.lesson import LessonEpisode, LessonStep, ReinforcementLesson
 from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.schemas.reinforcement import AgentSpec, EnvironmentSpec, ReinforcementConfig
@@ -226,6 +227,8 @@ __all__ = [
     "LearnedView",
     "LearningCurve",
     "LearningRateDemo",
+    "LessonEpisode",
+    "LessonStep",
     "LineageStep",
     "LinearWeights",
     "LossCurve",
@@ -269,6 +272,7 @@ __all__ = [
     "Property",
     "RegularizationDemo",
     "ReinforcementConfig",
+    "ReinforcementLesson",
     "ReinforcementResult",
     "ReinforcementService",
     "ReinforcementUpdate",

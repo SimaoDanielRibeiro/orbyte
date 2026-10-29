@@ -4524,6 +4524,77 @@
         }
       }
     },
+    "/reinforcement/lesson": {
+      "get": {
+        "tags": [
+          "reinforcement"
+        ],
+        "summary": "A lição que abre o ecrã: um Q-learning pequeno, passo a passo (não é um run).",
+        "operationId": "reinforcement_lesson",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReinforcementLesson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/reinforcement": {
       "post": {
         "tags": [
@@ -9360,6 +9431,107 @@
         "title": "LearningRateDemo",
         "description": "As curvas da loss de várias taxas e o caminho dos pesos na superfície do erro."
       },
+      "LessonEpisode": {
+        "properties": {
+          "episode": {
+            "type": "integer",
+            "title": "Episode"
+          },
+          "epsilon": {
+            "type": "number",
+            "title": "Epsilon"
+          },
+          "before": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Before"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/LessonStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "reward": {
+            "type": "number",
+            "title": "Reward"
+          },
+          "reached": {
+            "type": "boolean",
+            "title": "Reached"
+          },
+          "story": {
+            "type": "string",
+            "title": "Story"
+          }
+        },
+        "type": "object",
+        "required": [
+          "episode",
+          "epsilon",
+          "before",
+          "steps",
+          "reward",
+          "reached",
+          "story"
+        ],
+        "title": "LessonEpisode",
+        "description": "Um episódio da lição, inteiro.\n\nAttributes:\n    episode: O número do episódio no treino (a começar em 1).\n    epsilon: A exploração nesse episódio: a probabilidade de escolher ao acaso.\n    before: O valor de cada célula no início do episódio (o maior Q); ``None`` onde não\n        há nada a escolher (as paredes, o objetivo e as armadilhas).\n    steps: Os passos, por ordem.\n    reward: A recompensa total do episódio.\n    reached: Se chegou ao objetivo.\n    story: O que se vê neste episódio, numa ou duas frases."
+      },
+      "LessonStep": {
+        "properties": {
+          "state": {
+            "type": "integer",
+            "title": "State"
+          },
+          "action": {
+            "type": "integer",
+            "title": "Action"
+          },
+          "explored": {
+            "type": "boolean",
+            "title": "Explored"
+          },
+          "reward": {
+            "type": "number",
+            "title": "Reward"
+          },
+          "next_state": {
+            "type": "integer",
+            "title": "Next State"
+          },
+          "surprise": {
+            "type": "number",
+            "title": "Surprise"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "action",
+          "explored",
+          "reward",
+          "next_state",
+          "surprise",
+          "value"
+        ],
+        "title": "LessonStep",
+        "description": "Um passo de um episódio da lição.\n\nAttributes:\n    state: A célula onde o agente estava (linha a linha, como em ``GridLayout.cells``).\n    action: A ação que escolheu (o número dela em ``GridLayout.action_labels``).\n    explored: Se a escolheu ao acaso (explorar) ou por ser a melhor que conhecia\n        (aproveitar).\n    reward: A recompensa que recebeu.\n    next_state: A célula onde foi parar.\n    surprise: O erro de diferença temporal: o que viu (a recompensa e o melhor Q da\n        célula seguinte, descontado) menos o que esperava, ``Q(estado, ação)``.\n    value: O valor da célula ``state`` depois de aprender com este passo (o maior Q dela)."
+      },
       "LineageStep": {
         "properties": {
           "stage": {
@@ -11350,6 +11522,60 @@
         ],
         "title": "ReinforcementConfig",
         "description": "Tudo o que define um treino de reinforcement learning.\n\nAttributes:\n    environment: O ambiente.\n    agent: O agente e os hiperparâmetros.\n    seed: Seed raiz; ``None`` gera uma nova, que fica registada no resultado."
+      },
+      "ReinforcementLesson": {
+        "properties": {
+          "environment_name": {
+            "type": "string",
+            "title": "Environment Name"
+          },
+          "agent_display_name": {
+            "type": "string",
+            "title": "Agent Display Name"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/GridLayout"
+          },
+          "learning_rate": {
+            "type": "number",
+            "title": "Learning Rate"
+          },
+          "discount": {
+            "type": "number",
+            "title": "Discount"
+          },
+          "episodes": {
+            "type": "integer",
+            "title": "Episodes"
+          },
+          "rewards": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Rewards"
+          },
+          "kept": {
+            "items": {
+              "$ref": "#/components/schemas/LessonEpisode"
+            },
+            "type": "array",
+            "title": "Kept"
+          }
+        },
+        "type": "object",
+        "required": [
+          "environment_name",
+          "agent_display_name",
+          "layout",
+          "learning_rate",
+          "discount",
+          "episodes",
+          "rewards",
+          "kept"
+        ],
+        "title": "ReinforcementLesson",
+        "description": "A lição: o ambiente, o agente e os episódios escolhidos, passo a passo.\n\nAttributes:\n    environment_name: O ambiente (\"Grelha · penhasco\").\n    agent_display_name: O agente (\"Q-learning\").\n    layout: A grelha.\n    learning_rate: A taxa de aprendizagem (α): a fração da surpresa que corrige o Q.\n    discount: O desconto (γ) de uma recompensa futura.\n    episodes: Quantos episódios teve o treino.\n    rewards: A recompensa de cada episódio do treino, por ordem.\n    kept: Os episódios guardados, por ordem."
       },
       "ReinforcementResult": {
         "properties": {

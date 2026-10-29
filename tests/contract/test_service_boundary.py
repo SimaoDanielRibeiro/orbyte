@@ -111,6 +111,7 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
         lab.analysis.partial_dependence(result.run_id, result.feature_names[0]),
         lab.analysis.explain_row(result.run_id, 0),
         lab.laboratory.knn(5),
+        lab.reinforcement.lesson(),
         list(lab.laboratory.demos()),
         vocabulary(),
     ]

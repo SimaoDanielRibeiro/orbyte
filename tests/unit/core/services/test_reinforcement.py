@@ -149,3 +149,12 @@ def test_runs_of_agents_are_compared_and_reproduced(lab: Lab) -> None:
     assert again.run_id != far.run_id
     assert again.reports == far.reports
     assert again.learned == far.learned
+
+
+def test_the_lesson_is_computed_once_and_is_not_a_run(lab: Lab) -> None:
+    taught = lab.reinforcement.lesson()
+
+    assert lab.reinforcement.lesson() is taught
+    assert taught.environment_name == "Grelha · penhasco"
+    assert lab.history.runs() == ()
+    json.dumps(to_json(taught), allow_nan=False)
