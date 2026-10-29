@@ -43,6 +43,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0036](0036-barra-pelos-passos-espaco-e-prosseguir.md) | A barra pelos passos, o espaço em vez dos filetes e o botão de prosseguir | Proposta |
 | [0037](0037-cores-por-familia-barra-que-desliza-e-licao-do-rl.md) | Cores fixas por família, a barra que desliza e a lição do reinforcement learning | Proposta |
 | [0038](0038-contorno-colorido-sem-numeros-e-menos-texto.md) | O contorno colorido, sem números nem brilho, e menos texto à vista | Proposta |
+| [0039](0039-pacote-do-modelo.md) | O pacote do modelo: a preparação e o que o modelo aprendeu num ficheiro | Proposta |
 
 ## Como escrever uma ADR
 

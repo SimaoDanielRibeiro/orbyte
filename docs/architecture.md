@@ -889,6 +889,8 @@ um run como os outros, e qualquer candidato que eles experimentaram se pode trei
 | 9 | Experiências | Filtra o histórico, escolhe de 2 a 5 runs, abre, guarda ou reproduz um run | Tabela de runs, comparação lado a lado de métricas, escolhas diferentes e curvas da loss | 5 |
 | 10 | Laboratório | Mexe num controlo e vê o efeito imediato | Demos de conceitos: overfitting (complexidade do modelo), taxa de aprendizagem, k do KNN, regularização | 4 |
 | 11 | Reinforcement learning | Escolhe ambiente e agente, inicia o treino | Recompensa por episódio, tabela Q, política aprendida | 8 |
+| 12 | Guardar | Escolhe o run, o nome e as partes opcionais do ficheiro; guarda-o e descarrega-o | A pré-visualização do ficheiro (cada parte, o tamanho e o conteúdo), os avisos sobre o que vai dentro, os pacotes guardados | 11 |
+| 13 | Prever | Escolhe um pacote e preenche uma linha (ou carrega um CSV) | A previsão, as probabilidades, o contributo de cada feature, a curva do "e se…" | 12 |
 
 Na interface web, o Treinar e o Avaliar são um só ecrã, "Treinar e avaliar" (o treino ao vivo
 e, quando acaba, a avaliação), e há mais dois: o Início, com os dois caminhos, e as Métricas,
@@ -935,9 +937,11 @@ ecrã da aprimorada. Cumpriu-se, e a simples saiu.
 
 ## Roadmap por fases
 
-Onze fases (0 a 10). Cada uma termina com algo que funciona, está testado e já se vê na
-interface (na simples até à fase 9, na web desde a 10). Cada fase introduz poucas
-tecnologias novas, para as aprenderes uma de cada vez.
+Treze fases (0 a 12): as onze primeiras constroem o laboratório; a 11 e a 12 levam o que
+ele aprende para fora dele, primeiro para um ficheiro e depois para previsões novas. Cada uma
+termina com algo que funciona, está testado e já se vê na interface (na simples até à fase 9,
+na web desde a 10). Cada fase introduz poucas tecnologias novas, para as aprenderes uma de
+cada vez.
 
 | Fase | Backend | Interface simples (ecrãs que ganha) | Tecnologias novas | Pronto quando |
 |---|---|---|---|---|
@@ -952,6 +956,8 @@ tecnologias novas, para as aprenderes uma de cada vez.
 | 8 — Reinforcement learning ✅ | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
 | 9 — Agentes (AutoML) ✅ | Agente de dados (limpeza, tarefa, divisão e transformações, cada decisão com a razão); um agente por família de modelos; coordenador com triagem e procura aleatória, escolhidas por validação cruzada só com o treino; orçamento, pausa e paragem; o vencedor treina como um run normal | Agentes (o modo automático, ao lado do manual) | — (procura de hiperparâmetros, validação cruzada para escolher) | No Titanic, os agentes preparam os dados, experimentam uma família de cada vez e afinam os finalistas sem tocar no teste; o vencedor usa o teste uma só vez, fica no histórico e abre-se no Avaliar |
 | 10 — Interface aprimorada | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
+| 11 — Guardar o modelo | A preparação aprendida fica com o dataset e passa a JSON; o pacote `.mllab` (um ZIP com a ficha, o manifesto assinado, a entrada, a preparação, o modelo, a avaliação e a linhagem); a biblioteca dos pacotes; o `PackageService` (ADR 0039) | Guardar: o ficheiro pré-visualizado parte a parte antes de existir, e os pacotes guardados | — (`zipfile`, `hashlib` e `hmac`, da biblioteca padrão) | No Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o gravar (cada parte, o tamanho e o conteúdo); guardá-lo descarrega um `.mllab` que abre em qualquer programa de ZIP; e a preparação e o modelo lá de dentro dão as mesmas previsões do run original |
+| 12 — Prever | Abrir um pacote, transformar linhas novas com a preparação guardada, prever com a explicação de cada previsão e avisos de extrapolação; um CSV inteiro de uma vez | Prever: o formulário gerado da entrada do pacote, a previsão ao vivo, o "e se…" e o ficheiro com a coluna da previsão | — | Escolher o pacote do Titanic, preencher um passageiro e ver a previsão mudar ao mexer na idade; um CSV inteiro sai com a previsão de cada linha |
 
 ### Ordem de leitura recomendada para aprender
 
@@ -2234,3 +2240,253 @@ continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última n
     alvo verifica primeiro que ele existe.
 
   O backend não mudou.
+
+### Preparação da fase 11: guardar o modelo
+
+O pedido: uma secção para **guardar o que se preparou e o que os modelos aprenderam**, com uma
+pré-visualização do ficheiro antes de ele existir e o que vai lá dentro. O ficheiro é o pacote
+do modelo (ADR 0039): tudo o que é preciso para perceber o modelo e para voltar a prever com
+ele, sem a fonte dos dados. A fase 12 (Prever) vai usá-lo.
+
+**O que vai no ficheiro.** Um `.mllab` é um ZIP com nomes fixos:
+
+```text
+titanic-regressao-logistica.mllab
+├── README.md          a ficha do modelo, para pessoas
+├── manifest.json      a identidade, as versões e a impressão digital de cada ficheiro
+├── manifest.sig       a assinatura do manifesto (só esta instalação a sabe fazer)
+├── input.json         as colunas que o modelo espera, como chegam
+├── preparation.json   a receita da preparação e o que ela aprendeu no treino
+├── model.json         o modelo, legível: os hiperparâmetros e o que aprendeu
+├── model.joblib       o modelo treinado, para prever (opcional)
+├── evaluation.json    as métricas em cada parte e os avisos
+├── lineage.json       todas as operações, da entrada à saída
+├── training.json      a curva da loss, passo a passo (opcional)
+└── examples.csv       algumas linhas do teste, com o real e o previsto (opcional)
+```
+
+Um excerto de cada parte que não se vê noutros ecrãs (valores de exemplo):
+
+- `manifest.json`:
+
+  ```json
+  {
+    "format": "ml-lab-package",
+    "format_version": 1,
+    "package_id": "pkg-3f9a1c2e",
+    "name": "Titanic — Regressão logística",
+    "created_at": "2026-10-29T14:32:05Z",
+    "run_id": "run-c36c0f26",
+    "seed": 42,
+    "dataset": { "name": "Titanic", "source": "sample", "rows": 891, "sha256": "9b1e…" },
+    "task_type": "binary_classification",
+    "target": "Survived",
+    "model": { "name": "logistic_regression", "family": "linear", "implementation": "sklearn" },
+    "primary_metric": { "name": "accuracy", "partition": "test", "value": 0.821 },
+    "versions": { "ml_lab": "0.1.0", "python": "3.12", "numpy": "…", "scikit-learn": "…" },
+    "files": [{ "path": "README.md", "bytes": 2140, "sha256": "41c0…" }]
+  }
+  ```
+
+- `input.json`, uma entrada por coluna, tirada das linhas de treino antes da preparação:
+
+  ```json
+  {
+    "target": { "name": "Survived", "classes": ["0", "1"] },
+    "columns": [
+      { "name": "Pclass", "kind": "numeric", "min": 1, "max": 3, "typical": 3, "can_be_missing": true },
+      { "name": "Sex", "kind": "categorical", "categories": ["female", "male"], "typical": "male" },
+      { "name": "Age", "kind": "numeric", "min": 0.42, "max": 80, "typical": 28, "missing_in_train": 142 }
+    ],
+    "left_out": ["PassengerId", "Name", "Ticket", "Cabin"]
+  }
+  ```
+
+- `preparation.json`, cada transformação com os parâmetros (`params`) e o que aprendeu
+  (`learned`), na ordem em que corre:
+
+  ```json
+  {
+    "cleaning": [
+      { "operation": "drop_columns", "params": { "columns": ["PassengerId", "Name", "Ticket", "Cabin"] } }
+    ],
+    "transforms": [
+      { "operation": "impute", "params": { "strategy": "median" }, "learned": { "fill_values": { "Age": 28.0 } } },
+      { "operation": "impute", "params": { "strategy": "most_frequent" }, "learned": { "fill_values": { "Embarked": "S" } } },
+      { "operation": "one_hot", "learned": { "categories": { "Sex": ["female", "male"], "Embarked": ["C", "Q", "S"] } } },
+      { "operation": "standard_scaler", "learned": { "means": { "Age": 29.65 }, "scales": { "Age": 12.71 } } }
+    ],
+    "features": ["Pclass", "Sex_female", "Sex_male", "Age", "SibSp", "Parch", "Fare", "Embarked_C", "Embarked_Q", "Embarked_S"]
+  }
+  ```
+
+- `README.md`, a ficha do modelo, escrita pelo backend:
+  - o que prevê e a partir de quê;
+  - como foi feito: os dados, a divisão, a preparação numa linha por passo, o modelo e os
+    hiperparâmetros;
+  - como se portou: as métricas no treino e no teste, e a comparação com o palpite mais
+    simples ("prever sempre «0» acertava 61,5%");
+  - os limites: os intervalos que o modelo viu ("Age de 0,42 a 80: fora disso é extrapolação")
+    e os avisos do diagnóstico;
+  - o que vai dentro do pacote e como se usa (no ecrã Prever, ou em Python com o ML Lab).
+
+**O ecrã Guardar** (`/guardar`, e `/guardar/<run>` para um run concreto):
+
+- **Na barra**, é o último passo das duas interfaces, depois do Explicar. O Explicar passa a
+  prosseguir para "Guardar o modelo"; o Guardar prossegue para as Experiências (e, na fase 12,
+  para o Prever).
+- **Duas colunas** num ecrã largo (uma por cima da outra no telemóvel):
+
+  ```text
+  Guardar (?)                                                  [ Guardar o modelo → ]
+
+  O que guardar                       O ficheiro
+  Run    [ Regressão logística · Titanic ▾ ]
+                                      titanic-regressao-logistica.mllab
+  Nome   [ Titanic — Regressão logística ]
+                                      22 KB · 10 ficheiros · formato 1
+  O modelo, para prever    (?) [■]
+  Linhas de exemplo: 5     (?) [■]    README.md         2 KB  │ Titanic — Regressão logística
+  O treino passo a passo   (?) [ ]    manifest.json     2 KB  │
+                                      input.json        1 KB  │ Prevê Survived a partir de 7
+  ⚠ As linhas de exemplo são dados    preparation.json  3 KB  │ colunas de um passageiro.
+    reais do Titanic.                 model.joblib      4 KB  │
+                                      …                       │ Como foi feito …
+
+  Os pacotes guardados
+  Titanic — Regressão logística     22 KB    hoje, 14:32     Descarregar   Apagar
+  ```
+
+  - **O que guardar:** o run (por omissão, o último; a lista tem os runs com o modelo à mão), o
+    nome (dá o nome do ficheiro) e as partes opcionais, cada uma com o seu "?". Por baixo, os
+    avisos do backend.
+  - **O ficheiro:** o nome, o tamanho total, o número de ficheiros e a versão do formato. Por
+    baixo, as partes do pacote numa lista, com o tamanho de cada uma. Ao escolher uma parte, o
+    conteúdo aparece ao lado:
+    - a ficha, desenhada como Markdown;
+    - os JSON, formatados e com as secções a abrir e fechar;
+    - o CSV, numa tabela;
+    - o modelo, que é binário, só com o tamanho e o que é.
+- **Ao mudar uma opção**, a pré-visualização pede-se outra vez, depois de uma pausa curta (como
+  no Preparar). Uma parte que entra ou sai da lista anima-se, e o tamanho total acompanha.
+- **Guardar** grava o pacote na biblioteca e descarrega-o. O botão mostra que está a gravar e
+  depois o visto; uma notificação diz o nome e o tamanho. O pacote aparece logo na lista dos
+  guardados, com descarregar e apagar.
+- **Os estados:**
+  - sem nenhum run, um aviso leva aos Modelos;
+  - com um run só registado (sem o modelo), um aviso leva às Experiências para o reproduzir;
+  - um erro da API aparece por baixo do botão;
+  - um modelo que não prevê linhas novas (o t-SNE) guarda-se, mas o aviso diz que o pacote é
+    só para ler.
+- **O que se aprende** fica nos "?", com os temas novos do backend:
+  - `model_package`: o que é o pacote, e porque é que a preparação viaja com o modelo (uma
+    linha nova tem de passar pelas mesmas transformações, com os valores aprendidos no treino);
+  - `model_card`: o que deve dizer uma ficha de modelo;
+  - `pickle_safety`: porque é que o modelo só abre num ML Lab que o assinou;
+  - `memorized_rows`: há modelos que guardam os próprios dados;
+  - `package_versions`: porque se registam as versões das bibliotecas.
+
+**Por dentro**, camada a camada, com as regras do `CONTRIBUTING.md`:
+
+- **`core/data`** (o pandas fica aqui):
+  - o `Transform` ganha `learned()` e `restore()`, em todas as transformações;
+  - uma `FittedPreparation` nova (`core/data/serving.py`): o perfil da entrada (das linhas de
+    treino em bruto), as limpezas que valem para linhas novas e o pipeline aprendido. Sabe
+    transformar uma tabela nova e passar a JSON e voltar;
+  - o `Dataset` guarda-a: o `_assemble` monta-a em vez de deitar o pipeline fora;
+  - as linhas de exemplo em CSV saem daqui, como texto.
+- **`core/models`:** `ModelInfo.keeps_training_rows`, marcado nos modelos que guardam linhas do
+  treino.
+- **`core/tracking`** (o joblib e os ficheiros ficam aqui):
+  - o escritor do pacote: o ZIP, o SHA-256 de cada ficheiro e a assinatura, com a chave em
+    `artifacts/package.key`;
+  - o leitor: só os nomes conhecidos, com os tamanhos, as impressões digitais e a assinatura
+    confirmados, sem extrair nada para o disco;
+  - a biblioteca: `artifacts/packages/<id>.mllab`;
+  - os temas do "?", em `core/tracking/explanations.py`.
+- **`core/services`:**
+  - um `PackageService` novo (`lab.packages`), com dados simples:
+    - `candidates()`: os runs que se podem guardar, ou porque não;
+    - `options(run_id)`: as partes opcionais e os valores por omissão;
+    - `preview(run_id, request)`: as partes, os tamanhos, o conteúdo de cada uma e os avisos;
+    - `save(run_id, request)`: grava o pacote e devolve o que ficou guardado;
+    - `saved()` e `delete(package_id)`: a biblioteca;
+    - `file(package_id)`, `@internal`: os bytes, para o descarregar;
+  - a ficha (`README.md`) monta-se aqui, a partir do resultado do run;
+  - os avisos, com código: `package_real_rows`, `package_memorized_rows`,
+    `package_cannot_predict`, `package_large` e `package_without_model`;
+  - os tipos novos: `PackageCandidate`, `PackageOptions`, `PackageRequest`, `PackageFile`,
+    `PackagePreview`, `SavedPackage`, e o enum `PackageFileKind` (com nome no vocabulário).
+- **A API** (`api/routes/packages.py`):
+  - uma rota por método: `GET /packages/candidates`, `GET /packages/runs/{run_id}/options`,
+    `POST /packages/runs/{run_id}/preview`, `POST /packages/runs/{run_id}`, `GET /packages` e
+    `DELETE /packages/{package_id}`;
+  - o descarregar, `GET /packages/{package_id}/file`: a primeira rota que não devolve JSON
+    (`application/zip`, com o nome do ficheiro no `Content-Disposition`);
+  - o `openapi.json` gerado outra vez, e o guia do contrato em `ui/web/README.md`.
+- **A interface** (`ui/web/src/features/save/`):
+  - o ecrã, a lista das partes, a pré-visualização de cada uma e os pacotes guardados;
+  - o ecrã novo em `screens.ts`, com o ícone `Package`;
+  - o descarregar é uma ligação normal para a rota do ficheiro.
+
+**Os passos:**
+
+- [ ] **11.1 A preparação que se leva** (`core/data`):
+  - [ ] `learned` e `restore` nas transformações, com um teste de contrato: a restaurada
+    transforma igual à original;
+  - [ ] a `FittedPreparation`, guardada no `Dataset`;
+  - [ ] o JSON da preparação e o perfil da entrada;
+  - [ ] as linhas de exemplo em CSV.
+- [ ] **11.2 O pacote** (`core/tracking`): o escritor, o leitor com a verificação, a chave da
+  instalação e a biblioteca.
+- [ ] **11.3 O serviço e os textos** (`core/services`):
+  - [ ] o `PackageService`;
+  - [ ] a ficha do modelo;
+  - [ ] os avisos;
+  - [ ] a marca `keeps_training_rows`;
+  - [ ] os temas do "?";
+  - [ ] o vocabulário.
+- [ ] **11.4 A API:** as rotas, o descarregar, o `openapi.json` e o guia do contrato.
+- [ ] **11.5 O ecrã Guardar:**
+  - [ ] a rota e a barra;
+  - [ ] as duas colunas;
+  - [ ] a pré-visualização ao vivo;
+  - [ ] os pacotes guardados;
+  - [ ] os estados;
+  - [ ] o Explicar a prosseguir para o Guardar.
+- [ ] **11.6 Os testes e o fecho:**
+  - [ ] o pacote do Titanic tem as partes todas, e o manifesto confere;
+  - [ ] cada documento pré-visualizado é igual ao que fica no ZIP;
+  - [ ] nos 34 modelos (testes de contrato), o pacote faz-se; nos que sabem prever linhas
+    novas, a preparação e o modelo lidos do pacote dão as mesmas previsões (ou projeções) do
+    run;
+  - [ ] um pacote com um byte mudado, ou assinado por outra chave, lê-se mas não abre o
+    modelo;
+  - [ ] num ficheiro carregado, as linhas de exemplo vêm desligadas;
+  - [ ] os testes da fronteira, das rotas e do vocabulário passam;
+  - [ ] o teste de ponta a ponta do ecrã: mudar uma opção, ver a ficha, guardar, descarregar
+    (com os cabeçalhos certos) e encontrar o pacote na lista, com o axe;
+  - [ ] a ADR 0039 aceite, as notas da fase 11 e o ✅ no roadmap.
+
+**Pronto quando:** no Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o
+gravar (cada parte, o tamanho e o conteúdo); guardá-lo descarrega um `.mllab` que abre em
+qualquer programa de ZIP; e a preparação e o modelo lá de dentro dão as mesmas previsões do
+run original.
+
+**Fora desta fase:**
+
+- prever com um pacote: a fase 12;
+- os pacotes dos agentes de reinforcement learning;
+- um formato do modelo sem pickle, para partilhar pacotes entre instalações;
+- exportar para ONNX.
+
+**Decisões em aberto** (o plano segue estas escolhas até haver outra resposta):
+
+1. **O nome:** a secção chama-se "Guardar", e o ficheiro, `.mllab`.
+2. **As linhas de exemplo:** vêm ligadas nos datasets de exemplo e nos sintéticos, e desligadas
+   nos ficheiros carregados.
+3. **Pacotes de outra instalação:** só se leem; o modelo deles nunca abre. A alternativa era
+   abri-lo depois de um aviso explícito.
+4. **O botão "Guardar experiência" do treino:** fica como está (guarda o run no histórico, para
+   o reabrir). O ecrã Guardar faz o ficheiro com tudo, para levar. A alternativa era o botão
+   passar a levar ao ecrã Guardar.
