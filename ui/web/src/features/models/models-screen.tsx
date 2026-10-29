@@ -1,7 +1,13 @@
 /**
- * O ecrã Modelos: todos os modelos do laboratório, agrupados por família, só com o nome e uma
- * seta. O nome é o que se leva para a página do modelo: ao abri-la, ele desliza para o título
- * (uma transição partilhada do Motion, com o mesmo `layoutId` nos dois sítios).
+ * O ecrã Modelos: todos os modelos do laboratório, arrumados em dois andares (ADR 0037):
+ *
+ * 1. o paradigma: primeiro os supervisionados (aprendem com um alvo), depois os não
+ *    supervisionados (procuram estrutura sem alvo), cada um com o seu "?";
+ * 2. a família, num cartão com a cor dela: a mesma cor do agente da família no ecrã Agentes.
+ *
+ * Cada modelo é uma linha com um desenho pequeno, a mexer, do que ele faz (`model-glyph.tsx`), o
+ * nome e uma seta. O nome é o que se leva para a página do modelo: ao abri-la, ele desliza para o
+ * título (uma transição partilhada do Motion, com o mesmo `layoutId` nos dois sítios).
  *
  * Com uma preparação feita, a lista mostra só os modelos da tarefa dela (o filtro fica no
  * endereço, `?tarefa=…`, e pode mudar-se para outra tarefa ou para todas).
@@ -10,13 +16,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
+import type { CSSProperties } from "react";
 
-import type { ModelCard, TaskType } from "@/api/generated";
+import { useTopic } from "@/api/topics";
+import type { ModelCard, Paradigm, TaskType } from "@/api/generated";
 import {
   catalogModelsOptions,
   catalogSuggestedModelOptions,
 } from "@/api/generated/@tanstack/react-query.gen";
 import { useLabel, useVocabulary } from "@/api/vocabulary";
+import { Explain } from "@/components/explain/explain";
 import { ErrorNote } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
@@ -28,10 +37,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatQuantity } from "@/lib/format";
+import { familyColor } from "@/lib/families";
+import { formatCount, formatQuantity } from "@/lib/format";
 import { useSession } from "@/state/session";
 
+import { glyphOf } from "./glyphs";
+import { ModelGlyph } from "./model-glyph";
 import { ALL_TASKS, nameLayoutId } from "./names";
+
+/** Os paradigmas com modelos, pela ordem em que se aprendem, e o tema que explica cada um. */
+const PARADIGMS = [
+  { paradigm: "supervised", topic: "supervised" },
+  { paradigm: "unsupervised", topic: "unsupervised" },
+] as const satisfies readonly { paradigm: Paradigm; topic: string }[];
+
+/** Quanto se adianta o desenho de cada modelo em relação ao anterior (em segundos). */
+const GLYPH_STAGGER = 0.7;
 
 export function ModelsScreen() {
   const label = useLabel();
@@ -97,76 +118,191 @@ export function ModelsScreen() {
       {models.data === undefined ? (
         models.error === null && <ListSkeleton />
       ) : (
-        <Families models={models.data} suggested={suggested.data ?? null} />
+        <Catalog models={models.data} suggested={suggested.data ?? null} />
       )}
     </Page>
   );
 }
 
-/** Os modelos por família, pela ordem do catálogo; cada família não se parte entre colunas. */
-function Families({
+interface FamilyGroup {
+  family: ModelCard["family"];
+  members: ModelCard[];
+  /** A posição do primeiro modelo da família na página (para desencontrar os desenhos). */
+  first: number;
+}
+
+interface ParadigmGroup {
+  paradigm: Paradigm;
+  topic: string;
+  families: FamilyGroup[];
+  count: number;
+}
+
+/** Os modelos de cada paradigma, por família, pela ordem do catálogo. */
+function Catalog({
   models,
   suggested,
 }: {
   models: readonly ModelCard[];
   suggested: string | null;
 }) {
-  const label = useLabel();
-  const families: { family: ModelCard["family"]; members: ModelCard[] }[] = [];
-  for (const model of models) {
-    const last = families.at(-1);
-    if (last?.family === model.family) {
-      last.members.push(model);
-    } else {
-      families.push({ family: model.family, members: [model] });
+  const vocabulary = useVocabulary();
+  // O paradigma de um modelo é o das suas tarefas (uma regra do backend, no vocabulário).
+  const paradigmOf = (model: ModelCard): Paradigm =>
+    vocabulary.tasks.find((info) => info.task_type === model.task_types[0])?.paradigm ??
+    "supervised";
+  return (
+    <>
+      {arrange(models, paradigmOf).map((section) => (
+        <ParadigmSection key={section.paradigm} section={section} suggested={suggested} />
+      ))}
+    </>
+  );
+}
+
+/** Os paradigmas com modelos, e em cada um as famílias, pela ordem em que aparecem no catálogo. */
+function arrange(
+  models: readonly ModelCard[],
+  paradigmOf: (model: ModelCard) => Paradigm,
+): ParadigmGroup[] {
+  const sections: ParadigmGroup[] = [];
+  let position = 0;
+  for (const { paradigm, topic } of PARADIGMS) {
+    const families: FamilyGroup[] = [];
+    for (const model of models.filter((one) => paradigmOf(one) === paradigm)) {
+      const found = families.find((group) => group.family === model.family);
+      if (found === undefined) {
+        families.push({ family: model.family, members: [model], first: 0 });
+      } else {
+        found.members.push(model);
+      }
+    }
+    let count = 0;
+    for (const group of families) {
+      group.first = position;
+      position += group.members.length;
+      count += group.members.length;
+    }
+    if (count > 0) {
+      sections.push({ paradigm, topic, families, count });
     }
   }
+  return sections;
+}
+
+/** Um paradigma: o título (o do tema do backend) e o "?", e as famílias em colunas. */
+function ParadigmSection({
+  section,
+  suggested,
+}: {
+  section: ParadigmGroup;
+  suggested: string | null;
+}) {
+  const label = useLabel();
+  const { paradigm, topic, families, count } = section;
+  const explanation = useTopic(topic);
   return (
-    <div className="mt-6 gap-4 @4xl/main:columns-2">
-      {families.map(({ family, members }) => (
-        <section
-          key={family}
-          aria-labelledby={`familia-${family}`}
-          className="mb-4 break-inside-avoid panel p-2"
-        >
-          <h2
-            id={`familia-${family}`}
-            className="flex items-center justify-between px-3 pt-2 pb-2 text-[0.9375rem] font-normal tracking-normal text-soft"
-          >
-            {label("ModelFamily", family)}
-            <span className="font-mono text-xs text-dim tabular-nums">{members.length}</span>
+    <section aria-labelledby={`paradigma-${paradigm}`} className="mt-14 first-of-type:mt-10">
+      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="flex items-center gap-1.5">
+          <h2 id={`paradigma-${paradigm}`} className="text-xl">
+            {explanation?.title ?? label("Paradigm", paradigm)}
           </h2>
-          <ul>
-            {members.map((model) => (
-              <li key={model.name}>
-                <Link
-                  to="/modelos/$name"
-                  params={{ name: model.name }}
-                  className="group flex items-center justify-between gap-4 rounded-[10px] px-3 py-2.5 outline-none hover:bg-surface-high focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <motion.span
-                    layoutId={nameLayoutId(model.name)}
-                    className="inline-block text-[0.9375rem] text-strong"
-                  >
-                    {model.display_name}
-                  </motion.span>
-                  <span className="flex shrink-0 items-center gap-3">
-                    {model.name === suggested && (
-                      <span className="rounded-full border border-[#2e4a3a] bg-positive/10 px-2 py-0.5 font-mono text-[0.6875rem] text-positive">
-                        sugerido para começar
-                      </span>
-                    )}
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="size-4 text-dim transition-transform group-hover:translate-x-0.5 group-hover:text-strong motion-reduce:transition-none"
-                    />
+          <Explain topic={topic} />
+        </div>
+        <span className="font-mono text-xs text-dim">
+          {formatQuantity(count, "modelo", "modelos")},{" "}
+          {formatQuantity(families.length, "família", "famílias")}
+        </span>
+      </div>
+      <div className="gap-6 @4xl/main:columns-2 @[96rem]/main:columns-3">
+        {families.map((group) => (
+          <FamilyCard key={group.family} group={group} suggested={suggested} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Uma família: um cartão com a cor dela, e um modelo por linha, cada um com o seu desenho. */
+function FamilyCard({ group, suggested }: { group: FamilyGroup; suggested: string | null }) {
+  const label = useLabel();
+  const { family, members, first } = group;
+  const color = familyColor(family);
+  const id = `familia-${family}-${String(first)}`;
+  return (
+    // Um grupo, não uma região: uma família pode aparecer nos dois paradigmas, e as regiões da
+    // página (os paradigmas) precisam de nomes únicos.
+    <div
+      role="group"
+      aria-labelledby={id}
+      className="relative mb-6 break-inside-avoid overflow-hidden rounded-2xl border border-border bg-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.025)]"
+      style={{ "--family": color } as CSSProperties}
+    >
+      {/* A luz da família: um fio de cor no topo e um brilho largo e fraco por baixo dele. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-8 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 left-1/2 h-36 w-3/4 -translate-x-1/2 rounded-full opacity-[0.13] blur-3xl"
+        style={{ background: color }}
+      />
+      <h3
+        id={id}
+        className="relative flex items-center gap-2.5 px-5 pt-5 pb-3 text-[0.9375rem] font-medium tracking-normal text-strong"
+      >
+        <span
+          aria-hidden="true"
+          className="size-2.5 shrink-0 rounded-full"
+          style={{ background: color, boxShadow: `0 0 10px ${color}` }}
+        />
+        {label("ModelFamily", family)}
+        <span className="ml-auto font-mono text-xs font-normal text-dim tabular-nums">
+          {formatCount(members.length)}
+        </span>
+      </h3>
+      <ul className="relative flex flex-col gap-0.5 px-2 pb-2">
+        {members.map((model, offset) => (
+          <li key={model.name}>
+            <Link
+              to="/modelos/$name"
+              params={{ name: model.name }}
+              className="group flex items-center gap-4 rounded-xl px-3 py-2 transition-colors outline-none hover:bg-surface-high focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-11 w-[4.25rem] shrink-0 items-center justify-center rounded-lg border border-[#262626] bg-[#141414] transition-[border-color,box-shadow] duration-300 group-hover:[border-color:var(--family)] group-hover:[box-shadow:0_0_18px_-6px_var(--family)] group-focus-visible:[border-color:var(--family)]"
+              >
+                <ModelGlyph
+                  kind={glyphOf(model)}
+                  color={color}
+                  delay={((first + offset) * GLYPH_STAGGER) % 6}
+                />
+              </span>
+              <motion.span
+                layoutId={nameLayoutId(model.name)}
+                className="inline-block min-w-0 flex-1 text-[0.9375rem] text-strong"
+              >
+                {model.display_name}
+              </motion.span>
+              <span className="flex shrink-0 items-center gap-3">
+                {model.name === suggested && (
+                  <span className="rounded-full border border-white/20 bg-white/[0.06] px-2 py-0.5 font-mono text-[0.6875rem] text-strong">
+                    sugerido para começar
                   </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+                )}
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 text-dim transition-transform group-hover:translate-x-0.5 group-hover:text-strong motion-reduce:transition-none"
+                />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -174,13 +310,13 @@ function Families({
 function ListSkeleton() {
   return (
     <div
-      className="mt-8 flex flex-col gap-4"
+      className="mt-10 grid gap-6 @4xl/main:grid-cols-2"
       role="status"
       aria-busy="true"
       aria-label="A carregar"
     >
       {[0, 1, 2, 3].map((index) => (
-        <Skeleton key={index} className="h-12 w-full max-w-xl" />
+        <Skeleton key={index} className="h-48 w-full rounded-2xl" />
       ))}
     </div>
   );

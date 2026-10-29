@@ -80,8 +80,10 @@ backend.
 | As cores da moldura (o fundo, os cartões, o texto, os contornos) | `src/styles/globals.css`, no `:root`: cada cor tem o nome da ADR 0032 (`--ground`, `--surface`, `--text-soft`, `--line`…), e os papéis que os componentes leem apontam para elas (`--background`, `--card`, `--primary`, `--ring`…) |
 | Os tipos de letra e a escala | `src/main.tsx` (a Geist e a Geist Mono) e o `@theme` de `globals.css` (`--font-sans`, `--font-mono` e os tamanhos) |
 | As cores dos dados (as classes, as séries, as escalas) | `src/lib/colors.ts` e as `--data-1` a `--data-8` de `globals.css`: a paleta categórica e as rampas. Uma paleta nova tem de se validar outra vez contra o cartão (`#191919`): o contraste, e a distinção para quem não vê bem as cores |
+| A cor de cada família de modelos (a mesma nos Modelos, nos agentes e na entrada) | `src/lib/families.ts` (ADR 0037): uma cor fixa por família, das oito da paleta; uma família nova no backend precisa da sua aqui |
+| O desenho animado de cada modelo, na lista dos Modelos | `src/features/models/glyphs.ts` (que desenho tem cada família e tarefa), `model-glyph.tsx` (os desenhos) e as classes `glyph-*` de `globals.css` (o movimento) |
 | Os componentes de base (botões, campos, gavetas, separadores) | `src/components/ui/`: são os do shadcn, copiados para o projeto para se adaptarem |
-| A moldura (a barra lateral, a pesquisa, o cabeçalho das páginas) | `src/components/shell/` |
+| A moldura (a barra lateral, a pesquisa, o cabeçalho das páginas) | `src/components/shell/`; o cartão da secção aberta que desliza e o ponto do trilho estão em `app-sidebar.tsx` (`SLIDE`) |
 | Os blocos das páginas: o cartão (`Panel`), o número grande (`Stat`), a secção (`Section`) e os factos | `src/components/shell/blocks.tsx`; a classe `panel` e o rótulo `mono-label` estão em `globals.css` |
 | O "?" das explicações: ao lado de um título (`Explain`) e no título da página (`PageExplain`) | `src/components/explain/explain.tsx` |
 | A ordem da barra, os nomes e os ícones dos ecrãs | `src/components/shell/screens.ts`: `FIRST_STEPS` são os primeiros passos das duas interfaces (por cima da troca), `NAVIGATION` os grupos de cada uma (o primeiro continua os passos), e `ONLY_IN` os ecrãs que só existem numa |

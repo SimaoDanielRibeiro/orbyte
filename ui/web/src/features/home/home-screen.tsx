@@ -12,6 +12,7 @@ import { ChevronRight, Hand, Workflow, type LucideIcon } from "lucide-react";
 import { useId, type ReactNode } from "react";
 
 import { demoQuery } from "@/api/demo";
+import type { ModelFamily } from "@/api/generated";
 import { metaHealthOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { FieldPlayer } from "@/components/charts/field-player";
 import { GlowFilter } from "@/components/charts/chart";
@@ -19,7 +20,7 @@ import { Logo } from "@/components/shell/logo";
 import { INTERFACE_NAMES, stepsOf } from "@/components/shell/screens";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CATEGORICAL } from "@/lib/colors";
+import { familyColor } from "@/lib/families";
 import { useSession, type WorkPath } from "@/state/session";
 
 /** O modelo do cartão Manual: o que melhor mostra uma fronteira a formar-se. */
@@ -173,8 +174,17 @@ function ManualVisual() {
   );
 }
 
-/** Os agentes de cada família, como no fluxograma do ecrã Agentes (os nomes curtos). */
-const FAMILIES = ["Lineares", "Árvores", "Ensembles", "Kernel", "Redes neuronais"] as const;
+/**
+ * Os agentes de cada família, como no fluxograma do ecrã Agentes (os nomes curtos), cada um com a
+ * cor da sua família (a mesma em toda a interface).
+ */
+const FAMILIES = [
+  ["linear", "Lineares"],
+  ["tree", "Árvores"],
+  ["ensemble", "Ensembles"],
+  ["kernel", "Kernel"],
+  ["neural", "Redes neuronais"],
+] as const satisfies readonly (readonly [ModelFamily, string])[];
 
 /** Os Agentes: o coordenador distribui o trabalho, e o melhor candidato é o vencedor. */
 function AgentsVisual() {
@@ -194,9 +204,9 @@ function AgentsVisual() {
       <defs>
         <GlowFilter id={glow} blur={4} />
       </defs>
-      {FAMILIES.map((family, index) => {
+      {FAMILIES.map(([family, name], index) => {
         const y = top + index * gap;
-        const color = CATEGORICAL[index] ?? "#707070";
+        const color = familyColor(family);
         const toFamily = `M150 ${String(middle)} C 200 ${String(middle)}, 200 ${String(y)}, 250 ${String(y)}`;
         const toWinner = `M376 ${String(y)} C 410 ${String(y)}, 410 ${String(middle)}, 440 ${String(middle)}`;
         return (
@@ -222,7 +232,7 @@ function AgentsVisual() {
             />
             <circle cx={265} cy={y} r={4} fill={color} />
             <text x={276} y={y} dy="0.34em" fontSize={11.5} fill="#d4d4d4">
-              {family}
+              {name}
             </text>
           </g>
         );

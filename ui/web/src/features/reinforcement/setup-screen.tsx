@@ -1,6 +1,8 @@
 /**
- * O ecrã Reinforcement learning, antes de treinar: o ambiente (com os seus parâmetros), o
- * agente (com a ficha didática), os hiperparâmetros e a seed.
+ * O ecrã Reinforcement learning, antes de treinar. Abre com a lição "Como um agente aprende" (um
+ * Q-learning a aprender o penhasco, animado passo a passo; ADR 0037) e, por baixo, o treino de um
+ * agente: o ambiente (com os seus parâmetros), o agente (com a ficha didática), os
+ * hiperparâmetros e a seed.
  *
  * Os formulários geram-se do JSON Schema dos cartões, como os hiperparâmetros de um modelo. O
  * treino corre em segundo plano na API; daqui segue-se para o ecrã do treino, que o acompanha.
@@ -40,6 +42,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { isValidSeed, MAX_SEED } from "@/lib/seed";
 import { useSession } from "@/state/session";
 
+import { RlLesson } from "./lesson";
+
 export function SetupScreen() {
   const environments = useQuery({ ...reinforcementEnvironmentsOptions(), staleTime: "static" });
   const agents = useQuery({ ...reinforcementAgentsOptions(), staleTime: "static" });
@@ -70,13 +74,19 @@ export function SetupScreen() {
           </Link>
         </p>
       )}
-      <ErrorNote error={environments.error ?? agents.error} className="mt-8" />
-      {environments.data === undefined || agents.data === undefined ? (
-        environments.error === null &&
-        agents.error === null && <Skeleton className="mt-10 h-96 w-full" />
-      ) : (
-        <Setup environments={environments.data} agents={agents.data} />
-      )}
+      <RlLesson />
+      <section aria-labelledby="treinar-titulo" className="mt-20">
+        <h2 id="treinar-titulo" className="text-xl">
+          Treinar um agente
+        </h2>
+        <ErrorNote error={environments.error ?? agents.error} className="mt-8" />
+        {environments.data === undefined || agents.data === undefined ? (
+          environments.error === null &&
+          agents.error === null && <Skeleton className="mt-10 h-96 w-full" />
+        ) : (
+          <Setup environments={environments.data} agents={agents.data} />
+        )}
+      </section>
     </Page>
   );
 }
@@ -139,7 +149,7 @@ function Setup({
           </Field>
         )}
         <div className="flex items-center gap-1">
-          <h3 className="text-lg">{environment.display_name}</h3>
+          <h4 className="text-lg">{environment.display_name}</h4>
           <Explain title={environment.display_name}>{environment.summary}</Explain>
         </div>
         <SchemaForm
@@ -188,7 +198,7 @@ function Setup({
           </Collapsible>
         )}
         <section className="flex flex-col gap-3">
-          <h3 className="text-sm font-normal text-soft">Os hiperparâmetros</h3>
+          <h4 className="text-sm font-normal text-soft">Os hiperparâmetros</h4>
           <SchemaForm
             schema={agent.hyperparameters_schema}
             values={agentValues}
@@ -250,7 +260,7 @@ function Setup({
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex min-w-0 flex-col gap-6 self-start">
-      <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h2>
+      <h3 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h3>
       {children}
     </section>
   );

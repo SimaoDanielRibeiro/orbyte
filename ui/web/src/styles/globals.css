@@ -298,6 +298,209 @@
   animation-delay: 1.6s;
 }
 
+/*
+ * Os desenhos dos modelos (ecrã Modelos, `model-glyph.tsx`): ciclos lentos, cada peça a rodar ou
+ * a crescer à volta do seu próprio centro. O estado de base de cada classe é o desenho completo e
+ * parado: é o que fica com "reduzir movimento".
+ */
+.glyph :is(circle, ellipse, path, line, rect, g) {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Uma reta (ou um eixo) que roda até ao sítio certo, fica, e volta a tentar. */
+@keyframes glyph-fit {
+  0%,
+  100% {
+    transform: rotate(-12deg);
+  }
+  40%,
+  78% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Um traço que se desenha, fica e se apaga (num caminho com `pathLength="1"`). */
+@keyframes glyph-draw {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  30%,
+  80% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes glyph-ping {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.9;
+  }
+  70%,
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes glyph-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes glyph-rise {
+  0%,
+  100% {
+    transform: scaleY(0.78);
+  }
+  50% {
+    transform: scaleY(1.04);
+  }
+}
+
+@keyframes glyph-swell {
+  0%,
+  100% {
+    transform: scaleY(0.7);
+  }
+  50% {
+    transform: scaleY(1.08);
+  }
+}
+
+@keyframes glyph-blink {
+  0%,
+  44%,
+  100% {
+    opacity: 0.3;
+  }
+  12%,
+  30% {
+    opacity: 1;
+  }
+}
+
+@keyframes glyph-light {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  25%,
+  80% {
+    opacity: 1;
+  }
+}
+
+@keyframes glyph-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  18%,
+  84% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* Um centróide que parte de longe (`--dx`, `--dy`) e anda até ao meio do seu grupo. */
+@keyframes glyph-home {
+  0%,
+  100% {
+    transform: translate(var(--dx), var(--dy));
+  }
+  45%,
+  85% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Uma margem que se aproxima da fronteira (`--dx`, `--dy`) e volta. */
+@keyframes glyph-squeeze {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+
+/* Uma luz curta que corre por uma ligação (como as do fluxograma dos agentes). */
+@keyframes glyph-flow {
+  from {
+    stroke-dashoffset: 0.25;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+.glyph-fit {
+  animation: glyph-fit 6s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+.glyph-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: glyph-draw 6s ease-in-out infinite;
+}
+
+.glyph-ping {
+  opacity: 0.45;
+  animation: glyph-ping 2.6s ease-out infinite;
+}
+
+.glyph-breathe {
+  animation: glyph-breathe 4.5s ease-in-out infinite;
+}
+
+.glyph-rise {
+  animation: glyph-rise 4.5s ease-in-out infinite;
+}
+
+.glyph-swell {
+  animation: glyph-swell 4.5s ease-in-out infinite;
+}
+
+.glyph-blink {
+  animation: glyph-blink 3.6s ease-in-out infinite;
+}
+
+.glyph-light {
+  animation: glyph-light 6s ease-in-out infinite;
+}
+
+.glyph-pop {
+  animation: glyph-pop 6s ease-out infinite;
+}
+
+.glyph-home {
+  animation: glyph-home 6s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+}
+
+.glyph-squeeze {
+  animation: glyph-squeeze 4s ease-in-out infinite;
+}
+
+.glyph-flow {
+  stroke-dasharray: 0.25 1.25;
+  stroke-dashoffset: 0.25;
+  animation: glyph-flow 2.4s linear infinite;
+}
+
 /* Com "reduzir movimento" ligado, tudo aparece já no estado final. */
 @media (prefers-reduced-motion: reduce) {
   *,

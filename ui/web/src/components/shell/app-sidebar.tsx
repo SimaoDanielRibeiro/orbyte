@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "cn";
-import { ArrowLeftRight, PanelLeft, Search } from "lucide-react";
+import { ArrowLeftRight, PanelLeft } from "lucide-react";
+import { motion, type Transition } from "motion/react";
 import { ToggleGroup } from "radix-ui";
 
 import {
@@ -47,8 +48,13 @@ interface AppSidebarProps {
   /** A interface aberta: a barra mostra as secções dela. */
   path: WorkPath;
   onChoosePath: (path: WorkPath) => void;
-  onSearch: () => void;
 }
+
+/**
+ * O deslizar do destaque de uma secção para a outra: uma mola curta, que acelera, chega e
+ * assenta com um ressalto pequeno, como se o cartão fosse arrastado até lá.
+ */
+const SLIDE: Transition = { type: "spring", bounce: 0.22, visualDuration: 0.42 };
 
 /**
  * A barra lateral, pela ordem em que se trabalha (ADR 0036):
@@ -61,8 +67,12 @@ interface AppSidebarProps {
  * Os passos estão ligados por um trilho, com uma luz que o percorre sem parar e um ponto por
  * passo: aceso no passo aberto, cheio nos de trás, vazio nos que faltam. Não há filetes a separar
  * os grupos: o espaço faz isso. Recolhida, a barra fica só com os ícones.
+ *
+ * A secção aberta tem um cartão claro por trás, e ao abrir outra o cartão desliza até ela (e o
+ * ponto aceso corre pelo trilho): vê-se de onde se veio e para onde se foi (ADR 0037). A pesquisa
+ * não tem botão na barra: abre-se com `Ctrl K` (e, no telemóvel, no cabeçalho).
  */
-export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
+export function AppSidebar({ path, onChoosePath }: AppSidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const counts = useCounts();
   const [flow, ...rest] = NAVIGATION[path];
@@ -90,7 +100,6 @@ export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
             </Link>
             <CollapseButton />
           </div>
-          <SearchButton onSearch={onSearch} />
         </SidebarHeader>
 
         <SidebarContent className="gap-0 px-2 pt-4 pb-6">
@@ -99,7 +108,8 @@ export function AppSidebar({ path, onChoosePath, onSearch }: AppSidebarProps) {
             <StepList screens={FIRST_STEPS} first={0} current={current} pathname={pathname} />
           </SidebarGroup>
 
-          <div className="px-2 pt-4 pb-3 group-data-[collapsible=icon]:px-0">
+          {/* Por cima dos itens: o cartão da secção aberta passa por baixo da troca. */}
+          <div className="relative z-30 px-2 pt-4 pb-3 group-data-[collapsible=icon]:px-0">
             <InterfaceSwitch path={path} pathname={pathname} onChoosePath={onChoosePath} />
           </div>
 
@@ -214,6 +224,7 @@ interface NavItemProps {
 function NavItem({ screen, pathname, count, step }: NavItemProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const Icon = screen.icon;
+  const active = isCurrent(screen.to, pathname);
   return (
     <SidebarMenuItem
       className={cn(step !== undefined && "pl-6 group-data-[collapsible=icon]:pl-0")}
@@ -223,13 +234,51 @@ function NavItem({ screen, pathname, count, step }: NavItemProps) {
           aria-hidden="true"
           className={cn(
             "absolute top-1/2 left-[9px] size-[9px] -translate-y-1/2 rounded-full border transition-colors group-data-[collapsible=icon]:hidden",
-            step === "now" && "border-white bg-white shadow-[0_0_10px_rgb(255_255_255/0.7)]",
             step === "done" && "border-[#8a8a8a] bg-[#8a8a8a]",
-            (step === "next" || step === "idle") && "border-[#4a4a4a] bg-ink",
+            // O ponto aceso é o que corre pelo trilho (em baixo): aqui fica o vazio, por baixo.
+            step !== "done" && "border-[#4a4a4a] bg-ink",
           )}
         />
       )}
-      <SidebarMenuButton asChild isActive={isCurrent(screen.to, pathname)} tooltip={screen.title}>
+      {step === "now" && (
+        <motion.span
+          aria-hidden="true"
+          layoutId="trilho-agora"
+          layoutDependency={pathname}
+          transition={SLIDE}
+          className="pointer-events-none absolute top-1/2 left-[9px] z-20 -mt-[4.5px] size-[9px] rounded-full border border-white bg-white shadow-[0_0_10px_rgb(255_255_255/0.7)] group-data-[collapsible=icon]:hidden"
+        />
+      )}
+      {active && (
+        // O cartão da secção aberta: um só, com o mesmo `layoutId` em todos os itens, e por isso
+        // desliza do item de onde se saiu para o novo. Fica fora do botão, que corta o que sai
+        // dele, para se ver o caminho todo.
+        <motion.span
+          aria-hidden="true"
+          layoutId="barra-aberta"
+          layoutDependency={pathname}
+          transition={SLIDE}
+          // O raio no estilo (e não numa classe): o Motion corrige-o enquanto o cartão estica.
+          style={{ borderRadius: 10 }}
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 left-0 z-0 border border-[#3a3a3a] bg-[#262626] shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_10px_24px_-14px_rgb(255_255_255/0.28)]",
+            "group-data-[collapsible=icon]:right-auto group-data-[collapsible=icon]:w-9",
+            step !== undefined && "left-6 group-data-[collapsible=icon]:left-0",
+          )}
+        >
+          {/* Nos passos, quem marca é o ponto aceso do trilho; nos outros, um traço de luz. */}
+          {step === undefined && (
+            <span className="absolute top-1/2 left-0 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-white shadow-[0_0_8px_rgb(255_255_255/0.8)] group-data-[collapsible=icon]:hidden" />
+          )}
+        </motion.span>
+      )}
+      <SidebarMenuButton
+        asChild
+        isActive={active}
+        tooltip={screen.title}
+        // O fundo da secção aberta é o cartão que desliza: o botão fica transparente por cima.
+        className="z-10 data-active:border-transparent data-active:bg-transparent data-active:text-strong data-active:shadow-none data-active:hover:bg-transparent"
+      >
         <Link
           to={screen.to}
           onClick={() => {
@@ -249,41 +298,6 @@ function NavItem({ screen, pathname, count, step }: NavItemProps) {
         </SidebarMenuBadge>
       )}
     </SidebarMenuItem>
-  );
-}
-
-/** A pesquisa: parece um campo, como na referência, mas abre a janela da pesquisa. */
-function SearchButton({ onSearch }: { onSearch: () => void }) {
-  const { state, isMobile } = useSidebar();
-  const keys = shortcut("K");
-  if (state === "collapsed" && !isMobile) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={onSearch}
-            className="mx-auto flex size-9 items-center justify-center rounded-[10px] text-soft outline-none hover:bg-surface hover:text-strong focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-          >
-            <Search aria-hidden="true" className="size-[1.125rem]" />
-            <span className="sr-only">Procurar</span>
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="right">Procurar ({keys})</TooltipContent>
-      </Tooltip>
-    );
-  }
-  return (
-    <button
-      type="button"
-      onClick={onSearch}
-      aria-keyshortcuts={keys.replace(" ", "+").replace("⌘", "Meta").replace("Ctrl", "Control")}
-      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-[#2a2a2a] bg-surface px-3 text-sm text-soft outline-none hover:border-[#333] hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-    >
-      <Search aria-hidden="true" className="size-4 text-dim" />
-      <span className="flex-1 text-left">Procurar</span>
-      <Kbd>{keys}</Kbd>
-    </button>
   );
 }
 

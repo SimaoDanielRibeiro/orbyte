@@ -62,13 +62,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
       >
         Saltar para o conteúdo
       </a>
-      <AppSidebar
-        path={only ?? path}
-        onChoosePath={choosePath}
-        onSearch={() => {
-          setSearching(true);
-        }}
-      />
+      <AppSidebar path={only ?? path} onChoosePath={choosePath} />
       <SidebarInset>
         <MobileHeader
           onSearch={() => {

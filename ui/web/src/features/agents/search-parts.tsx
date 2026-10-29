@@ -16,7 +16,6 @@ import type {
   AgentRole,
   AutoMlResult,
   Candidate,
-  ModelFamily,
   ObjectiveOption,
   SearchPhase,
 } from "@/api/generated";
@@ -264,13 +263,10 @@ const ROLE_ICONS: Readonly<Record<AgentRole, typeof Database>> = {
  */
 export function Conversation({
   messages,
-  families,
   active = null,
   className,
 }: {
   messages: readonly AgentMessage[];
-  /** As famílias pela ordem do plano: é daí que vem a cor de cada agente. */
-  families: readonly ModelFamily[];
   /** A mensagem à vista no histórico das trocas (fica marcada, e a conversa vai até ela). */
   active?: number | null;
   className?: string;
@@ -319,7 +315,7 @@ export function Conversation({
     <ol ref={list} className={cn("relative flex flex-col gap-4 overflow-y-auto pr-2", className)}>
       {messages.map((message) => {
         const Icon = ROLE_ICONS[message.role];
-        const color = messageColor(message, families);
+        const color = messageColor(message);
         const now = active === message.number;
         // Um pedido do coordenador (dar a vez a um agente) é curto: fica numa linha só.
         if (message.kind === "request") {

@@ -20,7 +20,6 @@ import type {
   Candidate,
   MessageKind,
   MetricResult,
-  ModelFamily,
   ObjectiveOption,
   Participant,
   WorkInProgress,
@@ -78,7 +77,6 @@ export function ExchangeHistory({
   onSelect,
 }: ExchangeHistoryProps) {
   const label = useLabel();
-  const families = plan.agents.map((agent) => agent.family);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState<Speed>(1);
@@ -144,7 +142,7 @@ export function ExchangeHistory({
     current.candidate === null
       ? null
       : (candidates.find((candidate) => candidate.number === current.candidate)?.family ?? null);
-  const color = messageColor(current, families);
+  const color = messageColor(current);
   // A leitura do teste não tem destinatários (é para quem acompanha): acende-se o teste.
   const reading = current.kind === "test" && current.recipients.length === 0;
   const exchange: FlowExchange = {
@@ -188,12 +186,7 @@ export function ExchangeHistory({
                   →
                 </span>
                 <span className="sr-only">para</span>
-                <Recipients
-                  recipients={current.recipients}
-                  plan={plan}
-                  families={families}
-                  label={label}
-                />
+                <Recipients recipients={current.recipients} plan={plan} label={label} />
               </>
             )}
             <span className="font-mono text-xs text-dim">
@@ -265,13 +258,7 @@ export function ExchangeHistory({
         </div>
       </div>
 
-      <Timeline
-        messages={messages}
-        position={position}
-        families={families}
-        onPosition={go}
-        label={label}
-      />
+      <Timeline messages={messages} position={position} onPosition={go} label={label} />
     </div>
   );
 }
@@ -310,9 +297,9 @@ function Who({ color, name }: { color: string; name: string }) {
 }
 
 /** A cor de um destinatário (a mesma do seu nó). */
-function participantColor(participant: Participant, families: readonly ModelFamily[]): string {
+function participantColor(participant: Participant): string {
   if (participant.kind === "model" && participant.family !== null) {
-    return familyColor(families, participant.family);
+    return familyColor(participant.family);
   }
   return participant.kind === "data" ? DATA_AGENT_COLOR : COORDINATOR_COLOR;
 }
@@ -321,12 +308,10 @@ function participantColor(participant: Participant, families: readonly ModelFami
 function Recipients({
   recipients,
   plan,
-  families,
   label,
 }: {
   recipients: readonly Participant[];
   plan: AutoMlPlan;
-  families: readonly ModelFamily[];
   label: ReturnType<typeof useLabel>;
 }) {
   if (recipients.length > 3) {
@@ -337,7 +322,7 @@ function Recipients({
             <span
               key={index}
               className="size-2 rounded-full ring-1 ring-ground"
-              style={{ background: participantColor(recipient, families) }}
+              style={{ background: participantColor(recipient) }}
             />
           ))}
         </span>
@@ -350,7 +335,7 @@ function Recipients({
       {recipients.map((recipient, index) => (
         <Who
           key={index}
-          color={participantColor(recipient, families)}
+          color={participantColor(recipient)}
           name={
             (recipient.kind === "model"
               ? plan.agents.find((agent) => agent.family === recipient.family)?.name
@@ -370,13 +355,11 @@ function Recipients({
 function Timeline({
   messages,
   position,
-  families,
   onPosition,
   label,
 }: {
   messages: readonly AgentMessage[];
   position: number;
-  families: readonly ModelFamily[];
   onPosition: (index: number) => void;
   label: ReturnType<typeof useLabel>;
 }) {
@@ -444,7 +427,7 @@ function Timeline({
         className="flex h-12 cursor-pointer touch-none items-end gap-[2px] rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-ground"
       >
         {messages.map((message, index) => {
-          const color = messageColor(message, families);
+          const color = messageColor(message);
           const now = index === position;
           return (
             <span

@@ -23,10 +23,16 @@ test("do início aos modelos da tarefa, pelos dados, o perfil e a preparação",
 
   await expect(page).toHaveURL(/\/explorar$/);
   await expect(page.getByRole("heading", { level: 2, name: "Avisos" })).toBeVisible();
-  await page.getByRole("tab", { name: "Correlações" }).click();
-  await expect(page.getByRole("img", { name: /correlação de Pearson/ })).toBeVisible();
-  await page.getByRole("tab", { name: "Alvo" }).click();
-  await expect(page.getByRole("heading", { name: "As classes de Survived" })).toBeVisible();
+  // O perfil lê-se por partes, todas à vista; o índice no topo salta para cada uma.
+  const parts = page.getByRole("navigation", { name: "As partes do perfil" });
+  await parts.getByRole("link", { name: /Correlações/ }).click();
+  await expect(page.getByRole("img", { name: /correlação de Pearson/ })).toBeInViewport();
+  await parts.getByRole("link", { name: /Alvo/ }).click();
+  await expect(page.getByRole("heading", { name: "As classes de Survived" })).toBeInViewport();
+  await expect(parts.getByRole("link", { name: /Alvo/ })).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
   await page.getByRole("link", { name: "Preparar os dados" }).first().click();
 
   await expect(page).toHaveURL(/\/preparar$/);

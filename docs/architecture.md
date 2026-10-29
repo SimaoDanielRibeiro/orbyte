@@ -2151,3 +2151,50 @@ continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última n
 - **Os testes:** os 56 da web e os 39 de ponta a ponta passam. Estes clicam no primeiro dos
   dois botões de prosseguir de cada página, e o da barra verifica que o Explorar está nas duas
   interfaces.
+
+**As cores por família, a barra que desliza e a lição do reinforcement learning** (ADR 0037):
+
+- **As cores por família:** cada família de modelos tem uma cor fixa (`ui/web/src/lib/families.ts`),
+  a mesma nos Modelos, no fluxograma e na conversa dos agentes, nos gráficos da procura e na
+  entrada. Antes, a cor de um agente vinha da posição dele no plano e mudava de procura para
+  procura. Onze famílias e oito cores: as que só têm modelos não supervisionados repetem a cor
+  de uma família que só tem supervisionados, e nunca se encontram no mesmo sítio. As duas
+  sequências passaram no validador de paletas do skill de visualização de dados.
+- **Os Modelos:** dois paradigmas (a aprendizagem supervisionada e a não supervisionada, com os
+  temas novos `supervised` e `unsupervised`) e, em cada um, um cartão por família, na cor dela.
+  Cada modelo tem um desenho pequeno, a mexer, do que faz, escolhido pela família e pelas
+  tarefas. Com "reduzir movimento", os desenhos ficam parados e completos.
+- **A barra lateral:** a secção aberta tem um cartão claro que desliza de uma secção para a
+  outra (uma mola do Motion), e o ponto aceso corre pelo trilho. A pesquisa ficou só no
+  `Ctrl K` e no cabeçalho do telemóvel.
+- **Os Dados:** sem separadores. Os exemplos em cartões e, logo por baixo, uma zona grande para
+  largar ou escolher o ficheiro; os dados sintéticos no fim.
+- **O Explorar:** seis partes numeradas, todas à vista (o resumo, os avisos, as colunas, as
+  correlações, os valores em falta e o alvo), com um índice preso ao topo que diz em que parte
+  se está e salta para as outras.
+- **O painel de cada agente:** 46rem, com o cabeçalho fixo (o estado do agente numa frase e uma
+  fila para saltar para outro agente) e separadores (o resumo, os candidatos e o que disse).
+  O `Sheet` do shadcn prendia todos os painéis laterais a 24rem com uma classe de variante; o
+  dos agentes usa a variante certa.
+- **A lição do RL:** um método novo, `ReinforcementService.lesson` (`GET /reinforcement/lesson`),
+  treina um Q-learning no penhasco com uma seed fixa e devolve cinco episódios inteiros, passo
+  a passo: o estado, a ação, se explorou, a recompensa, a surpresa e o valor novo da célula, com
+  uma frase sobre cada episódio. Não é um run, e calcula-se uma vez. A interface anima-a no topo
+  do ecrã: o agente na grelha, a recompensa de cada passo, o valor a espalhar-se a partir do
+  objetivo, e o ciclo em quatro cartões (os temas novos `rl_state`, `rl_action`, `rl_reward` e
+  `rl_update`). Para saber se uma ação foi ao acaso, o ε-greedy da base dos agentes passou a
+  ter um `_decide`, com o mesmo uso do acaso: o treino não muda.
+- **A verificação:**
+  - Viu-se cada ecrã no browser, com capturas a meio das animações (o cartão da barra a
+    deslizar, os desenhos dos modelos em dois momentos do ciclo, a lição em cada episódio).
+  - Os testes novos do Python verificam a lição: sempre igual, os passos ligados uns aos outros
+    e pagos pela célula onde acabam, o primeiro episódio a explorar em todos os passos, o último
+    pelo caminho de 13 passos. O teste de ponta a ponta do caminho à mão usa o índice do
+    Explorar.
+  - Passam os 56 testes da web, os 39 de ponta a ponta e os 2059 do Python. O axe encontrou
+    regiões com o mesmo nome nos Modelos (uma família aparece nos dois paradigmas): os cartões
+    das famílias passaram a grupos.
+  - O `pytest` encontrou outra instabilidade antiga, fora destas mudanças:
+    `test_the_same_seed_gives_the_same_result` falha às vezes no K-means e no t-SNE (diferenças
+    na nona casa decimal). Falha também no código anterior a estas mudanças, e passa sempre com
+    um só fio (`OMP_NUM_THREADS=1`).

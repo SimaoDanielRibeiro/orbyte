@@ -69,24 +69,22 @@ export function DataScreen() {
       {dataset !== undefined && <OpenDataset dataset={dataset} />}
       <Section
         title={dataset === undefined ? "Escolhe os dados" : "Abrir outros dados"}
+        topic="input"
         className="mt-14"
       >
-        <Tabs defaultValue="samples">
-          <TabsList aria-label="Fontes de dados">
-            <TabsTrigger value="samples">Exemplos</TabsTrigger>
-            <TabsTrigger value="file">Ficheiro</TabsTrigger>
-            <TabsTrigger value="synthetic">Sintéticos</TabsTrigger>
-          </TabsList>
-          <TabsContent value="samples" className="mt-5">
+        {/* As fontes umas por baixo das outras, sem separadores: os exemplos e, logo a seguir, o
+            ficheiro, numa zona grande; os sintéticos no fim (ADR 0037). */}
+        <div className="flex flex-col gap-14">
+          <Panel title="Os exemplos">
             <SampleSource open={dataset?.source} />
-          </TabsContent>
-          <TabsContent value="file" className="mt-5">
+          </Panel>
+          <Panel title="Um ficheiro teu" topic="upload">
             <FileSource />
-          </TabsContent>
-          <TabsContent value="synthetic" className="mt-5">
+          </Panel>
+          <Panel title="Dados sintéticos">
             <SyntheticSource />
-          </TabsContent>
-        </Tabs>
+          </Panel>
+        </div>
       </Section>
     </Page>
   );

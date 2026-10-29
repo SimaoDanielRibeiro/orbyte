@@ -1,11 +1,12 @@
 /**
- * As três fontes de dados do ecrã Dados: os datasets de exemplo, um ficheiro do computador e os
- * geradores de dados sintéticos. Cada exemplo é um cartão com os seus números; a descrição e a
- * fonte ficam no "?".
+ * As três fontes de dados do ecrã Dados, umas por baixo das outras (ADR 0037): os datasets de
+ * exemplo, um ficheiro do computador (numa zona grande, onde se larga o ficheiro) e os geradores
+ * de dados sintéticos. Cada exemplo é um cartão com os seus números; a descrição e a fonte ficam
+ * no "?".
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
-import { FileUp, LoaderCircle } from "lucide-react";
+import { FileSpreadsheet, FileUp, LoaderCircle } from "lucide-react";
 import { useState, type DragEvent } from "react";
 
 import type { SourceSpec } from "@/api/generated";
@@ -49,21 +50,27 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
   }
   return (
     <div className="flex flex-col gap-5">
-      <ul className="grid gap-x-12 gap-y-12 @3xl/main:grid-cols-2">
+      <ul className="grid gap-4 @3xl/main:grid-cols-2">
         {samples.data.map((sample) => {
           const pending = load.isPending && load.variables.path.name === sample.name;
           const isOpen = open?.kind === "sample" && open.params?.name === sample.name;
           return (
-            <li key={sample.name} className="flex flex-col gap-5">
+            <li
+              key={sample.name}
+              className={cn(
+                "flex flex-col gap-5 panel p-5 transition-colors hover:border-[#333]",
+                isOpen && "border-[#3a3a3a]",
+              )}
+            >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-1">
-                  <h3 className="text-base font-medium">{sample.title}</h3>
+                <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+                  <h4 className="text-base font-medium text-strong">{sample.title}</h4>
                   <Explain title={sample.title}>
                     <p>{sample.description}</p>
                     <p className="mt-2 font-mono text-xs text-dim">Fonte: {sample.source}</p>
                   </Explain>
                   {isOpen && (
-                    <span className="ml-2 flex items-center gap-1.5 text-xs text-positive">
+                    <span className="ml-1 flex items-center gap-1.5 text-xs text-positive">
                       <span aria-hidden="true" className="size-1.5 rounded-full bg-positive" />
                       aberto
                     </span>
@@ -100,7 +107,10 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
   );
 }
 
-/** Um ficheiro do computador: arrasta-se para a zona ou escolhe-se com o botão. */
+/**
+ * Um ficheiro do computador: uma zona grande, onde se larga o ficheiro ou se clica para o escolher.
+ * Com o ficheiro escolhido, a zona mostra o nome e o tamanho, e o botão de o carregar.
+ */
 export function FileSource() {
   const loaded = useDatasetLoaded();
   const [file, setFile] = useState<File | null>(null);
@@ -113,7 +123,7 @@ export function FileSource() {
     },
   });
 
-  function drop(event: DragEvent<HTMLLabelElement>) {
+  function drop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragging(false);
     const dropped = event.dataTransfer.files.item(0);
@@ -124,9 +134,8 @@ export function FileSource() {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-5">
-      <label
-        htmlFor="dados-ficheiro"
+    <div className="flex flex-col gap-4">
+      <div
         onDragOver={(event) => {
           event.preventDefault();
           setDragging(true);
@@ -136,18 +145,57 @@ export function FileSource() {
         }}
         onDrop={drop}
         className={cn(
-          "flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-input bg-ground px-6 py-12 text-center transition-colors",
-          "focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 hover:border-[#555]",
-          dragging && "border-strong/60 bg-surface-high",
+          "relative flex min-h-64 flex-col items-center justify-center gap-6 rounded-2xl border border-dashed px-6 py-12 text-center transition-colors",
+          "focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+          dragging
+            ? "border-strong/70 bg-surface-high"
+            : "border-[#3a3a3a] bg-ground hover:border-[#5a5a5a] hover:bg-[#151515]",
         )}
       >
-        <FileUp aria-hidden="true" className="size-6 text-dim" />
-        <span className="text-[0.9375rem] text-strong">
-          {file === null ? "Arrasta um ficheiro para aqui, ou escolhe-o no computador" : file.name}
+        {/* A zona toda escolhe o ficheiro; só o botão de carregar fica por cima dela. */}
+        <label htmlFor="dados-ficheiro" className="absolute inset-0 cursor-pointer rounded-2xl">
+          <span className="sr-only">Escolher um ficheiro do computador</span>
+        </label>
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none flex size-16 items-center justify-center rounded-2xl border bg-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] transition-transform duration-300 motion-reduce:transition-none",
+            dragging ? "scale-110 border-[#5a5a5a]" : "border-[#333]",
+          )}
+        >
+          {file === null ? (
+            <FileUp className="size-7 text-soft" />
+          ) : (
+            <FileSpreadsheet className="size-7 text-strong" />
+          )}
         </span>
-        <span className="font-mono text-xs text-dim tabular-nums">
-          {file === null ? "CSV, TSV, TXT, GZ, XLSX ou XLSM" : fileSize(file.size)}
-        </span>
+        <div className="pointer-events-none flex flex-col gap-2">
+          <p className="text-lg text-strong">
+            {file === null
+              ? dragging
+                ? "Larga o ficheiro aqui"
+                : "Arrasta um ficheiro para aqui, ou clica para o escolher"
+              : file.name}
+          </p>
+          <p className="font-mono text-xs text-dim tabular-nums">
+            {file === null
+              ? "CSV, TSV, TXT, GZ, XLSX ou XLSM"
+              : `${fileSize(file.size)}, pronto a carregar`}
+          </p>
+        </div>
+        {file !== null && (
+          <Button
+            size="lg"
+            className="relative z-10 px-5"
+            disabled={upload.isPending}
+            onClick={() => {
+              upload.mutate({ body: { file } });
+            }}
+          >
+            {upload.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
+            Carregar ficheiro
+          </Button>
+        )}
         <input
           id="dados-ficheiro"
           type="file"
@@ -158,20 +206,6 @@ export function FileSource() {
             upload.reset();
           }}
         />
-      </label>
-      <div className="flex items-center gap-2">
-        <Button
-          disabled={file === null || upload.isPending}
-          onClick={() => {
-            if (file !== null) {
-              upload.mutate({ body: { file } });
-            }
-          }}
-        >
-          {upload.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-          Carregar ficheiro
-        </Button>
-        <Explain topic="upload" />
       </div>
       <ErrorNote error={upload.error} />
     </div>
@@ -235,7 +269,7 @@ export function SyntheticSource() {
 
       <div className="flex min-w-0 flex-col gap-6">
         <div className="flex items-center gap-1">
-          <h3 className="text-base font-medium">{generator.title}</h3>
+          <h4 className="text-base font-medium">{generator.title}</h4>
           <Explain title={generator.title}>{generator.description}</Explain>
         </div>
         <SchemaForm

@@ -41,7 +41,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton } from "@/features/data/require-dataset";
-import { categoryColor } from "@/lib/colors";
+import { familyColor } from "@/lib/families";
 import { formatCount, formatMetric, formatNumber } from "@/lib/format";
 import { useSession } from "@/state/session";
 
@@ -100,8 +100,6 @@ function Search({ searchId }: { searchId: string }) {
   const running = status === "pending" || status === "running" || status === "paused";
   const working = data === undefined ? live.working : null;
   const leader = winner ?? live.leader;
-  const families = searchPlan?.agents.map((agent) => agent.family) ?? [];
-
   return (
     <>
       <Link
@@ -233,7 +231,6 @@ function Search({ searchId }: { searchId: string }) {
           </h2>
           <Conversation
             messages={messages}
-            families={families}
             active={view === "history" ? moment : null}
             className="max-h-[36rem]"
           />
@@ -282,6 +279,7 @@ function Search({ searchId }: { searchId: string }) {
           onClose={() => {
             setSelected(null);
           }}
+          onSelect={setSelected}
           agents={searchPlan.agents}
           candidates={candidates}
           messages={messages}
@@ -507,7 +505,7 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
                 key: family,
                 label: label("ModelFamily", family),
                 value: candidate.mean ?? 0,
-                color: categoryColor(families.indexOf(family)),
+                color: familyColor(family),
               }))}
               format={(value) => objectiveValue(value, objective)}
               valueLabel={objective.label}

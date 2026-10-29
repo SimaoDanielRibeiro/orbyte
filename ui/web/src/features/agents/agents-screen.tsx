@@ -385,6 +385,7 @@ function WhoWorks({ plan }: { plan: AutoMlPlan }) {
         onClose={() => {
           setSelected(null);
         }}
+        onSelect={setSelected}
         agents={plan.agents}
         candidates={[]}
         messages={[]}

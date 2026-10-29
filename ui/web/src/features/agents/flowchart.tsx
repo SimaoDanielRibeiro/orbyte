@@ -160,7 +160,6 @@ export function Flowchart({
   const { ref, width: available } = useSize<HTMLDivElement>();
   const width = Math.max(MIN_WIDTH, available);
   const columns = columnsFor(width);
-  const families = agents.map((agent) => agent.family);
   const rows = Math.max(1, agents.length);
   const stack = rows * NODE_HEIGHT + (rows - 1) * ROW_GAP;
   const height = Math.max(stack, NODE_HEIGHT * 3) + PADDING * 2;
@@ -243,7 +242,7 @@ export function Flowchart({
         width: columns.agents.width,
         state,
         title: label("ModelFamily", agent.family),
-        color: familyColor(families, agent.family),
+        color: familyColor(agent.family),
         detail: active
           ? [`A medir ${working.model_display_name}`, working.model_display_name]
           : own.length === 0
@@ -264,7 +263,7 @@ export function Flowchart({
       state: states.winner,
       title: phase === "done" || phase === "final" ? "Vencedor" : "Líder",
       icon: Trophy,
-      color: leader === null ? undefined : familyColor(families, leader.family),
+      color: leader === null ? undefined : familyColor(leader.family),
       detail:
         leader === null
           ? ["Ainda nenhum"]
@@ -302,7 +301,7 @@ export function Flowchart({
     ...agents.flatMap((agent, index): PlacedEdge[] => {
       const top = agentTop(index) + NODE_HEIGHT / 2;
       const state = agentState(agent.family);
-      const color = familyColor(families, agent.family);
+      const color = familyColor(agent.family);
       const active = state === "active" && working !== null;
       const leads = leader?.family === agent.family && order(phase) >= 3;
       return [

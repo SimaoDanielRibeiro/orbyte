@@ -14,14 +14,11 @@ import type { CellKind, GridLayout } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { Explain } from "@/components/explain/explain";
 import { useSize } from "@/hooks/use-size";
-import { CATEGORICAL, diverging, inkOn, LIGHT_INK, SURFACE } from "@/lib/colors";
+import { diverging, inkOn, LIGHT_INK, SURFACE } from "@/lib/colors";
 import { formatNumber } from "@/lib/format";
 
 import { ChartTooltip, TooltipRow } from "./chart";
-
-const WALL = "#3a3a3a";
-const EMPTY_KIND = "#1e1e1e";
-const TRAP = CATEGORICAL[7];
+import { cellFill, TRAP } from "./grid-fill";
 
 interface GridWorldProps {
   layout: GridLayout;
@@ -169,19 +166,8 @@ export function GridWorld({
   );
 }
 
-/** A cor de uma célula: o valor, ou o desenho próprio das células sem escolha. */
-function cellFill(kind: CellKind, value: number | null): string {
-  if (kind === "wall") {
-    return WALL;
-  }
-  if (value === null) {
-    return EMPTY_KIND;
-  }
-  return diverging(value);
-}
-
 /** O símbolo das células especiais: a bandeira do objetivo, a cruz da armadilha, a partida. */
-function CellSymbol({
+export function CellSymbol({
   kind,
   cx,
   cy,

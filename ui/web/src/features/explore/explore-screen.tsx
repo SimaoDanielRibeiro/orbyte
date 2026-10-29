@@ -1,13 +1,24 @@
 /**
  * O ecrã Explorar: o perfil do dataset aberto, para decidir o que limpar e como transformar.
  *
- * Em cima, os números em cartões e os tipos das colunas (uma faixa com uma marca por coluna,
- * pela ordem da tabela); depois, os avisos; em baixo, quatro separadores: as colunas uma a uma,
- * as correlações, os valores em falta e o alvo. O "como se lê" de cada gráfico fica no "?".
+ * O perfil lê-se por partes numeradas, todas à vista e pela ordem em que se percorrem (ADR 0037):
+ *
+ * 1. o resumo: os números do dataset e os tipos das colunas (uma faixa com uma marca por coluna,
+ *    pela ordem da tabela);
+ * 2. os avisos, do dataset e de cada coluna;
+ * 3. as colunas, uma a uma;
+ * 4. as correlações;
+ * 5. os valores em falta;
+ * 6. o alvo.
+ *
+ * Por cima das partes há um índice que fica preso ao topo ao descer a página: diz em que parte se
+ * está (o destaque desliza para ela, como na barra lateral) e salta para qualquer outra. O "como
+ * se lê" de cada gráfico fica no "?".
  */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
-import { useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { ColumnKind, DatasetProfile, DatasetSummary } from "@/api/generated";
 import {
@@ -22,6 +33,7 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { MissingMapView } from "@/components/charts/missing-map";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
+import { Explain } from "@/components/explain/explain";
 import { ErrorNote, Facts, NextStep, Panel, Proceed, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
@@ -33,7 +45,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton, RequireDataset } from "@/features/data/require-dataset";
 import { classColors, classOrder } from "@/lib/classes";
@@ -52,7 +63,19 @@ import { ColumnDetail } from "./column-detail";
 /** O valor do "sem alvo" na lista (o Radix não aceita um valor vazio). */
 const NO_TARGET = "__sem_alvo__";
 
-type Tab = "columns" | "correlations" | "missing" | "target";
+/** As partes do perfil, pela ordem em que se leem: o índice e as secções saem daqui. */
+const PARTS = [
+  { id: "resumo", title: "Resumo", topic: "profiling" },
+  { id: "avisos", title: "Avisos" },
+  { id: "colunas", title: "Colunas" },
+  { id: "correlacoes", title: "Correlações", topic: "correlation_matrix" },
+  { id: "em-falta", title: "Valores em falta", topic: "missing_map" },
+  { id: "alvo", title: "Alvo", topic: "class_balance" },
+] as const;
+
+type PartId = (typeof PARTS)[number]["id"];
+
+const PART_IDS: readonly PartId[] = PARTS.map((part) => part.id);
 
 export function ExploreScreen() {
   return (
@@ -87,12 +110,12 @@ const NEXT = {
 function Explore({ dataset }: { dataset: DatasetSummary }) {
   const preparation = useSession((state) => state.preparation);
   const next = NEXT[useSession((state) => state.path)];
+  const reduced = useReducedMotion() ?? false;
   const [target, setTarget] = useState<string | null>(
     preparation?.datasetId === dataset.id
       ? (preparation.config.target ?? null)
       : dataset.suggested_target,
   );
-  const [tab, setTab] = useState<Tab>("columns");
   const [column, setColumn] = useState<string>(dataset.columns[0]?.name ?? "");
   const profile = useQuery({
     ...datasetsProfileOptions({
@@ -102,6 +125,19 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
     // Ao trocar de alvo, o perfil anterior fica à vista até chegar o novo.
     placeholderData: keepPreviousData,
   });
+
+  function go(id: PartId) {
+    const part = document.getElementById(id);
+    part?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    // Quem usa o teclado continua na parte para onde saltou.
+    part?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+  }
+
+  const notices =
+    profile.data === undefined
+      ? 0
+      : profile.data.notices.length +
+        profile.data.columns.reduce((total, one) => total + one.notices.length, 0);
 
   return (
     <>
@@ -118,53 +154,192 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
       {profile.data === undefined ? (
         profile.error === null && <PageSkeleton />
       ) : (
-        <div
-          className={cn(profile.isPlaceholderData && "stale")}
-          aria-busy={profile.isPlaceholderData}
-        >
-          <Overview
-            profile={profile.data}
-            onColumn={(name) => {
-              setColumn(name);
-              setTab("columns");
-            }}
-          />
-          <Notices profile={profile.data} />
-          <Tabs
-            value={tab}
-            onValueChange={(value) => {
-              setTab(value as Tab);
-            }}
-            className="mt-16"
+        <>
+          <PartNav counts={{ avisos: notices, colunas: profile.data.columns.length }} onGo={go} />
+          <div
+            className={cn(profile.isPlaceholderData && "stale")}
+            aria-busy={profile.isPlaceholderData}
           >
-            <TabsList
-              aria-label="O perfil por partes"
-              className="flex-wrap group-data-horizontal/tabs:h-auto"
+            <Part id="resumo">
+              <Overview
+                profile={profile.data}
+                onColumn={(name) => {
+                  setColumn(name);
+                  go("colunas");
+                }}
+              />
+            </Part>
+            <Part
+              id="avisos"
+              explain={
+                notices === 0
+                  ? "O perfil não encontrou nada que mereça atenção."
+                  : `${formatQuantity(notices, "aviso", "avisos")} sobre os dados, do dataset e de cada coluna.`
+              }
             >
-              <TabsTrigger value="columns">Colunas</TabsTrigger>
-              <TabsTrigger value="correlations">Correlações</TabsTrigger>
-              <TabsTrigger value="missing">Valores em falta</TabsTrigger>
-              <TabsTrigger value="target">Alvo</TabsTrigger>
-            </TabsList>
-            <TabsContent value="columns" className="mt-4">
+              <Notices profile={profile.data} />
+            </Part>
+            <Part id="colunas">
               <Columns profile={profile.data} selected={column} onSelect={setColumn} />
-            </TabsContent>
-            <TabsContent value="correlations" className="mt-4">
+            </Part>
+            <Part id="correlacoes">
               <Correlations profile={profile.data} />
-            </TabsContent>
-            <TabsContent value="missing" className="mt-4">
+            </Part>
+            <Part id="em-falta">
               <Missing profile={profile.data} />
-            </TabsContent>
-            <TabsContent value="target" className="mt-4">
+            </Part>
+            <Part id="alvo">
               <Target dataset={dataset} profile={profile.data} />
-            </TabsContent>
-          </Tabs>
+            </Part>
+          </div>
           <NextStep text={next.text}>
             <Proceed to={next.to}>{next.action}</Proceed>
           </NextStep>
-        </div>
+        </>
       )}
     </>
+  );
+}
+
+/**
+ * A parte em que se está: a última cujo título já passou por baixo do índice (ou a última de
+ * todas, no fim da página). Lê-se ao descer a página, uma vez por fotograma.
+ */
+function useActivePart(): PartId {
+  const [active, setActive] = useState<PartId>("resumo");
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      let current: PartId = "resumo";
+      for (const id of PART_IDS) {
+        const top = document.getElementById(id)?.getBoundingClientRect().top;
+        if (top !== undefined && top <= 170) {
+          current = id;
+        }
+      }
+      const root = document.documentElement;
+      if (window.innerHeight + window.scrollY >= root.scrollHeight - 4 && root.scrollTop > 0) {
+        current = PART_IDS.at(-1) ?? current;
+      }
+      setActive(current);
+    };
+    const schedule = () => {
+      if (frame === 0) {
+        frame = requestAnimationFrame(update);
+      }
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, []);
+  return active;
+}
+
+/**
+ * O índice das partes, preso ao topo ao descer: o número, o nome e, nalgumas, quantos há. O
+ * destaque da parte em que se está desliza de uma para a outra.
+ */
+function PartNav({
+  counts,
+  onGo,
+}: {
+  counts: Partial<Record<PartId, number>>;
+  onGo: (id: PartId) => void;
+}) {
+  const active = useActivePart();
+  return (
+    <nav
+      aria-label="As partes do perfil"
+      className="sticky top-14 z-20 -mx-4 mt-8 bg-ground/90 px-4 py-3 shadow-[0_10px_18px_-14px_rgb(0_0_0/0.9)] backdrop-blur-md md:top-0 md:-mx-[2cm] md:px-[2cm]"
+    >
+      <ol className="flex [scrollbar-width:none] gap-1 overflow-x-auto">
+        {PARTS.map((part, index) => {
+          const current = part.id === active;
+          const count = counts[part.id];
+          return (
+            <li key={part.id} className="relative shrink-0">
+              {current && (
+                <motion.span
+                  aria-hidden="true"
+                  layoutId="explorar-parte"
+                  transition={{ type: "spring", bounce: 0.2, visualDuration: 0.38 }}
+                  className="absolute inset-0 rounded-[10px] border border-[#3a3a3a] bg-[#262626] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
+                />
+              )}
+              <a
+                href={`#${part.id}`}
+                aria-current={current ? "location" : undefined}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onGo(part.id);
+                }}
+                className={cn(
+                  "relative flex h-9 items-center gap-2 rounded-[10px] px-3 text-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  current ? "text-strong" : "text-soft hover:text-strong",
+                )}
+              >
+                <span aria-hidden="true" className="font-mono text-[0.6875rem] text-dim">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                {part.title}
+                {count !== undefined && (
+                  <span className="font-mono text-xs text-dim tabular-nums">
+                    {formatCount(count)}
+                  </span>
+                )}
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/** Uma parte do perfil: o número, o título (com o "?") e o conteúdo. */
+function Part({
+  id,
+  explain,
+  children,
+}: {
+  id: PartId;
+  /** Uma explicação montada aqui, quando a parte não tem tema no backend. */
+  explain?: ReactNode;
+  children: ReactNode;
+}) {
+  const index = PART_IDS.indexOf(id);
+  const part = PARTS[index];
+  const topic = part !== undefined && "topic" in part ? part.topic : undefined;
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-titulo`}
+      className="scroll-mt-32 pt-16 first:pt-10 md:scroll-mt-20"
+    >
+      <div className="mb-6 flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="flex h-6 min-w-8 items-center justify-center rounded-md border border-[#2e2e2e] px-1.5 font-mono text-[0.6875rem] text-soft tabular-nums"
+        >
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <h2 id={`${id}-titulo`} tabIndex={-1} className="text-xl outline-none">
+            {part?.title}
+          </h2>
+          <Explain topic={topic} title={topic === undefined ? part?.title : undefined}>
+            {explain}
+          </Explain>
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -223,10 +398,10 @@ function Overview({
     { label: "Memória", value: `${formatNumber(profile.memory_bytes / 1024 ** 2, 1)} MB` },
   ];
   return (
-    <section className="mt-6" aria-label="Resumo">
+    <>
       <StatStrip items={stats.map((stat) => ({ key: stat.label, ...stat }))} />
       <KindStrip profile={profile} onColumn={onColumn} />
-    </section>
+    </>
   );
 }
 
@@ -298,21 +473,7 @@ function Notices({ profile }: { profile: DatasetProfile }) {
   const notices = [...profile.notices, ...profile.columns.flatMap((column) => column.notices)];
   const hidden = notices.length - FIRST_NOTICES;
   return (
-    <Panel
-      as="h2"
-      title="Avisos"
-      explain={
-        notices.length === 0
-          ? "O perfil não encontrou nada que mereça atenção."
-          : `${formatQuantity(notices.length, "aviso", "avisos")} sobre os dados, do dataset e de cada coluna.`
-      }
-      actions={
-        <span className="font-mono text-xs text-dim tabular-nums">
-          {formatCount(notices.length)}
-        </span>
-      }
-      className="mt-12"
-    >
+    <div className="flex flex-col gap-4">
       {notices.length === 0 ? (
         <p className="text-sm text-soft">Nada que mereça atenção.</p>
       ) : (
@@ -334,7 +495,7 @@ function Notices({ profile }: { profile: DatasetProfile }) {
           {all ? "Mostrar só os primeiros" : `Mostrar os outros ${formatCount(hidden)} avisos`}
         </Button>
       )}
-    </Panel>
+    </div>
   );
 }
 

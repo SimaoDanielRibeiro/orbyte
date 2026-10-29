@@ -18,7 +18,7 @@ import {
 } from "@/components/charts/chart";
 import { SHAPE_PATHS } from "@/components/charts/shapes";
 import { stepDecimals } from "@/components/charts/ticks";
-import { categoryColor } from "@/lib/colors";
+import { familyColor } from "@/lib/families";
 import { formatCount, formatNumber } from "@/lib/format";
 
 import { changesText, objectiveValue } from "./values";
@@ -46,7 +46,6 @@ export function SearchChart({
   const measured = candidates.filter(
     (candidate): candidate is Candidate & { mean: number } => candidate.mean !== null,
   );
-  const color = (family: ModelFamily) => categoryColor(families.indexOf(family));
   const values = measured.flatMap((candidate) => [
     candidate.mean - (candidate.std ?? 0),
     candidate.mean + (candidate.std ?? 0),
@@ -77,7 +76,7 @@ export function SearchChart({
               .filter((family) => measured.some((candidate) => candidate.family === family))
               .map((family) => ({
                 label: label("ModelFamily", family),
-                color: color(family),
+                color: familyColor(family),
                 kind: "dot" as const,
               })),
             ...phases.map((phase) => ({
@@ -99,7 +98,7 @@ export function SearchChart({
             <TooltipRow
               value={`${objectiveValue(candidate.mean, objective)} ± ${objectiveValue(candidate.std, objective)}`}
               label={objective.label}
-              color={color(candidate.family)}
+              color={familyColor(candidate.family)}
               kind="dot"
             />
             <div className="mt-1">{candidate.model_display_name}</div>
@@ -161,7 +160,7 @@ export function SearchChart({
                       x2={cx}
                       y1={y(candidate.mean - spread)}
                       y2={y(candidate.mean + spread)}
-                      stroke={color(candidate.family)}
+                      stroke={familyColor(candidate.family)}
                       strokeOpacity={0.6}
                       strokeWidth={2}
                     />
@@ -179,7 +178,7 @@ export function SearchChart({
                   <path
                     d={SHAPE_PATHS[candidate.phase === "tuning" ? "diamond" : "circle"]}
                     transform={`translate(${String(cx)},${String(y(candidate.mean))})`}
-                    fill={color(candidate.family)}
+                    fill={familyColor(candidate.family)}
                     stroke="var(--card)"
                     strokeWidth={1.5}
                   />
