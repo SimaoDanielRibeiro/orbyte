@@ -17,6 +17,7 @@ dependencies = [
     "pydantic>=2.14.1",
     "python-multipart>=0.0.32",
     "scikit-learn>=1.9.1",
+    "threadpoolctl>=3.7.0",
     "torch>=2.14.1",
     "uvicorn>=0.54.0",
     "websockets>=17.3",
@@ -110,10 +111,10 @@ pretty = true
 # O plugin do Pydantic ensina o mypy a ler os modelos (campos, valores por omissão, Field).
 plugins = ["pydantic.mypy"]
 
-# O scikit-learn e o joblib não trazem anotações de tipos: os seus objetos ficam com o tipo
-# Any.
+# O scikit-learn, o joblib e o threadpoolctl não trazem anotações de tipos: os seus objetos
+# ficam com o tipo Any.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*", "joblib", "joblib.*"]
+module = ["sklearn", "sklearn.*", "joblib", "joblib.*", "threadpoolctl"]
 ignore_missing_imports = true
 
 # --- pytest: testes ---------------------------------------------------------------

@@ -59,6 +59,10 @@ class TSNEParams(Hyperparameters):
 class TSNE(SklearnModel[TSNEParams]):
     """t-SNE do scikit-learn (Barnes-Hut), com o mapa sempre em 2D."""
 
+    # O gradiente (Barnes-Hut) soma-se em paralelo: com várias threads, a mesma seed dava
+    # divergências KL diferentes nos últimos dígitos.
+    single_thread = True
+
     info = ModelInfo(
         name="tsne",
         display_name="t-SNE",

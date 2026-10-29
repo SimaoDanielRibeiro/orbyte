@@ -44,6 +44,10 @@ class SklearnKMeansParams(KMeansParams):
 class KMeans(SklearnModel[SklearnKMeansParams]):
     """K-means do scikit-learn."""
 
+    # Os centróides e a inércia somam-se em paralelo: com várias threads, a mesma seed dava
+    # inércias diferentes no último dígito.
+    single_thread = True
+
     info = ModelInfo(
         name="kmeans",
         display_name="K-means",

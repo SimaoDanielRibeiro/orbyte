@@ -7,15 +7,23 @@ do seu estado.
 Os avisos que o scikit-learn emite durante o treino (por exemplo, "o otimizador não
 convergiu") não se perdem: tornam-se avisos didáticos do modelo, com uma explicação
 do que fazer.
+
+Alguns estimadores somam em paralelo (OpenMP), e a ordem das parcelas muda de uma corrida para
+a outra: em vírgula flutuante, a soma muda no último dígito, e a mesma seed deixaria de dar
+exatamente o mesmo resultado. Esses modelos dizem-no (``single_thread``) e treinam com uma só
+thread.
 """
 
+import threading
 from abc import abstractmethod
-from collections.abc import Iterable
-from typing import Any, override
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
+from typing import Any, ClassVar, Final, override
 
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.exceptions import ConvergenceWarning
+from threadpoolctl import threadpool_limits
 
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.types import TaskType
@@ -23,9 +31,26 @@ from ml_lab.core.models.base import Features, LabModel, Target, capture_warnings
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.training.context import TrainingContext
 
+_ONE_THREAD: Final = threading.Lock()
+"""O limite de threads é do processo todo: dois treinos ao mesmo tempo esperam um pelo outro,
+para nenhum repor o limite enquanto o outro ainda conta com ele."""
+
+
+@contextmanager
+def _threads(single: bool) -> Iterator[None]:
+    """Uma só thread de OpenMP enquanto dura o bloco, se ``single``; senão, as que houver."""
+    if not single:
+        yield
+        return
+    with _ONE_THREAD, threadpool_limits(limits=1, user_api="openmp"):
+        yield
+
 
 class SklearnModel[P: Hyperparameters](LabModel[P]):
     """Base dos modelos que envolvem um estimador do scikit-learn."""
+
+    single_thread: ClassVar[bool] = False
+    """Se treina com uma só thread: o estimador soma em paralelo, numa ordem que muda."""
 
     estimator_: Any
 
@@ -55,7 +80,8 @@ class SklearnModel[P: Hyperparameters](LabModel[P]):
                 treina de propósito um passo de cada vez).
         """
         ignored = tuple(ignore)
-        _, caught = capture_warnings(lambda: estimator.fit(X, y))
+        with _threads(self.single_thread):
+            _, caught = capture_warnings(lambda: estimator.fit(X, y))
         for warning in caught:
             if not ignored or not issubclass(warning.category, ignored):
                 self._note(self._explain_warning(warning.message))

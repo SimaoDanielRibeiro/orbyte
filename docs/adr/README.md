@@ -44,6 +44,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0037](0037-cores-por-familia-barra-que-desliza-e-licao-do-rl.md) | Cores fixas por família, a barra que desliza e a lição do reinforcement learning | Proposta |
 | [0038](0038-contorno-colorido-sem-numeros-e-menos-texto.md) | O contorno colorido, sem números nem brilho, e menos texto à vista | Proposta |
 | [0039](0039-pacote-do-modelo.md) | O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado | Proposta |
+| [0040](0040-uma-thread-para-a-mesma-seed-dar-o-mesmo.md) | Uma só thread nos estimadores que somam em paralelo, para a mesma seed dar o mesmo | Proposta |
 
 ## Como escrever uma ADR
 
