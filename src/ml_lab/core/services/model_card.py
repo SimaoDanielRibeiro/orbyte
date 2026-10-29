@@ -80,7 +80,8 @@ def _summary(result: ExperimentResult, preparation: FittedPreparation, info: Mod
         what = f"prevê **{preparation.target}** ({task}) a partir de {columns}"
     else:
         what = f"faz {task} com {columns}"
-    return f"{info.display_name}, treinado no ML Lab: {what}."
+    # Travessões, e não parênteses: o nome do modelo pode ter os seus (o gradiente descendente).
+    return f"Este modelo — {info.display_name} — {what}. Foi treinado no ML Lab."
 
 
 def _how(result: ExperimentResult, dataset: Dataset, info: ModelInfo) -> str:
@@ -89,9 +90,9 @@ def _how(result: ExperimentResult, dataset: Dataset, info: ModelInfo) -> str:
         for partition in (Partition.TRAIN, Partition.VALIDATION, Partition.TEST)
         if partition in dataset.splits
     ]
+    parts[0] = parts[0].replace(" no ", " linhas no ", 1)
     lines = [
-        f"- **Dados:** {result.dataset_name}, com {format_list(parts)} linhas (seed "
-        f"{result.seed}).",
+        f"- **Dados:** {result.dataset_name}: {format_list(parts)} (seed {result.seed}).",
         "- **Preparação**, pela ordem:",
         *(
             f"  - {step.description}"

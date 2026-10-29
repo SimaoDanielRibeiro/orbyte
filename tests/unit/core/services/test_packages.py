@@ -2,6 +2,7 @@
 
 import io
 import json
+import threading
 import zipfile
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -15,7 +16,12 @@ from ml_lab.config import Settings, get_settings
 from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.preparation import PreparationConfig
 from ml_lab.core.data.serving import FittedPreparation
-from ml_lab.core.foundation.errors import PackageError, RunNotInMemoryError
+from ml_lab.core.foundation.errors import (
+    PackageError,
+    RunNotInMemoryError,
+    TrainingInProgressError,
+)
+from ml_lab.core.foundation.events import StepCompleted
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.schemas.packages import PackageRequest
@@ -44,15 +50,18 @@ def a_lab(folder: Path) -> Lab:
     return replace(lab, packages=clock_fixed)
 
 
-def titanic(lab: Lab, model: str = "logistic_regression", **params: Any) -> ExperimentResult:
+def titanic_config(lab: Lab, model: str, **params: Any) -> ExperimentConfig:
     sample = lab.datasets.load_sample("titanic")
-    config = ExperimentConfig(
+    return ExperimentConfig(
         dataset=sample.source,
         preparation=PreparationConfig(target="Survived", cleaning=(DROP,)),
         model=ModelSpec(name=model, hyperparameters=params),
         seed=42,
     )
-    return lab.experiments.run(config)
+
+
+def titanic(lab: Lab, model: str = "logistic_regression", **params: Any) -> ExperimentResult:
+    return lab.experiments.run(titanic_config(lab, model, **params))
 
 
 @pytest.fixture
@@ -67,10 +76,12 @@ def test_the_options_suggest_a_name_and_the_parts(lab: Lab) -> None:
 
     assert options.name == "Titanic — Regressão logística"
     assert options.file_name == "titanic-regressao-logistica.mllab"
-    assert options.include_model
-    assert options.include_examples  # um dataset de exemplo: as linhas são públicas
-    assert options.examples_available
-    assert not options.include_training
+    choices = {choice.key: choice for choice in options.choices}
+    assert list(choices) == ["include_model", "include_examples", "include_training"]
+    assert choices["include_model"].included
+    assert choices["include_examples"].included  # um dataset de exemplo: as linhas são públicas
+    assert not choices["include_training"].included
+    assert all(choice.available for choice in options.choices)
 
 
 def test_the_preview_is_the_file_byte_for_byte(lab: Lab) -> None:
@@ -113,7 +124,8 @@ def test_the_preview_shows_what_each_part_is(lab: Lab) -> None:
     assert parts[files.README].title == "A ficha do modelo"
     readme = parts[files.README].content or ""
     assert readme.startswith("# Titanic — Regressão logística\n")
-    assert "prevê **Survived**" in readme
+    assert "Este modelo — Regressão logística — prevê **Survived**" in readme
+    assert "- **Dados:** Titanic: 712 linhas no treino e 179 no teste (seed 42)." in readme
     assert "## Os limites" in readme
     assert "| Exatidão |" in readme
     codes = {notice.code for notice in preview.notices}
@@ -276,6 +288,26 @@ def test_a_run_only_recorded_is_not_a_candidate(lab: Lab, tmp_path: Path) -> Non
         later.packages.options(result.run_id)
 
 
+def test_a_run_still_training_says_so_and_saves_when_it_ends(lab: Lab) -> None:
+    reached, release = threading.Event(), threading.Event()
+
+    def hold(event: StepCompleted) -> None:
+        if event.step == 5:
+            reached.set()
+            assert release.wait(10)
+
+    lab.experiments.bus.subscribe(StepCompleted, hold)
+    job = lab.experiments.start(titanic_config(lab, "logistic_regression_gd", max_epochs=20))
+    assert reached.wait(10)
+
+    with pytest.raises(TrainingInProgressError, match="ainda está a treinar"):
+        lab.packages.options(job.run_id)
+    release.set()
+    job.wait(60)
+
+    assert lab.packages.options(job.run_id).run_id == job.run_id
+
+
 def test_memorizing_models_and_projections_are_flagged(lab: Lab) -> None:
     knn = titanic(lab, "knn")
     iris = lab.datasets.load_sample("iris")
@@ -296,3 +328,9 @@ def test_memorizing_models_and_projections_are_flagged(lab: Lab) -> None:
     assert "package_memorized_rows" in knn_codes
     assert "package_cannot_predict" in {notice.code for notice in tsne_preview.notices}
     assert files.EXAMPLES not in {part.path for part in tsne_preview.parts}
+    examples = lab.packages.options(tsne.run_id).choices[1]
+    assert examples.key == "include_examples"
+    assert not examples.available
+    assert not examples.included
+    assert examples.reason is not None
+    assert "não prevê linhas novas" in examples.reason

@@ -116,6 +116,7 @@ from ml_lab.core.services.laboratory import (
 )
 from ml_lab.core.services.packages import (
     PackageCandidate,
+    PackageChoice,
     PackageFileKind,
     PackageOptions,
     PackageOrigin,
@@ -267,6 +268,7 @@ __all__ = [
     "Outline",
     "OverfittingDemo",
     "PackageCandidate",
+    "PackageChoice",
     "PackageFileKind",
     "PackageOptions",
     "PackageOrigin",

@@ -24,6 +24,7 @@ import re
 import secrets
 import shutil
 import zipfile
+import zlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
@@ -288,7 +289,14 @@ def read_package(data: bytes, key: PackageKey) -> OpenedPackage:
             total += info.file_size
             if total > MAX_PACKAGE_BYTES:
                 raise PackageError("O pacote, descomprimido, é grande demais para se abrir.")
-            files.append(PackageFile(info.filename, archive.read(info)))
+            try:
+                content = archive.read(info)
+            except (zipfile.BadZipFile, zlib.error, EOFError):
+                # Os bytes do ZIP estragaram-se (a impressão do próprio ZIP não confere): o resto
+                # lê-se na mesma, e o manifesto diz que falta este.
+                problems.append(f"O ficheiro {info.filename} está estragado e não se lê.")
+                continue
+            files.append(PackageFile(info.filename, content))
     contents = PackageContents(_ordered(files))
     manifest = _manifest_of(contents)
     problems.extend(_check(contents, manifest))

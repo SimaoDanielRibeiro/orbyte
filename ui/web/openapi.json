@@ -11616,6 +11616,59 @@
         "title": "PackageCandidate",
         "description": "Um run do histórico que se pode guardar num pacote (ou porque não se pode).\n\nAttributes:\n    run_id: O run.\n    name: O nome do run no histórico.\n    model_display_name: O modelo.\n    family: A família do modelo (a cor dele na interface).\n    dataset_name: O dataset.\n    task_type: A tarefa.\n    created_at: Quando terminou.\n    primary_label: O nome da métrica principal.\n    primary_value: O valor dela na parte que resume o run.\n    primary_as_percent: Se se mostra como percentagem.\n    available: Se o modelo está à mão (desta sessão, ou guardado).\n    reason: Porque não se pode guardar (``None`` se se pode)."
       },
+      "PackageChoice": {
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PackageField"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "included": {
+            "type": "boolean",
+            "title": "Included"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "description",
+          "included",
+          "available",
+          "reason"
+        ],
+        "title": "PackageChoice",
+        "description": "Uma parte do pacote que se pode deixar de fora: o que leva e se este run a tem.\n\nAttributes:\n    key: O campo do pedido (``PackageRequest``) que a liga e desliga.\n    title: O nome a mostrar.\n    description: O que leva, numa frase.\n    included: Se vai, por omissão.\n    available: Se este run a tem para dar.\n    reason: Porque não se pode escolher (``None`` quando se pode)."
+      },
+      "PackageField": {
+        "type": "string",
+        "enum": [
+          "include_model",
+          "include_examples",
+          "include_training"
+        ]
+      },
       "PackageFileKind": {
         "type": "string",
         "enum": [
@@ -11642,13 +11695,12 @@
             "type": "string",
             "title": "File Name"
           },
-          "include_model": {
-            "type": "boolean",
-            "title": "Include Model"
-          },
-          "include_examples": {
-            "type": "boolean",
-            "title": "Include Examples"
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/PackageChoice"
+            },
+            "type": "array",
+            "title": "Choices"
           },
           "examples": {
             "type": "integer",
@@ -11657,18 +11709,6 @@
           "max_examples": {
             "type": "integer",
             "title": "Max Examples"
-          },
-          "examples_available": {
-            "type": "boolean",
-            "title": "Examples Available"
-          },
-          "include_training": {
-            "type": "boolean",
-            "title": "Include Training"
-          },
-          "training_available": {
-            "type": "boolean",
-            "title": "Training Available"
           }
         },
         "type": "object",
@@ -11676,16 +11716,12 @@
           "run_id",
           "name",
           "file_name",
-          "include_model",
-          "include_examples",
+          "choices",
           "examples",
-          "max_examples",
-          "examples_available",
-          "include_training",
-          "training_available"
+          "max_examples"
         ],
         "title": "PackageOptions",
-        "description": "O que se sugere para o pacote de um run, e o que se pode escolher.\n\nAttributes:\n    run_id: O run.\n    name: O nome sugerido.\n    file_name: O nome do ficheiro que esse nome dá.\n    include_model: Se leva o modelo, por omissão.\n    include_examples: Se leva linhas de exemplo, por omissão (sim nos datasets de exemplo\n        e nos sintéticos; não num ficheiro carregado, que pode ser de alguém).\n    examples: Quantas linhas de exemplo, por omissão.\n    max_examples: Quantas linhas de exemplo há, no máximo.\n    examples_available: Se o run tem linhas de exemplo para dar.\n    include_training: Se leva o treino passo a passo, por omissão.\n    training_available: Se o run tem o treino passo a passo."
+        "description": "O que se sugere para o pacote de um run, e o que se pode escolher.\n\nAttributes:\n    run_id: O run.\n    name: O nome sugerido.\n    file_name: O nome do ficheiro que esse nome dá.\n    choices: As partes que se podem deixar de fora, pela ordem em que se mostram (o\n        modelo, as linhas de exemplo e o treino passo a passo).\n    examples: Quantas linhas de exemplo, por omissão.\n    max_examples: Quantas linhas de exemplo há, no máximo."
       },
       "PackageOrigin": {
         "type": "string",

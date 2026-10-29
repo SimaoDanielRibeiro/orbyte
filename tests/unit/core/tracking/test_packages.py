@@ -117,6 +117,23 @@ def test_a_changed_file_is_caught_and_the_model_never_opens(key: PackageKey) -> 
         load_model(opened)
 
 
+def test_a_file_whose_bytes_broke_is_reported_and_the_rest_reads(key: PackageKey) -> None:
+    contents = assemble(parts(), MANIFEST_BASE, key)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
+        for file in contents.files:
+            archive.writestr(file.path, file.content)
+    # Uma letra trocada dentro do input.json: o ZIP já não confere com a sua própria impressão.
+    data = buffer.getvalue().replace(b'{"columns": []}', b'{"columns": [}]', 1)
+
+    opened = read_package(data, key)
+
+    assert not opened.intact
+    assert not opened.made_here
+    assert "input.json está estragado e não se lê" in opened.problems[0]
+    assert opened.contents.get(README) == b"# Teste\n"
+
+
 def test_files_the_format_does_not_know_are_reported(key: PackageKey) -> None:
     data = assemble(parts(), MANIFEST_BASE, key).to_zip()
     buffer = io.BytesIO(data)

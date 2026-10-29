@@ -29,7 +29,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from importlib.metadata import PackageNotFoundError as DistributionNotFound
 from importlib.metadata import version
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 import numpy as np
 
@@ -214,6 +214,31 @@ class PackageCandidate:
     reason: str | None
 
 
+type PackageField = Literal["include_model", "include_examples", "include_training"]
+"""O campo do pedido (``PackageRequest``) que liga e desliga uma parte opcional."""
+
+
+@dataclass(frozen=True, slots=True)
+class PackageChoice:
+    """Uma parte do pacote que se pode deixar de fora: o que leva e se este run a tem.
+
+    Attributes:
+        key: O campo do pedido (``PackageRequest``) que a liga e desliga.
+        title: O nome a mostrar.
+        description: O que leva, numa frase.
+        included: Se vai, por omissão.
+        available: Se este run a tem para dar.
+        reason: Porque não se pode escolher (``None`` quando se pode).
+    """
+
+    key: PackageField
+    title: str
+    description: str
+    included: bool
+    available: bool
+    reason: str | None
+
+
 @dataclass(frozen=True, slots=True)
 class PackageOptions:
     """O que se sugere para o pacote de um run, e o que se pode escolher.
@@ -222,26 +247,18 @@ class PackageOptions:
         run_id: O run.
         name: O nome sugerido.
         file_name: O nome do ficheiro que esse nome dá.
-        include_model: Se leva o modelo, por omissão.
-        include_examples: Se leva linhas de exemplo, por omissão (sim nos datasets de exemplo
-            e nos sintéticos; não num ficheiro carregado, que pode ser de alguém).
+        choices: As partes que se podem deixar de fora, pela ordem em que se mostram (o
+            modelo, as linhas de exemplo e o treino passo a passo).
         examples: Quantas linhas de exemplo, por omissão.
         max_examples: Quantas linhas de exemplo há, no máximo.
-        examples_available: Se o run tem linhas de exemplo para dar.
-        include_training: Se leva o treino passo a passo, por omissão.
-        training_available: Se o run tem o treino passo a passo.
     """
 
     run_id: str
     name: str
     file_name: str
-    include_model: bool
-    include_examples: bool
+    choices: tuple[PackageChoice, ...]
     examples: int
     max_examples: int
-    examples_available: bool
-    include_training: bool
-    training_available: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -430,25 +447,20 @@ class PackageService:
         """O nome e as partes sugeridas para o pacote de um run.
 
         Raises:
+            TrainingInProgressError: Se o run ainda estiver a treinar.
             RunNotFoundError: Se o run não estiver no histórico.
             RunNotInMemoryError: Se o run não tiver o modelo à mão (só registado).
         """
         artifacts = self._artifacts(run_id)
         preparation = _preparation(artifacts)
         name = _default_name(artifacts.result)
-        available = _examples_available(artifacts, preparation)
         return PackageOptions(
             run_id=run_id,
             name=name,
             file_name=_file_name(name),
-            include_model=True,
-            include_examples=available and artifacts.config.dataset.kind in _EXAMPLE_SOURCES,
+            choices=_choices(artifacts, preparation),
             examples=min(5, len(preparation.examples)) or 1,
             max_examples=max(1, len(preparation.examples)),
-            examples_available=available,
-            include_training=False,
-            training_available=artifacts.result.animation is not None
-            or artifacts.result.network is not None,
         )
 
     def preview(self, run_id: str, request: PackageRequest) -> PackagePreview:
@@ -457,6 +469,7 @@ class PackageService:
         É exatamente o que ``save`` grava, no mesmo instante: o mesmo código monta os dois.
 
         Raises:
+            TrainingInProgressError: Se o run ainda estiver a treinar.
             RunNotFoundError: Se o run não estiver no histórico.
             RunNotInMemoryError: Se o run não tiver o modelo à mão (só registado).
         """
@@ -467,6 +480,7 @@ class PackageService:
         """Grava o pacote de um run na biblioteca e guarda o run no histórico (com o modelo).
 
         Raises:
+            TrainingInProgressError: Se o run ainda estiver a treinar.
             RunNotFoundError: Se o run não estiver no histórico.
             RunNotInMemoryError: Se o run não tiver o modelo à mão (só registado).
         """
@@ -560,8 +574,22 @@ class PackageService:
         return entry.file_name, self._library.data(package_id)
 
     def _artifacts(self, run_id: str) -> RunArtifacts:
-        """O modelo, os dados e o resultado de um run; um run guardado volta à memória."""
+        """O modelo, os dados e o resultado de um run; um run guardado volta à memória.
+
+        Raises:
+            TrainingInProgressError: Se o run ainda estiver a treinar.
+            TrainingFailedError: Se o treino do run falhou.
+            RunNotFoundError: Se o run não estiver no histórico.
+            RunNotInMemoryError: Se o run só tiver ficado registado, sem o modelo.
+        """
         try:
+            return self._experiments.artifacts(run_id)
+        except RunNotInMemoryError:
+            pass
+        try:
+            # Um treino que ainda decorre (ou que falhou) diz porquê, em vez de "não está no
+            # histórico"; um que acabou entretanto já está à mão.
+            self._experiments.result(run_id)
             return self._experiments.artifacts(run_id)
         except RunNotInMemoryError:
             entry = self._history.entry(run_id)
@@ -911,13 +939,70 @@ def _preparation(artifacts: RunArtifacts) -> FittedPreparation:
     return preparation
 
 
-def _examples_available(artifacts: RunArtifacts, preparation: FittedPreparation) -> bool:
-    info = MODELS.get(artifacts.result.model_name).info
-    predicts = (
-        info.supports_new_data
-        and artifacts.result.task_type is not TaskType.DIMENSIONALITY_REDUCTION
+def _choices(artifacts: RunArtifacts, preparation: FittedPreparation) -> tuple[PackageChoice, ...]:
+    """As partes que se podem deixar de fora do pacote de um run, e se ele as tem."""
+    result = artifacts.result
+    examples = _examples_reason(artifacts, preparation)
+    training = result.animation is not None or result.network is not None
+    return (
+        PackageChoice(
+            key="include_model",
+            title="O modelo, para prever",
+            description=(
+                "O modelo treinado, para voltar a prever no ML Lab (e, quando há conversão, "
+                "noutras apps, em ONNX). Sem ele, o pacote só se lê."
+            ),
+            included=True,
+            available=True,
+            reason=None,
+        ),
+        PackageChoice(
+            key="include_examples",
+            title="Linhas de exemplo",
+            description=(
+                f"{_PARTS[files.EXAMPLES].description} Servem para confirmar que o modelo "
+                "prevê o mesmo noutro sítio."
+            ),
+            # Por omissão, só as dos datasets de exemplo e dos sintéticos: as de um ficheiro
+            # carregado podem ser de alguém.
+            included=examples is None and artifacts.config.dataset.kind in _EXAMPLE_SOURCES,
+            available=examples is None,
+            reason=examples,
+        ),
+        PackageChoice(
+            key="include_training",
+            title="O treino passo a passo",
+            description=(
+                "O que o modelo respondia em cada snapshot (e o que cada camada da rede fez), "
+                "para rever o treino. Pode ocupar bastante."
+            ),
+            included=False,
+            available=training,
+            reason=None
+            if training
+            else (
+                "Este run não tem o treino passo a passo: os dados não têm uma projeção 2D, ou "
+                "o run voltou do histórico sem ele."
+            ),
+        ),
     )
-    return predicts and len(preparation.examples) > 0
+
+
+def _examples_reason(artifacts: RunArtifacts, preparation: FittedPreparation) -> str | None:
+    """Porque é que um run não tem linhas de exemplo para dar (``None`` se as tem)."""
+    info = MODELS.get(artifacts.result.model_name).info
+    if (
+        not info.supports_new_data
+        or artifacts.result.task_type is TaskType.DIMENSIONALITY_REDUCTION
+    ):
+        return "Este modelo não prevê linhas novas: não há exemplos com a previsão."
+    if len(preparation.examples) == 0:
+        return "O teste deste run não ficou com linhas para dar de exemplo."
+    return None
+
+
+def _examples_available(artifacts: RunArtifacts, preparation: FittedPreparation) -> bool:
+    return _examples_reason(artifacts, preparation) is None
 
 
 def _predictions(artifacts: RunArtifacts, n_rows: int) -> list[object]:
