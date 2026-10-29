@@ -168,7 +168,7 @@ function Prepare({ dataset }: { dataset: DatasetSummary }) {
         </div>
       </div>
       {current !== null && (
-        <NextStep text="A preparação fica guardada para o treino. A seguir, escolhe o modelo que vai aprender com estes dados.">
+        <NextStep>
           <Proceed to="/modelos">Escolher o modelo</Proceed>
         </NextStep>
       )}

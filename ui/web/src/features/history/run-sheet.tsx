@@ -66,7 +66,7 @@ export function RunSheet({ entry, onClose, onDeleted }: RunSheetProps) {
         }
       }}
     >
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent side="right" className="w-full overflow-y-auto data-[side=right]:sm:max-w-lg">
         {entry !== null && (
           <RunDetails key={entry.run_id} entry={entry} onClose={onClose} onDeleted={onDeleted} />
         )}

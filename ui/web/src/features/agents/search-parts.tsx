@@ -258,8 +258,8 @@ const ROLE_ICONS: Readonly<Record<AgentRole, typeof Database>> = {
 
 /**
  * A conversa dos agentes, pela ordem; segue a mensagem mais recente enquanto chegam. Cada agente
- * tem a sua cor (a do nó dele no fluxograma), no ícone e num filete à esquerda da mensagem: lê-se
- * quem fala sem ler o nome. O texto fica nas cores do texto.
+ * tem a sua cor (a do nó dele no fluxograma), no contorno da caixa do ícone: lê-se quem fala sem
+ * ler o nome. O texto fica nas cores do texto.
  */
 export function Conversation({
   messages,
@@ -351,14 +351,15 @@ export function Conversation({
               now && "bg-surface-high py-2 ring-1 ring-[#3a3a3a]",
             )}
           >
+            {/* Quem fala: o ícone numa caixa com o contorno da cor dele (a do nó no fluxograma). */}
             <span
               aria-hidden="true"
-              className="mt-0.5 flex size-7 items-center justify-center rounded-full border bg-[#1a1a1a]"
-              style={{ borderColor: color, boxShadow: `0 0 10px -2px ${color}` }}
+              className="mt-0.5 flex size-7 items-center justify-center rounded-lg border bg-[#1a1a1a]"
+              style={{ borderColor: color }}
             >
               <Icon className="size-3.5" style={{ color }} />
             </span>
-            <div className="min-w-0 border-l-2 pl-3" style={{ borderColor: `${color}55` }}>
+            <div className="min-w-0">
               <p className="text-sm">
                 <span className="font-medium text-strong">{message.author}</span>
                 {recipients !== null && <span className="ml-1.5 text-soft">{recipients}</span>}

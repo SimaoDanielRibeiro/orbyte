@@ -10,10 +10,9 @@ const buttonVariants = cva(
       variant: {
         // O botão principal acende a branco sobre o escuro; os outros ficam nos cinzentos.
         default: "bg-primary text-primary-foreground hover:bg-primary/85",
-        // Prosseguir para o passo seguinte: o mais saliente da página, com um brilho por baixo
-        // (com o tamanho `proceed`; ADR 0036).
-        proceed:
-          "bg-primary font-semibold text-primary-foreground shadow-[0_10px_32px_-12px_rgb(255_255_255/0.55)] hover:bg-primary/90 hover:shadow-[0_12px_36px_-10px_rgb(255_255_255/0.7)]",
+        // Prosseguir para o passo seguinte: o mais saliente da página, pelo tamanho e pelo peso,
+        // sem brilho à volta (com o tamanho `proceed`; ADR 0036 e 0038).
+        proceed: "bg-primary font-semibold text-primary-foreground hover:bg-primary/90",
         outline:
           "border-[#2e2e2e] bg-surface text-strong shadow-[inset_0_1px_0_rgb(255_255_255/0.03)] hover:border-[#3a3a3a] hover:bg-surface-high aria-expanded:bg-surface-high",
         secondary:

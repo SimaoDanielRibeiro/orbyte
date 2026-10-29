@@ -283,14 +283,13 @@ function nodeOf(participant: Participant): FlowNode {
       : participant.kind;
 }
 
+/** Um participante da troca: o nome, num contorno com a cor dele (a do seu nó). */
 function Who({ color, name }: { color: string; name: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-strong">
-      <span
-        aria-hidden="true"
-        className="size-2 rounded-full"
-        style={{ background: color, boxShadow: `0 0 8px ${color}` }}
-      />
+    <span
+      className="inline-flex h-6 items-center rounded-full border px-2.5 text-strong"
+      style={{ borderColor: color }}
+    >
       {name}
     </span>
   );
@@ -316,16 +315,7 @@ function Recipients({
 }) {
   if (recipients.length > 3) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-strong">
-        <span aria-hidden="true" className="flex -space-x-1">
-          {recipients.map((recipient, index) => (
-            <span
-              key={index}
-              className="size-2 rounded-full ring-1 ring-ground"
-              style={{ background: participantColor(recipient) }}
-            />
-          ))}
-        </span>
+      <span className="inline-flex h-6 items-center rounded-full border border-[#3a3a3a] px-2.5 text-strong">
         {`os ${formatCount(recipients.length)} agentes`}
       </span>
     );

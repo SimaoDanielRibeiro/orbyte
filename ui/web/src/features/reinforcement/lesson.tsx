@@ -6,7 +6,8 @@
  * anima.
  *
  * - Em cima, os episódios escolhidos (o primeiro, uma queda, o primeiro êxito, um do meio e o
- *   último), e a frase do backend sobre o que se vê no episódio aberto.
+ *   último); a frase do backend sobre o que se vê no episódio aberto fica no "?" ao lado deles
+ *   (ADR 0038).
  * - No meio, a grelha: o agente anda, a recompensa salta da célula onde ele chega, e a cor de
  *   cada célula muda quando o agente aprende com ela. Episódio a episódio, vê-se o valor do
  *   objetivo a espalhar-se para trás.
@@ -39,13 +40,12 @@ import { useTopic } from "@/api/topics";
 import { cellFill } from "@/components/charts/grid-fill";
 import { CellSymbol } from "@/components/charts/grid-world";
 import { Explain } from "@/components/explain/explain";
-import { Prose } from "@/components/markdown/prose";
 import { ErrorNote } from "@/components/shell/blocks";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useSize } from "@/hooks/use-size";
-import { CATEGORICAL, diverging, LIGHT_INK, SURFACE } from "@/lib/colors";
+import { CATEGORICAL, diverging, LIGHT_INK, SURFACE, withAlpha } from "@/lib/colors";
 import { formatCount, formatNumber } from "@/lib/format";
 
 import { useLessonClock, type Speed } from "./use-lesson-clock";
@@ -72,14 +72,15 @@ export function RlLesson() {
           <h2 id="licao-titulo" className="text-xl">
             Como um agente aprende
           </h2>
-          <Explain topic="reinforcement_learning" />
+          <Explain topic="reinforcement_learning">
+            {lesson.data !== undefined && (
+              <p>
+                Nesta lição: {lesson.data.agent_display_name} em {lesson.data.environment_name}, ao
+                longo de {formatCount(lesson.data.episodes)} episódios.
+              </p>
+            )}
+          </Explain>
         </div>
-        {lesson.data !== undefined && (
-          <span className="font-mono text-xs text-dim">
-            {lesson.data.agent_display_name} em {lesson.data.environment_name}, ao longo de{" "}
-            {formatCount(lesson.data.episodes)} episódios
-          </span>
-        )}
       </div>
       <ErrorNote error={lesson.error} />
       {lesson.data === undefined ? (
@@ -115,14 +116,35 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
 
   return (
     <div ref={box} className="flex flex-col gap-6 panel p-5 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center gap-1.5">
         <EpisodePicker
           kept={kept}
           layout={layout}
           current={clock.episode}
           onPick={clock.goToEpisode}
         />
-        <div className="flex items-center gap-2">
+        <Explain
+          title={`Episódio ${formatCount(episode.episode)}`}
+          label="O que se vê neste episódio"
+        >
+          {episode.story}
+        </Explain>
+      </div>
+
+      <LessonGrid
+        layout={layout}
+        episode={episode}
+        stepIndex={clock.step}
+        phase={clock.phase}
+        finished={clock.finished}
+        episodeKey={clock.episode}
+        reduced={reduced}
+      />
+
+      <div className="flex flex-col gap-3">
+        <LessonLegend />
+        {/* Os controlos na fila do progresso, como num leitor de vídeo. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Button
             variant="outline"
             size="icon-sm"
@@ -137,6 +159,18 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
           >
             {clock.playing ? <Pause /> : clock.atEnd ? <RotateCcw /> : <Play />}
           </Button>
+          <span className="h-1 min-w-24 flex-1 overflow-hidden rounded-full bg-[#262626]">
+            <span
+              className="block h-full rounded-full bg-strong transition-[width] duration-200"
+              style={{
+                width: `${String(((clock.finished ? steps.length : clock.step + 1) / Math.max(1, steps.length)) * 100)}%`,
+              }}
+            />
+          </span>
+          <span className="font-mono text-xs text-dim tabular-nums">
+            passo {formatCount(Math.min(steps.length, clock.step + 1))} de{" "}
+            {formatCount(steps.length)}
+          </span>
           <ToggleGroup
             type="single"
             variant="outline"
@@ -155,41 +189,6 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-        </div>
-      </div>
-
-      <p className="max-w-[80ch] text-[0.9375rem] leading-relaxed text-soft" aria-live="polite">
-        <span className="mr-2 font-mono text-xs text-dim">
-          Episódio {formatCount(episode.episode)}
-        </span>
-        {episode.story}
-      </p>
-
-      <LessonGrid
-        layout={layout}
-        episode={episode}
-        stepIndex={clock.step}
-        phase={clock.phase}
-        finished={clock.finished}
-        episodeKey={clock.episode}
-        reduced={reduced}
-      />
-
-      <div className="flex flex-col gap-3">
-        <LessonLegend />
-        <div className="flex items-center gap-3">
-          <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#262626]">
-            <span
-              className="block h-full rounded-full bg-strong transition-[width] duration-200"
-              style={{
-                width: `${String(((clock.finished ? steps.length : clock.step + 1) / Math.max(1, steps.length)) * 100)}%`,
-              }}
-            />
-          </span>
-          <span className="font-mono text-xs text-dim tabular-nums">
-            passo {formatCount(Math.min(steps.length, clock.step + 1))} de{" "}
-            {formatCount(steps.length)}
-          </span>
         </div>
       </div>
 
@@ -287,13 +286,15 @@ function EpisodePicker({
           <ToggleGroupItem
             key={episode.episode}
             value={String(index)}
-            className="h-8 gap-2 rounded-full border border-[#2a2a2a] px-3 text-[0.8125rem] data-[state=on]:border-[#4a4a4a] data-[state=on]:bg-surface-high"
+            // O contorno diz como acabou: azul no objetivo, laranja numa queda (a escala do valor).
+            style={{
+              borderColor:
+                index === current
+                  ? diverging(episode.reached ? 1 : -1)
+                  : withAlpha(diverging(episode.reached ? 1 : -1), 0.45),
+            }}
+            className="h-8 gap-2 rounded-full border px-3 text-[0.8125rem] data-[state=on]:bg-surface-high"
           >
-            <span
-              aria-hidden="true"
-              className="size-1.5 rounded-full"
-              style={{ background: episode.reached ? diverging(1) : diverging(-1) }}
-            />
             Episódio {formatCount(episode.episode)}
             <span className="font-mono text-[0.6875rem] text-dim">{tag}</span>
           </ToggleGroupItem>
@@ -419,7 +420,7 @@ function LessonGrid({
             initial={false}
             animate={{ cx: agentX, cy: agentY }}
             transition={glide}
-            style={{ filter: "drop-shadow(0 0 6px rgb(255 255 255 / 0.55))" }}
+            style={{ filter: "drop-shadow(0 0 3px rgb(255 255 255 / 0.35))" }}
           />
           <AnimatePresence>
             {step !== undefined && phase >= 2 && !finished && (
@@ -554,7 +555,6 @@ function Cycle({
       {STAGES.map((stage, index) => (
         <Stage
           key={stage.topic}
-          index={index}
           topic={stage.topic}
           icon={index === 1 && step.explored ? Dices : stage.icon}
           now={phase === index}
@@ -565,14 +565,16 @@ function Cycle({
   );
 }
 
+/**
+ * Uma fase do ciclo: o ícone, o título (com o "?", onde fica a explicação do backend) e o que
+ * aconteceu nesta fase do passo de agora. A fase de agora acende.
+ */
 function Stage({
-  index,
   topic,
   icon: Icon,
   now,
   fact,
 }: {
-  index: number;
   topic: string;
   icon: LucideIcon;
   now: boolean;
@@ -583,10 +585,8 @@ function Stage({
     <li
       aria-current={now ? "step" : undefined}
       className={cn(
-        "flex flex-col gap-2.5 rounded-xl border p-3.5 transition-[border-color,background-color,box-shadow] duration-200",
-        now
-          ? "border-white/45 bg-surface-high shadow-[0_0_24px_-10px_rgb(255_255_255/0.5)]"
-          : "border-[#262626] bg-ground",
+        "flex flex-col gap-3 rounded-xl border p-3.5 transition-[border-color,background-color] duration-200",
+        now ? "border-white/45 bg-surface-high" : "border-[#262626] bg-ground",
       )}
     >
       <div className="flex items-center gap-2.5">
@@ -599,11 +599,10 @@ function Stage({
         >
           <Icon className="size-3.5" />
         </span>
-        <span className="font-mono text-[0.6875rem] text-dim">{index + 1}</span>
         <h3 className="text-[0.9375rem] font-medium text-strong">{explanation?.title}</h3>
+        <Explain topic={topic} />
       </div>
-      {explanation !== undefined && <Prose text={explanation.text} size="small" />}
-      <p className="mt-auto font-mono text-xs leading-relaxed text-soft">{fact}</p>
+      <p className="font-mono text-xs leading-relaxed text-soft">{fact}</p>
     </li>
   );
 }

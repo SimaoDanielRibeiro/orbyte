@@ -57,9 +57,10 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
           return (
             <li
               key={sample.name}
+              // O exemplo aberto tem o contorno verde (o botão diz "Carregar outra vez").
               className={cn(
                 "flex flex-col gap-5 panel p-5 transition-colors hover:border-[#333]",
-                isOpen && "border-[#3a3a3a]",
+                isOpen && "border-positive/70 hover:border-positive",
               )}
             >
               <div className="flex items-start justify-between gap-4">
@@ -69,12 +70,6 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
                     <p>{sample.description}</p>
                     <p className="mt-2 font-mono text-xs text-dim">Fonte: {sample.source}</p>
                   </Explain>
-                  {isOpen && (
-                    <span className="ml-1 flex items-center gap-1.5 text-xs text-positive">
-                      <span aria-hidden="true" className="size-1.5 rounded-full bg-positive" />
-                      aberto
-                    </span>
-                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -281,9 +276,12 @@ export function SyntheticSource() {
           idPrefix={`gerador-${generator.name}`}
         />
         <div className="flex flex-col gap-2">
-          <Label htmlFor="gerador-seed" className="text-sm">
-            Seed
-          </Label>
+          <div className="flex items-center gap-1">
+            <Label htmlFor="gerador-seed" className="text-sm">
+              Seed
+            </Label>
+            <Explain title="Seed">A mesma seed dá sempre os mesmos pontos.</Explain>
+          </div>
           <Input
             id="gerador-seed"
             name="seed"
@@ -298,12 +296,8 @@ export function SyntheticSource() {
               setSeed(event.target.valueAsNumber);
             }}
             aria-invalid={!validSeed}
-            aria-describedby="gerador-seed-ajuda"
             className="w-40 tabular-nums"
           />
-          <p id="gerador-seed-ajuda" className="mono-label">
-            A mesma seed dá sempre os mesmos pontos.
-          </p>
         </div>
         <div>
           <Button

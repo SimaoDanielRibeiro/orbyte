@@ -37,8 +37,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { withAlpha } from "@/lib/colors";
 import { familyColor } from "@/lib/families";
-import { formatCount, formatQuantity } from "@/lib/format";
+import { formatQuantity } from "@/lib/format";
 import { useSession } from "@/state/session";
 
 import { glyphOf } from "./glyphs";
@@ -135,7 +136,6 @@ interface ParadigmGroup {
   paradigm: Paradigm;
   topic: string;
   families: FamilyGroup[];
-  count: number;
 }
 
 /** Os modelos de cada paradigma, por família, pela ordem do catálogo. */
@@ -177,14 +177,12 @@ function arrange(
         found.members.push(model);
       }
     }
-    let count = 0;
     for (const group of families) {
       group.first = position;
       position += group.members.length;
-      count += group.members.length;
     }
-    if (count > 0) {
-      sections.push({ paradigm, topic, families, count });
+    if (families.length > 0) {
+      sections.push({ paradigm, topic, families });
     }
   }
   return sections;
@@ -199,21 +197,15 @@ function ParadigmSection({
   suggested: string | null;
 }) {
   const label = useLabel();
-  const { paradigm, topic, families, count } = section;
+  const { paradigm, topic, families } = section;
   const explanation = useTopic(topic);
   return (
     <section aria-labelledby={`paradigma-${paradigm}`} className="mt-14 first-of-type:mt-10">
-      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <div className="flex items-center gap-1.5">
-          <h2 id={`paradigma-${paradigm}`} className="text-xl">
-            {explanation?.title ?? label("Paradigm", paradigm)}
-          </h2>
-          <Explain topic={topic} />
-        </div>
-        <span className="font-mono text-xs text-dim">
-          {formatQuantity(count, "modelo", "modelos")},{" "}
-          {formatQuantity(families.length, "família", "famílias")}
-        </span>
+      <div className="mb-6 flex items-center gap-1.5">
+        <h2 id={`paradigma-${paradigm}`} className="text-xl">
+          {explanation?.title ?? label("Paradigm", paradigm)}
+        </h2>
+        <Explain topic={topic} />
       </div>
       <div className="gap-6 @4xl/main:columns-2 @[96rem]/main:columns-3">
         {families.map((group) => (
@@ -236,33 +228,15 @@ function FamilyCard({ group, suggested }: { group: FamilyGroup; suggested: strin
     <div
       role="group"
       aria-labelledby={id}
-      className="relative mb-6 break-inside-avoid overflow-hidden rounded-2xl border border-border bg-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.025)]"
-      style={{ "--family": color } as CSSProperties}
+      // A cor da família é o contorno do cartão (ADR 0038).
+      className="relative mb-6 break-inside-avoid overflow-hidden rounded-2xl border bg-surface"
+      style={{ "--family": color, borderColor: withAlpha(color, 0.45) } as CSSProperties}
     >
-      {/* A luz da família: um fio de cor no topo e um brilho largo e fraco por baixo dele. */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-8 top-0 h-px"
-        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 h-36 w-3/4 -translate-x-1/2 rounded-full opacity-[0.13] blur-3xl"
-        style={{ background: color }}
-      />
       <h3
         id={id}
-        className="relative flex items-center gap-2.5 px-5 pt-5 pb-3 text-[0.9375rem] font-medium tracking-normal text-strong"
+        className="px-5 pt-5 pb-3 text-[0.9375rem] font-medium tracking-normal text-strong"
       >
-        <span
-          aria-hidden="true"
-          className="size-2.5 shrink-0 rounded-full"
-          style={{ background: color, boxShadow: `0 0 10px ${color}` }}
-        />
         {label("ModelFamily", family)}
-        <span className="ml-auto font-mono text-xs font-normal text-dim tabular-nums">
-          {formatCount(members.length)}
-        </span>
       </h3>
       <ul className="relative flex flex-col gap-0.5 px-2 pb-2">
         {members.map((model, offset) => (
@@ -274,7 +248,7 @@ function FamilyCard({ group, suggested }: { group: FamilyGroup; suggested: strin
             >
               <span
                 aria-hidden="true"
-                className="flex h-11 w-[4.25rem] shrink-0 items-center justify-center rounded-lg border border-[#262626] bg-[#141414] transition-[border-color,box-shadow] duration-300 group-hover:[border-color:var(--family)] group-hover:[box-shadow:0_0_18px_-6px_var(--family)] group-focus-visible:[border-color:var(--family)]"
+                className="flex h-11 w-[4.25rem] shrink-0 items-center justify-center rounded-lg border border-[#262626] bg-[#141414] transition-[border-color,box-shadow] duration-300 group-hover:[border-color:var(--family)] group-focus-visible:[border-color:var(--family)]"
               >
                 <ModelGlyph
                   kind={glyphOf(model)}

@@ -48,6 +48,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { withAlpha } from "@/lib/colors";
 import { formatCount, formatMetric, formatNumber, formatQuantity, formatValue } from "@/lib/format";
 
 import { COORDINATOR_COLOR, DATA_AGENT_COLOR, familyColor } from "./agent-colors";
@@ -126,17 +127,11 @@ export function AgentDetail(props: AgentDetailProps) {
           >
             <SheetHeader className="shrink-0 gap-5 border-b px-7 pt-6 pb-5">
               <div className="flex flex-col gap-2 pr-10">
-                <SheetTitle className="flex items-center gap-3 text-[1.375rem] leading-tight font-medium tracking-[-0.01em] text-strong">
-                  <span
-                    aria-hidden="true"
-                    className="size-3 shrink-0 rounded-full"
-                    style={{ background: heading.color, boxShadow: `0 0 12px ${heading.color}` }}
-                  />
+                <SheetTitle className="text-[1.375rem] leading-tight font-medium tracking-[-0.01em] text-strong">
                   {heading.title}
                 </SheetTitle>
-                <SheetDescription className="text-[0.9375rem] leading-relaxed text-soft">
-                  {heading.description}
-                </SheetDescription>
+                {/* O que o agente faz, numa frase: os números do painel já o dizem à vista. */}
+                <SheetDescription className="sr-only">{heading.description}</SheetDescription>
               </div>
               <NodeSwitcher {...props} node={node} onSelect={onSelect} label={label} />
               {tabs.length > 1 && (
@@ -302,6 +297,7 @@ function NodeSwitcher({
   label: ReturnType<typeof useLabel>;
 }) {
   const finished = phase === "done" || phase === "final";
+  const current: FlowNode = node === "test" ? "winner" : node;
   const options: { key: FlowNode; title: string; color: string }[] = [
     { key: "data", title: label("AgentRole", "data"), color: DATA_AGENT_COLOR },
     { key: "coordinator", title: label("AgentRole", "coordinator"), color: COORDINATOR_COLOR },
@@ -319,7 +315,7 @@ function NodeSwitcher({
   return (
     <ToggleGroup.Root
       type="single"
-      value={node === "test" ? "winner" : node}
+      value={current}
       onValueChange={(value) => {
         if (value !== "") {
           onSelect(value as FlowNode);
@@ -333,16 +329,15 @@ function NodeSwitcher({
         <ToggleGroup.Item
           key={option.key}
           value={option.key}
+          // O contorno tem a cor do agente: fraco nos outros, inteiro no aberto.
+          style={{
+            borderColor: option.key === current ? option.color : withAlpha(option.color, 0.4),
+          }}
           className={cn(
-            "flex h-7 shrink-0 items-center gap-2 rounded-full border border-[#2a2a2a] px-2.5 text-[0.8125rem] whitespace-nowrap text-soft transition-colors outline-none hover:border-[#3a3a3a] hover:text-strong focus-visible:ring-2 focus-visible:ring-ring",
-            "data-[state=on]:border-[#4a4a4a] data-[state=on]:bg-surface-high data-[state=on]:text-strong",
+            "flex h-7 shrink-0 items-center rounded-full border px-3 text-[0.8125rem] whitespace-nowrap text-soft transition-colors outline-none hover:text-strong focus-visible:ring-2 focus-visible:ring-ring",
+            "data-[state=on]:bg-surface-high data-[state=on]:text-strong",
           )}
         >
-          <span
-            aria-hidden="true"
-            className="size-2 shrink-0 rounded-full"
-            style={{ background: option.color }}
-          />
           {option.title}
         </ToggleGroup.Item>
       ))}
@@ -371,20 +366,11 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
     <>
       <TabsContent value="summary" className="flex flex-col gap-10">
         {busy !== null && (
-          <div className="flex flex-col gap-3 rounded-xl border border-[#2e2e2e] bg-ground p-4">
-            <p className="flex items-center gap-2 text-sm text-strong">
-              <span aria-hidden="true" className="relative flex size-2">
-                <span
-                  className="absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:animate-none"
-                  style={{ background: color }}
-                />
-                <span
-                  className="relative inline-flex size-2 rounded-full"
-                  style={{ background: color }}
-                />
-              </span>
-              A medir {busy.model_display_name}
-            </p>
+          <div
+            className="flex flex-col gap-3 rounded-xl border bg-ground p-4"
+            style={{ borderColor: color }}
+          >
+            <p className="text-sm text-strong">A medir {busy.model_display_name}</p>
             <p className="font-mono text-xs text-dim">{changesText(busy)}</p>
             <div className="flex items-center gap-3">
               <span className="h-1 flex-1 overflow-hidden rounded bg-[#2a2a2a]">
@@ -416,7 +402,6 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
                 key: "treino",
                 label: "No treino",
                 value: objectiveValue(best.train_mean, objective),
-                detail: "o mesmo candidato",
               },
               {
                 key: "medidos",
@@ -452,7 +437,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
                   <li
                     key={model.name}
                     className="flex flex-col gap-3 rounded-xl border border-[#2a2a2a] bg-ground p-4"
-                    style={{ boxShadow: `inset 3px 0 0 ${color}` }}
+                    style={{ borderColor: withAlpha(color, 0.55) }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="text-[0.9375rem] text-strong">{model.display_name}</span>
@@ -579,21 +564,13 @@ function CoordinatorDetail(props: AgentDetailProps) {
                 key={family}
                 className="grid grid-cols-[minmax(0,15rem)_minmax(0,1fr)_2.5rem] items-center gap-4"
               >
-                <span className="flex min-w-0 items-center gap-2 text-sm text-soft">
-                  <span
-                    aria-hidden="true"
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ background: familyColor(family) }}
-                  />
-                  <span className="truncate">{label("ModelFamily", family)}</span>
-                </span>
+                <span className="truncate text-sm text-soft">{label("ModelFamily", family)}</span>
                 <span className="h-2 rounded-full bg-[#232323]">
                   <span
                     className="block h-full rounded-full"
                     style={{
                       width: `${String((count / most) * 100)}%`,
                       background: familyColor(family),
-                      boxShadow: `0 0 8px ${familyColor(family)}`,
                     }}
                   />
                 </span>
@@ -632,19 +609,11 @@ function LeaderDetail(props: AgentDetailProps) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-2xl text-strong">{leader.model_display_name}</p>
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-dim">
-            <span className="flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className="size-2 rounded-full"
-                style={{ background: color }}
-              />
-              {label("ModelFamily", leader.family)}
-            </span>
-            <span aria-hidden="true">·</span>
-            candidato n.º {formatCount(leader.number)}
-            <span aria-hidden="true">·</span>
-            {label("SearchPhase", leader.phase).toLowerCase()}
+          <p
+            className="mt-3 inline-flex h-7 items-center rounded-full border px-3 text-[0.8125rem] text-soft"
+            style={{ borderColor: color }}
+          >
+            {label("ModelFamily", leader.family)}
           </p>
         </div>
         {runId != null && (
@@ -839,7 +808,7 @@ function FoldDots({
           key={index}
           aria-hidden="true"
           className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ left: left(value), background: color, boxShadow: `0 0 6px ${color}` }}
+          style={{ left: left(value), background: color }}
         />
       ))}
       {candidate.mean !== null && (

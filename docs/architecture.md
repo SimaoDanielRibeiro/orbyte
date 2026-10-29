@@ -2198,3 +2198,39 @@ continuou a funcionar até à 10.8 e saiu depois dela (ADR 0031; ver a última n
     `test_the_same_seed_gives_the_same_result` falha às vezes no K-means e no t-SNE (diferenças
     na nona casa decimal). Falha também no código anterior a estas mudanças, e passa sempre com
     um só fio (`OMP_NUM_THREADS=1`).
+
+**O contorno colorido, sem números nem brilho, e menos texto à vista** (ADR 0038):
+
+- **A cor é o contorno:** as bolas e as barras coloridas ao lado dos nomes saíram. A cor de uma
+  família (ou de como acabou um episódio da lição) passou para o contorno do retângulo: inteiro
+  quando está escolhido ou ativo, fraco quando não está. Assim nas fichas dos agentes, no
+  fluxograma, na conversa, no painel de cada agente, nos cartões dos Modelos, na página de um
+  modelo, no plano do agente de dados, na comparação de runs, na lição e na entrada. O
+  `ChipGroup` aceita uma cor por opção.
+- **Sem números:** o Explorar, os passos do Preparar e as fases da lição ficam só com os
+  títulos (no Preparar, um filete separa os passos).
+- **Sem brilho:** o botão de prosseguir destaca-se pelo tamanho e pelo branco, sem a sombra; os
+  brilhos da barra, do coordenador e da caixa ativa do fluxograma também saíram.
+- **Menos texto à vista:**
+  - os subtítulos dos cabeçalhos saíram: o contexto de um run é o primeiro número da faixa
+    ("Dados" ou "Ambiente", com a seed como detalhe do run), e no Explicar e na procura vai para
+    o "?" da página;
+  - o `NextStep` é só o botão;
+  - os rótulos ficam curtos, com a explicação no "?";
+  - cada métrica tem as tarefas e o sentido no "?";
+  - a lição tem a frase de cada episódio e o texto de cada fase nos "?", e os controlos na fila
+    do progresso;
+  - os gráficos estreitos sem legenda têm o "Como se lê" no "?" do título do bloco.
+- **O treino:** o cabeçalho tem dois botões, que só ficam ao lado do título se couberem os dois
+  (o nome do modelo deixou de se partir em três linhas). "Experimentar outro modelo" passou para
+  o fim, ao lado de "Explicar as previsões".
+- **Os painéis laterais:** o "?" de cada página, o de um run e o de uma métrica passaram a ter a
+  largura pedida (32rem, 32rem e 36rem), pela variante certa do `Sheet`.
+- **A verificação:** viu-se cada ecrã no browser, a 1440 px. Passam os 56 testes da web e os 39
+  de ponta a ponta. Três testes mudaram:
+  - o dos modelos procura o painel de cada separador da ficha (o título repetido saiu);
+  - o "?" ao lado de "Calcular a importância" chama-se "Quanto demora";
+  - o separador "Classes em cada parte" do Preparar passou a "Classes", e o teste da troca de
+    alvo verifica primeiro que ele existe.
+
+  O backend não mudou.

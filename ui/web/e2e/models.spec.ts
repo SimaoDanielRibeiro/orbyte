@@ -17,12 +17,11 @@ test("os 34 modelos abrem com o exemplo e a ficha", async ({ page, request }) =>
   for (const model of models) {
     await page.goto(`/modelos/${model.name}`);
     await expect(page.getByRole("heading", { level: 1, name: model.display_name })).toBeVisible();
-    // A ficha abre na intuição; as outras secções estão nos separadores.
-    await expect(page.getByRole("heading", { level: 2, name: "Intuição" })).toBeVisible();
+    // A ficha abre na intuição; as outras secções estão nos separadores (o nome de cada uma é o
+    // do separador, que dá nome ao painel).
+    await expect(page.getByRole("tabpanel", { name: "Intuição" })).toBeVisible();
     await page.getByRole("tab", { name: "Matemática essencial" }).click();
-    await expect(
-      page.getByRole("heading", { level: 2, name: "Matemática essencial" }),
-    ).toBeVisible();
+    await expect(page.getByRole("tabpanel", { name: "Matemática essencial" })).toBeVisible();
     // O exemplo: o campo de decisão (ou, na redução, o mapa dos pontos) desenhado.
     await expect(page.locator("#ao-vivo [role='img']").first()).toBeVisible({ timeout: 60_000 });
     await expect(page.getByRole("heading", { level: 2, name: "O que aprendeu" })).toBeVisible();

@@ -43,6 +43,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { RequireDataset } from "@/features/data/require-dataset";
 import { useDebounced } from "@/hooks/use-debounced";
+import { familyColor } from "@/lib/families";
 import { isValidSeed, MAX_SEED } from "@/lib/seed";
 import { useSession } from "@/state/session";
 
@@ -171,11 +172,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
       {preview !== null && <WhoWorks plan={preview} />}
       <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
         <div className="flex flex-col gap-6 self-start">
-          <Field
-            label="O que queres prever (a coluna-alvo)"
-            htmlFor="agentes-alvo"
-            help={suggestion.data?.reason}
-          >
+          <Field label="Coluna-alvo" htmlFor="agentes-alvo" help={suggestion.data?.reason}>
             <Select
               value={target}
               onValueChange={(value) => {
@@ -258,12 +255,16 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                         </SelectContent>
                       </Select>
                     </Field>
-                    <Field label="Os agentes chamados (um por família de modelos)">
+                    <Field
+                      label="Os agentes"
+                      help="Um agente por família de modelos: cada um experimenta os modelos da sua família."
+                    >
                       <ChipGroup
                         label="Os agentes chamados"
                         options={options.data.agents.map((agent) => ({
                           value: agent.family,
                           label: label("ModelFamily", agent.family),
+                          color: familyColor(agent.family),
                         }))}
                         value={families ?? options.data.agents.map((agent) => agent.family)}
                         onChange={(chosen) => {
@@ -362,7 +363,11 @@ function WhoWorks({ plan }: { plan: AutoMlPlan }) {
   const [selected, setSelected] = useState<FlowNode | null>(null);
   return (
     <>
-      <Panel title="Quem vai trabalhar" as="h2">
+      <Panel
+        title="Quem vai trabalhar"
+        as="h2"
+        explain="Clica num agente para veres os modelos que vai experimentar."
+      >
         <div className="rounded-2xl bg-[radial-gradient(circle,#262626_1px,transparent_1.2px)] bg-size-[22px_22px] p-4">
           <Flowchart
             agents={plan.agents}
@@ -378,7 +383,6 @@ function WhoWorks({ plan }: { plan: AutoMlPlan }) {
             onSelect={setSelected}
           />
         </div>
-        <p className="mono-label">Clica num agente para veres os modelos que vai experimentar.</p>
       </Panel>
       <AgentDetail
         node={selected}

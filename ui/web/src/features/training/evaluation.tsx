@@ -355,7 +355,9 @@ function Confusion({ result, title, rowTitle, columnTitle, topic }: ConfusionPro
   const sameClasses = matrix.column_labels.length === 0;
   const columns = sameClasses ? matrix.labels : matrix.column_labels;
   return (
-    <Block title={title}>
+    // O "como se lê" fica no "?" do título: a matriz é estreita, e um "?" só por cima dela ficava
+    // solto no meio do cartão.
+    <Block title={title} topic={topic}>
       {parts.length > 1 && (
         <ToggleGroup
           type="single"
@@ -388,7 +390,6 @@ function Confusion({ result, title, rowTitle, columnTitle, topic }: ConfusionPro
           columnTitle={columnTitle}
           highlightDiagonal={sameClasses}
           description={`${title}: quantos pontos de cada classe real ficaram em cada classe prevista.`}
-          caption={<TopicText topic={topic} />}
         />
       </div>
     </Block>

@@ -124,12 +124,6 @@ function AgentRun({ runId }: { runId: string }) {
               ]}
             />
           </div>
-          {data !== undefined && (
-            <p className="mt-2 font-mono text-xs text-dim">
-              {data.environment_name}
-              {fromHistory ? ", aberto do histórico" : ""}
-            </p>
-          )}
         </div>
         {data !== undefined && (
           <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -153,7 +147,7 @@ function AgentRun({ runId }: { runId: string }) {
       {data === undefined ? (
         (status === "finished" || detached) && <PageSkeleton />
       ) : (
-        <Finished result={data} />
+        <Finished result={data} fromHistory={fromHistory} />
       )}
     </>
   );
@@ -297,8 +291,11 @@ function RewardDots({ episodes }: { episodes: LiveAgent["episodes"] }) {
   );
 }
 
-/** O treino terminado: as métricas, a recompensa e o que o agente aprendeu. */
-function Finished({ result }: { result: ReinforcementResult }) {
+/**
+ * O treino terminado: as métricas, a recompensa e o que o agente aprendeu. O ambiente é o
+ * primeiro número da faixa, não uma linha por baixo do título (ADR 0038).
+ */
+function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHistory: boolean }) {
   const frames = result.trace?.frames ?? [];
   const episodes = frames.map((frame) => frame.episode);
   const [episode, setEpisode] = useState(episodes.at(-1) ?? result.learned.episode);
@@ -308,21 +305,28 @@ function Finished({ result }: { result: ReinforcementResult }) {
       : result.learned;
   const steps = result.history.at(-1)?.step ?? 0;
 
-  const stats = [
-    { label: "Treino", value: `${formatCount(steps)} episódios` },
-    { label: "Duração", value: `${formatNumber(result.duration_seconds, 2)} s` },
-    { label: "Seed", value: String(result.config.seed ?? "—") },
-  ];
   return (
     <>
       <StatStrip
         className="mt-8"
         items={[
-          ...stats.map((stat) => ({ key: stat.label, ...stat })),
+          {
+            key: "ambiente",
+            label: "Ambiente",
+            value: result.environment_name,
+            detail: fromHistory ? "do histórico" : undefined,
+          },
+          { key: "treino", label: "Treino", value: `${formatCount(steps)} episódios` },
+          {
+            key: "duracao",
+            label: "Duração",
+            value: `${formatNumber(result.duration_seconds, 2)} s`,
+          },
           {
             key: "run",
             label: "Run",
             value: <span className="font-mono text-lg font-normal">{result.run_id}</span>,
+            detail: `seed ${String(result.config.seed ?? "—")}`,
           },
         ]}
       />

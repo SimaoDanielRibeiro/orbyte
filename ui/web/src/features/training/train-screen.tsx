@@ -7,6 +7,10 @@
  * No fim, o resultado completo, em cartões: o campo passo a passo (a rede, se for uma), as
  * métricas no treino e no teste (cada uma abre a sua gaveta), os gráficos da tarefa e o que
  * aprendeu.
+ *
+ * No cabeçalho ficam só o título e dois botões (guardar e prosseguir), para o nome do modelo não
+ * se partir em três linhas; os dados do run são o primeiro número da faixa, não uma linha por
+ * baixo do título, e "Experimentar outro modelo" fica no fim, junto do passo seguinte (ADR 0038).
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
@@ -56,7 +60,6 @@ export function TrainScreen() {
 }
 
 function TrainRun({ runId }: { runId: string }) {
-  const label = useLabel();
   const { live, status, detached, result, fromHistory } = useTrainingRun(runId);
   const runTitle = useSession((state) => (state.runId === runId ? state.runTitle : null));
   const openRun = useSession((state) => state.openRun);
@@ -98,7 +101,9 @@ function TrainRun({ runId }: { runId: string }) {
         <ChevronLeft aria-hidden="true" className="size-4" />
         {data === undefined ? "Modelos" : data.model_display_name}
       </Link>
-      <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-end @3xl/main:justify-between">
+      {/* O título fica numa linha sempre que cabe: os botões só lhe ficam ao lado se houver
+          espaço para os dois, e senão passam para baixo (sem o espremer em três linhas). */}
+      <header className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">{title}</h1>
@@ -115,19 +120,10 @@ function TrainRun({ runId }: { runId: string }) {
               ]}
             />
           </div>
-          {data !== undefined && (
-            <p className="mt-2 font-mono text-xs text-dim">
-              {data.dataset_name}, {label("TaskType", data.task_type).toLowerCase()}
-              {fromHistory ? ", aberto do histórico" : ""}
-            </p>
-          )}
         </div>
         {data !== undefined && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 @3xl/main:ml-auto">
             <SaveRunButton runId={runId} />
-            <Button asChild variant="outline">
-              <Link to="/modelos">Experimentar outro modelo</Link>
-            </Button>
             <ExplainProceed runId={runId} />
           </div>
         )}
@@ -143,8 +139,11 @@ function TrainRun({ runId }: { runId: string }) {
         (status === "finished" || detached) && <PageSkeleton />
       ) : (
         <>
-          <Finished result={data} />
-          <NextStep text="O modelo está treinado e avaliado. A seguir, vê porque decide como decide: o que pesa nas previsões e cada previsão de perto.">
+          <Finished result={data} fromHistory={fromHistory} />
+          <NextStep className="flex-wrap gap-2">
+            <Button asChild variant="outline" size="proceed">
+              <Link to="/modelos">Experimentar outro modelo</Link>
+            </Button>
             <ExplainProceed runId={runId} />
           </NextStep>
         </>
@@ -277,24 +276,37 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
 }
 
 /** O run terminado: o treino para rever, a avaliação e o que aprendeu. */
-function Finished({ result }: { result: ExperimentResult }) {
+function Finished({ result, fromHistory }: { result: ExperimentResult; fromHistory: boolean }) {
+  const label = useLabel();
   const [step, setStep] = useState<number | undefined>(undefined);
   const steps = result.history.at(-1)?.step ?? 0;
-  const stats = [
-    { label: "Treino", value: steps > 0 ? `${formatCount(steps)} passos` : "De uma vez" },
-    { label: "Duração", value: `${formatNumber(result.duration_seconds, 2)} s` },
-    { label: "Seed", value: String(result.config.seed ?? "—") },
-  ];
   return (
     <>
       <StatStrip
         className="mt-8"
         items={[
-          ...stats.map((stat) => ({ key: stat.label, ...stat })),
+          {
+            key: "dados",
+            label: "Dados",
+            value: result.dataset_name,
+            // A tarefa, e de onde veio o run quando não é desta sessão.
+            detail: `${label("TaskType", result.task_type).toLowerCase()}${fromHistory ? ", do histórico" : ""}`,
+          },
+          {
+            key: "treino",
+            label: "Treino",
+            value: steps > 0 ? `${formatCount(steps)} passos` : "De uma vez",
+          },
+          {
+            key: "duracao",
+            label: "Duração",
+            value: `${formatNumber(result.duration_seconds, 2)} s`,
+          },
           {
             key: "run",
             label: "Run",
             value: <span className="font-mono text-lg font-normal">{result.run_id}</span>,
+            detail: `seed ${String(result.config.seed ?? "—")}`,
           },
         ]}
       />

@@ -59,13 +59,10 @@ function Compared({ comparison }: { comparison: RunComparison }) {
         {comparison.labels.map((name, index) => (
           <li
             key={name}
-            className="flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-surface px-3 py-1 text-xs text-soft"
+            // A cor de cada run (a dos gráficos) é o contorno da etiqueta.
+            className="flex items-center rounded-full border bg-surface px-3 py-1 text-xs text-soft"
+            style={{ borderColor: categoryColor(index) }}
           >
-            <span
-              aria-hidden="true"
-              className="size-2 rounded-full"
-              style={{ background: categoryColor(index) }}
-            />
             {name}
           </li>
         ))}
@@ -186,12 +183,10 @@ function MetricsTable({ comparison }: { comparison: RunComparison }) {
             </th>
             {comparison.labels.map((name, index) => (
               <th key={name} scope="col" className={cn("text-right", HEAD)}>
-                <span className="inline-flex items-center gap-1.5">
-                  <span
-                    aria-hidden="true"
-                    className="size-2 rounded-full"
-                    style={{ background: categoryColor(index) }}
-                  />
+                <span
+                  className="inline-flex items-center rounded-full border px-2 py-0.5"
+                  style={{ borderColor: categoryColor(index) }}
+                >
                   {name.split(" · ")[0]}
                 </span>
               </th>

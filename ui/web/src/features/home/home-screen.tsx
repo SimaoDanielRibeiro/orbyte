@@ -1,5 +1,6 @@
 /**
- * A landing: o nome da app e as duas interfaces, cada uma num cartão com o seu desenho.
+ * A landing: o nome da app e as duas interfaces, cada uma num cartão com o seu desenho, o nome, o
+ * que se faz nela numa frase e o botão para começar.
  *
  * O cartão do Manual mostra um modelo a aprender (o campo de decisão de uma rede neuronal, da
  * demonstração do catálogo), que se reproduz uma vez e fica no fim; com "reduzir movimento",
@@ -8,7 +9,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, Hand, Workflow, type LucideIcon } from "lucide-react";
+import { Hand, Workflow, type LucideIcon } from "lucide-react";
 import { useId, type ReactNode } from "react";
 
 import { demoQuery } from "@/api/demo";
@@ -17,7 +18,7 @@ import { metaHealthOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { FieldPlayer } from "@/components/charts/field-player";
 import { GlowFilter } from "@/components/charts/chart";
 import { Logo } from "@/components/shell/logo";
-import { INTERFACE_NAMES, stepsOf } from "@/components/shell/screens";
+import { INTERFACE_NAMES } from "@/components/shell/screens";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { familyColor } from "@/lib/families";
@@ -57,9 +58,6 @@ export function HomeScreen() {
             >
               ML Lab
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-soft">
-              Treina modelos de machine learning e vê-os aprender, passo a passo.
-            </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -104,9 +102,8 @@ interface InterfaceCardProps {
   children: ReactNode;
 }
 
-/** Uma interface: o desenho, o nome, o que se faz nela e os passos (as secções da barra). */
+/** Uma interface: o desenho, o nome e o que se faz nela (os passos estão na barra de cada uma). */
 function InterfaceCard({ path, icon: Icon, text, action, onStart, children }: InterfaceCardProps) {
-  const flow = stepsOf(path);
   return (
     <article className="group relative flex min-w-0 flex-col overflow-hidden panel transition-colors hover:border-[#333]">
       <div
@@ -121,19 +118,6 @@ function InterfaceCard({ path, icon: Icon, text, action, onStart, children }: In
           <h2 className="text-2xl">{INTERFACE_NAMES[path]}</h2>
         </div>
         <p className="max-w-[46ch] text-[0.9375rem] text-soft">{text}</p>
-        <ol
-          aria-label={`As secções da interface ${INTERFACE_NAMES[path]}`}
-          className="flex flex-wrap items-center gap-y-1.5"
-        >
-          {flow.map((screen, index) => (
-            <li key={screen.to} className="flex items-center">
-              <span className="mono-label">{screen.title}</span>
-              {index < flow.length - 1 && (
-                <ChevronRight aria-hidden="true" className="mx-1 size-3 text-faint" />
-              )}
-            </li>
-          ))}
-        </ol>
         <div className="mt-auto pt-1">
           {/* O botão cobre o cartão todo (o "after"), mas o nome dele é só a ação. */}
           <Button
@@ -221,6 +205,7 @@ function AgentsVisual() {
             />
             <path d={toFamily} fill="none" stroke={color} strokeWidth={1.75} />
             <path d={toWinner} fill="none" stroke="#3a3a3a" strokeWidth={1.25} />
+            {/* O agente de cada família: o contorno na cor dela, como no fluxograma. */}
             <rect
               x={250.5}
               y={y - 13.5}
@@ -228,10 +213,10 @@ function AgentsVisual() {
               height={27}
               rx={8}
               fill="#191919"
-              stroke="#2a2a2a"
+              stroke={color}
+              strokeOpacity={0.8}
             />
-            <circle cx={265} cy={y} r={4} fill={color} />
-            <text x={276} y={y} dy="0.34em" fontSize={11.5} fill="#d4d4d4">
+            <text x={263} y={y} dy="0.34em" fontSize={11.5} fill="#d4d4d4">
               {name}
             </text>
           </g>

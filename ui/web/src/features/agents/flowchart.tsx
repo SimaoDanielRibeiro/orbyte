@@ -29,6 +29,7 @@ import type {
 } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { useSize } from "@/hooks/use-size";
+import { withAlpha } from "@/lib/colors";
 import { formatCount, formatMetric, formatQuantity } from "@/lib/format";
 
 import { familyColor } from "./agent-colors";
@@ -474,16 +475,19 @@ function NodeBox({
   const reduced = useReducedMotion() ?? false;
   const { state, icon: Icon, color } = node;
   const active = state === "active";
-  // A largura do texto: a caixa menos o ícone, as margens e o espaço entre eles.
-  const letters = Math.floor((node.width - 66) / 6.6);
+  // Um agente de uma família não tem ícone: a cor dele é o contorno da caixa (ADR 0038).
+  const family = Icon === undefined && color !== undefined;
+  // A largura do texto: a caixa menos o ícone (se houver) e as margens.
+  const letters = Math.floor((node.width - (family ? 30 : 66)) / 6.6);
   const detail = fit(node.detail, letters);
   const className = cn(
     "absolute flex items-center gap-2.5 overflow-hidden rounded-xl border px-3 text-left transition-[border-color,box-shadow,background-color] duration-300 outline-none",
     state === "idle" && "border-[#262626] bg-[#141414]",
     state === "done" && "border-[#363636] bg-[#171717]",
-    active && "border-white/80 bg-surface-high shadow-[0_0_22px_rgb(255_255_255/0.10)]",
+    active && "border-white/80 bg-surface-high",
     selected && "border-white bg-surface-high",
     lit !== undefined && "bg-surface-high",
+    family && "px-3.5",
     onSelect !== undefined &&
       "cursor-pointer hover:border-[#4d4d4d] focus-visible:ring-2 focus-visible:ring-ring",
   );
@@ -492,30 +496,32 @@ function NodeBox({
     top: node.y,
     width: node.width,
     height: NODE_HEIGHT,
+    ...(family
+      ? {
+          // Fraco à espera, mais forte depois de trabalhar, inteiro a trabalhar ou aberto.
+          borderColor: active || selected ? color : withAlpha(color, state === "done" ? 0.6 : 0.3),
+          boxShadow: selected
+            ? `inset 0 0 0 1px ${color}`
+            : active
+              ? `0 0 20px -10px ${color}`
+              : "none",
+        }
+      : {}),
     ...(lit === undefined ? {} : { borderColor: lit, boxShadow: `0 0 18px -4px ${lit}` }),
   };
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#2e2e2e] bg-[#1f1f1f]"
-      >
-        {Icon === undefined ? (
-          <span
-            className="size-2 rounded-full"
-            style={{
-              background: color,
-              opacity: state === "idle" ? 0.5 : 1,
-              boxShadow: state === "idle" ? undefined : `0 0 8px ${color ?? "transparent"}`,
-            }}
-          />
-        ) : (
+      {Icon !== undefined && (
+        <span
+          aria-hidden="true"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#2e2e2e] bg-[#1f1f1f]"
+        >
           <Icon
             className="size-3.5"
             style={{ color: color ?? (state === "idle" ? "var(--text-dim)" : "var(--text)") }}
           />
-        )}
-      </span>
+        </span>
+      )}
       <span className="flex min-w-0 flex-col">
         <span
           className={cn(

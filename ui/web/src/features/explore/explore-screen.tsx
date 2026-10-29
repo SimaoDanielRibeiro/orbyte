@@ -1,7 +1,7 @@
 /**
  * O ecrã Explorar: o perfil do dataset aberto, para decidir o que limpar e como transformar.
  *
- * O perfil lê-se por partes numeradas, todas à vista e pela ordem em que se percorrem (ADR 0037):
+ * O perfil lê-se por partes, todas à vista e pela ordem em que se percorrem (ADR 0037):
  *
  * 1. o resumo: os números do dataset e os tipos das colunas (uma faixa com uma marca por coluna,
  *    pela ordem da tabela);
@@ -12,8 +12,8 @@
  * 6. o alvo.
  *
  * Por cima das partes há um índice que fica preso ao topo ao descer a página: diz em que parte se
- * está (o destaque desliza para ela, como na barra lateral) e salta para qualquer outra. O "como
- * se lê" de cada gráfico fica no "?".
+ * está (o destaque desliza para ela, como na barra lateral) e salta para qualquer outra. Não há
+ * números nem subtítulos: só os títulos (ADR 0038). O "como se lê" de cada gráfico fica no "?".
  */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
@@ -98,12 +98,10 @@ const NEXT = {
   manual: {
     to: "/preparar",
     action: "Preparar os dados",
-    text: "Já conheces os dados. A seguir, escolhe o alvo e prepara-os para o modelo: limpar, transformar e dividir.",
   },
   agents: {
     to: "/agentes",
     action: "Pedir aos agentes",
-    text: "Já conheces os dados. A seguir, diz aos agentes o que queres prever, e eles experimentam os modelos por ti.",
   },
 } as const;
 
@@ -124,6 +122,13 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
     }),
     // Ao trocar de alvo, o perfil anterior fica à vista até chegar o novo.
     placeholderData: keepPreviousData,
+  });
+  const suggestion = useQuery({
+    ...datasetsSuggestTaskOptions({
+      path: { dataset_id: dataset.id },
+      query: target === null ? undefined : { target },
+    }),
+    enabled: target !== null,
   });
 
   function go(id: PartId) {
@@ -155,7 +160,7 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
         profile.error === null && <PageSkeleton />
       ) : (
         <>
-          <PartNav counts={{ avisos: notices, colunas: profile.data.columns.length }} onGo={go} />
+          <PartNav onGo={go} />
           <div
             className={cn(profile.isPlaceholderData && "stale")}
             aria-busy={profile.isPlaceholderData}
@@ -188,11 +193,12 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
             <Part id="em-falta">
               <Missing profile={profile.data} />
             </Part>
-            <Part id="alvo">
-              <Target dataset={dataset} profile={profile.data} />
+            {/* A tarefa que o alvo pede, e porquê, fica no "?" da parte. */}
+            <Part id="alvo" explain={suggestion.data?.reason}>
+              <Target profile={profile.data} />
             </Part>
           </div>
-          <NextStep text={next.text}>
+          <NextStep>
             <Proceed to={next.to}>{next.action}</Proceed>
           </NextStep>
         </>
@@ -242,16 +248,10 @@ function useActivePart(): PartId {
 }
 
 /**
- * O índice das partes, preso ao topo ao descer: o número, o nome e, nalgumas, quantos há. O
- * destaque da parte em que se está desliza de uma para a outra.
+ * O índice das partes, preso ao topo ao descer: só o nome de cada uma. O destaque da parte em que
+ * se está desliza de uma para a outra.
  */
-function PartNav({
-  counts,
-  onGo,
-}: {
-  counts: Partial<Record<PartId, number>>;
-  onGo: (id: PartId) => void;
-}) {
+function PartNav({ onGo }: { onGo: (id: PartId) => void }) {
   const active = useActivePart();
   return (
     <nav
@@ -259,9 +259,8 @@ function PartNav({
       className="sticky top-14 z-20 -mx-4 mt-8 bg-ground/90 px-4 py-3 shadow-[0_10px_18px_-14px_rgb(0_0_0/0.9)] backdrop-blur-md md:top-0 md:-mx-[2cm] md:px-[2cm]"
     >
       <ol className="flex [scrollbar-width:none] gap-1 overflow-x-auto">
-        {PARTS.map((part, index) => {
+        {PARTS.map((part) => {
           const current = part.id === active;
-          const count = counts[part.id];
           return (
             <li key={part.id} className="relative shrink-0">
               {current && (
@@ -280,19 +279,11 @@ function PartNav({
                   onGo(part.id);
                 }}
                 className={cn(
-                  "relative flex h-9 items-center gap-2 rounded-[10px] px-3 text-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "relative flex h-9 items-center rounded-[10px] px-3.5 text-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   current ? "text-strong" : "text-soft hover:text-strong",
                 )}
               >
-                <span aria-hidden="true" className="font-mono text-[0.6875rem] text-dim">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
                 {part.title}
-                {count !== undefined && (
-                  <span className="font-mono text-xs text-dim tabular-nums">
-                    {formatCount(count)}
-                  </span>
-                )}
               </a>
             </li>
           );
@@ -302,7 +293,7 @@ function PartNav({
   );
 }
 
-/** Uma parte do perfil: o número, o título (com o "?") e o conteúdo. */
+/** Uma parte do perfil: o título (com o "?") e o conteúdo. */
 function Part({
   id,
   explain,
@@ -313,8 +304,7 @@ function Part({
   explain?: ReactNode;
   children: ReactNode;
 }) {
-  const index = PART_IDS.indexOf(id);
-  const part = PARTS[index];
+  const part = PARTS[PART_IDS.indexOf(id)];
   const topic = part !== undefined && "topic" in part ? part.topic : undefined;
   return (
     <section
@@ -322,21 +312,13 @@ function Part({
       aria-labelledby={`${id}-titulo`}
       className="scroll-mt-32 pt-16 first:pt-10 md:scroll-mt-20"
     >
-      <div className="mb-6 flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="flex h-6 min-w-8 items-center justify-center rounded-md border border-[#2e2e2e] px-1.5 font-mono text-[0.6875rem] text-soft tabular-nums"
-        >
-          {String(index + 1).padStart(2, "0")}
-        </span>
-        <div className="flex items-center gap-1.5">
-          <h2 id={`${id}-titulo`} tabIndex={-1} className="text-xl outline-none">
-            {part?.title}
-          </h2>
-          <Explain topic={topic} title={topic === undefined ? part?.title : undefined}>
-            {explain}
-          </Explain>
-        </div>
+      <div className="mb-6 flex items-center gap-1.5">
+        <h2 id={`${id}-titulo`} tabIndex={-1} className="text-xl outline-none">
+          {part?.title}
+        </h2>
+        <Explain topic={topic} title={topic === undefined ? part?.title : undefined}>
+          {explain}
+        </Explain>
       </div>
       {children}
     </section>
@@ -598,21 +580,19 @@ function Correlations({ profile }: { profile: DatasetProfile }) {
   }
   const labelWidth = 140;
   return (
-    <Panel title="Correlação de Pearson">
-      <div style={{ maxWidth: labelWidth + matrix.columns.length * 72 }}>
-        <Heatmap
-          rows={matrix.columns}
-          columns={matrix.columns}
-          values={matrix.values}
-          color={diverging}
-          format={(value) => formatNumber(value, 2)}
-          description="A correlação de Pearson entre cada par de colunas numéricas."
-          caption={<TopicText topic="correlation_matrix" />}
-          labelWidth={labelWidth}
-          cellHeight={Math.min(40, Math.max(28, 360 / matrix.columns.length))}
-        />
-      </div>
-    </Panel>
+    <div style={{ maxWidth: labelWidth + matrix.columns.length * 72 }}>
+      <Heatmap
+        rows={matrix.columns}
+        columns={matrix.columns}
+        values={matrix.values}
+        color={diverging}
+        format={(value) => formatNumber(value, 2)}
+        description="A correlação de Pearson entre cada par de colunas numéricas."
+        caption={<TopicText topic="correlation_matrix" />}
+        labelWidth={labelWidth}
+        cellHeight={Math.min(40, Math.max(28, 360 / matrix.columns.length))}
+      />
+    </div>
   );
 }
 
@@ -667,15 +647,8 @@ function Missing({ profile }: { profile: DatasetProfile }) {
   );
 }
 
-function Target({ dataset, profile }: { dataset: DatasetSummary; profile: DatasetProfile }) {
+function Target({ profile }: { profile: DatasetProfile }) {
   const target = profile.target;
-  const suggestion = useQuery({
-    ...datasetsSuggestTaskOptions({
-      path: { dataset_id: dataset.id },
-      query: target === null ? undefined : { target },
-    }),
-    enabled: target !== null,
-  });
   if (target === null) {
     return (
       <p className="text-sm text-soft">
@@ -686,12 +659,6 @@ function Target({ dataset, profile }: { dataset: DatasetSummary; profile: Datase
   const column = profile.columns.find((one) => one.name === target);
   return (
     <div className="flex flex-col gap-4">
-      {suggestion.data !== undefined && (
-        <p className="flex items-center gap-2 text-sm text-soft">
-          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-strong" />
-          {suggestion.data.reason}
-        </p>
-      )}
       {profile.class_balance === null ? (
         column !== undefined && (
           <div>

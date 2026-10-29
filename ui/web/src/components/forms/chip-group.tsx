@@ -1,15 +1,20 @@
 /**
  * Uma escolha de várias opções em fichas (as colunas a remover, as colunas a dividir em
- * intervalos). Uma ficha escolhida ganha um visto, para não depender só da cor.
+ * intervalos, os agentes chamados). Uma ficha escolhida ganha um visto, para não depender só da
+ * cor. Uma opção com cor (a família de um agente) tem o contorno nessa cor: inteiro quando está
+ * escolhida, fraco quando não está.
  */
 import { cn } from "cn";
 import { Check } from "lucide-react";
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { withAlpha } from "@/lib/colors";
 
 export interface ChipOption {
   value: string;
   label: string;
+  /** A cor da coisa escolhida (a de uma família de modelos), no contorno da ficha. */
+  color?: string;
 }
 
 interface ChipGroupProps {
@@ -48,6 +53,11 @@ export function ChipGroup({ options, value, onChange, label, id, className }: Ch
             key={option.value}
             value={option.value}
             className="rounded-full px-3 font-normal"
+            style={
+              option.color === undefined
+                ? undefined
+                : { borderColor: on ? option.color : withAlpha(option.color, 0.35) }
+            }
           >
             {on && <Check aria-hidden="true" className="size-3.5" />}
             {option.label}

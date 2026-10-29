@@ -250,26 +250,19 @@ export function Proceed({ to, children, disabled = false }: ProceedProps) {
 }
 
 interface NextStepProps {
-  /** O que vem a seguir, numa frase curta. */
-  text: string;
   /** O botão de prosseguir (um `Proceed`, ou um botão do ecrã com o mesmo aspeto). */
   children: ReactNode;
   className?: string;
 }
 
 /**
- * O fim de um passo: o que vem a seguir e o botão de prosseguir, à direita. Fica longe do que está
- * por cima (o fim do passo não se mistura com o conteúdo) e sem caixa nem filete.
+ * O fim de um passo: só o botão de prosseguir, à direita, longe do que está por cima (o fim do
+ * passo não se mistura com o conteúdo), sem caixa nem filete. O nome do botão diz o que vem a
+ * seguir; não há uma frase a repeti-lo (ADR 0038).
  */
-export function NextStep({ text, children, className }: NextStepProps) {
+export function NextStep({ children, className }: NextStepProps) {
   return (
-    <div
-      className={cn(
-        "mt-24 flex flex-col items-start gap-5 @3xl/main:flex-row @3xl/main:items-center @3xl/main:justify-end @3xl/main:gap-8",
-        className,
-      )}
-    >
-      <p className="max-w-[56ch] text-[0.9375rem] text-soft @3xl/main:text-right">{text}</p>
+    <div className={cn("mt-24 flex justify-start @3xl/main:justify-end", className)}>
       {children}
     </div>
   );

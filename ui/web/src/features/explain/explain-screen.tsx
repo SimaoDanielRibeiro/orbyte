@@ -12,6 +12,9 @@
  *
  * Tudo precisa do modelo na memória da API: um run aberto do histórico só o tem se tiver sido
  * guardado.
+ *
+ * O cabeçalho é só o título: o modelo está na ligação de volta, e os dados do run ficam no "?"
+ * (ADR 0038).
  */
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
@@ -120,14 +123,10 @@ function Explained({ result }: { result: ExperimentResult }) {
           <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">{SCREENS.explain.title}</h1>
           <WhyButton
             title={SCREENS.explain.title}
-            description={SCREENS.explain.description}
+            description={`${result.model_display_name} em ${result.dataset_name}, ${label("TaskType", result.task_type).toLowerCase()}. ${SCREENS.explain.description}`}
             topics={["permutation_importance", "partial_dependence", "local_explanation"]}
           />
         </div>
-        <p className="mt-2 font-mono text-xs text-dim">
-          {result.model_display_name} em {result.dataset_name},{" "}
-          {label("TaskType", result.task_type).toLowerCase()}
-        </p>
       </header>
 
       {task?.requires_target !== true ? (
@@ -164,7 +163,7 @@ function Explained({ result }: { result: ExperimentResult }) {
               <OneRow result={result} rows={rows.data} />
             </Part>
           </div>
-          <NextStep text="É o fim do caminho deste run. Compara-o com os outros nas Experiências, ou volta aos modelos e experimenta outro.">
+          <NextStep>
             <Proceed to="/experiencias">Comparar nas Experiências</Proceed>
           </NextStep>
         </>
@@ -183,7 +182,7 @@ function Importance({ runId }: { runId: string }) {
   });
   if (!asked) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Button
           onClick={() => {
             setAsked(true);
@@ -191,7 +190,10 @@ function Importance({ runId }: { runId: string }) {
         >
           Calcular a importância
         </Button>
-        <span className="font-mono text-xs text-dim">com muitas features, demora um pouco</span>
+        <Explain title="Quanto demora">
+          Baralha cada feature, uma de cada vez, e volta a prever o teste: com muitas features,
+          demora um pouco.
+        </Explain>
       </div>
     );
   }

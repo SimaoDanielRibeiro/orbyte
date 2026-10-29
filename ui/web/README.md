@@ -107,7 +107,11 @@ O sistema visual tem algumas regras que dão coerência ao todo (ADR 0032):
 - prosseguir é sempre o mesmo botão (`Proceed`), no topo à direita e no fim da página
   (`NextStep`); os outros botões da página são secundários;
 - as explicações não ficam à vista: cada título tem o seu "?", e os textos vêm do backend pelo
-  nome (`topic="…"`);
+  nome (`topic="…"`). Também não há subtítulos nem números (01, 02…): o título diz o que é, o
+  contexto de um run é um número da faixa, e o resto vai para o "?" (ADR 0038);
+- a cor de uma coisa (a família de um agente, como acabou um episódio) é o contorno do
+  retângulo dela: inteiro quando está escolhida ou ativa, fraco quando não está, e sempre com o
+  nome escrito ao lado. Nada de bolas coloridas nem de brilhos à volta (ADR 0038);
 - o texto é Geist; os números pequenos, os eixos e os rótulos são Geist Mono (`mono-label`);
   dentro dos gráficos, os nomes das categorias ficam em Geist, que cabe nas margens;
 - um gráfico nunca tem dois eixos de y, e tem legenda a partir de duas séries;

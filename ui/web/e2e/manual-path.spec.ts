@@ -57,6 +57,8 @@ test("trocar de alvo no Preparar volta a preparar com as sugestões do alvo novo
   test.setTimeout(120_000);
   await loadSample(page, "Titanic");
   await prepareWithSuggestions(page);
+  // Com classes (o Survived), a proporção das classes em cada parte tem o seu separador.
+  await expect(page.getByRole("tab", { name: "Classes", exact: true })).toBeVisible();
 
   await page.getByRole("combobox", { name: /Coluna-alvo/ }).click();
   await page.getByRole("option", { name: "Fare" }).click();
@@ -64,7 +66,7 @@ test("trocar de alvo no Preparar volta a preparar com as sugestões do alvo novo
   // Um número contínuo pede regressão: a tarefa e a preparação seguem a sugestão nova (sem
   // classes, deixa de haver a proporção das classes em cada parte).
   await expect(page.getByRole("combobox", { name: "Tipo de tarefa" })).toHaveText("Regressão");
-  await expect(page.getByRole("tab", { name: "Classes em cada parte" })).toHaveCount(0, {
+  await expect(page.getByRole("tab", { name: "Classes", exact: true })).toHaveCount(0, {
     timeout: 30_000,
   });
   await expect(page.getByRole("link", { name: "Escolher o modelo" }).first()).toBeVisible();

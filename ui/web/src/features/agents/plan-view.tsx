@@ -3,7 +3,7 @@
  * os agentes de modelo e o que cada um procura, e os modelos que ficam de fora.
  *
  * Fica à vista o que se decidiu; o porquê de cada decisão, e o que cada modelo procura, ficam
- * nos "?" (ADR 0032).
+ * nos "?" (ADR 0032). Cada agente de modelo tem o contorno com a cor da família (ADR 0038).
  */
 import { Check } from "lucide-react";
 
@@ -11,6 +11,8 @@ import type { AutoMlPlan } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { Explain } from "@/components/explain/explain";
 import { Stat } from "@/components/shell/blocks";
+import { withAlpha } from "@/lib/colors";
+import { familyColor } from "@/lib/families";
 import { formatCount } from "@/lib/format";
 
 export function PlanView({ plan }: { plan: AutoMlPlan }) {
@@ -21,15 +23,21 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
       <div className="flex flex-wrap gap-x-10 gap-y-4">
         <Stat label="Linhas de treino" value={formatCount(plan.train_rows)} />
         <Stat
-          label="Linhas de teste"
+          label={
+            <Labelled title="Linhas de teste">
+              Ficam guardadas para medir só o vencedor, no fim.
+            </Labelled>
+          }
           value={formatCount(plan.test_rows)}
-          detail="guardadas para o vencedor"
         />
         {sampled && (
           <Stat
-            label="Amostra da procura"
+            label={
+              <Labelled title="Amostra da procura">
+                Uma parte do treino, para a validação cruzada de cada candidato ser rápida.
+              </Labelled>
+            }
             value={formatCount(plan.search_rows)}
-            detail="para a validação cruzada ser rápida"
           />
         )}
       </div>
@@ -53,7 +61,11 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
         <h3 className="mono-label">Os agentes de modelo e o que procuram</h3>
         <ul className="grid gap-3 @4xl/main:grid-cols-2">
           {plan.agents.map((agent) => (
-            <li key={agent.family} className="rounded-xl border bg-ground p-4">
+            <li
+              key={agent.family}
+              className="rounded-xl border bg-ground p-4"
+              style={{ borderColor: withAlpha(familyColor(agent.family), 0.5) }}
+            >
               <p className="text-sm text-strong">{label("ModelFamily", agent.family)}</p>
               <ul className="mt-2 flex flex-col gap-1">
                 {agent.models.map((model) => (
@@ -89,5 +101,15 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
         </section>
       )}
     </div>
+  );
+}
+
+/** O nome de um número com o "?" ao lado, onde fica o que ele quer dizer. */
+function Labelled({ title, children }: { title: string; children: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {title}
+      <Explain title={title}>{children}</Explain>
+    </span>
   );
 }

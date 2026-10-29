@@ -26,6 +26,7 @@ import { datasetsCleaningOperationsOptions } from "@/api/generated/@tanstack/rea
 import { useLabel } from "@/api/vocabulary";
 import { Explain } from "@/components/explain/explain";
 import { ChipGroup } from "@/components/forms/chip-group";
+import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -80,7 +81,8 @@ export function PrepareForm({
   taskType,
 }: PrepareFormProps) {
   return (
-    <div className="@container/form flex flex-col gap-4">
+    // Os passos separados por um filete, sem números (a ordem é a da página; ADR 0038).
+    <div className="@container/form flex flex-col divide-y">
       <Step number={1} title="Alvo e tarefa">
         <TaskControls
           dataset={dataset}
@@ -127,17 +129,14 @@ export function PrepareForm({
   );
 }
 
-/** Um passo da preparação, num cartão: são uma sequência, por isso vão numerados. */
+/** Um passo da preparação: o título e os controlos (a ordem dos passos é a da página). */
 function Step({ number, title, children }: { number: number; title: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={`passo-${String(number)}`} className="flex flex-col gap-5">
-      <h2 id={`passo-${String(number)}`} className="flex items-center gap-3 text-base">
-        <span
-          aria-hidden="true"
-          className="flex size-6 items-center justify-center rounded-full border border-[#333] bg-surface-high font-mono text-xs text-soft tabular-nums"
-        >
-          {number}
-        </span>
+    <section
+      aria-labelledby={`passo-${String(number)}`}
+      className="flex flex-col gap-5 py-8 first:pt-0 last:pb-0"
+    >
+      <h2 id={`passo-${String(number)}`} className="text-lg">
         {title}
       </h2>
       {children}
@@ -211,7 +210,7 @@ function TaskControls({
   const label = useLabel();
   return (
     <>
-      <Field label="Coluna-alvo: o que queres prever?" htmlFor="preparar-alvo">
+      <Field label="Coluna-alvo" htmlFor="preparar-alvo" help={<TopicText topic="task" />}>
         <Select
           value={choices.target ?? NONE}
           onValueChange={(value) => {
@@ -634,9 +633,14 @@ function TransformControls({
         </ToggleGroup>
       </Field>
       <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="transformar-datas" className="text-sm text-soft">
-          Extrair o ano, o mês, o dia e o dia da semana das datas
-        </Label>
+        <div className="flex items-center gap-1">
+          <Label htmlFor="transformar-datas" className="text-sm text-soft">
+            Extrair as partes das datas
+          </Label>
+          <Explain title="Extrair as partes das datas">
+            O ano, o mês, o dia e o dia da semana de cada data, em colunas novas.
+          </Explain>
+        </div>
         <Switch
           id="transformar-datas"
           checked={transforms.dateFeatures}
@@ -645,7 +649,10 @@ function TransformControls({
           }}
         />
       </div>
-      <Field label="Dividir em intervalos (com os quantis do treino)">
+      <Field
+        label="Dividir em intervalos"
+        help="Cada coluna escolhida passa a intervalos, com os limites tirados dos quantis do treino."
+      >
         <ChipGroup
           label="Colunas a dividir em intervalos"
           options={numeric.map((column) => ({ value: column.name, label: column.name }))}

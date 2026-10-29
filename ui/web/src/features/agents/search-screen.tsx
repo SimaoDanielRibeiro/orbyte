@@ -119,7 +119,11 @@ function Search({ searchId }: { searchId: string }) {
             </h1>
             <WhyButton
               title="A procura dos agentes"
-              description={SCREENS.agents.description}
+              description={
+                searchPlan === undefined
+                  ? SCREENS.agents.description
+                  : `${label("TaskType", searchPlan.task_type)}, a otimizar ${searchPlan.objective.label.toLowerCase()}. ${SCREENS.agents.description}`
+              }
               topics={[
                 "automl",
                 "data_agent",
@@ -131,12 +135,6 @@ function Search({ searchId }: { searchId: string }) {
               ]}
             />
           </div>
-          {searchPlan !== undefined && (
-            <p className="mt-2 font-mono text-xs text-dim">
-              {label("TaskType", searchPlan.task_type).toLowerCase()}, a otimizar{" "}
-              {searchPlan.objective.label.toLowerCase()}
-            </p>
-          )}
         </div>
         {running && data === undefined && (
           <Controls searchId={searchId} status={status} measured={candidates.length} live={live} />
@@ -151,13 +149,8 @@ function Search({ searchId }: { searchId: string }) {
       )}
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-        {view === "history" ? (
-          <p className="text-sm text-soft">
-            A procura repetida troca a troca: quem fala a quem, e o que diz.
-          </p>
-        ) : (
-          <PhaseSteps phase={phase} />
-        )}
+        {/* No histórico, as fases não dizem nada (o momento é o da troca escolhida). */}
+        {view === "history" ? <div /> : <PhaseSteps phase={phase} />}
         <div className="flex items-center gap-1">
           <ToggleGroup
             type="single"
@@ -179,7 +172,15 @@ function Search({ searchId }: { searchId: string }) {
               Histórico das trocas
             </ToggleGroupItem>
           </ToggleGroup>
-          <Explain topic="exchange_history" />
+          {/* O "?" explica a vista aberta (ADR 0038). */}
+          {view === "history" ? (
+            <Explain topic="exchange_history" align="end" />
+          ) : (
+            <Explain title="Os agentes a trabalhar" align="end">
+              A caixa acesa é o agente que trabalha agora. Clica num agente para veres o que está a
+              fazer e o que já fez.
+            </Explain>
+          )}
         </div>
       </div>
 
@@ -219,11 +220,6 @@ function Search({ searchId }: { searchId: string }) {
               />
             )}
           </div>
-          {view === "live" && (
-            <p className="mono-label">
-              Clica num agente para veres o que está a fazer e o que já fez.
-            </p>
-          )}
         </section>
         <section className="flex min-w-0 flex-col gap-4 @8xl/main:border-l @8xl/main:pl-8">
           <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">
@@ -268,7 +264,7 @@ function Search({ searchId }: { searchId: string }) {
       )}
       {data === undefined && (status === "finished" || detached) && <PageSkeleton />}
       {data?.run_id != null && (
-        <NextStep text="A procura acabou. O vencedor é um run como os outros: abre-o para o avaliar e explicar.">
+        <NextStep>
           <WinnerProceed runId={data.run_id} />
         </NextStep>
       )}

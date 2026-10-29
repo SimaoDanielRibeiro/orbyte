@@ -126,7 +126,10 @@ export function MetricsScreen() {
   );
 }
 
-/** Uma métrica num cartão: o nome e a fórmula à vista; o que mede e como se lê, no "?". */
+/**
+ * Uma métrica num cartão: o nome e a fórmula à vista; o que mede, como se lê e para que tarefas
+ * serve, no "?" (ADR 0038).
+ */
 function MetricArticle({ card }: { card: MetricCard }) {
   const label = useLabel();
   const tasks = card.task_types.map((one) => label("TaskType", one));
@@ -136,23 +139,22 @@ function MetricArticle({ card }: { card: MetricCard }) {
       aria-labelledby={`${metricAnchor(card.name)}-titulo`}
       className="flex min-w-0 scroll-mt-6 flex-col gap-5"
     >
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-1">
-          <h2 id={`${metricAnchor(card.name)}-titulo`} className="text-lg">
-            {card.display_name}
-          </h2>
-          <Explain title={card.display_name}>
-            <p className="font-medium text-strong">O que mede</p>
-            <Prose text={card.what} size="small" className="mt-1" />
-            <p className="mt-3 font-medium text-strong">Como se lê</p>
-            <Prose text={card.how_to_read} size="small" className="mt-1" />
-          </Explain>
-        </div>
-        <p className="font-mono text-xs text-dim">
-          {formatList(tasks)}. {directionText(card.higher_is_better)}
-          {card.as_percent ? " Em percentagem." : ""}
-          {card.needs_proba ? " Precisa das probabilidades." : ""}
-        </p>
+      <header className="flex items-center gap-1">
+        <h2 id={`${metricAnchor(card.name)}-titulo`} className="text-lg">
+          {card.display_name}
+        </h2>
+        <Explain title={card.display_name}>
+          <p className="font-medium text-strong">O que mede</p>
+          <Prose text={card.what} size="small" className="mt-1" />
+          <p className="mt-3 font-medium text-strong">Como se lê</p>
+          <Prose text={card.how_to_read} size="small" className="mt-1" />
+          <p className="mt-3 font-medium text-strong">Onde se usa</p>
+          <p className="mt-1">
+            {formatList(tasks)}. {directionText(card.higher_is_better)}
+            {card.as_percent ? " Em percentagem." : ""}
+            {card.needs_proba ? " Precisa das probabilidades." : ""}
+          </p>
+        </Explain>
       </header>
       <FormulaBlock card={card} />
     </article>

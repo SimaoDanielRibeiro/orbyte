@@ -6,7 +6,8 @@
  * Depois, o que ele aprendeu; a ficha, uma secção de cada vez (a intuição, a matemática, quando
  * usar, as armadilhas); e as demonstrações do Laboratório que o mostram.
  *
- * O nome chega da lista dos modelos a deslizar para o título (o mesmo `layoutId`).
+ * O nome chega da lista dos modelos a deslizar para o título (o mesmo `layoutId`). A família tem o
+ * contorno com a cor dela, a mesma da lista e do agente da família (ADR 0038).
  */
 import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
@@ -34,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useStartTraining } from "@/features/training/use-start-training";
 import { useDebounced } from "@/hooks/use-debounced";
+import { familyColor } from "@/lib/families";
 import { formatList, formatMetric } from "@/lib/format";
 
 import { EmbeddingView } from "./embedding-view";
@@ -95,10 +97,15 @@ function ModelPage({ card }: { card: ModelCard }) {
             formatList(card.task_types.map((task) => label("TaskType", task))),
             label("Implementation", card.implementation),
             card.iterative ? "Treina passo a passo" : "Treina de uma vez",
-          ].map((fact) => (
+          ].map((fact, index) => (
             <li
               key={fact}
-              className="rounded-full border border-[#2a2a2a] bg-surface px-3 py-1 font-mono text-xs text-soft"
+              className={cn(
+                "rounded-full border border-[#2a2a2a] bg-surface px-3 py-1 font-mono text-xs",
+                index === 0 ? "text-strong" : "text-soft",
+              )}
+              // A família, a primeira, leva a cor dela no contorno.
+              style={index === 0 ? { borderColor: familyColor(card.family) } : undefined}
             >
               {fact}
             </li>
@@ -179,9 +186,9 @@ function DocTabs({ sections }: { sections: ModelCard["sections"] }) {
           ))}
         </TabsList>
         {sections.map((section) => (
+          // O nome da secção já está no separador: não se repete por cima do texto.
           <TabsContent key={section.key} value={section.key} className="mt-6">
-            <h2 className="text-lg">{section.title}</h2>
-            <Prose text={section.text} className="mt-3" />
+            <Prose text={section.text} />
           </TabsContent>
         ))}
       </Tabs>
@@ -379,29 +386,28 @@ function TrainHere({ card, values }: { card: ModelCard; values: Values }) {
         </>
       ) : (
         <>
-          <Button
-            variant="proceed"
-            size="proceed"
-            disabled={!training.ready || training.pending}
-            onClick={() => {
-              training.start(card.name, values, card.display_name);
-            }}
-          >
-            {training.pending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-            Treinar com estes valores
-            {!training.pending && <ArrowRight aria-hidden="true" />}
-          </Button>
-          {training.datasetName !== null && (
-            <p className="flex items-center gap-1 font-mono text-xs text-dim">
-              {training.datasetName}, {label("TaskType", preparation.taskType).toLowerCase()}, seed{" "}
-              {preparation.seed}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="proceed"
+              size="proceed"
+              disabled={!training.ready || training.pending}
+              onClick={() => {
+                training.start(card.name, values, card.display_name);
+              }}
+            >
+              {training.pending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
+              Treinar com estes valores
+              {!training.pending && <ArrowRight aria-hidden="true" />}
+            </Button>
+            {/* Com que dados treina fica no "?", não numa linha por baixo. */}
+            {training.datasetName !== null && (
               <Explain title="Com que dados treina">
                 Com {training.datasetName}, preparado para{" "}
                 {label("TaskType", preparation.taskType).toLowerCase()}, e a seed {preparation.seed}
                 , a mesma da divisão: o resultado repete-se.
               </Explain>
-            </p>
-          )}
+            )}
+          </div>
           <ErrorNote error={training.error} />
         </>
       )}

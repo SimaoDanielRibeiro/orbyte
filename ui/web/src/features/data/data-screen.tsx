@@ -137,11 +137,8 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
             key: "avisos",
             label: "Avisos da validação",
             value: formatCount(warnings),
-            detail: !validation.is_usable
-              ? "os dados não podem seguir"
-              : warnings === 0
-                ? "passaram sem avisos"
-                : "vê-os em baixo",
+            // Só se diz alguma coisa quando os dados não podem seguir: o número diz o resto.
+            detail: validation.is_usable ? undefined : "os dados não podem seguir",
             tone: !validation.is_usable ? "negative" : warnings === 0 ? "positive" : "neutral",
           },
         ]}
@@ -177,10 +174,7 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
       )}
 
       {validation.is_usable && (
-        <NextStep
-          className="mt-16"
-          text="Os dados estão prontos. A seguir, explora-os: o perfil de cada coluna, as correlações e os avisos."
-        >
+        <NextStep className="mt-16">
           <Proceed to="/explorar">Explorar este dataset</Proceed>
         </NextStep>
       )}

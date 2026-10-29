@@ -42,6 +42,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0035](0035-historico-visual-das-trocas.md) | O histórico visual das trocas: cada mensagem diz a quem se dirige | Proposta |
 | [0036](0036-barra-pelos-passos-espaco-e-prosseguir.md) | A barra pelos passos, o espaço em vez dos filetes e o botão de prosseguir | Proposta |
 | [0037](0037-cores-por-familia-barra-que-desliza-e-licao-do-rl.md) | Cores fixas por família, a barra que desliza e a lição do reinforcement learning | Proposta |
+| [0038](0038-contorno-colorido-sem-numeros-e-menos-texto.md) | O contorno colorido, sem números nem brilho, e menos texto à vista | Proposta |
 
 ## Como escrever uma ADR
 

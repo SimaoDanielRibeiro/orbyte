@@ -246,7 +246,7 @@ function NavItem({ screen, pathname, count, step }: NavItemProps) {
           layoutId="trilho-agora"
           layoutDependency={pathname}
           transition={SLIDE}
-          className="pointer-events-none absolute top-1/2 left-[9px] z-20 -mt-[4.5px] size-[9px] rounded-full border border-white bg-white shadow-[0_0_10px_rgb(255_255_255/0.7)] group-data-[collapsible=icon]:hidden"
+          className="pointer-events-none absolute top-1/2 left-[9px] z-20 -mt-[4.5px] size-[9px] rounded-full border border-white bg-white shadow-[0_0_6px_rgb(255_255_255/0.45)] group-data-[collapsible=icon]:hidden"
         />
       )}
       {active && (
@@ -261,14 +261,14 @@ function NavItem({ screen, pathname, count, step }: NavItemProps) {
           // O raio no estilo (e não numa classe): o Motion corrige-o enquanto o cartão estica.
           style={{ borderRadius: 10 }}
           className={cn(
-            "pointer-events-none absolute inset-y-0 right-0 left-0 z-0 border border-[#3a3a3a] bg-[#262626] shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_10px_24px_-14px_rgb(255_255_255/0.28)]",
+            "pointer-events-none absolute inset-y-0 right-0 left-0 z-0 border border-[#3a3a3a] bg-[#262626] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]",
             "group-data-[collapsible=icon]:right-auto group-data-[collapsible=icon]:w-9",
             step !== undefined && "left-6 group-data-[collapsible=icon]:left-0",
           )}
         >
           {/* Nos passos, quem marca é o ponto aceso do trilho; nos outros, um traço de luz. */}
           {step === undefined && (
-            <span className="absolute top-1/2 left-0 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-white shadow-[0_0_8px_rgb(255_255_255/0.8)] group-data-[collapsible=icon]:hidden" />
+            <span className="absolute top-1/2 left-0 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-white group-data-[collapsible=icon]:hidden" />
           )}
         </motion.span>
       )}

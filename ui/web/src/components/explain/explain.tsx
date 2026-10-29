@@ -113,7 +113,10 @@ export function PageExplain({ title, description, topics = [] }: PageExplainProp
       <SheetTrigger asChild>
         <ExplainTrigger label={`Sobre o ecrã ${title}`} className="size-7" />
       </SheetTrigger>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-lg">
+      <SheetContent
+        side="right"
+        className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-lg"
+      >
         <SheetHeader className="gap-2 border-b p-6">
           <SheetTitle className="text-xl font-medium text-strong">{title}</SheetTitle>
           {description !== undefined && (

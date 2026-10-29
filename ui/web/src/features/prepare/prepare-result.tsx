@@ -4,6 +4,7 @@
  */
 import { cn } from "cn";
 import { LoaderCircle } from "lucide-react";
+import { useState } from "react";
 
 import type { LineageStep, Partition, PreparationSummary } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
@@ -12,6 +13,7 @@ import { Scatter, type ScatterPoint } from "@/components/charts/scatter";
 import type { PointShape } from "@/components/charts/shapes";
 import { StackedBars } from "@/components/charts/stacked-bars";
 import { TablePreviewView } from "@/components/data/table-preview";
+import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
 import { ErrorNote, Facts, Panel } from "@/components/shell/blocks";
@@ -53,6 +55,7 @@ interface PrepareResultProps {
 
 export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
   const label = useLabel();
+  const [tab, setTab] = useState("lineage");
   return (
     <section aria-labelledby="preparar-resultado" aria-busy={pending}>
       <div className="flex min-h-8 flex-wrap items-center justify-between gap-3">
@@ -107,22 +110,24 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
               <NoticeList notices={summary.notices} />
             </div>
           )}
-          <Tabs defaultValue="lineage" className="mt-2">
-            <TabsList
-              aria-label="O resultado por partes"
-              className="flex-wrap group-data-horizontal/tabs:h-auto"
-            >
-              <TabsTrigger value="lineage">Linhagem</TabsTrigger>
-              {summary.class_labels.length > 0 && (
-                <TabsTrigger value="classes">Classes em cada parte</TabsTrigger>
-              )}
-              <TabsTrigger value="tables">Antes e depois</TabsTrigger>
-              <TabsTrigger value="projection">Projeção 2D</TabsTrigger>
-            </TabsList>
+          <Tabs value={tab} onValueChange={setTab} className="mt-2">
+            <div className="flex items-center gap-1">
+              <TabsList
+                aria-label="O resultado por partes"
+                className="flex-wrap group-data-horizontal/tabs:h-auto"
+              >
+                <TabsTrigger value="lineage">Linhagem</TabsTrigger>
+                {summary.class_labels.length > 0 && (
+                  <TabsTrigger value="classes">Classes</TabsTrigger>
+                )}
+                <TabsTrigger value="tables">Antes e depois</TabsTrigger>
+                <TabsTrigger value="projection">Projeção 2D</TabsTrigger>
+              </TabsList>
+              {/* A linhagem explica-se ao lado dos separadores; os gráficos têm o "?" deles. */}
+              {tab === "lineage" && <Explain topic="lineage" />}
+            </div>
             <TabsContent value="lineage" className="mt-3">
-              <Panel title="As operações, pela ordem em que correram" topic="lineage">
-                <Lineage steps={summary.lineage} />
-              </Panel>
+              <Lineage steps={summary.lineage} />
             </TabsContent>
             {summary.class_labels.length > 0 && (
               <TabsContent value="classes" className="mt-3">
@@ -139,8 +144,8 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
                 />
               </Panel>
               <Panel
-                title="O treino depois das transformações"
-                explain="É isto que o modelo recebe: as colunas já preenchidas, codificadas e na mesma escala."
+                title="Depois das transformações"
+                explain="O treino tal como o modelo o recebe: as colunas já preenchidas, codificadas e na mesma escala."
               >
                 <TablePreviewView
                   preview={summary.transformed_preview}

@@ -80,7 +80,10 @@ export function MetricDrawer({
         }
       }}
     >
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-xl">
+      <SheetContent
+        side="right"
+        className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-xl"
+      >
         {metric !== null && (
           <>
             <SheetHeader className="gap-2 border-b p-6">
