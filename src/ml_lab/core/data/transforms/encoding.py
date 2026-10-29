@@ -10,7 +10,7 @@ fica com zeros em todas as colunas: o modelo nunca a viu, por isso não lhe pode
 dar significado.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, override
 
 import numpy as np
@@ -60,6 +60,17 @@ class OneHotEncoder(Transform):
             if unknown:
                 counts[column] = unknown
         return counts
+
+    @override
+    def _learned(self) -> dict[str, Any]:
+        return {"categories": {column: list(values) for column, values in self.categories.items()}}
+
+    @override
+    def _restore(self, learned: Mapping[str, Any]) -> None:
+        self.categories = {
+            str(column): tuple(str(value) for value in values)
+            for column, values in learned["categories"].items()
+        }
 
     @override
     def _fit(self, frame: pd.DataFrame) -> None:

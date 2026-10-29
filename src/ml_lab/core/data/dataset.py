@@ -9,6 +9,7 @@ gráficos. Não tem nada do pandas (ADR 0002).
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -17,6 +18,9 @@ from ml_lab.core.data.lineage import Lineage
 from ml_lab.core.data.projection.projection_2d import Projection
 from ml_lab.core.data.schema import TableSchema
 from ml_lab.core.foundation.types import Partition, TaskType
+
+if TYPE_CHECKING:
+    from ml_lab.core.data.serving import FittedPreparation
 
 type Features = NDArray[np.float64]
 """Matriz ``(n_linhas, n_features)`` de ``float64``."""
@@ -58,6 +62,8 @@ class Dataset:
         schema: O esquema das colunas antes das transformações.
         lineage: Todas as operações aplicadas, da entrada à saída.
         projection: As coordenadas 2D de cada parte, para os gráficos.
+        preparation: A preparação já treinada, que transforma linhas novas como estas foram
+            transformadas (é o que vai para o pacote de um modelo, ADR 0039).
     """
 
     name: str
@@ -69,6 +75,7 @@ class Dataset:
     schema: TableSchema
     lineage: Lineage
     projection: Projection | None = None
+    preparation: "FittedPreparation | None" = None
 
     @property
     def train(self) -> DataSplit:

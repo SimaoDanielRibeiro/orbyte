@@ -185,3 +185,44 @@ def test_the_target_is_never_suggested_for_removal() -> None:
     frame = pd.DataFrame({"x": [1.0, 2.0, 3.0], "alvo": [np.nan, np.nan, 1.0]})
 
     assert suggest_cleaning(profile_dataset(frame), target="alvo") == ()
+
+
+# --- linhas novas (o pacote de um modelo, ADR 0039) ----------------------------------------
+
+
+def test_the_recipe_keeps_what_each_step_learned() -> None:
+    frame = pd.DataFrame({"fare": [1.0, 2.0, 2.5, 3.0, 100.0], "city": ["a", "b", "a", "b", "a"]})
+    clip = CleaningStep("treat_outliers", {"column": "fare", "method": "clip"})
+    dropped = CleaningStep("drop_columns", {"columns": ["city"]})
+
+    cleaned = apply_cleaning(frame, [clip, dropped])
+
+    learned = cleaned.applied[0].learned
+    assert learned["lower"] < 1.0
+    assert 3.0 < learned["upper"] < 100.0
+    assert cleaned.applied[1].learned == {}
+
+
+def test_new_rows_repeat_only_the_steps_that_make_sense_for_one_row() -> None:
+    frame = pd.DataFrame(
+        {
+            "fare": [1.0, 2.0, 2.5, 3.0, 100.0],
+            "price": ["1,5", "2,0", "3,5", "4,0", "5,5"],
+            "city": ["a", "b", "a", "b", "a"],
+        }
+    )
+    steps = [
+        CleaningStep("treat_outliers", {"column": "fare", "method": "clip"}),
+        CleaningStep("convert_type", {"column": "price", "to": "numeric", "decimal": ","}),
+        CleaningStep("drop_columns", {"columns": ["city"]}),
+        CleaningStep("drop_duplicates"),
+    ]
+    applied = apply_cleaning(frame, steps).applied
+    new = pd.DataFrame({"fare": [500.0], "price": ["7,25"]})
+
+    for step in applied:
+        new = step.replay(new)
+
+    assert new["fare"].iloc[0] == applied[0].learned["upper"]
+    assert new["price"].iloc[0] == 7.25
+    assert [step.replayable for step in applied] == [True, True, True, False]

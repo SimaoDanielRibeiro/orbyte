@@ -9,6 +9,11 @@ duplicados ou converter tipos dá o mesmo resultado em qualquer amostra.
 
 Para acrescentar uma operação: cria uma função ``(frame, **parâmetros) ->
 CleaningResult`` num ficheiro desta pasta e decora-a com ``@cleaning_operation``.
+
+Uma linha nova (a que se quer prever com um modelo guardado) passa pelas operações que
+fazem sentido numa linha sozinha (converter um tipo, limitar um extremo), com o que elas
+aprenderam aqui (os limites dos extremos). É o ``replay`` de cada operação (ADR 0039); as
+que só fazem sentido numa tabela inteira (remover duplicados, remover linhas) não o têm.
 """
 
 import inspect
@@ -50,10 +55,15 @@ class CleaningResult:
     frame: pd.DataFrame
     step: LineageStep
     notices: tuple[Notice, ...] = ()
+    learned: Mapping[str, Any] = field(default_factory=dict)
+    """O que a operação aprendeu com estes dados (os limites dos extremos), em valores simples."""
 
 
 type CleaningFunction = Callable[..., CleaningResult]
 """Função ``(frame, **parâmetros) -> CleaningResult``."""
+
+type Replay = Callable[[pd.DataFrame, Mapping[str, Any], Mapping[str, Any]], pd.DataFrame]
+"""Função ``(linhas novas, parâmetros, o que aprendeu) -> linhas novas tratadas``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,6 +81,8 @@ class CleaningOperation:
     title: str
     description: str
     function: CleaningFunction
+    replay: Replay | None = None
+    """Como tratar linhas novas; ``None`` se a operação só fizer sentido numa tabela inteira."""
 
     def apply(self, frame: pd.DataFrame, params: Mapping[str, Any]) -> CleaningResult:
         """Aplica a operação com ``params``.
@@ -93,15 +105,45 @@ CLEANING: Registry[CleaningOperation] = Registry("cleaning", discover="ml_lab.co
 
 
 def cleaning_operation(
-    name: str, *, title: str, description: str
+    name: str, *, title: str, description: str, replay: Replay | None = None
 ) -> Callable[[CleaningFunction], CleaningFunction]:
-    """Decorador que regista uma função como operação de limpeza."""
+    """Decorador que regista uma função como operação de limpeza.
+
+    Args:
+        name: O nome no registo.
+        title: O nome a mostrar.
+        description: O que faz e quando usar.
+        replay: Como tratar linhas novas com o que a operação aprendeu (ver o módulo).
+    """
 
     def decorator(function: CleaningFunction) -> CleaningFunction:
-        CLEANING.add(name, CleaningOperation(name, title, description, function))
+        CLEANING.add(name, CleaningOperation(name, title, description, function, replay))
         return function
 
     return decorator
+
+
+@dataclass(frozen=True, slots=True)
+class AppliedStep:
+    """Um passo da receita já aplicado, com o que aprendeu.
+
+    Attributes:
+        step: O passo (a operação e os parâmetros).
+        learned: O que a operação aprendeu com os dados (vazio na maior parte delas).
+    """
+
+    step: CleaningStep
+    learned: Mapping[str, Any] = field(default_factory=dict)
+
+    @property
+    def replayable(self) -> bool:
+        """Se o passo também trata linhas novas."""
+        return CLEANING.get(self.step.operation).replay is not None
+
+    def replay(self, frame: pd.DataFrame) -> pd.DataFrame:
+        """Trata linhas novas como o passo tratou os dados (sem fazer nada, se não souber)."""
+        replay = CLEANING.get(self.step.operation).replay
+        return frame if replay is None else replay(frame, self.step.params, self.learned)
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -112,11 +154,13 @@ class CleanedTable:
         frame: A tabela limpa.
         lineage: A linhagem, com um passo por operação aplicada.
         notices: Os avisos de todas as operações.
+        applied: Os passos aplicados, com o que cada um aprendeu.
     """
 
     frame: pd.DataFrame
     lineage: Lineage
     notices: tuple[Notice, ...] = ()
+    applied: tuple[AppliedStep, ...] = ()
 
 
 def apply_cleaning(
@@ -134,12 +178,14 @@ def apply_cleaning(
     """
     history = lineage if lineage is not None else Lineage()
     notices: list[Notice] = []
+    applied: list[AppliedStep] = []
     for step in steps:
         result = CLEANING.get(step.operation).apply(frame, step.params)
         frame = result.frame
         history = history.then(result.step)
         notices.extend(result.notices)
-    return CleanedTable(frame, history, tuple(notices))
+        applied.append(AppliedStep(step, result.learned))
+    return CleanedTable(frame, history, tuple(notices), tuple(applied))
 
 
 def require_columns(frame: pd.DataFrame, columns: Sequence[str]) -> None:

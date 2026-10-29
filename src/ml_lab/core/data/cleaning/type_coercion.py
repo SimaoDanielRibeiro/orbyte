@@ -8,7 +8,8 @@ Também converte texto para ``category``: o pandas guarda cada valor distinto um
 só vez, o que poupa memória e marca a coluna como categórica.
 """
 
-from typing import Final, Literal
+from collections.abc import Mapping
+from typing import Any, Final, Literal
 
 import pandas as pd
 
@@ -37,6 +38,15 @@ _LABELS: Final = {
 _EXAMPLES: Final = 3
 
 
+def _convert_new_rows(
+    frame: pd.DataFrame, params: Mapping[str, Any], _learned: Mapping[str, Any]
+) -> pd.DataFrame:
+    """Numa linha nova, converte a coluna da mesma maneira (a conversão não aprende nada)."""
+    if params["column"] not in frame:
+        return frame
+    return convert_type(frame, **params).frame
+
+
 @cleaning_operation(
     "convert_type",
     title="Converter o tipo de uma coluna",
@@ -44,6 +54,7 @@ _EXAMPLES: Final = 3
         "Converte uma coluna para número, data, booleano, categoria ou texto. Os valores "
         "que não se conseguem converter ficam em falta, e a linhagem diz quantos foram."
     ),
+    replay=_convert_new_rows,
 )
 def convert_type(
     frame: pd.DataFrame,

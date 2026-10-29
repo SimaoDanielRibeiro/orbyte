@@ -16,7 +16,7 @@ sair do intervalo [0, 1]: é o esperado.
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Final, override
+from typing import Any, Final, override
 
 import pandas as pd
 
@@ -78,6 +78,15 @@ class StandardScaler(Transform):
         )
 
     @override
+    def _learned(self) -> dict[str, Any]:
+        return {"means": dict(self.means), "scales": dict(self.scales)}
+
+    @override
+    def _restore(self, learned: Mapping[str, Any]) -> None:
+        self.means = {str(c): float(v) for c, v in learned["means"].items()}
+        self.scales = {str(c): float(v) for c, v in learned["scales"].items()}
+
+    @override
     def _fit(self, frame: pd.DataFrame) -> None:
         values = frame[list(self.columns)].astype("float64")
         self.means = {str(c): float(v) for c, v in values.mean().items()}
@@ -121,6 +130,15 @@ class MinMaxScaler(Transform):
             f"{len(self.columns)} colunas levadas para [0, 1] com o mínimo e o máximo do treino "
             f"({examples}{more})."
         )
+
+    @override
+    def _learned(self) -> dict[str, Any]:
+        return {"minimums": dict(self.minimums), "ranges": dict(self.ranges)}
+
+    @override
+    def _restore(self, learned: Mapping[str, Any]) -> None:
+        self.minimums = {str(c): float(v) for c, v in learned["minimums"].items()}
+        self.ranges = {str(c): float(v) for c, v in learned["ranges"].items()}
 
     @override
     def _fit(self, frame: pd.DataFrame) -> None:

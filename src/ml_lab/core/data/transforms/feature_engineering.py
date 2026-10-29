@@ -11,7 +11,7 @@ Criar features é dar ao modelo informação numa forma que ele consiga usar:
 """
 
 import itertools
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Final, override
 
 import numpy as np
@@ -172,6 +172,17 @@ class Binning(Transform):
             for column in self.columns
         ]
         return f"Colunas divididas com os quantis do treino: {', '.join(parts)}."
+
+    @override
+    def _learned(self) -> dict[str, Any]:
+        return {"edges": {column: list(edges) for column, edges in self.edges.items()}}
+
+    @override
+    def _restore(self, learned: Mapping[str, Any]) -> None:
+        self.edges = {
+            str(column): tuple(float(edge) for edge in edges)
+            for column, edges in learned["edges"].items()
+        }
 
     @override
     def _fit(self, frame: pd.DataFrame) -> None:

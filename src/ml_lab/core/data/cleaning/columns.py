@@ -6,7 +6,8 @@ identificador é especialmente traiçoeiro: um modelo flexível pode decorar "o
 passageiro 12 sobreviveu", o que não serve para nenhum passageiro novo.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pandas as pd
 
@@ -19,6 +20,13 @@ from ml_lab.core.data.cleaning.base import (
 from ml_lab.core.foundation.errors import InvalidParameterError
 
 
+def _drop_present(
+    frame: pd.DataFrame, params: Mapping[str, Any], _learned: Mapping[str, Any]
+) -> pd.DataFrame:
+    """Numa linha nova, tira as colunas removidas que ela trouxer (pode não trazer nenhuma)."""
+    return frame.drop(columns=[c for c in params["columns"] if c in frame.columns])
+
+
 @cleaning_operation(
     "drop_columns",
     title="Remover colunas",
@@ -26,6 +34,7 @@ from ml_lab.core.foundation.errors import InvalidParameterError
         "Remove colunas que não ajudam o modelo: identificadores, texto livre, colunas "
         "quase vazias ou constantes."
     ),
+    replay=_drop_present,
 )
 def drop_columns(frame: pd.DataFrame, *, columns: Sequence[str]) -> CleaningResult:
     """Remove as ``columns`` indicadas."""

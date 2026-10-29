@@ -23,13 +23,14 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from ml_lab.core.data.boundary import class_labels, encode_classes, target_values, to_matrix
-from ml_lab.core.data.cleaning.base import CleaningStep, apply_cleaning
+from ml_lab.core.data.cleaning.base import AppliedStep, CleaningStep, apply_cleaning
 from ml_lab.core.data.dataset import Dataset, DataSplit
 from ml_lab.core.data.io.base import LoadedTable
 from ml_lab.core.data.lineage import Lineage, LineageStep, Stage
 from ml_lab.core.data.profiling.type_inference import TypeInference, infer_types, schema_from
 from ml_lab.core.data.projection.projection_2d import ProjectionConfig, project_2d
 from ml_lab.core.data.schema import ColumnRole, TableSchema
+from ml_lab.core.data.serving import fit_preparation
 from ml_lab.core.data.splitting.base import (
     SplitConfig,
     SplitIndices,
@@ -250,6 +251,8 @@ class _Selected:
     task_type: TaskType
     schema: TableSchema
     features: tuple[str, ...]
+    cleaning: tuple[AppliedStep, ...] = ()
+    table_columns: tuple[str, ...] = ()
 
 
 def _select(table: LoadedTable, config: PreparationConfig) -> _Selected:
@@ -288,7 +291,17 @@ def _select(table: LoadedTable, config: PreparationConfig) -> _Selected:
             "removidas na limpeza."
         )
     lineage = lineage.then(_task_step(task, task_type, config, features, schema))
-    return _Selected(frame, lineage, tuple(notices), task, task_type, schema, features)
+    return _Selected(
+        frame,
+        lineage,
+        tuple(notices),
+        task,
+        task_type,
+        schema,
+        features,
+        cleaned.applied,
+        tuple(str(name) for name in table.frame.columns),
+    )
 
 
 def _split(
@@ -374,6 +387,19 @@ def _assemble(
         for part in partitions
     }
     lineage = lineage.then(_output_step(splits, feature_names, labels))
+    # O que a preparação aprendeu fica com os dados: é o que transforma uma linha nova.
+    preparation = fit_preparation(
+        train=parts[Partition.TRAIN],
+        test=parts.get(Partition.TEST, parts[Partition.TRAIN].iloc[:0]),
+        schema=selected.schema,
+        features=features,
+        pipeline=pipeline,
+        feature_names=feature_names,
+        cleaning=selected.cleaning,
+        target=target,
+        class_labels=labels,
+        table_columns=selected.table_columns,
+    )
     dataset = Dataset(
         name=name,
         task_type=selected.task_type,
@@ -384,6 +410,7 @@ def _assemble(
         schema=selected.schema,
         lineage=lineage,
         projection=projection,
+        preparation=preparation,
     )
     return dataset, transformed, notices
 

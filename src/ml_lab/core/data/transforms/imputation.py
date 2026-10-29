@@ -14,6 +14,7 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Any, Final, override
 
+import numpy as np
 import pandas as pd
 
 from ml_lab.core.data.transforms.base import Transform
@@ -99,6 +100,20 @@ class Imputer(Transform):
         return f"{text} A validação e o teste usam estes mesmos valores."
 
     @override
+    def _learned(self) -> dict[str, Any]:
+        return {
+            "fill_values": {column: _plain(value) for column, value in self.fill_values.items()},
+            "missing_in_train": dict(self._missing_in_train),
+        }
+
+    @override
+    def _restore(self, learned: Mapping[str, Any]) -> None:
+        self.fill_values = {str(column): value for column, value in learned["fill_values"].items()}
+        self._missing_in_train = {
+            str(column): int(count) for column, count in learned["missing_in_train"].items()
+        }
+
+    @override
     def _fit(self, frame: pd.DataFrame) -> None:
         self.fill_values = {}
         self._missing_in_train = {}
@@ -123,6 +138,14 @@ class Imputer(Transform):
     @override
     def _transform(self, frame: pd.DataFrame) -> pd.DataFrame:
         return frame.fillna(self.fill_values)
+
+
+def _plain(value: Any) -> Any:
+    """O valor do Python que corresponde a um do NumPy (``np.float64``, ``np.bool_``…).
+
+    É o que vai para JSON; os outros valores ficam como estão.
+    """
+    return value.item() if isinstance(value, np.generic) else value
 
 
 def _show(value: Any) -> str:

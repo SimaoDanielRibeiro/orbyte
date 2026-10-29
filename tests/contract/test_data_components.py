@@ -4,16 +4,22 @@ Um exemplo, um gerador, uma operação de limpeza ou uma estratégia de divisão
 fica testada aqui sem escrever testes novos.
 """
 
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from ml_lab.core.data.cleaning.base import CLEANING
+from ml_lab.core.data.io.base import LoadedTable
 from ml_lab.core.data.io.builtin_source import SAMPLES, SampleSource
 from ml_lab.core.data.io.synthetic_source import GENERATORS, TARGET, SyntheticSource
+from ml_lab.core.data.preparation import PreparationConfig, prepare
+from ml_lab.core.data.serving import FittedPreparation
 from ml_lab.core.data.splitting.base import SPLITTERS, SplitConfig, SplitStrategy
 from ml_lab.core.data.task.task_detection import suggest_task
 from ml_lab.core.data.validation.checks import validate_table
+from ml_lab.core.foundation.random import SeedManager
 
 
 @pytest.mark.parametrize("name", SAMPLES.names())
@@ -79,3 +85,28 @@ def test_every_strategy_is_a_reproducible_partition_of_the_rows(strategy: str) -
         np.array_equal(a, b)
         for a, b in zip(parts, [again.train, again.validation, again.test], strict=True)
     )
+
+
+def _travels(table: LoadedTable, target: str) -> None:
+    """A preparação de ``table``, depois de passar por JSON, transforma o teste como a original."""
+    data = prepare(table, PreparationConfig(target=target), seeds=SeedManager(5))
+    preparation = data.dataset.preparation
+    assert preparation is not None
+    restored = FittedPreparation.from_documents(
+        json.loads(json.dumps(preparation.input_document(), allow_nan=False)),
+        json.loads(json.dumps(preparation.preparation_document(), allow_nan=False)),
+    )
+
+    raw = data.cleaned.loc[data.dataset.test.rows]
+
+    np.testing.assert_allclose(restored.transform(raw), data.dataset.test.X)
+
+
+@pytest.mark.parametrize("name", SAMPLES.names())
+def test_the_preparation_of_every_sample_travels_with_the_model(name: str) -> None:
+    _travels(SampleSource(name).load(), SAMPLES.get(name).target)
+
+
+@pytest.mark.parametrize("name", GENERATORS.names())
+def test_the_preparation_of_every_generator_travels_with_the_model(name: str) -> None:
+    _travels(SyntheticSource(name, seed=0).load(), TARGET)

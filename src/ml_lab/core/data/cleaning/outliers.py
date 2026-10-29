@@ -10,8 +10,9 @@ libras eram reais (primeira classe). Por isso a deteção só avisa, e o tratame
 só acontece se o utilizador o pedir.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -69,6 +70,20 @@ def iqr_bounds(values: pd.Series, factor: float = DEFAULT_FACTOR) -> OutlierBoun
     )
 
 
+def _clip_new_rows(
+    frame: pd.DataFrame, params: Mapping[str, Any], learned: Mapping[str, Any]
+) -> pd.DataFrame:
+    """Numa linha nova, limita o valor aos limites que se calcularam com os dados.
+
+    Uma linha sozinha não tem quartis: os limites são os da tabela. Quando o método foi
+    remover, a linha nova fica como está (não se remove uma linha que se quer prever).
+    """
+    column = params["column"]
+    if params.get("method", "clip") != "clip" or "lower" not in learned or column not in frame:
+        return frame
+    return frame.assign(**{column: frame[column].clip(learned["lower"], learned["upper"])})
+
+
 @cleaning_operation(
     "treat_outliers",
     title="Tratar valores extremos",
@@ -78,6 +93,7 @@ def iqr_bounds(values: pd.Series, factor: float = DEFAULT_FACTOR) -> OutlierBoun
         "calculados com todas as linhas, antes da divisão: usa só quando os extremos forem "
         "erros ou quando quiseres ver o seu efeito."
     ),
+    replay=_clip_new_rows,
 )
 def treat_outliers(
     frame: pd.DataFrame,
@@ -100,10 +116,14 @@ def treat_outliers(
         )
     bounds = iqr_bounds(frame[column], factor)
     params = {"column": column, "method": method, "factor": factor}
+    # Os limites ficam guardados mesmo sem extremos: uma linha nova pode trazer um.
+    learned = {} if bounds is None else {"lower": bounds.lower, "upper": bounds.upper}
     if bounds is None or bounds.n_outliers == 0:
         description = f"A coluna {column} não tem valores extremos (regra do IQR)."
         return CleaningResult(
-            frame, cleaning_step("treat_outliers", description, frame, frame, params)
+            frame,
+            cleaning_step("treat_outliers", description, frame, frame, params),
+            learned=learned,
         )
 
     limits = f"[{format_number(bounds.lower)}; {format_number(bounds.upper)}]"
@@ -120,4 +140,4 @@ def treat_outliers(
         verb = "removida" if n_outliers == 1 else "removidas"
         description = f"{column}: {verb} {rows} com valores fora de {limits}."
         step = cleaning_step("treat_outliers", description, frame, result, params)
-    return CleaningResult(result, step)
+    return CleaningResult(result, step, learned=learned)
