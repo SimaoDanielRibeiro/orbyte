@@ -1,5 +1,6 @@
 import io
 import json
+import sys
 import zipfile
 from pathlib import Path
 
@@ -182,7 +183,10 @@ def test_the_key_is_created_once_and_kept_private(key: PackageKey) -> None:
     first = key.sign(b"dados")
 
     assert key.path.is_file()
-    assert key.path.stat().st_mode & 0o777 == 0o600
+    if sys.platform != "win32":
+        # O Windows não tem as permissões POSIX: lá, o chmod só liga ou desliga o "só de
+        # leitura", e o modo aparece sempre como 0o666 (a pasta do utilizador já é privada).
+        assert key.path.stat().st_mode & 0o777 == 0o600
     assert key.sign(b"dados") == first
     assert not PackageKey(key.path.parent / "nenhuma.key").verify(b"dados", first)
 
