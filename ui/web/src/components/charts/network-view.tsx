@@ -196,7 +196,7 @@ export function NetworkView({
                     x={positions[c]?.[0]?.x ?? 0}
                     y={plot.height + 4}
                     textAnchor="middle"
-                    className="fill-muted-foreground text-[10px]"
+                    className="fill-muted-foreground text-[11px]"
                   >
                     e mais {formatCount(column.units - MAX_UNITS)}
                   </text>
@@ -205,7 +205,7 @@ export function NetworkView({
                   x={positions[c]?.[0]?.x ?? 0}
                   y={plot.height + 20}
                   textAnchor="middle"
-                  className="fill-foreground text-[11px]"
+                  className="fill-foreground text-[12px]"
                 >
                   {column.name}
                 </text>
@@ -213,7 +213,7 @@ export function NetworkView({
                   x={positions[c]?.[0]?.x ?? 0}
                   y={plot.height + 34}
                   textAnchor="middle"
-                  className="fill-muted-foreground text-[10px]"
+                  className="fill-muted-foreground text-[11px]"
                 >
                   {column.detail}
                 </text>

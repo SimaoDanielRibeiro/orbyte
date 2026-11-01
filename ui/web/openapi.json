@@ -7984,6 +7984,17 @@
         "title": "CellKind",
         "description": "O que há numa célula da grelha."
       },
+      "ChoiceGroup": {
+        "type": "string",
+        "enum": [
+          "run",
+          "preparation",
+          "environment",
+          "hyperparameters"
+        ],
+        "title": "ChoiceGroup",
+        "description": "A parte do run a que uma escolha pertence (a comparação arruma as diferenças por elas).\n\nA ordem é a de leitura: primeiro o que define o run (os dados, a tarefa, o modelo, a seed),\ndepois a preparação dos dados, o ambiente (no reinforcement learning) e os hiperparâmetros."
+      },
       "ClassBalance": {
         "properties": {
           "target": {
@@ -8250,15 +8261,24 @@
             },
             "type": "array",
             "title": "Values"
+          },
+          "group": {
+            "$ref": "#/components/schemas/ChoiceGroup"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
         "required": [
           "label",
-          "values"
+          "values",
+          "group",
+          "name"
         ],
         "title": "ConfigDifference",
-        "description": "Uma escolha que muda entre os runs, escrita para cada um (``—`` se não a tiver)."
+        "description": "Uma escolha que muda entre os runs, escrita para cada um (``—`` se não a tiver).\n\nAttributes:\n    label: O nome completo da escolha (\"Hiperparâmetro · Taxa de aprendizagem\").\n    values: O valor em cada run, pela ordem dos runs.\n    group: A parte do run a que pertence.\n    name: O nome dentro do grupo (\"Taxa de aprendizagem\"), para mostrar por baixo do nome\n        do grupo."
       },
       "ConfusionMatrix": {
         "properties": {

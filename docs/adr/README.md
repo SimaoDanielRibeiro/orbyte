@@ -45,6 +45,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0038](0038-contorno-colorido-sem-numeros-e-menos-texto.md) | O contorno colorido, sem números nem brilho, e menos texto à vista | Proposta |
 | [0039](0039-pacote-do-modelo.md) | O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado | Aceite |
 | [0040](0040-uma-thread-para-a-mesma-seed-dar-o-mesmo.md) | Uma só thread nos estimadores que somam em paralelo, para a mesma seed dar o mesmo | Proposta |
+| [0041](0041-procura-aberta-e-comparacao-por-grupos.md) | A procura dos agentes fica aberta, e a comparação arruma-se por grupos | Proposta |
 
 ## Como escrever uma ADR
 

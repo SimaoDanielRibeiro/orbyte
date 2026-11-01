@@ -438,7 +438,7 @@ function Timeline({
         {phases.map(({ phase, count: size }, index) => (
           <span
             key={`${phase}-${String(index)}`}
-            className="min-w-0 truncate border-t border-[#333] pt-1.5 font-mono text-[11px] text-dim"
+            className="min-w-0 truncate border-t border-[#333] pt-1.5 font-mono text-[12px] text-dim"
             style={{ flex: size }}
           >
             {label("SearchPhase", phase)}

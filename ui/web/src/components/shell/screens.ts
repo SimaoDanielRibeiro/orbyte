@@ -125,7 +125,7 @@ export const SCREENS = {
   },
   history: {
     to: "/experiencias",
-    title: "Experiências",
+    title: "Histórico",
     description: "O histórico dos runs: abre, compara, guarda e reproduz.",
     icon: History,
   },
@@ -140,6 +140,11 @@ export const INTERFACE_NAMES: Readonly<Record<WorkPath, string>> = {
 export interface NavGroup {
   /** O rótulo pequeno do grupo (em mono, como na referência). */
   label: string;
+  /**
+   * Se o rótulo fica à vista. Um grupo de um só item (o Histórico) não precisa dele: o nome do
+   * item já diz o que é, e o espaço por cima separa-o dos outros.
+   */
+  hidden?: boolean;
   screens: readonly Screen[];
 }
 
@@ -162,7 +167,7 @@ export const NAVIGATION: Readonly<Record<WorkPath, readonly NavGroup[]>> = {
       screens: [SCREENS.prepare, SCREENS.models, SCREENS.train, SCREENS.explain, SCREENS.save],
     },
     { label: "Aprender", screens: [SCREENS.laboratory, SCREENS.metrics, SCREENS.reinforcement] },
-    { label: "Histórico", screens: [SCREENS.history] },
+    { label: "Histórico", hidden: true, screens: [SCREENS.history] },
   ],
   agents: [
     {
@@ -170,7 +175,7 @@ export const NAVIGATION: Readonly<Record<WorkPath, readonly NavGroup[]>> = {
       screens: [SCREENS.agents, SCREENS.train, SCREENS.explain, SCREENS.save],
     },
     { label: "Aprender", screens: [SCREENS.models, SCREENS.metrics] },
-    { label: "Histórico", screens: [SCREENS.history] },
+    { label: "Histórico", hidden: true, screens: [SCREENS.history] },
   ],
 };
 

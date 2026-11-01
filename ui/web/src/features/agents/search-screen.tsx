@@ -9,7 +9,7 @@
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowRight, ChevronDown, ChevronLeft, LoaderCircle } from "lucide-react";
+import { ArrowRight, ChevronDown, LoaderCircle, Plus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import type { AutoMlResult, Candidate } from "@/api/generated";
@@ -71,16 +71,19 @@ function Search({ searchId }: { searchId: string }) {
   const [view, setView] = useState<"live" | "history">("live");
   const [moment, setMoment] = useState<number | null>(null);
   const openSearch = useSession((state) => state.openSearch);
+  const lost = detached && plan.error !== null && result.error !== null;
   useEffect(() => {
-    openSearch(searchId);
-  }, [searchId, openSearch]);
+    // A procura aberta é a que os Agentes mostram ao voltar; uma que a API já não tem esquece-se
+    // (senão os Agentes voltavam sempre a este aviso, em vez de deixarem fazer outro pedido).
+    openSearch(lost ? null : searchId);
+  }, [searchId, lost, openSearch]);
 
-  if (detached && plan.error !== null && result.error !== null) {
+  if (lost) {
     return (
       <>
         <PageHeader title={SCREENS.agents.title} description={SCREENS.agents.description} />
         <NeedsStep
-          message="Esta procura já não está na memória da API: ela recomeçou, ou a procura saiu para dar lugar a outras. O run do vencedor continua no ecrã Experiências."
+          message="Esta procura já não está na memória da API: ela recomeçou, ou a procura saiu para dar lugar a outras. O run do vencedor continua no ecrã Histórico."
           to="/agentes"
           action="Fazer outro pedido aos agentes"
         />
@@ -102,14 +105,7 @@ function Search({ searchId }: { searchId: string }) {
   const leader = winner ?? live.leader;
   return (
     <>
-      <Link
-        to="/agentes"
-        className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
-      >
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        Agentes
-      </Link>
-      <header className="mt-4 flex flex-col gap-5 @4xl/main:flex-row @4xl/main:items-end @4xl/main:justify-between">
+      <header className="flex flex-col gap-5 @4xl/main:flex-row @4xl/main:items-end @4xl/main:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">
@@ -136,10 +132,18 @@ function Search({ searchId }: { searchId: string }) {
             />
           </div>
         </div>
-        {running && data === undefined && (
-          <Controls searchId={searchId} status={status} measured={candidates.length} live={live} />
-        )}
-        {data?.run_id != null && <WinnerProceed runId={data.run_id} />}
+        <div className="flex flex-wrap items-center gap-3 @4xl/main:shrink-0 @4xl/main:flex-nowrap">
+          {running && data === undefined && (
+            <Controls
+              searchId={searchId}
+              status={status}
+              measured={candidates.length}
+              live={live}
+            />
+          )}
+          {!running && <NewSearch />}
+          {data?.run_id != null && <WinnerProceed runId={data.run_id} />}
+        </div>
       </header>
       {status === "failed" && (
         <ErrorNote
@@ -384,6 +388,28 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
     </section>
+  );
+}
+
+/**
+ * Esquece a procura aberta e volta ao pedido aos agentes. Sem isto, os Agentes mostram sempre esta
+ * procura (sai-se para o Treinar e volta-se a ela como estava); o vencedor fica no Histórico.
+ */
+function NewSearch() {
+  const navigate = useNavigate();
+  const openSearch = useSession((state) => state.openSearch);
+  return (
+    <Button
+      variant="outline"
+      size="proceed"
+      onClick={() => {
+        openSearch(null);
+        void navigate({ to: "/agentes" });
+      }}
+    >
+      <Plus aria-hidden="true" />
+      Nova procura
+    </Button>
   );
 }
 

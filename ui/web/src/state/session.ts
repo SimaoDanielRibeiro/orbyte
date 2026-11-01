@@ -45,13 +45,16 @@ interface SessionState {
   runId: string | null;
   /** O nome do modelo do último run começado aqui: o título do ecrã enquanto ele treina. */
   runTitle: string | null;
-  /** A última procura dos agentes. */
+  /**
+   * A procura dos agentes aberta: enquanto houver uma, o ecrã Agentes mostra-a (volta-se a ela
+   * tal como estava). "Nova procura" esquece-a, e abrir outro dataset também.
+   */
   searchId: string | null;
   /** O último treino de um agente de reinforcement learning. */
   agentRunId: string | null;
   choosePath: (path: WorkPath) => void;
   setSidebarOpen: (open: boolean) => void;
-  /** Abre um dataset; a preparação de outro dataset deixa de valer. */
+  /** Abre um dataset; a preparação e a procura dos agentes de outro dataset deixam de valer. */
   openDataset: (datasetId: string | null) => void;
   setPreparation: (preparation: Preparation | null) => void;
   setDraft: (draft: PreparationDraft | null) => void;
@@ -81,7 +84,9 @@ export const useSession = create<SessionState>()(
       },
       openDataset: (datasetId) => {
         set((state) =>
-          state.datasetId === datasetId ? {} : { datasetId, preparation: null, draft: null },
+          state.datasetId === datasetId
+            ? {}
+            : { datasetId, preparation: null, draft: null, searchId: null },
         );
       },
       setPreparation: (preparation) => {

@@ -15,7 +15,8 @@ são o ambiente, os seus parâmetros, o agente e os seus hiperparâmetros.
 import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, fields
-from enum import Enum
+from enum import Enum, StrEnum
+from types import MappingProxyType
 from typing import Any, Final
 
 import numpy as np
@@ -87,12 +88,65 @@ class MetricComparison:
     best: int | None = None
 
 
+class ChoiceGroup(StrEnum):
+    """A parte do run a que uma escolha pertence (a comparação arruma as diferenças por elas).
+
+    A ordem é a de leitura: primeiro o que define o run (os dados, a tarefa, o modelo, a seed),
+    depois a preparação dos dados, o ambiente (no reinforcement learning) e os hiperparâmetros.
+    """
+
+    RUN = "run"
+    PREPARATION = "preparation"
+    ENVIRONMENT = "environment"
+    HYPERPARAMETERS = "hyperparameters"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em português."""
+        return _CHOICE_GROUP_LABELS[self]
+
+
+_CHOICE_GROUP_LABELS: Final[Mapping[ChoiceGroup, str]] = MappingProxyType(
+    {
+        ChoiceGroup.RUN: "O run",
+        ChoiceGroup.PREPARATION: "A preparação",
+        ChoiceGroup.ENVIRONMENT: "O ambiente",
+        ChoiceGroup.HYPERPARAMETERS: "Os hiperparâmetros",
+    }
+)
+
+
 @dataclass(frozen=True, slots=True)
 class ConfigDifference:
-    """Uma escolha que muda entre os runs, escrita para cada um (``—`` se não a tiver)."""
+    """Uma escolha que muda entre os runs, escrita para cada um (``—`` se não a tiver).
+
+    Attributes:
+        label: O nome completo da escolha ("Hiperparâmetro · Taxa de aprendizagem").
+        values: O valor em cada run, pela ordem dos runs.
+        group: A parte do run a que pertence.
+        name: O nome dentro do grupo ("Taxa de aprendizagem"), para mostrar por baixo do nome
+            do grupo.
+    """
 
     label: str
     values: tuple[str, ...]
+    group: ChoiceGroup
+    name: str
+
+
+@dataclass(frozen=True, slots=True)
+class _Choice:
+    """Uma escolha de um run: o grupo, o nome dentro dele, o valor escrito e o prefixo do nome."""
+
+    group: ChoiceGroup
+    name: str
+    value: str
+    prefix: str | None = None
+
+    @property
+    def label(self) -> str:
+        """O nome completo, com o prefixo ("Hiperparâmetro · Taxa de aprendizagem")."""
+        return self.name if self.prefix is None else f"{self.prefix} · {self.name}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,28 +241,30 @@ def _best(values: Sequence[float | None], higher_is_better: bool | None) -> int 
     return winners[0] if len(winners) == 1 else None
 
 
-def _choices(result: Compared) -> dict[str, str]:
-    """Todas as escolhas de um run, escritas como texto, pelo nome a mostrar."""
+def _choices(result: Compared) -> list[_Choice]:
+    """Todas as escolhas de um run, escritas como texto, com o nome a mostrar."""
     if isinstance(result, ReinforcementResult):
         return _agent_choices(result)
-    choices = {
-        "Dataset": result.dataset_name,
-        "Tarefa": result.task_type.label,
-        "Modelo": result.model_display_name,
-        "Seed": str(result.seed),
-    }
+    choices = [
+        _Choice(ChoiceGroup.RUN, "Dataset", result.dataset_name),
+        _Choice(ChoiceGroup.RUN, "Tarefa", result.task_type.label),
+        _Choice(ChoiceGroup.RUN, "Modelo", result.model_display_name),
+        _Choice(ChoiceGroup.RUN, "Seed", str(result.seed)),
+    ]
     titles = _titles(lambda: MODELS.get(result.model_name).info.hyperparameters)
-    for name, value in result.hyperparameters.items():
-        choices[f"Hiperparâmetro · {titles.get(name, name)}"] = _text(value)
-    return choices | _preparation_choices(result.config.preparation)
+    choices += [
+        _Choice(ChoiceGroup.HYPERPARAMETERS, titles.get(name, name), _text(value), "Hiperparâmetro")
+        for name, value in result.hyperparameters.items()
+    ]
+    return choices + _preparation_choices(result.config.preparation)
 
 
-def _preparation_choices(preparation: PreparationConfig) -> dict[str, str]:
+def _preparation_choices(preparation: PreparationConfig) -> list[_Choice]:
     """As escolhas da preparação, com o nome a mostrar de cada uma (a tarefa já está em cima)."""
-    choices = {
-        "Alvo": _text(preparation.target),
-        "Limpeza": _cleaning_text(preparation.cleaning),
-    }
+    choices = [
+        _Choice(ChoiceGroup.PREPARATION, "Alvo", _text(preparation.target)),
+        _Choice(ChoiceGroup.PREPARATION, "Limpeza", _cleaning_text(preparation.cleaning)),
+    ]
     parts = (
         ("Divisão", preparation.split),
         ("Transformações", preparation.transforms),
@@ -217,7 +273,9 @@ def _preparation_choices(preparation: PreparationConfig) -> dict[str, str]:
     for part, config in parts:
         for item in fields(config):
             title = _PREPARATION_FIELDS.get(item.name, item.name)
-            choices[f"{part} · {title}"] = _text(getattr(config, item.name))
+            # A parte fica no nome: dentro do grupo, "Divisão · estratégia" ainda diz de onde vem.
+            value = _text(getattr(config, item.name))
+            choices.append(_Choice(ChoiceGroup.PREPARATION, f"{part} · {title}", value))
     return choices
 
 
@@ -236,25 +294,29 @@ def _cleaning_text(steps: Sequence[CleaningStep]) -> str:
     return "; ".join(written)
 
 
-def _agent_choices(result: ReinforcementResult) -> dict[str, str]:
+def _agent_choices(result: ReinforcementResult) -> list[_Choice]:
     """As escolhas de um run de reinforcement learning: o ambiente, o agente e a seed."""
     environment = result.config.environment.name
     try:
         environment_name = ENVIRONMENTS.get(environment).info.display_name
     except ComponentNotFoundError:
         environment_name = environment
-    choices = {
-        "Ambiente": environment_name,
-        "Tarefa": result.task_type.label,
-        "Agente": result.agent_display_name,
-        "Seed": str(result.seed),
-    }
+    choices = [
+        _Choice(ChoiceGroup.RUN, "Ambiente", environment_name),
+        _Choice(ChoiceGroup.RUN, "Tarefa", result.task_type.label),
+        _Choice(ChoiceGroup.RUN, "Agente", result.agent_display_name),
+        _Choice(ChoiceGroup.RUN, "Seed", str(result.seed)),
+    ]
     parameter_titles = _titles(lambda: ENVIRONMENTS.get(environment).info.parameters)
-    for name, value in result.environment_parameters.items():
-        choices[f"Ambiente · {parameter_titles.get(name, name)}"] = _text(value)
+    choices += [
+        _Choice(ChoiceGroup.ENVIRONMENT, parameter_titles.get(name, name), _text(value), "Ambiente")
+        for name, value in result.environment_parameters.items()
+    ]
     titles = _titles(lambda: AGENTS.get(result.agent_name).info.hyperparameters)
-    for name, value in result.hyperparameters.items():
-        choices[f"Hiperparâmetro · {titles.get(name, name)}"] = _text(value)
+    choices += [
+        _Choice(ChoiceGroup.HYPERPARAMETERS, titles.get(name, name), _text(value), "Hiperparâmetro")
+        for name, value in result.hyperparameters.items()
+    ]
     return choices
 
 
@@ -287,14 +349,24 @@ def _text(value: Any) -> str:
     return json.dumps(to_json(value), ensure_ascii=False)
 
 
-def _differences(choices: Sequence[Mapping[str, str]]) -> tuple[ConfigDifference, ...]:
-    """Só as escolhas que não são iguais em todos os runs."""
-    labels = list(dict.fromkeys(label for run in choices for label in run))
+def _differences(choices: Sequence[Sequence[_Choice]]) -> tuple[ConfigDifference, ...]:
+    """Só as escolhas que não são iguais em todos os runs, arrumadas pelo grupo.
+
+    Dentro de cada grupo ficam pela ordem em que aparecem: com dois modelos diferentes, os
+    hiperparâmetros de um vêm todos antes dos do outro (antes iam uns no meio da preparação).
+    """
+    runs = [{choice.label: choice for choice in run} for run in choices]
+    first: dict[str, _Choice] = {}
+    for run in runs:
+        for label, choice in run.items():
+            first.setdefault(label, choice)
+    groups = list(ChoiceGroup)
     found = []
-    for label in labels:
-        values = tuple(run.get(label, "—") for run in choices)
+    # A ordenação é estável: dentro de um grupo fica a ordem em que as escolhas apareceram.
+    for label, choice in sorted(first.items(), key=lambda item: groups.index(item[1].group)):
+        values = tuple(run[label].value if label in run else "—" for run in runs)
         if len(set(values)) > 1:
-            found.append(ConfigDifference(label, values))
+            found.append(ConfigDifference(label, values, choice.group, choice.name))
     return tuple(found)
 
 

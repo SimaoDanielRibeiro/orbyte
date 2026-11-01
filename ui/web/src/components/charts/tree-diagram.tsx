@@ -86,7 +86,7 @@ export function TreeDiagram({ nodes, description, caption }: TreeDiagramProps) {
                   x={(x1 + x2) / 2 + (yes ? -6 : 6)}
                   y={(y1 + y2) / 2}
                   textAnchor={yes ? "end" : "start"}
-                  className="fill-muted-foreground text-[10px]"
+                  className="fill-muted-foreground text-[11px]"
                 >
                   {yes ? "sim" : "não"}
                 </text>
@@ -123,7 +123,7 @@ function NodeBox({ x, y, node }: { x: number; y: number; node: TreeNode }) {
         stroke={accent}
         strokeWidth={leaf ? 1.5 : 1}
       />
-      <text x={x} y={y + 18} textAnchor="middle" className="fill-foreground text-[11px]">
+      <text x={x} y={y + 18} textAnchor="middle" className="fill-foreground text-[12px]">
         {leaf
           ? `→ ${node.prediction}`
           : `${truncate(node.feature ?? "", 9)} ≤ ${formatStatistic(node.threshold ?? 0)}`}
@@ -132,7 +132,7 @@ function NodeBox({ x, y, node }: { x: number; y: number; node: TreeNode }) {
         x={x}
         y={y + 34}
         textAnchor="middle"
-        className="fill-muted-foreground text-[10px] tabular-nums"
+        className="fill-muted-foreground text-[11px] tabular-nums"
       >
         {node.hidden_leaves > 0
           ? `mais ${formatCount(node.hidden_leaves)} folhas por baixo`

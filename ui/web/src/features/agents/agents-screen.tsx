@@ -51,8 +51,10 @@ import { AgentDetail } from "./agent-detail";
 import { Flowchart, type FlowNode } from "./flowchart";
 import { PlanView } from "./plan-view";
 
+/**
+ * Só se vê sem uma procura aberta: com uma, a rota passa logo para ela (até "Nova procura").
+ */
 export function AgentsScreen() {
-  const searchId = useSession((state) => state.searchId);
   return (
     <Page>
       <PageHeader
@@ -67,15 +69,7 @@ export function AgentsScreen() {
           "random_search",
           "winners_curse",
         ]}
-      >
-        {searchId !== null && (
-          <Button asChild variant="outline">
-            <Link to="/agentes/$searchId" params={{ searchId }}>
-              Ver a última procura
-            </Link>
-          </Button>
-        )}
-      </PageHeader>
+      />
       <RequireDataset>{(dataset) => <Setup key={dataset.id} dataset={dataset} />}</RequireDataset>
     </Page>
   );

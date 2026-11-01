@@ -12,6 +12,7 @@ import { formatNumber } from "@/lib/format";
 
 import { AxisBottom, AxisLeft, Chart, ChartTooltip, Legend, type LegendItem } from "./chart";
 import { SHAPE_PATHS, type PointShape } from "./shapes";
+import { leftMargin } from "./margins";
 import { stepDecimals } from "./ticks";
 
 export interface ScatterPoint {
@@ -66,12 +67,19 @@ export function Scatter({
     return { x, y };
   };
 
+  // As marcas de y não dependem da altura: dão já a margem que o número mais comprido pede.
+  const yTicks = scales(1, 1).y.ticks(5);
+  const yLabels = yTicks.map((value) => formatNumber(value, stepDecimals(yTicks)));
+
   return (
     <Chart
       height={height}
       description={description}
       caption={caption}
-      margin={{ bottom: xLabel === undefined ? 24 : 40, left: yLabel === undefined ? 48 : 60 }}
+      margin={{
+        bottom: xLabel === undefined ? 24 : 40,
+        left: leftMargin(yLabels, yLabel !== undefined),
+      }}
       legend={legend === undefined ? undefined : <Legend items={legend} />}
       overlay={(plot) => {
         const point = hover === null ? undefined : points[hover];
@@ -95,7 +103,6 @@ export function Scatter({
       {(plot) => {
         const { x, y } = scales(plot.width, plot.height);
         const xTicks = x.ticks(Math.max(2, Math.floor(plot.width / 90)));
-        const yTicks = y.ticks(5);
         const delaunay = Delaunay.from(
           points,
           (point) => x(point.x),

@@ -72,7 +72,7 @@ export function MissingMapView({ map, description, caption }: MissingMapViewProp
               <text
                 key={name}
                 transform={`translate(${String((x(index) ?? 0) + x.bandwidth() / 2)},-8) rotate(-40)`}
-                className="fill-muted-foreground text-[11px]"
+                className="fill-muted-foreground text-[12px]"
                 aria-hidden="true"
               >
                 {name.length > 14 ? `${name.slice(0, 13)}…` : name}
@@ -136,7 +136,7 @@ export function MissingMapView({ map, description, caption }: MissingMapViewProp
               y={0}
               dy="0.7em"
               textAnchor="end"
-              className="fill-muted-foreground text-[11px] tabular-nums"
+              className="fill-muted-foreground text-[12px] tabular-nums"
               aria-hidden="true"
             >
               {formatCount((map.rows[0] ?? 0) + 1)}
@@ -145,7 +145,7 @@ export function MissingMapView({ map, description, caption }: MissingMapViewProp
               x={-8}
               y={plot.height}
               textAnchor="end"
-              className="fill-muted-foreground text-[11px] tabular-nums"
+              className="fill-muted-foreground text-[12px] tabular-nums"
               aria-hidden="true"
             >
               {formatCount((map.rows.at(-1) ?? 0) + 1)}

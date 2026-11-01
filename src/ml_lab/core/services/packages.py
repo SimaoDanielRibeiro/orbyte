@@ -457,7 +457,7 @@ class PackageService:
                     reason=None
                     if available
                     else (
-                        "Este run só ficou registado, sem o modelo: reproduz-o nas Experiências "
+                        "Este run só ficou registado, sem o modelo: reproduz-o no Histórico "
                         "para o guardar num pacote."
                     ),
                 )

@@ -84,7 +84,7 @@ function AgentRun({ runId }: { runId: string }) {
         />
         {missing ? (
           <NeedsStep
-            message="Este treino não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Experiências."
+            message="Este treino não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Histórico."
             to="/experiencias"
             action="Abrir as experiências"
           />

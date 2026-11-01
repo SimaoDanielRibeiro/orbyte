@@ -80,6 +80,7 @@ from ml_lab.core.services.automl import (
 )
 from ml_lab.core.services.catalog import CatalogService, DocSection, MetricCard, ModelCard
 from ml_lab.core.services.comparison import (
+    ChoiceGroup,
     ConfigDifference,
     LossSeries,
     MetricComparison,
@@ -184,6 +185,7 @@ __all__ = [
     "Candidate",
     "CatalogService",
     "CellKind",
+    "ChoiceGroup",
     "ClassBalance",
     "CleaningStep",
     "CleaningSuggestion",

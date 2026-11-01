@@ -129,7 +129,7 @@ interface AxisProps {
  */
 export function AxisBottom({ ticks, position, format, plot, label }: AxisProps) {
   return (
-    <g aria-hidden="true" className="font-mono text-[11px]">
+    <g aria-hidden="true" className="font-mono text-[12px]">
       <line x1={0} x2={plot.width} y1={plot.height} y2={plot.height} stroke="var(--line-strong)" />
       {ticks.map((tick) => (
         <text
@@ -154,7 +154,7 @@ export function AxisBottom({ ticks, position, format, plot, label }: AxisProps) 
 /** O eixo da esquerda, com a grelha horizontal: uma linha fina por marca. */
 export function AxisLeft({ ticks, position, format, plot, label }: AxisProps) {
   return (
-    <g aria-hidden="true" className="font-mono text-[11px]">
+    <g aria-hidden="true" className="font-mono text-[12px]">
       {ticks.map((tick) => (
         <g key={tick}>
           <line
@@ -177,7 +177,8 @@ export function AxisLeft({ ticks, position, format, plot, label }: AxisProps) {
       ))}
       {label !== undefined && (
         <text
-          transform={`translate(${String(-plot.margin.left + 12)},${String(plot.height / 2)}) rotate(-90)`}
+          transform={`translate(${String(-plot.margin.left + 10)},${String(plot.height / 2)}) rotate(-90)`}
+          dy="0.71em"
           textAnchor="middle"
           className="fill-dim"
         >

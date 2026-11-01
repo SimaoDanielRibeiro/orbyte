@@ -62,7 +62,11 @@ const SLIDE: Transition = { type: "spring", bounce: 0.22, visualDuration: 0.42 }
  * 1. os primeiros passos, iguais nas duas interfaces (os Dados e o Explorar);
  * 2. a troca entre o Manual e os Agentes, porque é aí que os caminhos se separam;
  * 3. os passos da interface aberta, que continuam os primeiros;
- * 4. o que explica (os modelos, as métricas, o laboratório) e, por fim, o histórico.
+ * 4. o que explica (o grupo "Aprender": os modelos, as métricas, o laboratório) e, por fim, o
+ *    Histórico.
+ *
+ * Só o "Aprender" tem o rótulo à vista: os passos leem-se pelo trilho e o Histórico pelo nome
+ * (os rótulos dos outros grupos ficam só para os leitores de ecrã).
  *
  * Os passos estão ligados por um trilho, com uma luz que o percorre sem parar e um ponto por
  * passo: aceso no passo aberto, cheio nos de trás, vazio nos que faltam. Não há filetes a separar
@@ -104,7 +108,8 @@ export function AppSidebar({ path, onChoosePath }: AppSidebarProps) {
 
         <SidebarContent className="gap-0 px-2 pt-4 pb-6">
           <SidebarGroup className="py-0">
-            <SidebarGroupLabel>Primeiros passos</SidebarGroupLabel>
+            {/* Sem rótulo à vista: os passos leem-se pela ordem (o trilho liga-os). */}
+            <SidebarGroupLabel className="sr-only">Primeiros passos</SidebarGroupLabel>
             <StepList screens={FIRST_STEPS} first={0} current={current} pathname={pathname} />
           </SidebarGroup>
 
@@ -130,7 +135,9 @@ export function AppSidebar({ path, onChoosePath }: AppSidebarProps) {
 
           {rest.map((group) => (
             <SidebarGroup key={group.label} className="pt-7 pb-0">
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupLabel className={cn(group.hidden === true && "sr-only")}>
+                {group.label}
+              </SidebarGroupLabel>
               <SidebarMenu className="gap-0.5">
                 {group.screens.map((screen) => (
                   <NavItem

@@ -1,4 +1,4 @@
-"""Rotas do histórico de runs (ecrã Experiências): registar, guardar, comparar e reproduzir.
+"""Rotas do histórico de runs (ecrã Histórico): registar, guardar, comparar e reproduzir.
 
 Cada run que termina já fica registado sozinho (ADR 0020). Aqui consulta-se o histórico,
 guarda-se um run com o modelo e o treino passo a passo, e abre-se, compara-se, reproduz-se,

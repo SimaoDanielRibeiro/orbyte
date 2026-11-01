@@ -1,5 +1,5 @@
 /**
- * O ecrã Experiências: o histórico dos runs (cada treino que termina fica registado sozinho),
+ * O ecrã Histórico: o histórico dos runs (cada treino que termina fica registado sozinho),
  * com os filtros, a comparação de dois a cinco runs e a gaveta de cada um (abrir, reproduzir,
  * guardar, mudar o nome, apagar).
  *

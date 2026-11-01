@@ -170,7 +170,7 @@ class RunNotInMemoryError(ModelError, LookupError):
         self.run_id = run_id
         super().__init__(
             f"O run {run_id} já não está em memória (só ficam os últimos). Se o guardaste, "
-            "abre-o no ecrã Experiências, que o modelo volta com ele; se não, treina-o outra vez."
+            "abre-o no ecrã Histórico, que o modelo volta com ele; se não, treina-o outra vez."
         )
 
 
@@ -201,7 +201,7 @@ class SearchNotFoundError(MLLabError, LookupError):
         super().__init__(
             f"Não há nenhuma procura '{search_id}' nesta sessão: só as últimas ficam em memória, "
             "e um servidor que reinicia começa sem nenhuma. O vencedor de cada procura está no "
-            "histórico (ecrã Experiências)."
+            "histórico (ecrã Histórico)."
         )
 
 

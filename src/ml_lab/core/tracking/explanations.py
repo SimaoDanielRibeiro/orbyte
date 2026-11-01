@@ -1,4 +1,4 @@
-"""Textos do painel "Porquê?" dos ecrãs Experiências e Guardar.
+"""Textos do painel "Porquê?" dos ecrãs Histórico e Guardar.
 
 Registar, comparar e reproduzir runs; e guardar um modelo num pacote, levá-lo e voltar a
 carregá-lo (ADR 0039).

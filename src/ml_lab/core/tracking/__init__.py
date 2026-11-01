@@ -4,7 +4,7 @@
 - ``sqlite_store.py``: o registo num ficheiro SQLite, que sobrevive a fechar a app;
 - ``artifacts.py``: o modelo treinado (joblib) e o treino passo a passo (JSON) de cada run
   guardado;
-- ``explanations.py``: os textos do painel "Porquê?" do ecrã Experiências.
+- ``explanations.py``: os textos do painel "Porquê?" do ecrã Histórico.
 
 Ver a ADR 0020.
 """

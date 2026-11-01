@@ -77,11 +77,15 @@ export interface FlowExchange {
 type NodeState = "idle" | "active" | "done";
 
 /** A largura das colunas de um só nó: fixa, para os nomes caberem sempre. */
-const SIDES = { data: 136, coordinator: 150, winner: 150, test: 112 } as const;
+const SIDES = { data: 164, coordinator: 156, winner: 156, test: 116 } as const;
 const SIDES_WIDTH = SIDES.data + SIDES.coordinator + SIDES.winner + SIDES.test;
 /** A coluna dos agentes cresce com o espaço, até um limite; o resto vai para as ligações. */
 const AGENTS = { min: 200, max: 300 } as const;
-const MIN_GAP = 30;
+const MIN_GAP = 40;
+/** A largura de uma letra das etiquetas e dos pormenores (Geist Mono a 12px). */
+const MONO_CHAR = 7.2;
+/** O que a etiqueta ocupa além das letras: as margens de dentro, o contorno e uma folga. */
+const LABEL_EXTRA = 28;
 const EDGE = 4;
 /** Abaixo disto, os nomes não cabem: o fluxograma rola na horizontal. */
 const MIN_WIDTH = SIDES_WIDTH + AGENTS.min + 4 * MIN_GAP + 2 * EDGE;
@@ -375,11 +379,14 @@ export function Flowchart({
           </svg>
           {edges.map(
             (edge) =>
-              edge.label !== undefined && (
+              edge.label !== undefined &&
+              // Uma etiqueta que não cabe entre os dois nós ficava por cima deles: não se mostra (o
+              // que diz também está no nó, ou no painel do agente).
+              fits(edge) && (
                 <span
                   key={`etiqueta-${edge.key}`}
                   aria-hidden="true"
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2e2e2e] bg-ground px-2 py-0.5 font-mono text-[11px] whitespace-nowrap text-soft"
+                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2e2e2e] bg-ground px-2 py-0.5 font-mono text-[12px] whitespace-nowrap text-soft"
                   style={{
                     left: (edge.from[0] + edge.to[0]) / 2,
                     // Numa ligação reta a etiqueta fica por cima da linha, a deixá-la à vista.
@@ -424,6 +431,12 @@ export function Flowchart({
       </figcaption>
     </figure>
   );
+}
+
+/** Se a etiqueta de uma ligação cabe no espaço entre os dois nós que ela liga. */
+function fits(edge: PlacedEdge): boolean {
+  const room = edge.to[0] - edge.from[0];
+  return (edge.label ?? "").length * MONO_CHAR + LABEL_EXTRA <= room;
 }
 
 /** A posição de uma fase na procura (para saber o que já passou). */
@@ -478,7 +491,7 @@ function NodeBox({
   // Um agente de uma família não tem ícone: a cor dele é o contorno da caixa (ADR 0038).
   const family = Icon === undefined && color !== undefined;
   // A largura do texto: a caixa menos o ícone (se houver) e as margens.
-  const letters = Math.floor((node.width - (family ? 30 : 66)) / 6.6);
+  const letters = Math.floor((node.width - (family ? 30 : 66)) / MONO_CHAR);
   const detail = fit(node.detail, letters);
   const className = cn(
     "absolute flex items-center gap-2.5 overflow-hidden rounded-xl border px-3 text-left transition-[border-color,box-shadow,background-color] duration-300 outline-none",
@@ -525,13 +538,13 @@ function NodeBox({
       <span className="flex min-w-0 flex-col">
         <span
           className={cn(
-            "truncate text-[13px] font-medium",
+            "truncate text-[14px] font-medium",
             state === "idle" ? "text-soft" : "text-strong",
           )}
         >
           {node.title}
         </span>
-        <span className="truncate font-mono text-[11px] text-dim">{detail}</span>
+        <span className="truncate font-mono text-[12px] text-dim">{detail}</span>
       </span>
       {active && (
         <span

@@ -19,6 +19,7 @@ from ml_lab.core.foundation.errors import (
 )
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.services.comparison import ChoiceGroup
 from ml_lab.core.services.experiments import ExperimentResult
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.tracking.store import InMemoryStore, RunEntry
@@ -156,6 +157,38 @@ def test_the_preparation_choices_are_written_with_their_names(lab: Lab) -> None:
     # O nome da operação e o da estratégia, e não o JSON da configuração nem o nome do campo.
     assert differences["Limpeza"] == ("nenhuma", "Remover colunas (sepal_width)")
     assert differences["Divisão · estratégia"] == ("Aleatória", "Estratificada")
+
+
+def test_the_differences_are_grouped_with_each_model_hyperparameters_together(lab: Lab) -> None:
+    linear = run(lab, seed=1)
+    neighbours = lab.experiments.run(
+        ExperimentConfig(
+            dataset=lab.datasets.load_sample("iris").source,
+            preparation=PreparationConfig(
+                target="species", split=SplitConfig(strategy=SplitStrategy.STRATIFIED)
+            ),
+            model=ModelSpec(name="knn"),
+            seed=2,
+        )
+    )
+
+    comparison = lab.history.compare([linear.run_id, neighbours.run_id])
+
+    groups = [difference.group for difference in comparison.differences]
+    # Os grupos pela ordem de leitura, sem se misturarem: o run, a preparação, os hiperparâmetros.
+    assert groups == sorted(groups, key=list(ChoiceGroup).index)
+    assert groups[0] is ChoiceGroup.RUN
+    assert groups[-1] is ChoiceGroup.HYPERPARAMETERS
+    hyperparameters = [
+        difference
+        for difference in comparison.differences
+        if difference.group is ChoiceGroup.HYPERPARAMETERS
+    ]
+    # Os de cada modelo seguidos: primeiro os da regressão logística (só A), depois os do KNN.
+    owners = [difference.values[0] != "—" for difference in hyperparameters]
+    assert owners == sorted(owners, reverse=True)
+    assert all(not difference.name.startswith("Hiperparâmetro") for difference in hyperparameters)
+    assert hyperparameters[0].label == f"Hiperparâmetro · {hyperparameters[0].name}"
 
 
 def test_reproducing_a_run_gives_the_same_metrics(lab: Lab) -> None:

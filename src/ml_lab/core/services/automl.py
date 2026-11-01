@@ -756,7 +756,7 @@ class AutoMLService:
         return experiment.run_id, test
 
     def _name_run(self, run_id: str, name: str, preview: AutoMLPlan) -> None:
-        """Dá ao run do vencedor um nome que diz que veio dos agentes (no ecrã Experiências)."""
+        """Dá ao run do vencedor um nome que diz que veio dos agentes (no ecrã Histórico)."""
         if self._history is None:
             return
         try:

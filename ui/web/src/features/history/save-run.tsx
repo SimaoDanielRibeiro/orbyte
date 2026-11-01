@@ -29,7 +29,7 @@ export function SaveRunButton({ runId }: { runId: string }) {
     ...historySaveMutation(),
     onSuccess: () => {
       invalidateHistory(queryClient);
-      toast.success("Experiência guardada: está no ecrã Experiências.");
+      toast.success("Experiência guardada: está no ecrã Histórico.");
     },
   });
   if (entry.error !== null) {

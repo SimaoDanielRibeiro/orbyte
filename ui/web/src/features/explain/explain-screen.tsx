@@ -136,7 +136,7 @@ function Explained({ result }: { result: ExperimentResult }) {
         />
       ) : noModel ? (
         <Blocked
-          message="O Explicar precisa do modelo, e a API já não o tem: só ficam os últimos runs, e um run do histórico só volta com o modelo se tiver sido guardado. Reproduz este run no ecrã Experiências para o explicar."
+          message="O Explicar precisa do modelo, e a API já não o tem: só ficam os últimos runs, e um run do histórico só volta com o modelo se tiver sido guardado. Reproduz este run no ecrã Histórico para o explicar."
           runId={result.run_id}
           history
         />

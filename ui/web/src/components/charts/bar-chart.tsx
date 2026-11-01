@@ -294,7 +294,7 @@ export function Histogram({
                   y={y(tick)}
                   dy="0.32em"
                   textAnchor="end"
-                  className="fill-muted-foreground text-[11px] tabular-nums"
+                  className="fill-muted-foreground text-[12px] tabular-nums"
                 >
                   {formatCount(tick)}
                 </text>
@@ -307,7 +307,7 @@ export function Histogram({
                 x={x(tick)}
                 y={plot.height + 16}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[11px] tabular-nums"
+                className="fill-muted-foreground text-[12px] tabular-nums"
               >
                 {formatEdge(tick)}
               </text>
@@ -317,7 +317,7 @@ export function Histogram({
                 x={plot.width / 2}
                 y={plot.height + 32}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[11px]"
+                className="fill-muted-foreground text-[12px]"
               >
                 {xLabel}
               </text>
@@ -374,7 +374,7 @@ export function Histogram({
                   stroke="var(--foreground)"
                   strokeDasharray="4 3"
                 />
-                <text x={x(marker.value) + 4} y={10} className="fill-foreground text-[11px]">
+                <text x={x(marker.value) + 4} y={10} className="fill-foreground text-[12px]">
                   {marker.label}
                 </text>
               </g>

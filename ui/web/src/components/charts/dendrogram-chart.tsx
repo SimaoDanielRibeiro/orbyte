@@ -78,7 +78,7 @@ export function DendrogramChart({
                   x={plot.width}
                   y={y(dendrogram.cut_height) - 6}
                   textAnchor="end"
-                  className="fill-foreground text-[11px]"
+                  className="fill-foreground text-[12px]"
                 >
                   o corte
                 </text>
@@ -89,7 +89,7 @@ export function DendrogramChart({
                 <text
                   key={`${String(position)}-${String(index)}`}
                   transform={`translate(${String(x(position))},${String(plot.height + 10)}) rotate(45)`}
-                  className="fill-muted-foreground text-[10px]"
+                  className="fill-muted-foreground text-[11px]"
                 >
                   {dendrogram.leaf_labels[index]}
                 </text>

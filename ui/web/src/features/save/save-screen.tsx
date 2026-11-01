@@ -80,7 +80,7 @@ export function SaveScreen({ runId }: { runId: string | null }) {
       {runId === null ? <NoRun /> : <SaveRun runId={runId} />}
       <Library />
       <NextStep>
-        <Proceed to="/experiencias">Comparar nas Experiências</Proceed>
+        <Proceed to="/experiencias">Comparar no Histórico</Proceed>
       </NextStep>
     </Page>
   );

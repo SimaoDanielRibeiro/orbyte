@@ -30,6 +30,7 @@ from ml_lab.core.foundation.types import Paradigm, Partition, TaskType
 from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.rl.environments.base import CellKind
 from ml_lab.core.services.catalog import SUGGESTED_MODELS
+from ml_lab.core.services.comparison import ChoiceGroup
 from ml_lab.core.services.laboratory import LaboratoryDemo
 from ml_lab.core.services.packages import PackageFileKind, PackageOrigin
 from ml_lab.core.training.jobs import JobStatus
@@ -96,6 +97,7 @@ def vocabulary() -> Vocabulary:
     labels = {
         "AgentRole": _labels(AgentRole),
         "CellKind": _labels(CellKind),
+        "ChoiceGroup": _labels(ChoiceGroup),
         "ColumnKind": _labels(ColumnKind),
         "Implementation": _labels(Implementation),
         "ImputationStrategy": _labels(ImputationStrategy),

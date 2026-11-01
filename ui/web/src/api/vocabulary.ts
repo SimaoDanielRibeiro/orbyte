@@ -11,6 +11,7 @@ import { useCallback } from "react";
 import type {
   AgentRole,
   CellKind,
+  ChoiceGroup,
   ColumnKind,
   Implementation,
   ImputationStrategy,
@@ -38,6 +39,7 @@ import { explanationsVocabularyOptions } from "./generated/@tanstack/react-query
 export interface VocabularyKinds {
   AgentRole: AgentRole;
   CellKind: CellKind;
+  ChoiceGroup: ChoiceGroup;
   ColumnKind: ColumnKind;
   Implementation: Implementation;
   ImputationStrategy: ImputationStrategy;

@@ -106,7 +106,7 @@ export function Heatmap({
                 <text
                   key={name}
                   transform={`translate(${String((x(index) ?? 0) + x.bandwidth() / 2)},-8) rotate(-40)`}
-                  className="fill-muted-foreground text-[11px]"
+                  className="fill-muted-foreground text-[12px]"
                 >
                   {name.length > 14 ? `${name.slice(0, 13)}…` : name}
                 </text>
@@ -173,7 +173,7 @@ export function Heatmap({
                 x={plot.width / 2}
                 y={plot.height + 20}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[11px]"
+                className="fill-muted-foreground text-[12px]"
               >
                 {columnTitle}
               </text>

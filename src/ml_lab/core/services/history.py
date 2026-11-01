@@ -1,4 +1,4 @@
-"""Serviço do histórico: registar, guardar, abrir, comparar e reproduzir runs (ecrã Experiências).
+"""Serviço do histórico: registar, guardar, abrir, comparar e reproduzir runs (ecrã Histórico).
 
 A memória do ML Lab tem dois passos (ADR 0020):
 
@@ -218,7 +218,7 @@ class HistoryService:
         entry = self._store.entry(run_id)
         if entry.task_type is not TaskType.CONTROL:
             raise InvalidParameterError(
-                f"O run '{run_id}' não é de reinforcement learning: abre-o no ecrã Experiências."
+                f"O run '{run_id}' não é de reinforcement learning: abre-o no ecrã Histórico."
             )
         result = from_json(ReinforcementResult, self._store.document(run_id))
         trace = self._files.document(run_id, "trace") if entry.saved else None

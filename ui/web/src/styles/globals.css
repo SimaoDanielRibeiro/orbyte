@@ -89,12 +89,12 @@
   --font-serif: var(--font-sans);
   --font-heading: var(--font-sans);
 
-  /* A escala: 12, 13, 14, 15, 16, 20, 24, 32, 40, 56 px. */
-  --text-xs: 0.75rem;
+  /* A escala: 13, 15, 16, 20, 24, 32, 40, 56 px (um degrau acima do habitual: lê-se melhor). */
+  --text-xs: 0.8125rem;
   --text-xs--line-height: 1.5;
-  --text-sm: 0.875rem;
+  --text-sm: 0.9375rem;
   --text-sm--line-height: 1.5;
-  --text-reading: 0.9375rem;
+  --text-reading: 1rem;
   --text-reading--line-height: 1.6;
   --text-xl: 1.25rem;
   --text-xl--line-height: 1.4;
@@ -201,7 +201,7 @@
 /* O rótulo pequeno em mono (o "Navigation" da referência): por cima de um grupo ou de um valor. */
 @utility mono-label {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--text-dim);
 }

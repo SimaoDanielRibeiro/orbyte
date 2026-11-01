@@ -134,7 +134,7 @@ export function SilhouetteChart({ silhouette, description, caption }: Silhouette
             <text
               x={x(silhouette.average) + 4}
               y={10}
-              className="fill-foreground text-[11px] tabular-nums"
+              className="fill-foreground text-[12px] tabular-nums"
             >
               média {formatNumber(silhouette.average, 2)}
             </text>

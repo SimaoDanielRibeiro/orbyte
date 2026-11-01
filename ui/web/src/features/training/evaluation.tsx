@@ -72,7 +72,7 @@ export function Evaluation({ result }: { result: ExperimentResult }) {
         <p className="text-sm text-soft">
           Os gráficos precisam do modelo, e a API já não o tem: só ficam os últimos runs, e um run
           do histórico só volta com o modelo se tiver sido guardado. Para os ver, reproduz este run
-          no ecrã Experiências.
+          no ecrã Histórico.
         </p>
       ) : charts.data === undefined ? (
         <Skeleton className="h-64 w-full" />

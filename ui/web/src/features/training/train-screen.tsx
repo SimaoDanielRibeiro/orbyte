@@ -79,7 +79,7 @@ function TrainRun({ runId }: { runId: string }) {
         <PageHeader title={SCREENS.train.title} description={SCREENS.train.description} />
         {missing ? (
           <NeedsStep
-            message="Este run não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Experiências."
+            message="Este run não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Histórico."
             to="/experiencias"
             action="Abrir as experiências"
           />

@@ -24,6 +24,7 @@ import {
   TooltipRow,
   type LegendItem,
 } from "./chart";
+import { leftMargin } from "./margins";
 import { stepDecimals } from "./ticks";
 
 export interface LinePoint {
@@ -163,6 +164,20 @@ export function LineChart({
           .range([plotHeight, 0])
       : scaleLinear().domain([yMin, yMax]).nice().range([plotHeight, 0]);
 
+  // As marcas de y dependem só do domínio, não da altura: calculam-se já, para a margem da
+  // esquerda caber o número mais comprido.
+  const yTicks = logY
+    ? yScale(1)
+        .ticks()
+        .filter((tick) => Math.abs(Math.log10(tick) % 1) < 1e-9)
+    : yScale(1).ticks(5);
+  const yDecimals = stepDecimals(yTicks);
+  const writeTick =
+    formatY ??
+    (logY
+      ? (value: number) => formatScientific(value, 1)
+      : (value: number) => formatNumber(value, yDecimals));
+
   const legend: LegendItem[] = [
     ...solid.map((one) => ({ label: one.label, color: one.color, kind: "line" as const })),
     ...faint
@@ -179,7 +194,7 @@ export function LineChart({
       caption={caption}
       margin={{
         bottom: xLabel === undefined ? 24 : 40,
-        left: yLabel === undefined ? 48 : 60,
+        left: leftMargin(yTicks.map(writeTick), yLabel !== undefined),
         right: endLabels ? 52 : 16,
       }}
       legend={<Legend items={legend} />}
@@ -233,11 +248,7 @@ export function LineChart({
           (logX
             ? x.ticks().filter((tick) => Math.abs(Math.log10(tick) % 1) < 1e-9)
             : x.ticks(Math.max(2, Math.floor(plot.width / 90))));
-        const yTicks = logY
-          ? y.ticks().filter((tick) => Math.abs(Math.log10(tick) % 1) < 1e-9)
-          : y.ticks(5);
         const xDecimals = stepDecimals(xTicks);
-        const yDecimals = stepDecimals(yTicks);
         const draw = line<LinePoint>()
           .defined((point) => point.y !== null && (!logY || point.y > 0))
           .x((point) => x(point.x))
@@ -267,18 +278,7 @@ export function LineChart({
               </clipPath>
               <GlowFilter id={`${clipId}-brilho`} />
             </defs>
-            <AxisLeft
-              ticks={yTicks}
-              position={y}
-              format={
-                formatY ??
-                (logY
-                  ? (value) => formatScientific(value, 1)
-                  : (value) => formatNumber(value, yDecimals))
-              }
-              plot={plot}
-              label={yLabel}
-            />
+            <AxisLeft ticks={yTicks} position={y} format={writeTick} plot={plot} label={yLabel} />
             <AxisBottom
               ticks={xTicks}
               position={x}
@@ -314,7 +314,7 @@ export function LineChart({
                     x={plot.width}
                     y={y(reference.y) - 6}
                     textAnchor="end"
-                    className="fill-dim text-[11px]"
+                    className="fill-dim text-[12px]"
                   >
                     {reference.label}
                   </text>
@@ -423,7 +423,7 @@ export function LineChart({
                   x={x(last.x) + 6}
                   y={y(last.y)}
                   dy="0.32em"
-                  className="fill-soft text-[11px] tabular-nums"
+                  className="fill-soft text-[12px] tabular-nums"
                   aria-hidden="true"
                 >
                   {one.endLabel}
@@ -459,7 +459,7 @@ export function LineChart({
                   x={x(markerX.x) + (x(markerX.x) > plot.width * 0.75 ? -4 : 4)}
                   y={10}
                   textAnchor={x(markerX.x) > plot.width * 0.75 ? "end" : "start"}
-                  className="fill-foreground text-[11px]"
+                  className="fill-foreground text-[12px]"
                 >
                   {markerX.label}
                 </text>

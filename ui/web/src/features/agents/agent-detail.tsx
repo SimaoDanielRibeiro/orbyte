@@ -737,7 +737,7 @@ function CandidateList({
                 )}
                 <span className="truncate">{candidate.model_display_name}</span>
                 {leads && (
-                  <span className="shrink-0 rounded-full border border-[#3a3a3a] px-2 text-[11px] text-soft">
+                  <span className="shrink-0 rounded-full border border-[#3a3a3a] px-2 text-[12px] text-soft">
                     {final ? "vencedor" : "líder"}
                   </span>
                 )}
@@ -755,7 +755,7 @@ function CandidateList({
                       ± {objectiveValue(candidate.std, objective)}
                     </span>
                   </p>
-                  <p className="mt-1 font-mono text-[11px] text-dim">
+                  <p className="mt-1 font-mono text-[12px] text-dim">
                     treino {objectiveValue(candidate.train_mean, objective)} ·{" "}
                     {formatNumber(candidate.seconds, 2)} s
                   </p>

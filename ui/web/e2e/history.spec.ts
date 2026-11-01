@@ -1,6 +1,6 @@
 /**
- * Experiências (etapa 10.8): o histórico dos runs, a comparação e a gaveta de cada run (mudar o
- * nome, guardar, apagar e reproduzir).
+ * O ecrã Histórico (etapa 10.8; antes, Experiências): os runs, a comparação e a gaveta de cada
+ * run (mudar o nome, guardar, apagar e reproduzir).
  *
  * Os outros testes também registam runs ao mesmo tempo: estes têm nomes próprios, e é por eles
  * que se procuram.

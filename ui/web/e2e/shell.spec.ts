@@ -159,11 +159,11 @@ test("no telemóvel, a barra é uma gaveta que se fecha ao escolher um ecrã", a
   await page.getByRole("button", { name: "Abrir ou recolher a barra lateral" }).click();
   const drawer = page.getByRole("dialog");
   await expect(drawer).toBeVisible();
-  await drawer.getByRole("link", { name: "Experiências" }).click();
+  await drawer.getByRole("link", { name: "Histórico" }).click();
 
   await expect(page).toHaveURL(/\/experiencias$/);
   await expect(drawer).toBeHidden();
-  await expect(page.getByRole("heading", { level: 1, name: "Experiências" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Histórico" })).toBeVisible();
 });
 
 test("no telemóvel, nenhum ecrã desliza para o lado", async ({ page }) => {
@@ -195,7 +195,7 @@ test("um endereço desconhecido diz que o ecrã não existe", async ({ page }) =
 });
 
 // Os ecrãs que abrem sem nada antes; os outros passam pelo axe nos seus próprios testes (o
-// Explicar, as Experiências, o Laboratório, o RL e as Métricas, com os dados à vista).
+// Explicar, o Histórico, o Laboratório, o RL e as Métricas, com os dados à vista).
 for (const path of [
   "/",
   "/dados",

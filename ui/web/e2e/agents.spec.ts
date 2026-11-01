@@ -123,4 +123,18 @@ test("parar uma procura acaba-a com o melhor até aí", async ({ page }) => {
 
   await expect(page.locator("figure[data-phase='done']")).toBeVisible({ timeout: 240_000 });
   await expect(page.getByText(/A procura parou a pedido/)).toBeVisible();
+
+  // Sai-se para o Treinar e volta-se aos Agentes: a procura está lá como ficou, sem clicar em nada.
+  const url = page.url();
+  const nav = page.getByRole("navigation", { name: "Ecrãs" });
+  await nav.getByRole("link", { name: "Treinar e avaliar" }).click();
+  await expect(page).toHaveURL(/\/treinar/);
+  await nav.getByRole("link", { name: "Agentes" }).click();
+  await expect(page).toHaveURL(url);
+  await expect(page.locator("figure[data-phase='done']")).toBeVisible();
+
+  // "Nova procura" esquece-a e volta ao pedido.
+  await page.getByRole("button", { name: "Nova procura" }).click();
+  await expect(page).toHaveURL(/\/agentes$/);
+  await expect(page.getByRole("button", { name: "Pedir aos agentes" })).toBeVisible();
 });
