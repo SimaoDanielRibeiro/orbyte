@@ -6,6 +6,9 @@
  * desenhada, os JSON numa árvore que abre e fecha, o CSV numa tabela; os binários (o modelo, o
  * ONNX) só dizem o tamanho e o que são. Uma parte que entra ou sai da lista (ao mudar uma
  * opção) anima-se.
+ *
+ * As duas peças (`PartList` e `PartContent`) também se usam soltas: o ecrã Guardar põe a lista
+ * por baixo das opções e o conteúdo numa coluna só dele, à direita.
  */
 import { cn } from "cn";
 import {
@@ -49,68 +52,90 @@ interface PackageViewerProps {
 }
 
 export function PackageViewer({ parts, label, className }: PackageViewerProps) {
-  const reduced = useReducedMotion() ?? false;
   const [chosen, setChosen] = useState(parts[0]?.path ?? "");
   const current = parts.find((part) => part.path === chosen) ?? parts[0];
   return (
-    <div
-      className={cn(
-        "@container/viewer grid gap-4 @2xl/viewer:grid-cols-[15rem_minmax(0,1fr)]",
-        className,
-      )}
-    >
-      <ul aria-label={label} className="flex flex-col gap-1">
-        <AnimatePresence initial={false}>
-          {parts.map((part) => {
-            const Icon = ICONS[part.kind];
-            const on = part.path === current?.path;
-            return (
-              <motion.li
-                key={part.path}
-                layout={!reduced}
-                initial={reduced ? false : { opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={reduced ? { opacity: 0 } : { opacity: 0, x: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <button
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => {
-                    setChosen(part.path);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    on
-                      ? "border-[#3a3a3a] bg-surface-high text-strong"
-                      : "border-transparent text-soft hover:bg-surface hover:text-strong",
-                  )}
-                >
-                  <Icon aria-hidden="true" className="size-4 shrink-0 text-dim" />
-                  <span className="min-w-0 flex-1 truncate font-mono text-[0.8125rem]">
-                    {part.path}
-                  </span>
-                  <span className="shrink-0 font-mono text-[0.6875rem] text-dim tabular-nums">
-                    {formatBytes(part.size)}
-                  </span>
-                </button>
-              </motion.li>
-            );
-          })}
-        </AnimatePresence>
-      </ul>
-      {current !== undefined && <PartContent part={current} />}
+    // O contentor fica num elemento à volta da grelha: uma consulta de contentor não se aplica
+    // ao próprio elemento que o define (antes, a lista e o conteúdo ficavam sempre empilhados).
+    <div className={cn("@container/viewer", className)}>
+      <div className="grid gap-4 @2xl/viewer:grid-cols-[15rem_minmax(0,1fr)]">
+        <PartList parts={parts} chosen={current?.path ?? null} onChoose={setChosen} label={label} />
+        {current !== undefined && <PartContent part={current} />}
+      </div>
     </div>
   );
 }
 
+interface PartListProps {
+  parts: readonly PackagePart[];
+  /** O caminho da parte aberta. */
+  chosen: string | null;
+  onChoose: (path: string) => void;
+  /** O nome da lista, para quem usa um leitor de ecrã (há duas no ecrã). */
+  label: string;
+}
+
+/** As partes do pacote, uma por linha: o ícone do tipo, o caminho e o tamanho. */
+export function PartList({ parts, chosen, onChoose, label }: PartListProps) {
+  const reduced = useReducedMotion() ?? false;
+  return (
+    <ul aria-label={label} className="flex flex-col gap-1">
+      <AnimatePresence initial={false}>
+        {parts.map((part) => {
+          const Icon = ICONS[part.kind];
+          const on = part.path === chosen;
+          return (
+            <motion.li
+              key={part.path}
+              layout={!reduced}
+              initial={reduced ? false : { opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, x: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <button
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  onChoose(part.path);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  on
+                    ? "border-[#3a3a3a] bg-surface-high text-strong"
+                    : "border-transparent text-soft hover:bg-surface hover:text-strong",
+                )}
+              >
+                <Icon aria-hidden="true" className="size-4 shrink-0 text-dim" />
+                <span className="min-w-0 flex-1 truncate font-mono text-[0.8125rem]">
+                  {part.path}
+                </span>
+                <span className="shrink-0 font-mono text-[0.6875rem] text-dim tabular-nums">
+                  {formatBytes(part.size)}
+                </span>
+              </button>
+            </motion.li>
+          );
+        })}
+      </AnimatePresence>
+    </ul>
+  );
+}
+
+interface PartContentProps {
+  part: PackagePart;
+  className?: string;
+  /** A altura da área que rola (por omissão, 34rem). */
+  scrollClassName?: string;
+}
+
 /** O conteúdo de uma parte, como ela é. */
-function PartContent({ part }: { part: PackagePart }) {
+export function PartContent({ part, className, scrollClassName }: PartContentProps) {
   const label = useLabel();
   return (
     <section
       aria-label={`O conteúdo de ${part.path}`}
-      className="flex min-w-0 flex-col gap-3 rounded-xl border bg-ground p-4"
+      className={cn("flex min-w-0 flex-col gap-3 rounded-xl border bg-ground p-4", className)}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <div className="flex min-w-0 items-center gap-1">
@@ -121,7 +146,7 @@ function PartContent({ part }: { part: PackagePart }) {
           {part.path} · {label("PackageFileKind", part.kind)} · {formatBytes(part.size)}
         </span>
       </div>
-      <div className="max-h-[34rem] min-w-0 overflow-auto">
+      <div className={cn("max-h-[34rem] min-w-0 overflow-auto", scrollClassName)}>
         <Body part={part} />
       </div>
       {part.truncated && (

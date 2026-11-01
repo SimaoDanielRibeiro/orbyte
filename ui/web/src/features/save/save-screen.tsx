@@ -3,10 +3,11 @@
  * antes de existir, e a biblioteca dos modelos guardados, onde também se carrega um modelo já
  * treinado (ADR 0039).
  *
- * À esquerda escolhe-se o que vai no ficheiro: o run, o nome e as partes que se podem deixar de
- * fora (o backend diz quais são, o que levam e porque é que um run não tem alguma). À direita está
- * o próprio ficheiro, parte a parte, e muda quando muda uma opção: a pré-visualização e o guardar
- * saem do mesmo código no backend, por isso o que se vê é o que se grava.
+ * Em cima, numa faixa, escolhe-se o que vai no ficheiro: o run, o nome e as partes que se podem
+ * deixar de fora (o backend diz quais são, o que levam e porque é que um run não tem alguma). Em
+ * baixo está o próprio ficheiro: as partes à esquerda, que mudam quando muda uma opção, e a
+ * escolhida à direita, como é. A pré-visualização e o guardar saem do mesmo código no backend,
+ * por isso o que se vê é o que se grava.
  *
  * "Guardar o modelo" põe o pacote na biblioteca (e o run no histórico, com o modelo) e descarrega
  * o ficheiro.
@@ -56,7 +57,7 @@ import { useSession } from "@/state/session";
 
 import { invalidatePackages, packageFileUrl } from "./cache";
 import { Library } from "./library";
-import { PackageViewer } from "./package-viewer";
+import { PartContent, PartList } from "./package-viewer";
 
 /** As ideias por trás do ecrã (os temas do "Porquê?"). */
 const TOPICS = [
@@ -272,6 +273,10 @@ function SaveForm({ options }: { options: PackageOptions }) {
       toast.success(`«${pkg.name}» está na biblioteca (${formatBytes(pkg.size)}).`);
     },
   });
+  // A parte aberta: começa na ficha (a primeira) e mantém-se enquanto existir no ficheiro.
+  const [chosen, setChosen] = useState<string | null>(null);
+  const parts = preview.data?.parts ?? [];
+  const current = parts.find((part) => part.path === chosen) ?? parts[0];
   // O visto fica enquanto o pedido for o que se guardou: mudar uma opção pede outro ficheiro.
   const saved = save.isSuccess && JSON.stringify(save.variables.body) === asked;
   const available = candidates.data?.filter((candidate) => candidate.available) ?? [];
@@ -304,23 +309,30 @@ function SaveForm({ options }: { options: PackageOptions }) {
         </div>
       </Header>
 
-      <div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-12 @6xl/main:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
-        <Panel title="O que guardar" as="h2" className="self-start">
+      {/*
+        Em cima, numa faixa, o que vai no ficheiro; em baixo, o ficheiro: as partes à esquerda e a
+        escolhida à direita, lado a lado, para se verem sempre as duas juntas.
+      */}
+      <div className="mt-10 flex flex-col gap-12">
+        <Panel title="O que guardar" as="h2">
           <div className="flex flex-col gap-6">
-            <RunPicker runId={options.run_id} candidates={available} current={options.name} />
-            <Field label="Nome" htmlFor="guardar-nome">
-              <Input
-                id="guardar-nome"
-                name="nome"
-                autoComplete="off"
-                maxLength={120}
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                }}
-              />
-            </Field>
-            <div className="flex flex-col gap-4">
+            {/* `grid-cols-1` encolhe: sem ele, o nome comprido de um run alargava a página. */}
+            <div className="grid grid-cols-1 gap-6 @3xl/main:grid-cols-2">
+              <RunPicker runId={options.run_id} candidates={available} current={options.name} />
+              <Field label="Nome" htmlFor="guardar-nome">
+                <Input
+                  id="guardar-nome"
+                  name="nome"
+                  autoComplete="off"
+                  maxLength={120}
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                  }}
+                />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 gap-x-10 gap-y-4 @3xl/main:grid-cols-3 @3xl/main:items-start">
               {options.choices.map((choice) => (
                 <ChoiceRow
                   key={choice.key}
@@ -346,23 +358,31 @@ function SaveForm({ options }: { options: PackageOptions }) {
           </div>
         </Panel>
 
-        <Panel title="O ficheiro" as="h2" className="min-w-0">
+        <Panel
+          title="O ficheiro"
+          as="h2"
+          actions={
+            preview.data !== undefined && (
+              <p className="font-mono text-xs text-dim tabular-nums">
+                <span className="text-strong">{preview.data.file_name}</span> ·{" "}
+                {formatBytes(preview.data.size)} sem comprimir ·{" "}
+                {formatCount(preview.data.parts.length)} ficheiros
+              </p>
+            )
+          }
+        >
           <ErrorNote error={preview.error} />
-          {preview.data === undefined ? (
+          {preview.data === undefined || current === undefined ? (
             preview.error === null && <Skeleton className="h-[32rem] w-full" />
           ) : (
-            <div className="flex min-w-0 flex-col gap-5">
-              <div className="flex flex-col gap-1">
-                <p className="font-mono text-[0.9375rem] break-all text-strong">
-                  {preview.data.file_name}
-                </p>
-                <p className="font-mono text-xs text-dim tabular-nums">
-                  {formatBytes(preview.data.size)} sem comprimir ·{" "}
-                  {formatCount(preview.data.parts.length)} ficheiros · formato{" "}
-                  {preview.data.format_version}
-                </p>
-              </div>
-              <PackageViewer parts={preview.data.parts} label="As partes do ficheiro" />
+            <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-[18rem_minmax(0,1fr)] @4xl/main:items-start">
+              <PartList
+                parts={preview.data.parts}
+                chosen={current.path}
+                onChoose={setChosen}
+                label="As partes do ficheiro"
+              />
+              <PartContent part={current} scrollClassName="max-h-[36rem]" />
             </div>
           )}
         </Panel>
