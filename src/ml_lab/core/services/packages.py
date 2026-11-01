@@ -22,6 +22,7 @@ import json
 import platform
 import re
 import secrets
+import threading
 import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
@@ -36,7 +37,9 @@ import numpy as np
 from ml_lab.config import Settings, get_settings
 from ml_lab.core.data.io.base import SourceSpec
 from ml_lab.core.data.serving import FittedPreparation, lineage_document
+from ml_lab.core.export import export_onnx, onnx_signature
 from ml_lab.core.foundation.errors import (
+    CapabilityError,
     PackageError,
     RunNotFoundError,
     RunNotInMemoryError,
@@ -60,6 +63,9 @@ from ml_lab.core.tracking.packages import (
 )
 from ml_lab.core.visualization_data.animation import TrainingAnimation
 from ml_lab.core.visualization_data.network import NetworkTrace
+from ml_lab.logging import get_logger
+
+logger = get_logger(__name__)
 
 PREVIEW_CHARACTERS: Final = 200_000
 """Quantos caracteres de um ficheiro de texto mostra a pré-visualização (o resto fica no ZIP)."""
@@ -70,7 +76,20 @@ LARGE_PACKAGE: Final = 50 * 1024 * 1024
 _EXAMPLE_SOURCES: Final = frozenset({"sample", "synthetic"})
 """As origens cujas linhas se podem mostrar à vontade (as dos ficheiros podem ser de alguém)."""
 
-_VERSIONED: Final = ("ml-lab", "numpy", "pandas", "scikit-learn", "torch", "joblib")
+ONNX_CACHE: Final = 8
+"""Quantos ``model.onnx`` (ou as razões por que não os há) ficam guardados, um por run."""
+
+_VERSIONED: Final = (
+    "ml-lab",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "torch",
+    "joblib",
+    "onnx",
+    "skl2onnx",
+    "onnxruntime",
+)
 """As bibliotecas cujas versões o manifesto regista."""
 
 _PICKLED: Final = ("scikit-learn", "torch", "numpy")
@@ -409,6 +428,8 @@ class PackageService:
         self._key = PackageKey(settings.artifacts_dir / "package.key")
         self._library = PackageLibrary(settings.artifacts_dir / "packages")
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._onnx_cache: dict[str, tuple[bytes | None, str]] = {}
+        self._onnx_lock = threading.Lock()
 
     def candidates(self) -> tuple[PackageCandidate, ...]:
         """Os runs do histórico que se podem guardar num pacote, do mais recente ao mais antigo.
@@ -617,7 +638,8 @@ class PackageService:
         if examples is None:
             examples = artifacts.config.dataset.kind in _EXAMPLE_SOURCES
         examples = examples and _examples_available(artifacts, preparation)
-        onnx, onnx_reason = self._onnx(artifacts)
+        # O ONNX só vai com o modelo; sem ele, nem se converte.
+        onnx, onnx_reason = self._onnx(artifacts) if request.include_model else (None, "")
 
         parts = [
             PackageFile(files.INPUT, _json(preparation.input_document())),
@@ -659,7 +681,8 @@ class PackageService:
             preparation=preparation,
             info=info,
             files=card_files,
-            onnx_reason=None if onnx is not None and request.include_model else onnx_reason,
+            onnx=None if onnx is None else onnx_signature(onnx, preparation),
+            onnx_reason=onnx_reason if request.include_model and onnx is None else None,
         )
         parts.append(PackageFile(files.README, readme.encode("utf-8")))
         manifest = _manifest(
@@ -670,9 +693,30 @@ class PackageService:
         return _Assembled(contents, name, _file_name(name), notices)
 
     def _onnx(self, artifacts: RunArtifacts) -> tuple[bytes | None, str]:
-        """O ``model.onnx`` de um run, ou porque não o há."""
-        del artifacts
-        return None, "Este modelo ainda não tem conversão para ONNX."
+        """O ``model.onnx`` de um run (já confirmado), ou a razão por que não o há.
+
+        Converter e confirmar demora (o skl2onnx, o ONNX Runtime), e a pré-visualização pede-se
+        a cada opção que muda: o resultado fica guardado, para os últimos runs.
+        """
+        run_id = artifacts.result.run_id
+        with self._onnx_lock:
+            cached = self._onnx_cache.get(run_id)
+        if cached is not None:
+            return cached
+        exported: tuple[bytes | None, str]
+        try:
+            exported = export_onnx(artifacts.model, _preparation(artifacts)), ""
+        except CapabilityError as error:
+            exported = None, str(error)
+        # O ONNX é um extra: uma conversão que rebenta de outra maneira não impede o pacote.
+        except Exception:
+            logger.exception("a conversão para ONNX falhou", extra={"run_id": run_id})
+            exported = None, "A conversão para ONNX falhou com um erro inesperado."
+        with self._onnx_lock:
+            self._onnx_cache[run_id] = exported
+            while len(self._onnx_cache) > ONNX_CACHE:
+                self._onnx_cache.pop(next(iter(self._onnx_cache)))
+        return exported
 
     def _adopt(self, entry: LibraryEntry, opened: OpenedPackage, model: Any | None) -> str:
         """Põe no histórico o run de um pacote carregado; devolve o identificador dele."""
@@ -869,7 +913,7 @@ def _notices(
                 "quem tiver o modelo consegue vê-las.",
             )
         )
-    if not info.supports_new_data or result.task_type is TaskType.DIMENSIONALITY_REDUCTION:
+    if not info.supports_new_data:
         notices.append(
             Notice.info(
                 "package_cannot_predict",

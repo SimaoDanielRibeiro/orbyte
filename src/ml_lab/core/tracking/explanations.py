@@ -77,7 +77,9 @@ TRACKING_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "(somar, multiplicar, comparar), que o ONNX Runtime corre em Python, C#, Java, "
             "JavaScript e noutras linguagens, sem o ML Lab nem o scikit-learn. O `model.onnx` "
             "do pacote junta a preparação e o modelo: recebe as colunas como chegam e devolve "
-            "a previsão. Não é um pickle, por isso não corre código de ninguém.",
+            "a previsão. Antes de entrar no pacote, corre com as linhas de exemplo e tem de "
+            "dar as mesmas previsões do laboratório; se não der, fica de fora. Não é um "
+            "pickle, por isso não corre código de ninguém.",
         ),
         "memorized_rows": Explanation(
             "Modelos que guardam os dados",

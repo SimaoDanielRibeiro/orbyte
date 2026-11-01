@@ -34,6 +34,7 @@ from torch import nn
 from ml_lab.core.foundation.errors import ModelError
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.models.base import Features, LabModel, Target
+from ml_lab.core.models.parameters import DenseActivation, DenseLayer
 from ml_lab.core.models.supervised.gradient_descent import diverged_notice, has_diverged
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.training.context import TrainingContext
@@ -51,6 +52,11 @@ MIN_IMPROVEMENT: Final = 1e-4
 """O early stopping só conta como melhoria uma descida da loss de validação maior do que isto."""
 
 _ACTIVATION_LABELS: Final = {nn.ReLU: "ReLU", nn.Tanh: "tanh", nn.Sigmoid: "sigmoide"}
+_ACTIVATION_NAMES: Final[dict[type[nn.Module], DenseActivation]] = {
+    nn.ReLU: "relu",
+    nn.Tanh: "tanh",
+    nn.Sigmoid: "sigmoid",
+}
 
 
 class TrainingParams(Hyperparameters):
@@ -269,6 +275,33 @@ class TorchModel[P: TrainingParams](LabModel[P]):
 
     def _linear_layers(self) -> list[nn.Linear]:
         return [module for module in self._network if isinstance(module, nn.Linear)]
+
+    def dense_layers(self) -> list[DenseLayer]:
+        """As camadas da rede, com os pesos em NumPy: a rede inteira, sem o PyTorch.
+
+        Raises:
+            ModelError: Se a rede tiver uma peça que não seja uma camada densa ou uma ativação
+                conhecida (a rede não se descreve só com camadas densas).
+        """
+        layers: list[DenseLayer] = []
+        modules = list(self._network)
+        for index, module in enumerate(modules):
+            if type(module) in _ACTIVATION_NAMES:
+                continue
+            if not isinstance(module, nn.Linear):
+                raise ModelError(
+                    f"A rede de '{self.info.display_name}' tem uma peça que não é uma camada "
+                    f"densa ({type(module).__name__}): não se descreve só com pesos."
+                )
+            following = modules[index + 1] if index + 1 < len(modules) else None
+            layers.append(
+                DenseLayer(
+                    weights=module.weight.detach().numpy().astype(np.float32, copy=True),
+                    bias=module.bias.detach().numpy().astype(np.float32, copy=True),
+                    activation=_ACTIVATION_NAMES.get(type(following)) if following else None,
+                )
+            )
+        return layers
 
     def _note_the_ending(self, validated: bool) -> None:
         """O aviso sobre como o treino acabou (parou cedo, ou fez as épocas todas)."""

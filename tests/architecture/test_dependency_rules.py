@@ -234,6 +234,20 @@ def test_pytorch_is_only_used_by_the_neural_networks() -> None:
     )
 
 
+def test_onnx_is_only_used_by_the_export() -> None:
+    # O ONNX é uma saída para outras apps: só a exportação o conhece, e quem a usa recebe bytes.
+    violations = find_violations(
+        python_files(PACKAGE, exclude=[CORE / "export"]),
+        lambda name: any(
+            is_within(name, library) for library in ("onnx", "onnxruntime", "skl2onnx")
+        ),
+    )
+
+    assert not violations, report(
+        "O ONNX, o ONNX Runtime e o skl2onnx só se usam em core/export/:", violations
+    )
+
+
 def test_the_core_does_not_import_the_services() -> None:
     violations = find_violations(
         python_files(CORE, exclude=[SERVICES]),

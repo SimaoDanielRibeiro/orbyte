@@ -30,6 +30,7 @@ from ml_lab.core.models.base import (
     Target,
 )
 from ml_lab.core.models.distances import nearest, same_rows
+from ml_lab.core.models.parameters import Memory
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.training.context import TrainingContext
 from ml_lab.formatting import format_count
@@ -140,6 +141,10 @@ class Agglomerative(SklearnModel[AgglomerativeParams]):
             return self._labels.copy()
         closest, _ = nearest(X, self._train)
         return self._labels[closest]
+
+    def memory(self) -> Memory:
+        """As linhas de treino e o grupo de cada uma: um ponto novo fica no do mais próximo."""
+        return Memory(rows=self._train.copy(), labels=self._labels.copy())
 
     @override
     def state(self) -> dict[str, Any]:

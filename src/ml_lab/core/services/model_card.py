@@ -5,18 +5,25 @@ se deve confiar nele e como se usa. É o que quem recebe o ficheiro lê primeiro
 abrir os JSON. Os números vêm escritos à portuguesa, como em todo o laboratório.
 """
 
+import json
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Final
 
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.data.lineage import Stage
 from ml_lab.core.data.schema import ColumnKind
 from ml_lab.core.data.serving import FittedPreparation
+from ml_lab.core.export import OnnxSignature
 from ml_lab.core.foundation.notices import NoticeLevel
 from ml_lab.core.foundation.types import Partition
 from ml_lab.core.models.base import ModelInfo
 from ml_lab.core.services.experiments import ExperimentResult
 from ml_lab.formatting import format_list, format_value
+
+MAX_EXAMPLE_INPUTS: Final = 30
+"""Quantas colunas o exemplo do ONNX escreve, no máximo (as outras ficam num comentário)."""
 
 _PREPARATION_STAGES = (Stage.CLEANING, Stage.TASK, Stage.SPLIT, Stage.TRANSFORM)
 """As etapas da linhagem que a ficha conta (a entrada e a saída dizem-se noutros sítios)."""
@@ -43,6 +50,7 @@ def model_card(
     preparation: FittedPreparation,
     info: ModelInfo,
     files: Sequence[CardFile],
+    onnx: OnnxSignature | None,
     onnx_reason: str | None,
 ) -> str:
     """O ``README.md`` de um pacote.
@@ -54,7 +62,10 @@ def model_card(
         preparation: A preparação aprendida.
         info: A ficha técnica do modelo.
         files: Os ficheiros que vão no pacote.
-        onnx_reason: Porque é que o pacote vai sem o ``model.onnx`` (``None`` se vai com ele).
+        onnx: As entradas e as saídas do ``model.onnx``, se ele vai no pacote (o exemplo da
+            ficha usa-as).
+        onnx_reason: Porque é que o pacote vai sem o ``model.onnx``, quando leva o modelo e
+            não leva o ONNX (``None`` nos outros casos).
     """
     sections = [
         f"# {name}",
@@ -68,7 +79,7 @@ def model_card(
         "## O que vai neste pacote",
         _files(files),
         "## Como se usa",
-        _usage(files, onnx_reason),
+        _usage(files, onnx, onnx_reason),
     ]
     return "\n\n".join(section for section in sections if section) + "\n"
 
@@ -152,30 +163,60 @@ def _limits(result: ExperimentResult, preparation: FittedPreparation, info: Mode
     return "\n".join(lines) or "- O treino não deixou avisos."
 
 
+def _onnx_example(onnx: OnnxSignature) -> list[str]:
+    """Um exemplo em Python que corre o ``model.onnx`` com uma linha de valores típicos."""
+    feeds = [
+        f'    "{entry.name}": np.array([[{_literal(entry.typical)}]]'
+        + (", dtype=object)," if entry.text else "),")
+        for entry in onnx.inputs[:MAX_EXAMPLE_INPUTS]
+    ]
+    if len(onnx.inputs) > MAX_EXAMPLE_INPUTS:
+        feeds.append(f"    # … e as outras {len(onnx.inputs) - MAX_EXAMPLE_INPUTS} colunas")
+    outputs = ", ".join(onnx.outputs)
+    received = f"{outputs} = " if len(onnx.outputs) > 1 else f"({outputs},) = "
+    return [
+        "```python",
+        "import numpy as np",
+        "import onnxruntime as ort",
+        "",
+        'session = ort.InferenceSession("model.onnx")',
+        "linha = {",
+        *feeds,
+        "}",
+        f"{received}session.run(None, linha)",
+        f"print({outputs})",
+        "```",
+    ]
+
+
+def _literal(value: float | str) -> str:
+    """O valor escrito em Python: o texto entre aspas, o número tal como é (``nan`` à parte)."""
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    return "np.nan" if math.isnan(value) else repr(float(value))
+
+
 def _files(files: Sequence[CardFile]) -> str:
     rows = [f"| `{file.path}` | {file.description} |" for file in files]
     return "\n".join(["| Ficheiro | O que tem |", "|---|---|", *rows])
 
 
-def _usage(files: Sequence[CardFile], onnx_reason: str | None) -> str:
+def _usage(files: Sequence[CardFile], onnx: OnnxSignature | None, onnx_reason: str | None) -> str:
     paths = {file.path for file in files}
     lines = [
         '- **No ML Lab:** carrega este ficheiro no ecrã Guardar, em "Carregar um modelo '
         'treinado". O run entra no histórico e abre-se no Treinar e avaliar.',
     ]
-    if "model.onnx" in paths:
+    if onnx is not None:
         lines.extend(
             [
                 "- **Noutra app:** o `model.onnx` junta a preparação e o modelo, e abre-se com o "
-                "ONNX Runtime (em Python, C#, Java, JavaScript…). Cada coluna de `input.json` é "
-                "uma entrada; o texto em falta vai como texto vazio. Em Python:",
+                "ONNX Runtime (em Python, C#, Java, JavaScript…), sem o ML Lab. Cada coluna é "
+                "uma entrada com uma linha por exemplo: os números em `float64` (`nan` quando "
+                "faltam) e as categorias em texto (vazio quando faltam). Em Python, com os "
+                "valores típicos do treino:",
                 "",
-                "  ```python",
-                "  import onnxruntime as ort",
-                "",
-                '  session = ort.InferenceSession("model.onnx")',
-                "  print([entrada.name for entrada in session.get_inputs()])",
-                "  ```",
+                *(f"  {line}" if line else "" for line in _onnx_example(onnx)),
             ]
         )
     elif onnx_reason is not None:

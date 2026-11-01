@@ -16,6 +16,7 @@ from ml_lab.config import Settings, get_settings
 from ml_lab.core.data.cleaning.base import CleaningStep
 from ml_lab.core.data.preparation import PreparationConfig
 from ml_lab.core.data.serving import FittedPreparation
+from ml_lab.core.export import run_onnx
 from ml_lab.core.foundation.errors import (
     PackageError,
     RunNotInMemoryError,
@@ -116,6 +117,7 @@ def test_the_preview_shows_what_each_part_is(lab: Lab) -> None:
         files.PREPARATION,
         files.RUN,
         files.MODEL,
+        files.ONNX,
         files.EXAMPLES,
     ]
     assert parts[files.README].kind is PackageFileKind.MARKDOWN
@@ -128,8 +130,28 @@ def test_the_preview_shows_what_each_part_is(lab: Lab) -> None:
     assert "- **Dados:** Titanic: 712 linhas no treino e 179 no teste (seed 42)." in readme
     assert "## Os limites" in readme
     assert "| Exatidão |" in readme
+    assert 'session = ort.InferenceSession("model.onnx")' in readme
+    assert '"Sex": np.array([["male"]], dtype=object),' in readme
     codes = {notice.code for notice in preview.notices}
-    assert codes == {"package_real_rows", "package_without_onnx"}
+    assert codes == {"package_real_rows"}
+
+
+def test_the_onnx_in_the_package_predicts_like_the_run(lab: Lab) -> None:
+    result = titanic(lab)
+    saved = lab.packages.save(result.run_id, PackageRequest(include_examples=True, examples=8))
+    _, data = lab.packages.file(saved.package_id)
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        onnx = archive.read(files.ONNX)
+        examples = archive.read(files.EXAMPLES).decode("utf-8")
+    preparation = lab.experiments.artifacts(result.run_id).dataset.preparation
+    assert preparation is not None
+
+    outputs = run_onnx(onnx, preparation.input_arrays(preparation.examples.head(8)))
+
+    predicted = [line.rsplit(",", 1)[1] for line in examples.splitlines()[1:]]
+    assert [str(label) for label in outputs["label"]] == predicted
+    assert outputs["probabilities"].shape == (8, 2)
+    assert saved.has_onnx
 
 
 def test_optional_parts_come_and_go(lab: Lab) -> None:
@@ -326,7 +348,9 @@ def test_memorizing_models_and_projections_are_flagged(lab: Lab) -> None:
     tsne_preview = lab.packages.preview(tsne.run_id, PackageRequest())
 
     assert "package_memorized_rows" in knn_codes
-    assert "package_cannot_predict" in {notice.code for notice in tsne_preview.notices}
+    tsne_notices = {notice.code: notice.message for notice in tsne_preview.notices}
+    assert "package_cannot_predict" in tsne_notices
+    assert "não sabe colocar pontos novos" in tsne_notices["package_without_onnx"]
     assert files.EXAMPLES not in {part.path for part in tsne_preview.parts}
     examples = lab.packages.options(tsne.run_id).choices[1]
     assert examples.key == "include_examples"

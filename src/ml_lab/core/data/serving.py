@@ -30,6 +30,7 @@ from ml_lab.core.data.cleaning.base import AppliedStep, CleaningStep
 from ml_lab.core.data.lineage import Lineage
 from ml_lab.core.data.schema import ColumnKind, TableSchema
 from ml_lab.core.data.transforms.base import transform_class
+from ml_lab.core.data.transforms.encoding import as_text, to_zero_one
 from ml_lab.core.data.transforms.feature_engineering import DateFeatures
 from ml_lab.core.data.transforms.imputation import Imputer
 from ml_lab.core.data.transforms.pipeline_builder import TransformPipeline
@@ -118,11 +119,7 @@ class FittedPreparation:
                 f"Faltam colunas para o modelo: {format_list(absent)}. Ele espera "
                 f"{format_list(list(self.input_names))}."
             )
-        rows = frame[list(self.input_names)]
-        for step in self.cleaning:
-            rows = step.replay(rows)
-        transformed = self.pipeline.transform(rows)[list(self.feature_names)]
-        matrix = transformed.to_numpy(dtype=np.float64, na_value=np.nan)
+        matrix = self._features(frame[list(self.input_names)])
         missing = np.isnan(matrix).any(axis=0)
         if missing.any():
             columns = [self.feature_names[int(i)] for i in np.flatnonzero(missing)]
@@ -130,6 +127,48 @@ class FittedPreparation:
                 f"Ficaram valores em falta em {format_list(columns)}: esta preparação não "
                 "preenche nulos nessas colunas, por isso cada linha tem de os trazer."
             )
+        return matrix
+
+    def input_arrays(self, frame: pd.DataFrame) -> dict[str, NDArray[Any]]:
+        """As colunas de linhas novas como as recebe o modelo ONNX: uma matriz ``(N, 1)`` cada.
+
+        Os números (e os booleanos, em 0 ou 1) vão em ``float64``, com ``NaN`` onde faltam; as
+        categorias vão em texto, como o one-hot as compara, com o texto vazio onde faltam. As
+        datas e o texto livre ficam de fora: não entram no ONNX.
+        """
+        arrays: dict[str, NDArray[Any]] = {}
+        for column in self.columns:
+            values = frame[column.name]
+            if column.kind is ColumnKind.NUMERIC:
+                numbers = values.astype("float64").to_numpy(dtype=np.float64, na_value=np.nan)
+                arrays[column.name] = numbers.reshape(-1, 1)
+            elif column.kind is ColumnKind.BOOLEAN:
+                arrays[column.name] = to_zero_one(values).to_numpy(dtype=np.float64).reshape(-1, 1)
+            elif column.kind is ColumnKind.CATEGORICAL:
+                text = as_text(values).fillna("").to_numpy(dtype=object)
+                arrays[column.name] = text.reshape(-1, 1)
+        return arrays
+
+    def check_rows(self) -> tuple[dict[str, NDArray[Any]], NDArray[np.float64]]:
+        """As linhas de exemplo que a preparação transforma, para confirmar uma conversão.
+
+        Saem como as recebe o ONNX (``input_arrays``) e como features (o que o modelo recebe
+        no laboratório). Uma linha com um valor em falta que a preparação não preenche fica de
+        fora: nem o laboratório a sabe prever.
+        """
+        if self.examples.empty:
+            return {}, np.zeros((0, len(self.feature_names)))
+        rows = self.examples[list(self.input_names)]
+        matrix = self._features(rows)
+        complete = ~np.isnan(matrix).any(axis=1)
+        return self.input_arrays(rows[complete]), matrix[complete]
+
+    def _features(self, rows: pd.DataFrame) -> NDArray[np.float64]:
+        """As features das linhas, pela ordem do modelo (com ``NaN`` onde ficar a faltar)."""
+        for step in self.cleaning:
+            rows = step.replay(rows)
+        transformed = self.pipeline.transform(rows)[list(self.feature_names)]
+        matrix: NDArray[np.float64] = transformed.to_numpy(dtype=np.float64, na_value=np.nan)
         return matrix
 
     def input_document(self) -> dict[str, Any]:

@@ -29,6 +29,7 @@ from ml_lab.core.models.base import (
     Target,
 )
 from ml_lab.core.models.distances import nearest, same_rows
+from ml_lab.core.models.parameters import Memory
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.training.context import TrainingContext
 
@@ -108,6 +109,14 @@ class DBSCAN(SklearnModel[DBSCANParams]):
             return np.full(len(X), -1, dtype=np.int64)
         closest, distances = nearest(X, self._core)
         return np.where(distances <= self.hyperparameters.eps, self._core_labels[closest], -1)
+
+    def memory(self) -> Memory:
+        """Os pontos centrais e o grupo de cada um.
+
+        Um ponto novo a menos de ``eps`` do ponto central mais próximo fica no grupo dele;
+        senão, é ruído (-1).
+        """
+        return Memory(rows=self._core.copy(), labels=self._core_labels.copy())
 
     @override
     def state(self) -> dict[str, Any]:

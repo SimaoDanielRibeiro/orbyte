@@ -55,7 +55,7 @@ class OneHotEncoder(Transform):
         """Quantos valores de cada coluna não eram categorias conhecidas no treino."""
         counts: dict[str, int] = {}
         for column in self.columns:
-            text = _as_text(frame[column])
+            text = as_text(frame[column])
             unknown = int((text.notna() & ~text.isin(self.categories[column])).sum())
             if unknown:
                 counts[column] = unknown
@@ -75,7 +75,7 @@ class OneHotEncoder(Transform):
     @override
     def _fit(self, frame: pd.DataFrame) -> None:
         self.categories = {
-            column: tuple(sorted(_as_text(frame[column]).dropna().unique().tolist()))
+            column: tuple(sorted(as_text(frame[column]).dropna().unique().tolist()))
             for column in self.columns
         }
 
@@ -87,7 +87,7 @@ class OneHotEncoder(Transform):
             if column not in self.columns:
                 pieces.append(frame[name])
                 continue
-            text = _as_text(frame[name])
+            text = as_text(frame[name])
             encoded = {
                 f"{column}_{category}": (text == category).to_numpy(dtype=np.float64)
                 for category in self.categories[column]
@@ -132,9 +132,13 @@ def to_zero_one(values: pd.Series) -> pd.Series:
         numbers = values.astype("Float64").to_numpy(dtype=np.float64, na_value=np.nan)
         return pd.Series(numbers, index=values.index, name=values.name)
     words: dict[str, Any] = {word: float(flag) for word, flag in BOOLEAN_WORDS.items()}
-    return _as_text(values).str.lower().map(words).astype("float64")
+    return as_text(values).str.lower().map(words).astype("float64")
 
 
-def _as_text(values: pd.Series) -> pd.Series:
-    """Os valores como texto, para comparar categorias; os nulos continuam nulos."""
+def as_text(values: pd.Series) -> pd.Series:
+    """Os valores como texto, para comparar categorias; os nulos continuam nulos.
+
+    É assim que o one-hot compara uma coluna com as categorias do treino (``3`` passa a
+    ``"3"``), e é assim que uma app de fora tem de mandar as categorias ao modelo ONNX.
+    """
     return values.astype("str").where(values.notna())

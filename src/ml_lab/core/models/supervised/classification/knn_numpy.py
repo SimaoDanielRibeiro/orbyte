@@ -28,6 +28,7 @@ from ml_lab.core.models.base import (
     Target,
 )
 from ml_lab.core.models.distances import blocks
+from ml_lab.core.models.parameters import Memory
 from ml_lab.core.models.supervised.classification.knn import KnnParams, check_neighbors
 from ml_lab.core.training.context import TrainingContext
 
@@ -66,6 +67,10 @@ class KnnNumpy(LabModel[KnnParams]):
     @override
     def state(self) -> dict[str, Any]:
         return {"classes": self._classes.tolist(), "n_train": len(self._train)}
+
+    def memory(self) -> Memory:
+        """As linhas de treino e a classe de cada uma: é com elas que o KNN prevê."""
+        return Memory(rows=self._train.copy(), labels=self._classes[self._codes])
 
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
