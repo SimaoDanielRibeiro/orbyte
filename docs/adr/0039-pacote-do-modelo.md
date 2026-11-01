@@ -1,6 +1,6 @@
 # 0039 — O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado
 
-- **Estado:** Proposta
+- **Estado:** Aceite
 - **Data:** 2026-10-29
 
 ## Contexto

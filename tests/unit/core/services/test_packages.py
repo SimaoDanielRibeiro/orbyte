@@ -38,7 +38,10 @@ DROP = CleaningStep("drop_columns", {"columns": ["PassengerId", "Name", "Ticket"
 
 def settings(folder: Path) -> Settings:
     return replace(
-        get_settings(), artifacts_dir=folder / "artifacts", database_path=folder / "registo.db"
+        get_settings(),
+        artifacts_dir=folder / "artifacts",
+        database_path=folder / "registo.db",
+        uploads_dir=folder / "uploads",
     )
 
 
@@ -83,6 +86,26 @@ def test_the_options_suggest_a_name_and_the_parts(lab: Lab) -> None:
     assert choices["include_examples"].included  # um dataset de exemplo: as linhas são públicas
     assert not choices["include_training"].included
     assert all(choice.available for choice in options.choices)
+
+
+def test_the_rows_of_an_uploaded_file_stay_out_by_default(lab: Lab) -> None:
+    rows = "\n".join(f"{i},{i % 5},{(i * 7) % 3},{i % 2}" for i in range(60))
+    summary = lab.datasets.upload("meus_dados.csv", f"a,b,c,alvo\n{rows}\n".encode())
+    result = lab.experiments.run(
+        ExperimentConfig(
+            dataset=summary.source,
+            preparation=PreparationConfig(target="alvo"),
+            model=ModelSpec(name="logistic_regression"),
+            seed=1,
+        )
+    )
+
+    examples = {c.key: c for c in lab.packages.options(result.run_id).choices}["include_examples"]
+    preview = lab.packages.preview(result.run_id, PackageRequest())
+
+    assert examples.available
+    assert not examples.included  # um ficheiro carregado pode ter dados de alguém
+    assert files.EXAMPLES not in {part.path for part in preview.parts}
 
 
 def test_the_preview_is_the_file_byte_for_byte(lab: Lab) -> None:

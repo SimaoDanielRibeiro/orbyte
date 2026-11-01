@@ -956,7 +956,7 @@ cada vez.
 | 8 — Reinforcement learning ✅ | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
 | 9 — Agentes (AutoML) ✅ | Agente de dados (limpeza, tarefa, divisão e transformações, cada decisão com a razão); um agente por família de modelos; coordenador com triagem e procura aleatória, escolhidas por validação cruzada só com o treino; orçamento, pausa e paragem; o vencedor treina como um run normal | Agentes (o modo automático, ao lado do manual) | — (procura de hiperparâmetros, validação cruzada para escolher) | No Titanic, os agentes preparam os dados, experimentam uma família de cada vez e afinam os finalistas sem tocar no teste; o vencedor usa o teste uma só vez, fica no histórico e abre-se no Avaliar |
 | 10 — Interface aprimorada | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
-| 11 — Guardar e carregar o modelo | A preparação aprendida fica com o dataset e passa a JSON; o pacote `.mllab` (um ZIP com a ficha, o manifesto assinado, a entrada, a preparação, o run, o modelo e o ONNX); a biblioteca dos pacotes; carregar um pacote, com um aviso se vier de fora; o `PackageService` (ADR 0039) | Guardar: o ficheiro pré-visualizado parte a parte antes de existir, a biblioteca e o carregar | ONNX (`onnx`, `skl2onnx`, `onnxruntime`) | No Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o gravar; guardá-lo descarrega um `.mllab` que abre em qualquer programa de ZIP; carregado noutra instalação, pede confirmação e o run abre no Treinar e avaliar; e o modelo de dentro dá as mesmas previsões do run original, no laboratório e no ONNX Runtime |
+| 11 — Guardar e carregar o modelo ✅ | A preparação aprendida fica com o dataset e passa a JSON; o pacote `.mllab` (um ZIP com a ficha, o manifesto assinado, a entrada, a preparação, o run, o modelo e o ONNX); a biblioteca dos pacotes; carregar um pacote, com um aviso se vier de fora; o `PackageService` (ADR 0039) | Guardar: o ficheiro pré-visualizado parte a parte antes de existir, a biblioteca e o carregar | ONNX (`onnx`, `skl2onnx`, `onnxruntime`) | No Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o gravar; guardá-lo descarrega um `.mllab` que abre em qualquer programa de ZIP; carregado noutra instalação, pede confirmação e o run abre no Treinar e avaliar; e o modelo de dentro dá as mesmas previsões do run original, no laboratório e no ONNX Runtime |
 | 12 — Prever | Abrir um pacote, transformar linhas novas com a preparação guardada, prever com a explicação de cada previsão e avisos de extrapolação; um CSV inteiro de uma vez | Prever: o formulário gerado da entrada do pacote, a previsão ao vivo, o "e se…" e o ficheiro com a coluna da previsão | — | Escolher o pacote do Titanic, preencher um passageiro e ver a previsão mudar ao mexer na idade; um CSV inteiro sai com a previsão de cada linha |
 
 ### Ordem de leitura recomendada para aprender
@@ -2508,23 +2508,23 @@ Um excerto das partes que não se veem noutros ecrãs (valores de exemplo):
   - [x] o carregar, com o aviso;
   - [x] o Explicar e o botão do treino a levar ao Guardar;
   - [x] os estados.
-- [ ] **11.6 O ONNX** (`core/export`): as dependências, o grafo da preparação, os conversores
+- [x] **11.6 O ONNX** (`core/export`): as dependências, o grafo da preparação, os conversores
   dos modelos, a regra de arquitetura e o teste de contrato.
-- [ ] **11.7 Os testes e o fecho:**
-  - [ ] o pacote do Titanic tem as partes todas, e o manifesto confere;
-  - [ ] cada documento pré-visualizado é igual ao que fica no ZIP;
-  - [ ] nos 34 modelos (testes de contrato), o pacote faz-se; nos que sabem prever linhas
+- [x] **11.7 Os testes e o fecho:**
+  - [x] o pacote do Titanic tem as partes todas, e o manifesto confere;
+  - [x] cada documento pré-visualizado é igual ao que fica no ZIP;
+  - [x] nos 34 modelos (testes de contrato), o pacote faz-se; nos que sabem prever linhas
     novas, a preparação e o modelo lidos do pacote dão as mesmas previsões (ou projeções) do
     run;
-  - [ ] carregar noutra instalação (outra pasta de dados) pede confirmação; depois dela, o run
+  - [x] carregar noutra instalação (outra pasta de dados) pede confirmação; depois dela, o run
     abre no histórico com o modelo;
-  - [ ] um pacote com um byte mudado nunca abre o modelo;
-  - [ ] num ficheiro carregado, as linhas de exemplo vêm desligadas;
-  - [ ] os testes da fronteira, das rotas e do vocabulário passam;
-  - [ ] o teste de ponta a ponta do ecrã: mudar uma opção, ver a ficha, guardar, descarregar
+  - [x] um pacote com um byte mudado nunca abre o modelo;
+  - [x] num ficheiro carregado, as linhas de exemplo vêm desligadas;
+  - [x] os testes da fronteira, das rotas e do vocabulário passam;
+  - [x] o teste de ponta a ponta do ecrã: mudar uma opção, ver a ficha, guardar, descarregar
     (com os cabeçalhos certos), encontrar o pacote na biblioteca e carregá-lo outra vez, com o
     axe;
-  - [ ] o formato descrito em `docs/formato-mllab.md`, a ADR 0039 aceite, as notas da fase 11 e
+  - [x] o formato descrito em `docs/formato-mllab.md`, a ADR 0039 aceite, as notas da fase 11 e
     o ✅ no roadmap.
 
 **Pronto quando:** no Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o
@@ -2547,3 +2547,49 @@ laboratório e no ONNX Runtime.
 3. Um pacote de outra instalação abre depois de um aviso.
 4. O botão de guardar do treino leva ao ecrã Guardar, e guardar lá também guarda o run no
    histórico.
+
+### Fase 11
+
+Decisões tomadas ao implementar (a principal tem ADR própria, a 0039):
+
+- **A preparação viaja em JSON, não em pickle.** Cada transformação diz o que aprendeu
+  (`learned`) e volta a montar-se a partir disso (`restore`); um teste de contrato confirma, em
+  todas, que a restaurada transforma igual à original, e outro passa todos os datasets de
+  exemplo e geradores pelo caminho do pacote. Assim só o modelo é pickle, e o pacote sem o
+  modelo pode partilhar-se à vontade.
+- **A pré-visualização é o ficheiro.** O mesmo código monta a pré-visualização e o ZIP, e um
+  teste compara-os byte a byte. Guardar também guarda o run no histórico, como fazia o botão do
+  treino.
+- **A confiança é por instalação.** O manifesto lista o SHA-256 de cada ficheiro e é assinado
+  com HMAC-SHA256 pela chave da instalação: um pacote feito aqui abre logo; um de fora abre a
+  ficha, a avaliação e a preparação, e o modelo só depois do aviso; um estragado nunca abre o
+  modelo. Uma entrada do ZIP com os bytes estragados (o CRC não confere) lê-se como estragada,
+  em vez de dar um erro 500.
+- **As partes opcionais vêm do backend** (`PackageOptions.choices`): o título, o que levam, se
+  vão por omissão e a razão quando o run não as tem. O `key` de cada uma é o campo do pedido que
+  a liga, e o ecrã desenha-se da lista sem saber quais são.
+- **O ONNX é confirmado antes de entrar no pacote.** Corre com as linhas de exemplo no ONNX
+  Runtime e tem de dar as mesmas previsões do laboratório; se não der, fica de fora com a razão.
+  A preparação vai à frente do modelo, em `double` (as mesmas contas do laboratório): uma
+  entrada por coluna, os números com `NaN` onde faltam, as categorias em texto com o vazio onde
+  faltam. Os modelos do scikit-learn passam pelo skl2onnx em `double` quando ele e o ONNX
+  Runtime o aceitam, e em `float` nos outros (as árvores do scikit-learn já comparam em
+  `float32`); os didáticos, as redes e os que memorizam linhas montam-se do que aprenderam, com
+  as mesmas fórmulas do NumPy. A conversão fica guardada por run, porque a pré-visualização se
+  pede a cada opção que muda.
+- **O PyTorch não sai das redes.** A MLP dá as camadas densas em NumPy (`dense_layers`), e os
+  modelos que memorizam linhas dão-nas (`memory`): o `core/export` monta o grafo sem saber como
+  cada um as guarda. O ONNX, o skl2onnx e o ONNX Runtime só existem em `core/export`, com uma
+  regra de arquitetura.
+- **O aviso do skl2onnx sobre o SVM.** O conversor do SVC ainda lê `probA_` e `probB_`, que o
+  scikit-learn 1.9 deu como obsoletos (o nosso SVM calibra à parte e não os usa). O aviso é do
+  skl2onnx, não do laboratório: ignora-se só esse, só durante a conversão, e a confirmação das
+  previsões garante o resultado.
+- **Ainda não passam para ONNX:** as datas (o formato não tem um tipo de data) e o t-SNE (não
+  coloca pontos novos). O pacote vai na mesma, e a ficha diz porquê.
+- **A mesma seed dá o mesmo k-means e o mesmo t-SNE** (ADR 0040): ao fechar a fase, o teste de
+  contrato da seed falhava ao acaso, porque o scikit-learn soma em paralelo numa ordem que muda.
+  Esses dois modelos passaram a treinar com uma só thread.
+- **O ecrã:** o aviso de um pacote de fora e o leitor abrem um de cada vez (dois modais abertos
+  ao mesmo tempo escondiam-se um ao outro dos leitores de ecrã); no teste de ponta a ponta, os
+  ficheiros vão pelo conteúdo, porque o Chromium perde um caminho com acentos.
