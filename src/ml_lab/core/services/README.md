@@ -26,6 +26,7 @@ ou o modelo) levam `@internal`, e as regras de domínio ficam aqui, não na inte
 | `history.py` · `HistoryService` | O histórico (ADR 0020): regista cada run sozinho, guarda o modelo e o treino passo a passo a pedido, reabre, compara (`comparison.py`) e reproduz runs, de modelos e de agentes | 5, 8 |
 | `reinforcement.py` · `ReinforcementService` | Treina agentes num ambiente (`ReinforcementConfig`), também em segundo plano, avalia a política aprendida e anuncia o run (ADR 0024) | 8 |
 | `automl.py` · `AutoMLService` | O modo automático (`AutoMLRequest`): o agente de dados decide a preparação, os agentes de modelo e o coordenador procuram o melhor modelo com validação cruzada só no treino, e o vencedor treina como um run normal do `ExperimentService` (ADR 0025). Acompanha-se pelo id da procura, como os treinos, e `train_candidate` treina um candidato à mão | 9 |
+| `llm.py` · `LanguageModelService` | O modelo de linguagem dos agentes de IA (o Ollama, ADR 0042): `status` diz se está pronto e, se não, o que fazer, em avisos com um código estável. Sem o Ollama, o resto do laboratório funciona igual | 13 |
 | `lab.py` · `Lab` | Os serviços de uma sessão, ligados entre si e a um só `EventBus` | 1 |
 
 Cada método público tem a sua rota na API (`ml_lab/api/routes/<serviço>.py`), com o nome do

@@ -2,6 +2,8 @@
 
 - **Estado:** Proposta
 - **Data:** 2026-10-25
+- **Mudada por:** a [0042](0042-agentes-de-ia-com-o-ollama.md), que junta agentes de IA (com o
+  Ollama) aos de regras; estes ficam como estão
 
 ## Contexto
 

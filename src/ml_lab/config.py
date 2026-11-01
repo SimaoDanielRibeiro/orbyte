@@ -1,4 +1,4 @@
-"""Definições do ML Lab: caminhos, base de dados, logs e API.
+"""Definições do ML Lab: caminhos, base de dados, logs, API e o Ollama dos agentes de IA.
 
 Usa só a biblioteca padrão. Cada valor vem do primeiro sítio onde estiver definido:
 
@@ -32,6 +32,8 @@ LOG_FORMAT_VAR: Final = "ML_LAB_LOG_FORMAT"
 API_HOST_VAR: Final = "ML_LAB_API_HOST"
 API_PORT_VAR: Final = "ML_LAB_API_PORT"
 API_CORS_ORIGINS_VAR: Final = "ML_LAB_API_CORS_ORIGINS"
+OLLAMA_URL_VAR: Final = "ML_LAB_OLLAMA_URL"
+OLLAMA_MODEL_VAR: Final = "ML_LAB_OLLAMA_MODEL"
 
 KNOWN_VARIABLES: Final = frozenset(
     {
@@ -43,11 +45,19 @@ KNOWN_VARIABLES: Final = frozenset(
         API_HOST_VAR,
         API_PORT_VAR,
         API_CORS_ORIGINS_VAR,
+        OLLAMA_URL_VAR,
+        OLLAMA_MODEL_VAR,
     }
 )
 
 DEFAULT_CORS_ORIGINS: Final = ("http://localhost:5173", "http://127.0.0.1:5173")
 """O servidor de desenvolvimento do Vite, onde corre a interface web (fase 10)."""
+
+DEFAULT_OLLAMA_URL: Final = "http://localhost:11434"
+"""Onde o Ollama escuta, por omissão (fase 13, ADR 0042)."""
+
+DEFAULT_OLLAMA_MODEL: Final = "qwen3:8b"
+"""O modelo dos agentes de IA: pensa à parte, usa ferramentas e cabe numa gráfica de 8 GB."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +76,8 @@ class Settings:
             não tem autenticação.
         api_port: A porta da API.
         api_cors_origins: As páginas que podem chamar a API a partir do navegador.
+        ollama_url: Onde o Ollama escuta (os agentes de IA, fase 13).
+        ollama_model: O modelo do Ollama que os agentes de IA usam.
     """
 
     home: Path
@@ -78,6 +90,8 @@ class Settings:
     api_host: str = "127.0.0.1"
     api_port: int = 8000
     api_cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
+    ollama_url: str = DEFAULT_OLLAMA_URL
+    ollama_model: str = DEFAULT_OLLAMA_MODEL
 
     @classmethod
     def from_env(
@@ -116,6 +130,8 @@ class Settings:
             api_host=values.get(API_HOST_VAR, "").strip() or "127.0.0.1",
             api_port=_port(values.get(API_PORT_VAR, "8000")),
             api_cors_origins=_origins(values.get(API_CORS_ORIGINS_VAR)),
+            ollama_url=_url(values.get(OLLAMA_URL_VAR, DEFAULT_OLLAMA_URL)),
+            ollama_model=values.get(OLLAMA_MODEL_VAR, "").strip() or DEFAULT_OLLAMA_MODEL,
         )
 
     def ensure_directories(self) -> None:
@@ -216,6 +232,16 @@ def _origins(value: str | None) -> tuple[str, ...]:
     if value is None:
         return DEFAULT_CORS_ORIGINS
     return tuple(origin.strip() for origin in value.split(",") if origin.strip())
+
+
+def _url(value: str) -> str:
+    """O endereço do Ollama: tem de começar por http:// ou https:// (sem a barra no fim)."""
+    url = value.strip().rstrip("/")
+    if not url.startswith(("http://", "https://")):
+        raise ConfigurationError(
+            f"{OLLAMA_URL_VAR} inválido: '{value}'. Usa um endereço como {DEFAULT_OLLAMA_URL}."
+        )
+    return url
 
 
 def _log_format(value: str) -> LogFormat:

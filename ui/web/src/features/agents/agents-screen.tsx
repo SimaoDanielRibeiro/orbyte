@@ -5,7 +5,7 @@
  */
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, LoaderCircle } from "lucide-react";
+import { ArrowRight, LoaderCircle, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import type {
@@ -19,6 +19,7 @@ import {
   automlOptionsOptions,
   automlStartMutation,
   datasetsSuggestTaskOptions,
+  llmStatusOptions,
 } from "@/api/generated/@tanstack/react-query.gen";
 import { automlPlan } from "@/api/generated/sdk.gen";
 import { useLabel, useVocabulary } from "@/api/vocabulary";
@@ -26,6 +27,7 @@ import { ChipGroup } from "@/components/forms/chip-group";
 import { schemaDefaults, type Values } from "@/components/forms/schema";
 import { SchemaForm } from "@/components/forms/schema-form";
 import { Explain } from "@/components/explain/explain";
+import { NoticeList } from "@/components/notices/notice-list";
 import { ErrorNote, Panel } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
@@ -47,6 +49,7 @@ import { familyColor } from "@/lib/families";
 import { isValidSeed, MAX_SEED } from "@/lib/seed";
 import { useSession } from "@/state/session";
 
+import { AI_AGENT_COLOR } from "./agent-colors";
 import { AgentDetail } from "./agent-detail";
 import { Flowchart, type FlowNode } from "./flowchart";
 import { PlanView } from "./plan-view";
@@ -67,6 +70,7 @@ export function AgentsScreen() {
           "model_selection",
           "screening_and_tuning",
           "random_search",
+          "ai_agent",
           "winners_curse",
         ]}
       />
@@ -94,6 +98,11 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
   const [settings, setSettings] = useState<Values | null>(null);
   const [seed, setSeed] = useState(42);
   const [own, setOwn] = useState(false);
+  const [ai, setAi] = useState(false);
+  // Se o Ollama está pronto: pergunta-se outra vez de vez em quando, para o interruptor ligar
+  // sozinho quando se abre o Ollama com o ecrã aberto.
+  const llm = useQuery({ ...llmStatusOptions(), refetchInterval: 10_000 });
+  const aiReady = llm.data?.ready === true;
 
   const suggestion = useQuery({
     ...datasetsSuggestTaskOptions({ path: { dataset_id: dataset.id }, query: { target } }),
@@ -131,6 +140,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
           preparation: own && ownAllowed ? preparation.config : null,
           settings: settings ?? options.data.settings,
           seed,
+          ai_agent: ai && aiReady,
         };
   const settled = useDebounced(request === null ? null : JSON.stringify(request), 300);
   const plan = useQuery({
@@ -315,6 +325,35 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                         <Switch id="agentes-preparacao" checked={own} onCheckedChange={setOwn} />
                       </div>
                     )}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-1">
+                          <Sparkles
+                            aria-hidden="true"
+                            className="mr-1 size-4"
+                            style={{ color: AI_AGENT_COLOR }}
+                          />
+                          <Label htmlFor="agentes-ia" className="text-sm text-soft">
+                            Chamar o agente de IA
+                            {llm.data !== undefined && (
+                              <span className="ml-1.5 font-mono text-xs text-dim">
+                                {llm.data.model}
+                              </span>
+                            )}
+                          </Label>
+                          <Explain topic="ai_agent" />
+                        </div>
+                        <Switch
+                          id="agentes-ia"
+                          checked={ai && aiReady}
+                          disabled={!aiReady}
+                          onCheckedChange={setAi}
+                        />
+                      </div>
+                      {llm.data !== undefined && !aiReady && (
+                        <NoticeList notices={llm.data.notices} />
+                      )}
+                    </div>
                     <div className="flex flex-col items-start gap-3">
                       <Button
                         variant="proceed"
@@ -375,6 +414,7 @@ function WhoWorks({ plan }: { plan: AutoMlPlan }) {
             test={null}
             selected={selected}
             onSelect={setSelected}
+            ai={plan.ai_agent ? { model: plan.ai_model } : null}
           />
         </div>
       </Panel>

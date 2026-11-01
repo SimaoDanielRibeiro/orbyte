@@ -288,3 +288,11 @@ class PackageNotFoundError(TrackingError, LookupError):
         super().__init__(
             f"Não há nenhum pacote '{package_id}' na biblioteca: pode ter sido apagado."
         )
+
+
+class LanguageModelError(MLLabError):
+    """O modelo de linguagem não respondeu, ou respondeu algo que não se percebe (ADR 0042).
+
+    Acontece quando o Ollama não está a correr, quando o modelo não está descarregado, ou
+    quando a resposta não é o JSON pedido. A mensagem diz como se resolve.
+    """

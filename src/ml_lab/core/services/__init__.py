@@ -16,6 +16,7 @@ from ml_lab.core.automl.search_log import (
     Participant,
     ParticipantKind,
     SearchPhase,
+    Thought,
     WorkInProgress,
 )
 from ml_lab.core.data.boundary import TablePreview
@@ -115,6 +116,7 @@ from ml_lab.core.services.laboratory import (
     Points,
     RegularizationDemo,
 )
+from ml_lab.core.services.llm import LanguageModelService, LanguageModelStatus
 from ml_lab.core.services.packages import (
     PackageCandidate,
     PackageChoice,
@@ -237,6 +239,8 @@ __all__ = [
     "Lab",
     "LaboratoryDemo",
     "LaboratoryService",
+    "LanguageModelService",
+    "LanguageModelStatus",
     "LayerFrame",
     "LayerInfo",
     "LearnedView",
@@ -324,6 +328,7 @@ __all__ = [
     "TaskOptions",
     "TaskSuggestion",
     "TaskType",
+    "Thought",
     "TrackingError",
     "TrainingAnimation",
     "TrainingJob",

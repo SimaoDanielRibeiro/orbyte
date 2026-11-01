@@ -7,7 +7,7 @@
  * quadro final se lê.
  */
 import { cn } from "cn";
-import { Check, Database, Network, Workflow } from "lucide-react";
+import { Check, Database, Network, Sparkles, Workflow } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 
@@ -18,13 +18,27 @@ import type {
   Candidate,
   ObjectiveOption,
   SearchPhase,
+  Thought,
 } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { Prose } from "@/components/markdown/prose";
 import { formatCount, formatNumber } from "@/lib/format";
 
-import { messageColor } from "./agent-colors";
+import { AI_AGENT_COLOR, messageColor } from "./agent-colors";
 import { changesText, objectiveValue } from "./values";
+
+/** A marca dos candidatos que o agente de IA propôs (e não o sorteio de um agente de família). */
+export function AiMark() {
+  return (
+    <span
+      className="ml-2 inline-flex items-center gap-1 rounded-full border px-1.5 py-px font-mono text-[11px]"
+      style={{ borderColor: AI_AGENT_COLOR, color: AI_AGENT_COLOR }}
+    >
+      <Sparkles aria-hidden="true" className="size-3" />
+      IA
+    </span>
+  );
+}
 
 const PHASES: readonly SearchPhase[] = ["data", "screening", "tuning", "final", "done"];
 
@@ -126,6 +140,7 @@ export function CandidateFeed({ candidates, objective, leader, limit = 12 }: Fee
                 </td>
                 <td className="px-3 py-2">
                   {candidate.model_display_name}
+                  {candidate.ai && <AiMark />}
                   {best && (
                     <span className="ml-2 text-xs text-muted-foreground">o melhor até agora</span>
                   )}
@@ -220,9 +235,10 @@ export function Board({ result }: { result: AutoMlResult }) {
                   <span className="ml-2 text-xs text-muted-foreground tabular-nums">
                     n.º {formatCount(candidate.number)}
                   </span>
+                  {candidate.ai && <AiMark />}
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">
-                  {label("ModelFamily", candidate.family)}
+                  {candidate.ai ? label("AgentRole", "ai") : label("ModelFamily", candidate.family)}
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">
                   {label("SearchPhase", candidate.phase)}
@@ -254,27 +270,36 @@ const ROLE_ICONS: Readonly<Record<AgentRole, typeof Database>> = {
   data: Database,
   coordinator: Workflow,
   model: Network,
+  ai: Sparkles,
 };
 
 /**
  * A conversa dos agentes, pela ordem; segue a mensagem mais recente enquanto chegam. Cada agente
  * tem a sua cor (a do nó dele no fluxograma), no contorno da caixa do ícone: lê-se quem fala sem
  * ler o nome. O texto fica nas cores do texto.
+ *
+ * O agente de IA pensa antes de responder: enquanto pensa, o raciocínio aparece no fim da
+ * conversa, a crescer (`thought`); depois fica guardado numa mensagem "Pensamento", fechada, que
+ * se abre para o ler todo.
  */
 export function Conversation({
   messages,
   active = null,
+  thought = null,
   className,
 }: {
   messages: readonly AgentMessage[];
   /** A mensagem à vista no histórico das trocas (fica marcada, e a conversa vai até ela). */
   active?: number | null;
+  /** O que o agente de IA está a pensar agora (aparece no fim, ao vivo). */
+  thought?: Thought | null;
   className?: string;
 }) {
   const label = useLabel();
   const reduced = useReducedMotion() ?? false;
   const list = useRef<HTMLOListElement>(null);
   const count = messages.length;
+  const thinking = thought?.text.length ?? -1;
   // Só a caixa da conversa rola (nunca a página): quem está a ver o fluxograma não salta. Ao
   // vivo segue a última mensagem; no histórico, a que está à vista.
   useEffect(() => {
@@ -291,7 +316,7 @@ export function Conversation({
     if (item !== null) {
       element.scrollTo({ top: item.offsetTop - element.clientHeight / 3, behavior });
     }
-  }, [count, active, reduced]);
+  }, [count, active, reduced, thinking]);
   if (count === 0) {
     return <p className="font-mono text-xs text-dim">Os agentes ainda não disseram nada.</p>;
   }
@@ -338,6 +363,38 @@ export function Conversation({
             </motion.li>
           );
         }
+        // O raciocínio do agente de IA: fechado, com o princípio à vista; abre-se para o ler todo.
+        if (message.kind === "thought") {
+          return (
+            <motion.li
+              key={message.number}
+              data-message={message.number}
+              initial={reduced ? false : { opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: reduced ? 0 : 0.25 }}
+              className={cn(
+                "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg",
+                now && "bg-surface-high py-2 ring-1 ring-[#3a3a3a]",
+              )}
+            >
+              <span aria-hidden="true" className="flex justify-center pt-1 text-dim">
+                <Sparkles className="size-3.5" style={{ color: AI_AGENT_COLOR }} />
+              </span>
+              <details className="group min-w-0">
+                <summary className="cursor-pointer list-none truncate font-mono text-xs text-dim hover:text-soft">
+                  <span className="text-soft">{label("MessageKind", "thought")}</span> ·{" "}
+                  {message.text}
+                </summary>
+                <p
+                  className="mt-2 max-h-72 overflow-y-auto border-l pl-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-soft"
+                  style={{ borderColor: AI_AGENT_COLOR }}
+                >
+                  {message.text}
+                </p>
+              </details>
+            </motion.li>
+          );
+        }
         const recipients = to(message);
         return (
           <motion.li
@@ -372,6 +429,45 @@ export function Conversation({
           </motion.li>
         );
       })}
+      {thought !== null && <LiveThought thought={thought} />}
     </ol>
+  );
+}
+
+/** O agente de IA a pensar, agora: o raciocínio a crescer, com um cursor a piscar no fim. */
+function LiveThought({ thought }: { thought: Thought }) {
+  return (
+    <li
+      className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <span
+        aria-hidden="true"
+        className="mt-0.5 flex size-7 items-center justify-center rounded-lg border border-dashed bg-[#1a1a1a]"
+        style={{ borderColor: AI_AGENT_COLOR }}
+      >
+        <Sparkles className="size-3.5 animate-pulse" style={{ color: AI_AGENT_COLOR }} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm">
+          <span className="font-medium text-strong">{thought.author}</span>
+          <span className="ml-1.5 text-soft">
+            está a pensar no candidato n.º {formatCount(thought.candidate)}
+          </span>
+        </p>
+        <p
+          className="mt-1 max-h-60 overflow-y-auto border-l pl-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-soft"
+          style={{ borderColor: AI_AGENT_COLOR }}
+        >
+          {thought.text === "" ? "…" : thought.text}
+          <span
+            aria-hidden="true"
+            className="ml-0.5 inline-block h-3 w-1.5 animate-pulse align-middle"
+            style={{ background: AI_AGENT_COLOR }}
+          />
+        </p>
+      </div>
+    </li>
   );
 }

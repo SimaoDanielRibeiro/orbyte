@@ -592,14 +592,18 @@ ml-lab/
 │   │   │   │                 # (NumPy) e DQN (PyTorch), registo AGENTS
 │   │   │   ├── evaluation.py # as métricas: o treino (a explorar) e a política aprendida
 │   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Reinforcement learning
-│   │   └── automl/           # AGENTES DO MODO AUTOMÁTICO: o melhor modelo para um pedido
-│   │       ├── data_agent.py # o agente de dados: do perfil à preparação, com as razões
-│   │       ├── model_agent.py  # um agente por família de modelos, saído do registo MODELS
-│   │       ├── search_space.py # o espaço de procura de cada modelo, lido do x-search
-│   │       ├── objective.py  # a métrica a otimizar e o seu sentido
-│   │       ├── coordinator.py  # triagem e afinação, com validação cruzada só no treino
-│   │       ├── search_log.py # a conversa dos agentes e os candidatos, entre fios
-│   │       └── explanations.py  # textos do painel "Porquê?" do ecrã Agentes
+│   │   ├── automl/           # AGENTES DO MODO AUTOMÁTICO: o melhor modelo para um pedido
+│   │   │   ├── data_agent.py # o agente de dados: do perfil à preparação, com as razões
+│   │   │   ├── model_agent.py  # um agente por família de modelos, saído do registo MODELS
+│   │   │   ├── search_space.py # o espaço de procura de cada modelo, lido do x-search
+│   │   │   ├── objective.py  # a métrica a otimizar e o seu sentido
+│   │   │   ├── coordinator.py  # triagem e afinação, com validação cruzada só no treino
+│   │   │   ├── search_log.py # a conversa dos agentes e os candidatos, entre fios
+│   │   │   └── explanations.py  # textos do painel "Porquê?" do ecrã Agentes
+│   │   └── llm/              # MODELOS DE LINGUAGEM dos agentes de IA (fase 13, ADR 0042)
+│   │       ├── base.py       # a conversa (mensagens, pedaços, ferramentas) e LanguageModel
+│   │       ├── ollama.py     # o Ollama por HTTP: o único pedido à rede do núcleo
+│   │       └── scripted.py   # respostas escritas à mão, para os testes sem o Ollama
 │   │
 │   └── api/                  # API: os serviços por HTTP e WebSocket (fase 7, ADR 0022)
 │       ├── app.py            # create_app: um Lab por processo, CORS, erros
@@ -937,8 +941,10 @@ ecrã da aprimorada. Cumpriu-se, e a simples saiu.
 
 ## Roadmap por fases
 
-Treze fases (0 a 12): as onze primeiras constroem o laboratório; a 11 e a 12 levam o que
-ele aprende para fora dele, primeiro para um ficheiro e depois para previsões novas. Cada uma
+Catorze fases (0 a 13): as onze primeiras constroem o laboratório; a 11 e a 12 levam o que
+ele aprende para fora dele, primeiro para um ficheiro e depois para previsões novas; a 13 junta
+agentes de IA (um modelo de linguagem no próprio computador) aos agentes de regras da 9, e
+faz-se antes da 12, a pedido. Cada uma
 termina com algo que funciona, está testado e já se vê na interface (na simples até à fase 9,
 na web desde a 10). Cada fase introduz poucas tecnologias novas, para as aprenderes uma de
 cada vez.
@@ -958,6 +964,7 @@ cada vez.
 | 10 — Interface aprimorada | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
 | 11 — Guardar e carregar o modelo ✅ | A preparação aprendida fica com o dataset e passa a JSON; o pacote `.mllab` (um ZIP com a ficha, o manifesto assinado, a entrada, a preparação, o run, o modelo e o ONNX); a biblioteca dos pacotes; carregar um pacote, com um aviso se vier de fora; o `PackageService` (ADR 0039) | Guardar: o ficheiro pré-visualizado parte a parte antes de existir, a biblioteca e o carregar | ONNX (`onnx`, `skl2onnx`, `onnxruntime`) | No Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o gravar; guardá-lo descarrega um `.mllab` que abre em qualquer programa de ZIP; carregado noutra instalação, pede confirmação e o run abre no Treinar e avaliar; e o modelo de dentro dá as mesmas previsões do run original, no laboratório e no ONNX Runtime |
 | 12 — Prever | Abrir um pacote, transformar linhas novas com a preparação guardada, prever com a explicação de cada previsão e avisos de extrapolação; um CSV inteiro de uma vez | Prever: o formulário gerado da entrada do pacote, a previsão ao vivo, o "e se…" e o ficheiro com a coluna da previsão | — | Escolher o pacote do Titanic, preencher um passageiro e ver a previsão mudar ao mexer na idade; um CSV inteiro sai com a previsão de cada linha |
+| 13 — Agentes de IA | A interface `LanguageModel` e o cliente do Ollama, com o raciocínio à parte, saída estruturada e ferramentas; o estado do modelo como serviço; um agente de IA que propõe hiperparâmetros a pensar (o coordenador continua a medir); um analista que responde sobre a procura com ferramentas; as respostas guardadas para repetir a procura (ADR 0042) | Agentes: o agente de IA no fluxograma e o pensamento ao vivo na conversa; a comparação com a procura aleatória; o analista | Ollama (`qwen3:8b`) | Com o Ollama aberto, no Titanic, o agente de IA pensa à vista antes de cada proposta, as propostas medem-se como as outras sem tocar no teste, e o analista explica o vencedor usando as ferramentas; sem o Ollama, o ecrã diz como o ligar e tudo o resto funciona |
 
 ### Ordem de leitura recomendada para aprender
 
@@ -2593,3 +2600,58 @@ Decisões tomadas ao implementar (a principal tem ADR própria, a 0039):
 - **O ecrã:** o aviso de um pacote de fora e o leitor abrem um de cada vez (dois modais abertos
   ao mesmo tempo escondiam-se um ao outro dos leitores de ecrã); no teste de ponta a ponta, os
   ficheiros vão pelo conteúdo, porque o Chromium perde um caminho com acentos.
+
+### Fase 13: agentes de IA
+
+O pedido: agentes de IA, com um modelo de linguagem no próprio computador (o Ollama), que se
+vejam a pensar, ao lado dos agentes de regras da fase 9 (que ficam como estão). A decisão e as
+regras estão na ADR 0042: **a IA propõe e explica; as regras decidem e medem**.
+
+**As etapas**, cada uma com o seu "Pronto quando":
+
+| Etapa | O quê | Pronto quando | Estado |
+|---|---|---|---|
+| 13.1 — A base | `core/llm/`: a interface `LanguageModel` (a conversa aos bocados, o raciocínio à parte, a saída num JSON Schema e as ferramentas), o cliente do Ollama por HTTP e o `ScriptedModel` para os testes; as definições `ML_LAB_OLLAMA_URL` e `ML_LAB_OLLAMA_MODEL`; `LanguageModelService.status()` e `GET /llm/status`; duas regras de arquitetura | Sem o Ollama, `GET /llm/status` diz como o ligar; com ele, diz se tem o modelo; o cliente passa os testes contra um Ollama de mentira, e o teste com o Ollama a sério passa quando ele está a correr | ✅ |
+| 13.2 — O agente de IA | Um agente que propõe hiperparâmetros com o modelo de linguagem, com a forma do `ModelAgent`; o pensamento ao vivo no trabalho em curso e uma mensagem "Pensamento" na conversa; as propostas validadas pelo espaço de procura; as respostas guardadas para reproduzir; no ecrã Agentes, o interruptor, o nó da IA no fluxograma e a comparação com a procura aleatória | No Titanic, com o Ollama aberto, vê-se o agente de IA a pensar antes de cada proposta, e as propostas medem-se como as outras, sem tocar no teste | ✅ (sem o Ollama: verificado com respostas guardadas) |
+| 13.3 — O analista | Um agente com ferramentas (o quadro, um candidato, comparar dois, o plano dos dados) que responde a perguntas sobre a procura; o ciclo pensar → usar uma ferramenta → ler o resultado → responder, à vista | O analista explica porque ganhou o vencedor, e vê-se cada ferramenta que usou | |
+
+Decisões tomadas na etapa 13.1:
+
+- **Sem dependências novas.** O Ollama fala HTTP com NDJSON (um objeto JSON por linha), e a
+  biblioteca padrão chega (`urllib`). Assim o código mostra exatamente o pedido que vai para o
+  modelo, e é o único pedido à rede do núcleo (regra de arquitetura).
+- **O estado não é um erro.** O Ollama não estar a correr é normal: `status()` devolve-o com o
+  que fazer (`ollama_not_running`, `model_not_installed`), e a API responde 200. Os erros
+  (`LanguageModelError`) ficam para quando se pede uma conversa e ela falha.
+- **A temperatura vai sempre a 0** e a seed vai no pedido: a mesma pergunta tende a dar a mesma
+  resposta. Não é garantido entre computadores, por isso a etapa 13.2 guarda as respostas.
+- **Os testes não precisam do Ollama.** O cliente testa-se contra um servidor HTTP de mentira
+  (o pedido, os pedaços, as ferramentas, os erros); os agentes vão usar o `ScriptedModel`. Só o
+  teste marcado `ollama` fala com o modelo a sério, e salta-se sem ele
+  (`uv run pytest -m ollama`).
+
+Decisões tomadas na etapa 13.2:
+
+- **Um agente a mais, não um agente diferente.** O agente de IA (`core/automl/ai_agent.py`) entra
+  na roda da afinação depois dos agentes de família, e na sua vez escolhe um dos finalistas e os
+  valores. Os agentes de família continuam a sortear: a IA e a procura aleatória competem na
+  mesma procura, com o mesmo orçamento, e a leitura do fim (`ai_comparison`) compara a melhor
+  proposta dele com o melhor sorteio da afinação.
+- **O espaço de procura valida as propostas.** `Dimension.problem` e `SearchSpace.problems` dizem
+  porque é que um valor não serve; `SearchSpace.normalized` passa o `4.0` de um modelo de
+  linguagem a `4`. Os agentes de família guardam tudo o que se mediu (`has_tried`), dos dois
+  lados: nem a IA repete um sorteio, nem um sorteio repete a IA.
+- **Uma recusa não gasta orçamento**, e diz-se porquê na conversa. À terceira seguida, ou se o
+  modelo de linguagem falhar a meio, o agente de IA sai e a procura continua sem ele.
+- **O pensamento vai ao vivo para o estado da procura**: `SearchLog.start_thinking`, `think` e
+  `stop_thinking` guardam o raciocínio que vai chegando, e `AutoMLUpdate.thought` leva-o à
+  interface pelo WebSocket. No fim, o raciocínio inteiro fica numa mensagem `THOUGHT`.
+- **O que é novo no vocabulário:** `AgentRole.AI`, `ParticipantKind.AI` e
+  `MessageKind.THOUGHT`; no candidato, `ai` e `reason`; no plano, `ai_agent` e `ai_model`.
+- **No ecrã:** o interruptor "Chamar o agente de IA" pergunta o estado ao `GET /llm/status` (e
+  mostra os avisos dele quando o Ollama não está pronto); o nó tracejado no fluxograma, o
+  pensamento ao vivo e fechado na conversa, a marca **IA** no quadro e o painel do agente de IA
+  com as propostas e a razão de cada uma. O tema "Porquê?" `ai_agent` explica-o.
+- **Verificado sem o Ollama:** a procura com respostas guardadas passa pelo mesmo caminho (é o
+  `ScriptedModel` a responder). Com o Ollama a sério, falta ver o raciocínio a crescer ao vivo
+  (o teste marcado `ollama` cobre o cliente, não o ecrã).

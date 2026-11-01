@@ -14,8 +14,26 @@ AUTOML_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "**agente de dados** prepara a tabela, um **agente por família de modelos** "
             "propõe candidatos (as árvores, os lineares, as redes…) e o **coordenador** "
             "distribui o orçamento e escolhe o vencedor. Cada decisão fica na conversa, com a "
-            "razão. Não há magia nem um modelo de linguagem: são regras e medições, e com a "
-            "mesma seed a procura repete-se tal e qual.",
+            "razão. Estes agentes não têm magia nem um modelo de linguagem: são regras e "
+            "medições, e com a mesma seed a procura repete-se tal e qual. Se o Ollama estiver "
+            "aberto, pode juntar-se-lhes um **agente de IA**, que pensa com um modelo de "
+            "linguagem.",
+        ),
+        "ai_agent": Explanation(
+            "O agente de IA",
+            "Os agentes de família sorteiam a próxima combinação de hiperparâmetros: não olham "
+            "para o que já se mediu. O **agente de IA** olha. Na sua vez, recebe os finalistas, "
+            "o espaço de procura de cada um e os resultados de todos os candidatos, **pensa** "
+            "(o raciocínio aparece ao vivo, na conversa) e propõe o próximo candidato, com a "
+            "razão. Quem pensa é um modelo de linguagem a correr no teu computador, no Ollama.\n\n"
+            "As regras à volta dele mantêm a procura honesta: a resposta tem um formato fixo, "
+            "uma proposta fora do espaço de procura (ou repetida) é recusada, e quem mede é o "
+            "coordenador, com validação cruzada só no treino. O agente de IA nunca vê o teste "
+            "nem escolhe o vencedor. No fim, compara-se o melhor que ele propôs com o melhor "
+            "da procura aleatória, com o mesmo orçamento.\n\n"
+            "Um modelo de linguagem não responde sempre igual, nem com a mesma seed. Por isso "
+            "as respostas dele ficam guardadas no pedido do resultado: com elas, a procura "
+            "repete-se tal e qual, sem o Ollama.",
         ),
         "exchange_history": Explanation(
             "O histórico das trocas",

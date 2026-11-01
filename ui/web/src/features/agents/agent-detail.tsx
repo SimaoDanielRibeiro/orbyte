@@ -38,6 +38,7 @@ import type {
   WorkInProgress,
 } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
+import { TopicText } from "@/components/markdown/topic-text";
 import { Stat, type StatItem } from "@/components/shell/blocks";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { withAlpha } from "@/lib/colors";
 import { formatCount, formatMetric, formatNumber, formatQuantity, formatValue } from "@/lib/format";
 
-import { COORDINATOR_COLOR, DATA_AGENT_COLOR, familyColor } from "./agent-colors";
+import { AI_AGENT_COLOR, COORDINATOR_COLOR, DATA_AGENT_COLOR, familyColor } from "./agent-colors";
 import type { FlowNode } from "./flowchart";
 import { PlanView } from "./plan-view";
 import { Conversation } from "./search-parts";
@@ -156,6 +157,8 @@ export function AgentDetail(props: AgentDetailProps) {
                 <CoordinatorDetail {...props} />
               ) : node === "winner" || node === "test" ? (
                 <LeaderDetail {...props} />
+              ) : node === "ai" ? (
+                <AiDetail {...props} />
               ) : (
                 <FamilyDetail {...props} family={node} />
               )}
@@ -192,6 +195,22 @@ function tabsOf(node: FlowNode, props: AgentDetailProps): TabInfo[] {
           count: said((message) => message.role === "coordinator"),
         },
       ];
+    case "ai":
+      return props.phase === null
+        ? [{ value: "summary", title: "Resumo" }]
+        : [
+            { value: "summary", title: "Resumo" },
+            {
+              value: "candidates",
+              title: "Propostas",
+              count: props.candidates.filter((candidate) => candidate.ai).length,
+            },
+            {
+              value: "conversation",
+              title: "O que pensou e disse",
+              count: said((message) => message.role === "ai"),
+            },
+          ];
     default:
       // Antes de a procura começar, um agente só tem os modelos que vai experimentar.
       return props.phase === null
@@ -201,7 +220,9 @@ function tabsOf(node: FlowNode, props: AgentDetailProps): TabInfo[] {
             {
               value: "candidates",
               title: "Candidatos",
-              count: props.candidates.filter((candidate) => candidate.family === node).length,
+              count: props.candidates.filter(
+                (candidate) => candidate.family === node && !candidate.ai,
+              ).length,
             },
             {
               value: "conversation",
@@ -251,6 +272,12 @@ function headingOf(
             : `${props.leader.model_display_name}, o melhor na validação cruzada${finished ? "" : " até agora"}.`,
         color: props.leader === null ? "#fafafa" : familyColor(props.leader.family),
       };
+    case "ai":
+      return {
+        title: label("AgentRole", "ai"),
+        description: aiStatus(props),
+        color: AI_AGENT_COLOR,
+      };
     default:
       return {
         title: label("ModelFamily", node),
@@ -260,15 +287,30 @@ function headingOf(
   }
 }
 
+/** O que o agente de IA está a fazer, numa frase. */
+function aiStatus(props: AgentDetailProps): string {
+  const { phase, working, candidates } = props;
+  const own = candidates.filter((candidate) => candidate.ai).length;
+  if (phase === null) {
+    return "Entra na afinação: lê os resultados e pensa no próximo candidato.";
+  }
+  if (working?.ai === true) {
+    return `A medir a proposta dele, ${working.model_display_name}.`;
+  }
+  return own === 0
+    ? "Ainda não propôs nenhum candidato medido."
+    : `Propôs ${formatQuantity(own, "candidato medido", "candidatos medidos")}.`;
+}
+
 /** O que um agente de uma família está a fazer, numa frase. */
 function familyStatus(family: ModelFamily, props: AgentDetailProps): string {
   const { phase, working, candidates } = props;
-  const own = candidates.filter((candidate) => candidate.family === family).length;
+  const own = candidates.filter((candidate) => candidate.family === family && !candidate.ai).length;
   const searching = phase === "screening" || phase === "tuning";
   if (phase === null) {
     return "Ainda não começou: em baixo estão os modelos que vai experimentar.";
   }
-  if (searching && working?.family === family) {
+  if (searching && working?.family === family && !working.ai) {
     return `A medir ${working.model_display_name}, fold ${formatCount(working.fold)} de ${formatCount(working.folds)}.`;
   }
   if (own === 0) {
@@ -290,6 +332,7 @@ function NodeSwitcher({
   agents,
   phase,
   leader,
+  plan,
   onSelect,
   label,
 }: AgentDetailProps & {
@@ -306,6 +349,9 @@ function NodeSwitcher({
       title: label("ModelFamily", agent.family),
       color: familyColor(agent.family),
     })),
+    ...(plan?.ai_agent === true
+      ? [{ key: "ai" as const, title: label("AgentRole", "ai"), color: AI_AGENT_COLOR }]
+      : []),
     {
       key: "winner",
       title: finished ? "Vencedor" : "Líder",
@@ -351,10 +397,11 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
   const label = useLabel();
   const agent = props.agents.find((one) => one.family === family);
   const color = familyColor(family);
-  const own = candidates.filter((candidate) => candidate.family === family);
+  // Os candidatos que o agente de IA propôs nesta família são dele, não do agente da família.
+  const own = candidates.filter((candidate) => candidate.family === family && !candidate.ai);
   const best = bestCandidate(own, objective);
   const searching = phase === "screening" || phase === "tuning";
-  const busy = searching && working?.family === family ? working : null;
+  const busy = searching && working?.family === family && !working.ai ? working : null;
   const seconds = own.reduce((total, candidate) => total + candidate.seconds, 0);
   const place = best === null || ranking === undefined ? 0 : ranking.indexOf(best.number) + 1;
   const gap =
@@ -500,6 +547,105 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
 }
 
 /** O agente de dados: o plano e o que disse. */
+/** O agente de IA: o que é, as propostas medidas (com a razão de cada uma) e o que pensou. */
+function AiDetail(props: AgentDetailProps) {
+  const { candidates, objective, working, phase, leader, ranking } = props;
+  const label = useLabel();
+  const own = candidates.filter((candidate) => candidate.ai);
+  const best = bestCandidate(own, objective);
+  const place = best === null || ranking === undefined ? 0 : ranking.indexOf(best.number) + 1;
+  const busy = working?.ai === true ? working : null;
+
+  return (
+    <>
+      <TabsContent value="summary" className="flex flex-col gap-10">
+        {busy !== null && (
+          <div
+            className="flex flex-col gap-2 rounded-xl border border-dashed bg-ground p-4"
+            style={{ borderColor: AI_AGENT_COLOR }}
+          >
+            <p className="text-sm text-strong">A medir a proposta: {busy.model_display_name}</p>
+            <p className="font-mono text-xs text-dim">
+              {changesText(busy)} · fold {formatCount(busy.fold)} de {formatCount(busy.folds)}
+            </p>
+          </div>
+        )}
+        {best !== null && (
+          <StatRow
+            items={[
+              {
+                key: "melhor",
+                label: `A melhor proposta (${objective?.label.toLowerCase() ?? "valor"})`,
+                value: objectiveValue(best.mean, objective),
+                detail: best.model_display_name,
+              },
+              {
+                key: "propostas",
+                label: "Propostas medidas",
+                value: formatCount(own.length),
+              },
+              place > 0
+                ? {
+                    key: "lugar",
+                    label: "Lugar no quadro",
+                    value: `${formatCount(place)}.º`,
+                    detail: `de ${formatCount(ranking?.length ?? 0)} candidatos`,
+                  }
+                : {
+                    key: "lider",
+                    label: "É o líder?",
+                    value: leader?.number === best.number ? "Sim" : "Não",
+                  },
+            ]}
+          />
+        )}
+        <Block
+          title={`Como pensa${props.plan?.ai_model == null ? "" : ` (${props.plan.ai_model})`}`}
+        >
+          <TopicText topic="ai_agent" className="max-w-[65ch]" />
+        </Block>
+      </TabsContent>
+
+      {phase !== null && (
+        <>
+          <TabsContent value="candidates" className="flex flex-col gap-8">
+            {own.length === 0 ? (
+              <p className="text-sm text-soft">Ainda não tem nenhuma proposta medida.</p>
+            ) : (
+              <>
+                <CandidateList
+                  candidates={own}
+                  objective={objective}
+                  color={AI_AGENT_COLOR}
+                  best={best}
+                  leader={leader}
+                  final={phase === "done"}
+                  label={label}
+                />
+                <Block title="Porque propôs cada uma">
+                  <ol className="flex flex-col gap-3">
+                    {own.map((candidate) => (
+                      <li key={candidate.number} className="text-sm leading-relaxed">
+                        <span className="font-mono text-xs text-dim tabular-nums">
+                          n.º {formatCount(candidate.number)} · {candidate.model_display_name}
+                        </span>
+                        <p className="text-soft">{candidate.reason ?? "Não disse porquê."}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </Block>
+              </>
+            )}
+          </TabsContent>
+          <TabsContent value="conversation">
+            <Conversation messages={props.messages.filter((message) => message.role === "ai")} />
+          </TabsContent>
+        </>
+      )}
+    </>
+  );
+}
+
 function DataDetail(props: AgentDetailProps) {
   return (
     <>

@@ -105,3 +105,44 @@ No ecrã **Agentes**:
 - o **quadro**: a média no treino ao lado da média na validação mostra quanto cada
   candidato decora; um candidato que falhou fica lá, com a razão;
 - no fim, o **teste** do vencedor, comparado com o que a validação cruzada previa.
+
+## O agente de IA (fase 13)
+
+Os agentes acima são regras: com a mesma seed, decidem sempre o mesmo. Com o Ollama aberto,
+pode juntar-se-lhes um **agente de IA** (ADR 0042), que entra na afinação ao lado dos agentes de
+família.
+
+**A intuição.** A procura aleatória não aprende: o décimo sorteio não sabe o que os nove
+anteriores mediram. O agente de IA sabe. Na sua vez, recebe os finalistas, o espaço de procura de
+cada um e os resultados de todos os candidatos (a média, o desvio e a nota no treino), **pensa** e
+propõe o próximo: um dos finalistas e os valores a mudar, com a razão. Por exemplo: "a árvore tem
+100% no treino e 78% na validação, está a decorar; vou baixar a profundidade". É a ideia da
+otimização bayesiana (usar o que já se mediu para escolher o próximo ponto), feita por um modelo de
+linguagem em vez de um modelo estatístico.
+
+**Como se monta** (`core/automl/ai_agent.py`):
+
+1. `briefing` escreve o que a procura sabe até ali, em texto, com os números como em JSON;
+2. `answer_schema` diz o formato da resposta (o modelo, os valores e a razão). O Ollama obriga o
+   modelo a responder nesse formato (saída estruturada);
+3. o modelo responde aos bocados, com o raciocínio à parte (`think`). O raciocínio vai para a
+   conversa à medida que chega: é o que se vê a crescer no ecrã;
+4. `read_answer` valida a proposta: o modelo tem de ser um finalista, os valores têm de estar no
+   espaço de procura dele e a combinação não pode ter sido medida.
+
+**O que o mantém honesto.** Quem mede é o coordenador, com validação cruzada só no treino, como
+para os outros: o agente de IA nunca vê o teste nem escolhe o vencedor. Uma proposta que não serve
+é recusada, diz-se porquê, e não gasta orçamento; à terceira recusa seguida, ele sai da afinação.
+
+**Armadilhas.**
+
+- **Um modelo de linguagem não é determinista**, mesmo com a temperatura a 0 e a mesma seed:
+  noutro computador pode responder outra coisa. Por isso as respostas ficam guardadas no pedido do
+  resultado (`ai_replies`), e repetir a procura com esse pedido dá o mesmo, sem o Ollama.
+- **Pensar não é medir.** O raciocínio pode soar bem e estar errado; só a validação cruzada diz se
+  a proposta é boa. Lê o pensamento como uma hipótese, e o resultado como o teste dela.
+- **Uma procura com IA é mais lenta**: cada proposta espera pelo modelo (segundos, numa gráfica).
+
+**O que observar.** O nó tracejado "Agente de IA" no fluxograma acende-se enquanto pensa; na
+conversa, o "Pensamento" abre-se para ler o raciocínio inteiro; no quadro, as propostas dele têm a
+marca **IA**; e a leitura do fim compara a melhor proposta dele com o melhor sorteio da afinação.

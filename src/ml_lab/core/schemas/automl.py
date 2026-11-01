@@ -76,6 +76,20 @@ class SearchSettings(BaseModel):
     )
 
 
+class RecordedReply(BaseModel):
+    """Uma resposta do agente de IA, guardada para a procura se repetir sem o modelo de linguagem.
+
+    Attributes:
+        thinking: O raciocínio.
+        content: A resposta, como o modelo a escreveu (o JSON da proposta).
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    thinking: str = ""
+    content: str
+
+
 class AutoMLRequest(BaseModel):
     """O pedido aos agentes: que modelo prevê melhor ``target`` nestes dados?
 
@@ -91,6 +105,9 @@ class AutoMLRequest(BaseModel):
             decidir.
         settings: O tamanho da procura.
         seed: Seed raiz; ``None`` gera uma nova, que fica registada no resultado.
+        ai_agent: Se o agente de IA entra na afinação (precisa do Ollama, ADR 0042).
+        ai_replies: As respostas do agente de IA de uma procura anterior: com elas, a procura
+            repete-se tal e qual, sem o Ollama. O resultado traz sempre as que usou.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -104,3 +121,5 @@ class AutoMLRequest(BaseModel):
     preparation: PreparationConfig | None = None
     settings: SearchSettings = Field(default_factory=SearchSettings)
     seed: int | None = Field(default=None, ge=0, le=MAX_SEED)
+    ai_agent: bool = False
+    ai_replies: tuple[RecordedReply, ...] = ()

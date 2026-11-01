@@ -81,6 +81,38 @@ class Dimension:
             return round(value)
         return float(f"{value:.{SIGNIFICANT_DIGITS}g}")
 
+    def problem(self, value: Any) -> str | None:
+        """Porque é que ``value`` não está no espaço desta dimensão (``None`` se estiver).
+
+        Serve para validar o que o agente de IA propõe: um modelo de linguagem pode sugerir um
+        valor que ninguém procura, e esse valor não se mede.
+        """
+        if self.values:
+            if any(_same(value, option) for option in self.values):
+                return None
+            shown = ", ".join(written_value(option) for option in self.values)
+            return f"{self.name} = {written_value(value)} não é um dos valores procurados ({shown})"
+        if isinstance(value, bool) or not isinstance(value, int | float):
+            return f"{self.name} tem de ser um número, e veio {written_value(value)}"
+        if self.integer and float(value) != round(value):
+            return f"{self.name} tem de ser um número inteiro, e veio {written_value(value)}"
+        low, high = self.bounds
+        if not low <= value <= high:
+            return (
+                f"{self.name} = {written_value(value)} sai do espaço procurado "
+                f"(de {written_value(low)} a {written_value(high)})"
+            )
+        return None
+
+    def schema(self) -> dict[str, Any]:
+        """O JSON Schema de um valor desta dimensão (o formato pedido ao agente de IA)."""
+        if self.values:
+            return {"enum": list(self.values)}
+        low, high = self.bounds
+        if self.integer:
+            return {"type": "integer", "minimum": int(low), "maximum": int(high)}
+        return {"type": "number", "minimum": low, "maximum": high}
+
     @property
     def description(self) -> str:
         """O que se procura, em português ("C: de 0,1 a 100, em escala logarítmica")."""
@@ -121,6 +153,34 @@ class SearchSpace:
     def sample(self, rng: np.random.Generator) -> dict[str, Any]:
         """Uma combinação ao acaso: um valor por dimensão."""
         return {dimension.name: dimension.sample(rng) for dimension in self.dimensions}
+
+    def problems(self, values: Mapping[str, Any]) -> tuple[str, ...]:
+        """O que não serve numa combinação: nomes que não se procuram e valores fora do espaço.
+
+        Uma dimensão que falta não é um problema: fica com o valor por omissão.
+        """
+        known = {dimension.name: dimension for dimension in self.dimensions}
+        found = [
+            f"{name} não é um hiperparâmetro procurado em {self.model}"
+            for name in values
+            if name not in known
+        ]
+        for name, value in values.items():
+            dimension = known.get(name)
+            problem = None if dimension is None else dimension.problem(value)
+            if problem is not None:
+                found.append(problem)
+        return tuple(found)
+
+    def normalized(self, values: Mapping[str, Any]) -> dict[str, Any]:
+        """A combinação com os inteiros como inteiros (um modelo de linguagem escreve 4.0)."""
+        integers = {dimension.name for dimension in self.dimensions if dimension.integer}
+        return {
+            name: int(value)
+            if name in integers and isinstance(value, float) and value == round(value)
+            else value
+            for name, value in values.items()
+        }
 
 
 def search_space(model: type[LabModel[Any]]) -> SearchSpace:
@@ -171,6 +231,19 @@ def _bounds(bounds: Any, where: str) -> tuple[float, float]:
     if not numbers or len(bounds) != 2 or bounds[0] >= bounds[1]:
         raise ModelError(f"O x-search de {where} tem de ser [mínimo, máximo], com mínimo < máximo.")
     return float(bounds[0]), float(bounds[1])
+
+
+def _same(value: Any, option: Any) -> bool:
+    """Se ``value`` é ``option`` (os números comparam-se pelo valor: 4 e 4.0 são o mesmo)."""
+    numbers = (int, float)
+    if (
+        isinstance(value, numbers)
+        and isinstance(option, numbers)
+        and not isinstance(value, bool)
+        and not isinstance(option, bool)
+    ):
+        return float(value) == float(option)
+    return bool(value == option)
 
 
 def written_value(value: Any) -> str:

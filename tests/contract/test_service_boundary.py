@@ -120,6 +120,7 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
         saved,
         lab.packages.contents(saved.package_id),
         list(lab.laboratory.demos()),
+        lab.llm.status(),  # com ou sem o Ollama a correr, é um estado (nunca um erro)
         vocabulary(),
     ]
 

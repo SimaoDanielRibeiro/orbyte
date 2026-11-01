@@ -29,7 +29,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0022](0022-api-fina-por-cima-dos-servicos.md) | A API: rotas finas por cima dos serviços, e o treino acompanhado pelo mesmo pedido | Proposta |
 | [0023](0023-o-processo-pede-para-nao-ser-travado.md) | O processo pede ao Windows para não ser travado | Proposta |
 | [0024](0024-reinforcement-learning-com-os-mesmos-contratos.md) | Reinforcement learning: um paradigma novo, com a mesma maquinaria de treino | Proposta |
-| [0025](0025-agentes-de-automl-deterministas.md) | Agentes de AutoML deterministas, por cima dos serviços | Proposta |
+| [0025](0025-agentes-de-automl-deterministas.md) | Agentes de AutoML deterministas, por cima dos serviços | Proposta; mudada pela 0042 |
 | [0026](0026-contrato-com-o-frontend.md) | O contrato com o frontend: tipos exatos, um vocabulário e o OpenAPI guardado | Proposta |
 | [0027](0027-interface-web-com-o-cliente-gerado.md) | A interface web: React, com o cliente gerado do contrato | Proposta |
 | [0028](0028-demonstracoes-dos-modelos-e-formulas-das-metricas.md) | A página de cada modelo e a explicação de cada métrica: demonstrações e fórmulas | Proposta |
@@ -46,6 +46,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0039](0039-pacote-do-modelo.md) | O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado | Aceite |
 | [0040](0040-uma-thread-para-a-mesma-seed-dar-o-mesmo.md) | Uma só thread nos estimadores que somam em paralelo, para a mesma seed dar o mesmo | Proposta |
 | [0041](0041-procura-aberta-e-comparacao-por-grupos.md) | A procura dos agentes fica aberta, e a comparação arruma-se por grupos | Proposta |
+| [0042](0042-agentes-de-ia-com-o-ollama.md) | Agentes de IA com o Ollama, ao lado dos agentes de regras | Proposta |
 
 ## Como escrever uma ADR
 

@@ -9,7 +9,9 @@ A procura tem duas rondas:
    regressão logística) vai primeiro, porque é o resultado que os outros têm de bater.
 2. **Afinação**: os ``finalists`` melhores modelos da triagem passam. À vez, o agente de
    cada um propõe uma combinação nova de hiperparâmetros (procura aleatória), até o
-   orçamento acabar.
+   orçamento acabar. Se houver um agente de IA (ADR 0042), também tem a sua vez: olha para
+   todos os resultados e propõe o próximo candidato, que se mede como os outros. Uma proposta
+   que não serve é recusada sem gastar orçamento; à terceira seguida, ele sai da afinação.
 
 Cada candidato é medido com **validação cruzada** nos folds do treino. O coordenador nunca
 recebe o teste: recebe os folds, e é tudo o que vê. Escolher pelo teste faria do teste mais
@@ -33,10 +35,12 @@ from typing import Any
 
 import numpy as np
 
+from ml_lab.core.automl.ai_agent import MAX_REFUSALS, AiAgent
 from ml_lab.core.automl.model_agent import ModelAgent, describe_changes
 from ml_lab.core.automl.objective import Objective
 from ml_lab.core.automl.search_log import (
     COORDINATOR,
+    TO_AI,
     TO_COORDINATOR,
     TO_WINNER,
     AgentRole,
@@ -50,6 +54,7 @@ from ml_lab.core.automl.search_log import (
 )
 from ml_lab.core.data.dataset import Dataset
 from ml_lab.core.evaluation.validation import cross_validate
+from ml_lab.core.foundation.errors import LanguageModelError
 from ml_lab.core.models.base import LabModel
 from ml_lab.core.training.control import TrainingControl
 from ml_lab.formatting import format_count, format_quantity
@@ -103,6 +108,7 @@ class Coordinator:
         log: Onde escrever a conversa e os candidatos.
         control: Os pedidos de pausa e de paragem, se a procura correr em segundo plano.
         baseline: O modelo de referência, que vai primeiro na triagem.
+        ai: O agente de IA, se entrar na afinação.
     """
 
     def __init__(
@@ -118,6 +124,7 @@ class Coordinator:
         log: SearchLog,
         control: TrainingControl | None = None,
         baseline: str | None = None,
+        ai: AiAgent | None = None,
     ) -> None:
         self._objective = objective
         self._agents = tuple(agents)
@@ -129,6 +136,8 @@ class Coordinator:
         self._log = log
         self._control = control
         self._baseline = baseline
+        self._ai = ai
+        self._ai_refusals = 0
         self._candidates: list[Candidate] = []
         self._stopped = False
 
@@ -190,9 +199,23 @@ class Coordinator:
             recipients=to_agents(agent.family for agent, _ in finalists),
         )
         self._log.enter(SearchPhase.TUNING)
-        rotation: deque[Entry] = deque(finalists)
+        # Na roda, ``None`` é a vez do agente de IA: entra depois dos agentes de família.
+        rotation: deque[Entry | None] = deque(finalists)
+        if self._ai is not None:
+            rotation.append(None)
+            self._say(
+                f"{self._ai.name}, entras também na afinação. Na tua vez, olha para todos os "
+                "resultados e propõe o próximo candidato entre os finalistas: mede-se como os "
+                "outros, com validação cruzada, e conta para o orçamento.",
+                recipients=TO_AI,
+            )
         while rotation and self._left() > 0:
-            agent, model = rotation.popleft()
+            entry = rotation.popleft()
+            if entry is None:
+                if self._ai_turn(finalists):
+                    rotation.append(None)
+                continue
+            agent, model = entry
             turn = f"é a tua vez de afinar {model.info.display_name}."
             if agent.space(model).is_empty:
                 self._ask(agent, turn, numbered=False)
@@ -221,6 +244,73 @@ class Coordinator:
             candidate = self._evaluate(agent, model, values, SearchPhase.TUNING)
             self._agent_says(agent, candidate, best_before)
             rotation.append((agent, model))
+
+    def _ai_turn(self, finalists: Sequence[Entry]) -> bool:
+        """A vez do agente de IA: pensa, propõe, e o coordenador mede (ou recusa).
+
+        Returns:
+            Se o agente de IA fica na afinação (sai se o modelo de linguagem falhar, ou à
+            terceira proposta recusada seguida).
+        """
+        ai = self._ai
+        assert ai is not None
+        if not self._may_continue():
+            return False
+        number = self._log.next_number
+        self._say(
+            f"{ai.name}, é a tua vez: escolhe o próximo candidato entre os finalistas.",
+            kind=MessageKind.REQUEST,
+            recipients=TO_AI,
+            candidate=number,
+        )
+        # O raciocínio vai para o registo aos bocados: quem acompanha vê-o a crescer.
+        self._log.start_thinking(ai.name, number)
+        try:
+            turn = ai.propose(finalists, self._candidates, on_thinking=self._log.think)
+        except LanguageModelError as error:
+            self._ai_says(f"Não consegui responder: {error} A afinação continua sem mim.")
+            return False
+        finally:
+            self._log.stop_thinking()
+        thinking = turn.reply.thinking.strip()
+        if thinking:
+            self._log.say(
+                AgentRole.AI, ai.name, thinking, candidate=number, kind=MessageKind.THOUGHT
+            )
+        proposal = turn.proposal
+        if proposal is None:
+            self._ai_refusals += 1
+            out = self._ai_refusals >= MAX_REFUSALS
+            self._say(
+                f"{ai.name}, a tua proposta não serve: {turn.problem}. Não a meço, e não conta "
+                "para o orçamento."
+                + (f" É a {MAX_REFUSALS}.ª seguida: sais da afinação." if out else ""),
+                recipients=TO_AI,
+            )
+            return not out
+        self._ai_refusals = 0
+        model = proposal.model
+        defaults = proposal.agent.defaults(model)
+        changes = {k: v for k, v in proposal.values.items() if defaults.get(k) != v}
+        settings = describe_changes(changes) or "os valores por omissão"
+        self._ai_says(
+            f"Proponho {model.info.display_name} com {settings}. {proposal.reason}",
+            candidate=number,
+        )
+        best_before = self._best(model)
+        candidate = self._evaluate(
+            proposal.agent,
+            model,
+            proposal.values,
+            SearchPhase.TUNING,
+            author=ai.name,
+            reason=proposal.reason,
+        )
+        self._ai_says(
+            proposal.agent.report(candidate, best_before, self._objective),
+            candidate=candidate.number,
+        )
+        return True
 
     def _screening_order(self) -> list[Entry]:
         """Os modelos da triagem: uma família de cada vez, com a referência à frente."""
@@ -255,7 +345,20 @@ class Coordinator:
         model: type[LabModel[Any]],
         values: dict[str, Any],
         phase: SearchPhase,
+        *,
+        author: str | None = None,
+        reason: str | None = None,
     ) -> Candidate:
+        """Mede um candidato com validação cruzada.
+
+        Args:
+            agent: O agente da família do modelo (toma nota da combinação).
+            model: O modelo.
+            values: Os hiperparâmetros completos.
+            phase: A ronda.
+            author: Quem o propôs, se não for o agente da família (o agente de IA).
+            reason: Porque foi proposto (só o agente de IA o diz).
+        """
         info = model.info
         agent.remember(model, values)
         defaults = agent.defaults(model)
@@ -267,18 +370,21 @@ class Coordinator:
             model_display_name=info.display_name,
             hyperparameters=values,
             changes={name: value for name, value in values.items() if defaults.get(name) != value},
+            ai=author is not None,
+            reason=reason,
         )
         self._log.start(
             WorkInProgress(
                 candidate=candidate.number,
                 phase=phase,
                 family=info.family,
-                author=agent.name,
+                author=author or agent.name,
                 model=info.name,
                 model_display_name=info.display_name,
                 changes=candidate.changes,
                 fold=0,
                 folds=len(self._folds),
+                ai=author is not None,
             )
         )
         start = time.perf_counter()
@@ -363,6 +469,18 @@ class Coordinator:
             kind=MessageKind.REQUEST,
             recipients=to_agents([agent.family]),
             candidate=self._log.next_number if numbered else None,
+        )
+
+    def _ai_says(self, text: str, *, candidate: int | None = None) -> None:
+        """O agente de IA responde ao coordenador."""
+        assert self._ai is not None
+        self._log.say(
+            AgentRole.AI,
+            self._ai.name,
+            text,
+            candidate=candidate,
+            kind=MessageKind.REPLY,
+            recipients=TO_COORDINATOR,
         )
 
     def _agent_says(

@@ -248,6 +248,32 @@ def test_onnx_is_only_used_by_the_export() -> None:
     )
 
 
+def test_only_the_language_models_talk_to_the_network() -> None:
+    # O laboratório corre todo no computador: o único pedido HTTP que o núcleo faz é ao
+    # Ollama, e só o core/llm o faz (ADR 0042).
+    violations = find_violations(
+        python_files(PACKAGE, exclude=[CORE / "llm"]),
+        lambda name: any(is_within(name, library) for library in ("urllib.request", "http.client")),
+    )
+
+    assert not violations, report(
+        "Os pedidos HTTP (urllib.request, http.client) só se fazem em core/llm/:", violations
+    )
+
+
+def test_the_ollama_is_only_known_by_the_language_models_and_the_services() -> None:
+    # O resto do laboratório conversa com a interface LanguageModel: trocar o Ollama por outro
+    # modelo (ou pelo ScriptedModel, nos testes) não mexe em mais nada.
+    violations = find_violations(
+        python_files(PACKAGE, exclude=[CORE / "llm", SERVICES]),
+        lambda name: is_within(name, "ml_lab.core.llm.ollama"),
+    )
+
+    assert not violations, report(
+        "O cliente do Ollama só se importa em core/llm/ e nos serviços:", violations
+    )
+
+
 def test_the_core_does_not_import_the_services() -> None:
     violations = find_violations(
         python_files(CORE, exclude=[SERVICES]),

@@ -30,7 +30,13 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatCount } from "@/lib/format";
 
-import { COORDINATOR_COLOR, DATA_AGENT_COLOR, familyColor, messageColor } from "./agent-colors";
+import {
+  AI_AGENT_COLOR,
+  COORDINATOR_COLOR,
+  DATA_AGENT_COLOR,
+  familyColor,
+  messageColor,
+} from "./agent-colors";
 import { Flowchart, type FlowExchange, type FlowNode } from "./flowchart";
 import { bestCandidate } from "./values";
 
@@ -48,6 +54,7 @@ const TICK_HEIGHT: Readonly<Record<MessageKind, string>> = {
   reply: "55%",
   decision: "90%",
   test: "90%",
+  thought: "45%",
 };
 
 interface ExchangeHistoryProps {
@@ -130,18 +137,25 @@ export function ExchangeHistory({
           candidate: asked.number,
           phase: asked.phase,
           family: asked.family,
-          author: plan.agents.find((agent) => agent.family === asked.family)?.name ?? "",
+          author: asked.ai
+            ? label("AgentRole", "ai")
+            : (plan.agents.find((agent) => agent.family === asked.family)?.name ?? ""),
           model: asked.model,
           model_display_name: asked.model_display_name,
           changes: asked.changes,
           fold: 0,
           folds: plan.settings.folds ?? asked.folds.length,
+          ai: asked.ai,
         };
   const atEnd = finished && position === last;
+  // O vencedor passa pelo agente que o propôs: o da família, ou o agente de IA.
+  const proposed = candidates.find((candidate) => candidate.number === current.candidate);
   const winnerFamily =
-    current.candidate === null
+    current.candidate === null || proposed === undefined
       ? null
-      : (candidates.find((candidate) => candidate.number === current.candidate)?.family ?? null);
+      : proposed.ai
+        ? ("ai" as const)
+        : proposed.family;
   const color = messageColor(current);
   // A leitura do teste não tem destinatários (é para quem acompanha): acende-se o teste.
   const reading = current.kind === "test" && current.recipients.length === 0;
@@ -174,6 +188,7 @@ export function ExchangeHistory({
         selected={selected}
         onSelect={onSelect}
         exchange={exchange}
+        ai={plan.ai_agent ? { model: plan.ai_model } : null}
       />
 
       <div className="grid gap-x-12 gap-y-6 @5xl/main:grid-cols-[minmax(0,1fr)_auto]">
@@ -268,6 +283,9 @@ function senderOf(message: AgentMessage): FlowNode {
   if (message.role === "data") {
     return "data";
   }
+  if (message.role === "ai") {
+    return "ai";
+  }
   if (message.role === "model" && message.family !== null) {
     return message.family;
   }
@@ -299,6 +317,9 @@ function Who({ color, name }: { color: string; name: string }) {
 function participantColor(participant: Participant): string {
   if (participant.kind === "model" && participant.family !== null) {
     return familyColor(participant.family);
+  }
+  if (participant.kind === "ai") {
+    return AI_AGENT_COLOR;
   }
   return participant.kind === "data" ? DATA_AGENT_COLOR : COORDINATOR_COLOR;
 }

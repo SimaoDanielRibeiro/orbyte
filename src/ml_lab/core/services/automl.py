@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Final
 
 from ml_lab.config import Settings, get_settings
+from ml_lab.core.automl.ai_agent import AiAgent
 from ml_lab.core.automl.coordinator import Coordinator, SearchOutcome, rank
 from ml_lab.core.automl.data_agent import DataAgent, DataDecision
 from ml_lab.core.automl.model_agent import (
@@ -55,6 +56,7 @@ from ml_lab.core.automl.search_log import (
     MessageKind,
     SearchLog,
     SearchPhase,
+    Thought,
     WorkInProgress,
     to_agents,
 )
@@ -67,6 +69,7 @@ from ml_lab.core.foundation.errors import (
     CandidateNotFoundError,
     ColumnNotFoundError,
     InvalidParameterError,
+    LanguageModelError,
     MLLabError,
     SearchNotFoundError,
 )
@@ -74,13 +77,15 @@ from ml_lab.core.foundation.events import StepCompleted
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.random import SeedManager
 from ml_lab.core.foundation.types import TaskType
+from ml_lab.core.llm import LanguageModel, Reply, ScriptedModel
 from ml_lab.core.models.base import ModelFamily
-from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
+from ml_lab.core.schemas.automl import AutoMLRequest, RecordedReply, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.services.catalog import SUGGESTED_MODELS
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import MODEL_SEED, ExperimentResult, ExperimentService
 from ml_lab.core.services.history import HistoryService
+from ml_lab.core.services.llm import LanguageModelService
 from ml_lab.core.training.control import TrainingControl
 from ml_lab.core.training.jobs import JobRegistry, JobState, TrainingJob
 from ml_lab.core.training.recorder import SnapshotRecorder, StepRecord
@@ -91,6 +96,9 @@ logger = get_logger(__name__)
 
 SEARCH_SEED: Final = "automl"
 """Nome do componente da procura aleatória: a sua seed é ``seeds.seed_for("automl")``."""
+
+AI_SEED: Final = "automl-ai"
+"""Nome do componente do agente de IA: a seed que vai no pedido ao modelo de linguagem."""
 
 KEPT_SEARCHES: Final = 5
 """Quantas procuras ficam em memória (com a conversa e o quadro dos candidatos)."""
@@ -199,6 +207,8 @@ class AutoMLPlan:
         test_rows: As linhas de teste (guardadas até ao fim).
         search_rows: As linhas que a validação cruzada usa (uma amostra, se houver a mais).
         settings: O tamanho da procura.
+        ai_agent: Se o agente de IA entra na afinação.
+        ai_model: O modelo de linguagem que pensa por ele ("qwen3:8b"), se entrar.
     """
 
     dataset_id: str
@@ -216,6 +226,8 @@ class AutoMLPlan:
     test_rows: int
     search_rows: int
     settings: SearchSettings
+    ai_agent: bool = False
+    ai_model: str | None = None
 
     @property
     def sampled(self) -> bool:
@@ -236,6 +248,7 @@ class AutoMLUpdate:
         leader: O melhor candidato até agora.
         working: O candidato que um agente está a medir agora, e em que fold vai
             (``None`` entre candidatos e fora das rondas).
+        thought: O que o agente de IA está a pensar agora, até aqui (``None`` quando não pensa).
     """
 
     state: JobState
@@ -245,6 +258,7 @@ class AutoMLUpdate:
     messages: tuple[AgentMessage, ...] = ()
     leader: Candidate | None = None
     working: WorkInProgress | None = None
+    thought: Thought | None = None
 
     @property
     def steps(self) -> tuple[StepRecord, ...]:
@@ -325,6 +339,7 @@ class _Plan:
     agents: tuple[ModelAgent, ...]
     log: SearchLog
     recorder: SnapshotRecorder
+    ai: AiAgent | None = None
 
 
 class AutoMLService:
@@ -335,6 +350,7 @@ class AutoMLService:
         experiments: O serviço de experiências (treina o vencedor e os candidatos à mão).
         history: O histórico, para dar ao run do vencedor um nome que diga de onde veio.
         settings: As definições (a raiz do projeto, onde está a ficha didática).
+        llm: O modelo de linguagem do agente de IA; sem ele, o agente de IA não entra.
     """
 
     def __init__(
@@ -344,10 +360,12 @@ class AutoMLService:
         *,
         history: HistoryService | None = None,
         settings: Settings | None = None,
+        llm: LanguageModelService | None = None,
     ) -> None:
         self._datasets = datasets
         self._experiments = experiments
         self._history = history
+        self._llm = llm
         self._doc = (settings or get_settings()).home / DOCS_FOLDER / DOC
         self._jobs: JobRegistry[AutoMLResult] = JobRegistry(KEPT_SEARCHES)
         self._searches: OrderedDict[str, _Plan] = OrderedDict()
@@ -488,6 +506,7 @@ class AutoMLService:
             messages=log.messages(after_message),
             leader=ranked[0] if ranked else None,
             working=log.working,
+            thought=log.thought,
         )
 
     def search_plan(self, search_id: str) -> AutoMLPlan:
@@ -541,8 +560,14 @@ class AutoMLService:
     # --- o plano -----------------------------------------------------------------------
 
     def _plan(self, request: AutoMLRequest) -> _Plan:
-        """O plano de uma procura que vai correr (fica registado, para se acompanhar)."""
+        """O plano de uma procura que vai correr (fica registado, para se acompanhar).
+
+        Raises:
+            LanguageModelError: Se o agente de IA entrar e o Ollama não estiver pronto (sem
+                respostas guardadas para repetir).
+        """
         request, seeds, preview, objective, agents = self._decide(request)
+        ai = self._ai_agent(request, preview, objective, seeds)
         search_id = f"search-{uuid.uuid4().hex[:8]}"
         recorder = SnapshotRecorder(search_id)
 
@@ -559,11 +584,42 @@ class AutoMLService:
             agents=agents,
             log=SearchLog(counted),
             recorder=recorder,
+            ai=ai,
         )
         with self._lock:
             self._searches[search_id] = plan
             self._forget_old_searches(keep=search_id)
         return plan
+
+    def _ai_agent(
+        self,
+        request: AutoMLRequest,
+        preview: AutoMLPlan,
+        objective: Objective,
+        seeds: SeedManager,
+    ) -> AiAgent | None:
+        """O agente de IA, se o pedido o chamar.
+
+        Com respostas guardadas, conversa com o ``ScriptedModel``, que as dá outra vez pela
+        ordem: a procura repete-se sem o Ollama. Sem elas, conversa com o Ollama.
+
+        Raises:
+            LanguageModelError: Se for preciso o Ollama e ele não estiver pronto.
+        """
+        if not request.ai_agent:
+            return None
+        llm: LanguageModel
+        if request.ai_replies:
+            replies = [Reply(reply.thinking, reply.content) for reply in request.ai_replies]
+            llm = ScriptedModel(replies, name=preview.ai_model or "respostas guardadas")
+        elif self._llm is None:
+            raise LanguageModelError(
+                "Este laboratório não tem um modelo de linguagem ligado: o agente de IA não pode "
+                "entrar. Faz o pedido sem ele."
+            )
+        else:
+            llm = self._llm.model()
+        return AiAgent(llm, objective, preview.task_type, seed=seeds.seed_for(AI_SEED))
 
     def _forget_old_searches(self, *, keep: str) -> None:
         """Esquece os planos mais antigos, mas nunca o de uma procura que ainda decorre.
@@ -632,6 +688,12 @@ class AutoMLService:
             test_rows=len(dataset.test),
             search_rows=search_rows,
             settings=settings,
+            ai_agent=request.ai_agent,
+            ai_model=(
+                (self._llm.model_name if self._llm is not None else None)
+                if request.ai_agent
+                else None
+            ),
         )
         return request, seeds, preview, objective, agents
 
@@ -672,11 +734,19 @@ class AutoMLService:
                 log=log,
                 control=control,
                 baseline=preview.baseline,
+                ai=plan.ai,
             ).search()
             log.enter(SearchPhase.FINAL)
             run_id, test = self._train_winner(plan, outcome)
         finally:
             log.enter(SearchPhase.DONE)
+        if plan.ai is not None:
+            # O pedido do resultado traz as respostas que o agente de IA deu: com ele, a
+            # procura repete-se tal e qual, sem o Ollama (ADR 0042).
+            recorded = tuple(
+                RecordedReply(thinking=r.thinking, content=r.content) for r in plan.ai.replies
+            )
+            request = request.model_copy(update={"ai_replies": recorded})
         baseline = next(
             (
                 c.number
@@ -817,6 +887,12 @@ def _opening(preview: AutoMLPlan, objective: Objective) -> list[str]:
     if preview.skipped:
         text += f" Ficam de fora: {describe_skipped(preview.skipped)}."
     texts.append(text)
+    if preview.ai_agent:
+        texts.append(
+            f"Chamei também o agente de IA ({preview.ai_model}). Na afinação, em vez de sortear, "
+            "lê os resultados e pensa no próximo candidato. As propostas dele medem-se como as "
+            "outras, e no fim vê-se se encontrou melhor do que a procura aleatória."
+        )
     return texts
 
 
@@ -891,6 +967,8 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
                     "padrão entre folds: na prática, empatam.",
                 )
             )
+    if result.plan.ai_agent:
+        notices.append(_ai_reading(result, objective))
     failed = [candidate for candidate in result.candidates if candidate.failed]
     if failed:
         names = ", ".join(sorted({candidate.model_display_name for candidate in failed}))
@@ -910,6 +988,39 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
             )
         )
     return replace(result, notices=tuple(notices))
+
+
+def _ai_reading(result: AutoMLResult, objective: Objective) -> Notice:
+    """O agente de IA contra a procura aleatória, com o mesmo orçamento e os mesmos finalistas."""
+    proposed = [c for c in result.candidates if c.ai and c.mean is not None]
+    if not proposed:
+        return Notice.info(
+            "ai_no_proposals",
+            "O agente de IA não chegou a ter uma proposta medida (as razões estão na conversa): "
+            "a afinação ficou só com a procura aleatória.",
+        )
+    best = min(proposed, key=lambda candidate: objective.key(candidate.mean))
+    place = result.ranking.index(best.number) + 1
+    drawn = [c for c in result.candidates if not c.ai and c.phase is SearchPhase.TUNING and c.mean]
+    count = format_quantity(len(proposed), "proposta", "propostas")
+    if place == 1:
+        text = (
+            f"O vencedor foi proposto pelo agente de IA: com {count}, encontrou o melhor candidato "
+            "da procura."
+        )
+    else:
+        text = (
+            f"O agente de IA fez {count}; a melhor ({best.model_display_name}, "
+            f"{objective.written(best.mean)}) ficou em {place}.º lugar."
+        )
+    if drawn:
+        rival = min(drawn, key=lambda candidate: objective.key(candidate.mean))
+        text += (
+            f" Na afinação, a procura aleatória, com "
+            f"{format_quantity(len(drawn), 'sorteio', 'sorteios')}, chegou a "
+            f"{objective.written(rival.mean)}."
+        )
+    return Notice.info("ai_comparison", text)
 
 
 def _experiment(result: AutoMLResult, candidate: Candidate) -> ExperimentConfig:

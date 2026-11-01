@@ -8,6 +8,7 @@ import type {
   JobState,
   ObjectiveOption,
   SearchPhase,
+  Thought,
   WorkInProgress,
 } from "@/api/generated";
 import {
@@ -28,6 +29,8 @@ export interface LiveSearch {
   leader: Candidate | null;
   /** O candidato que um agente está a medir agora (`null` entre candidatos). */
   working: WorkInProgress | null;
+  /** O que o agente de IA está a pensar agora, até aqui (`null` quando não pensa). */
+  thought: Thought | null;
 }
 
 const EMPTY: LiveSearch = {
@@ -38,6 +41,7 @@ const EMPTY: LiveSearch = {
   messages: [],
   leader: null,
   working: null,
+  thought: null,
 };
 
 /** Junta o que chegou ao que já se tinha (o WebSocket recomeça do princípio a cada ligação). */
@@ -63,6 +67,7 @@ export function useAgentSearch(searchId: string) {
       messages: merge(previous.messages, update.messages),
       leader: update.leader ?? previous.leader,
       working: update.working,
+      thought: update.thought,
     }));
   });
   const plan = useQuery({

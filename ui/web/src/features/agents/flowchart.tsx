@@ -12,9 +12,13 @@
  * - nas ligações dos agentes que já trabalharam passa, de vez em quando, uma luz mais lenta.
  *
  * Com "reduzir movimento" tudo aparece já no fim, sem luzes a correr (o estado lê-se nas cores).
+ *
+ * O agente de IA (ADR 0042), quando entra, é a última linha da coluna dos agentes: contorno
+ * tracejado, o seu lilás e um ícone, para não se confundir com os agentes de regras. Acende-se
+ * enquanto pensa e enquanto a proposta dele se mede.
  */
 import { cn } from "cn";
-import { FlaskConical, Trophy, Workflow, Database, type LucideIcon } from "lucide-react";
+import { FlaskConical, Sparkles, Trophy, Workflow, Database, type LucideIcon } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
 
@@ -25,6 +29,7 @@ import type {
   ModelFamily,
   ObjectiveOption,
   SearchPhase,
+  Thought,
   WorkInProgress,
 } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
@@ -32,11 +37,17 @@ import { useSize } from "@/hooks/use-size";
 import { withAlpha } from "@/lib/colors";
 import { formatCount, formatMetric, formatQuantity } from "@/lib/format";
 
-import { familyColor } from "./agent-colors";
+import { AI_AGENT_COLOR, familyColor } from "./agent-colors";
 import { objectiveValue } from "./values";
 
-/** Um nó do fluxograma: um dos quatro fixos ou o agente de uma família. */
-export type FlowNode = "data" | "coordinator" | "winner" | "test" | ModelFamily;
+/** Um nó do fluxograma: um dos quatro fixos, o agente de IA ou o agente de uma família. */
+export type FlowNode = "data" | "coordinator" | "winner" | "test" | "ai" | ModelFamily;
+
+/** O agente de IA, quando entra na procura. */
+export interface FlowAi {
+  /** O modelo de linguagem que pensa por ele ("qwen3:8b"). */
+  model: string | null;
+}
 
 export interface FlowchartProps {
   agents: readonly ModelAgentCard[];
@@ -56,6 +67,10 @@ export interface FlowchartProps {
   onSelect?: (node: FlowNode) => void;
   /** Uma troca a desenhar por cima (o histórico das trocas). */
   exchange?: FlowExchange | null;
+  /** O agente de IA, se entrar na afinação. */
+  ai?: FlowAi | null;
+  /** O que o agente de IA está a pensar agora (acende o nó dele). */
+  thought?: Thought | null;
 }
 
 /** Uma troca do histórico: uma luz que vai de quem fala para quem ouve. */
@@ -68,7 +83,7 @@ export interface FlowExchange {
    * O agente do vencedor: a decisão e o teste passam por ele (vê-se o vencedor a seguir pelo
    * fluxo, do coordenador ao agente que o propôs, ao vencedor e ao teste).
    */
-  via: ModelFamily | null;
+  via: ModelFamily | "ai" | null;
   color: string;
   /** Quanto tempo leva a luz, em segundos. */
   duration: number;
@@ -132,6 +147,8 @@ interface PlacedNode {
   progress: number | null;
   /** A coluna, para a entrada em cascata. */
   column: number;
+  /** O contorno tracejado (o agente de IA: outro tipo de agente). */
+  dashed?: boolean;
 }
 
 interface PlacedEdge {
@@ -160,12 +177,14 @@ export function Flowchart({
   selected = null,
   onSelect,
   exchange = null,
+  ai = null,
+  thought = null,
 }: FlowchartProps) {
   const label = useLabel();
   const { ref, width: available } = useSize<HTMLDivElement>();
   const width = Math.max(MIN_WIDTH, available);
   const columns = columnsFor(width);
-  const rows = Math.max(1, agents.length);
+  const rows = Math.max(1, agents.length + (ai === null ? 0 : 1));
   const stack = rows * NODE_HEIGHT + (rows - 1) * ROW_GAP;
   const height = Math.max(stack, NODE_HEIGHT * 3) + PADDING * 2;
   const middle = height / 2;
@@ -179,24 +198,98 @@ export function Flowchart({
     winner: phase === "final" ? "active" : phase === "done" ? "done" : "idle",
     test: phase === "done" ? "done" : "idle",
   } satisfies Record<string, NodeState>;
+  // Os candidatos de cada agente: os de uma família são os sorteios dela; os do agente de IA, as
+  // propostas dele (de qualquer família).
+  const ownBy = (family: ModelFamily | "ai") =>
+    candidates.filter((candidate) =>
+      family === "ai" ? candidate.ai : candidate.family === family && !candidate.ai,
+    );
   const agentState = (family: ModelFamily): NodeState => {
-    if (searching && working?.family === family) {
+    if (searching && working?.family === family && !working.ai) {
       return "active";
     }
-    return candidates.some((candidate) => candidate.family === family) ? "done" : "idle";
+    return ownBy(family).length > 0 ? "done" : "idle";
   };
-  const best = (family: ModelFamily) => {
-    const values = candidates
-      .filter((candidate) => candidate.family === family && candidate.mean !== null)
+  const aiActive = searching && (thought !== null || working?.ai === true);
+  const aiState: NodeState = aiActive ? "active" : ownBy("ai").length > 0 ? "done" : "idle";
+  const best = (family: ModelFamily | "ai") => {
+    const values = ownBy(family)
+      .filter((candidate) => candidate.mean !== null)
       .map((candidate) => candidate.mean ?? 0);
     if (values.length === 0) {
       return null;
     }
     return objective?.higher_is_better === false ? Math.min(...values) : Math.max(...values);
   };
+  const leaderColor =
+    leader === null ? undefined : leader.ai ? AI_AGENT_COLOR : familyColor(leader.family);
   const measured = candidates.length;
-  const now = describeNow(phase, working, label);
+  const now = describeNow(phase, working, thought, label);
   const center = (x: number) => [x, middle] as [number, number];
+  const aiWorking = working?.ai === true ? working : null;
+
+  /** O nó do agente de IA: a pensar, a ver a proposta medida, ou o que já propôs. */
+  const aiNode = (): PlacedNode => {
+    const own = ownBy("ai");
+    const value = best("ai");
+    return {
+      key: "ai",
+      x: columns.agents.x,
+      y: agentTop(agents.length),
+      width: columns.agents.width,
+      state: aiState,
+      title: label("AgentRole", "ai"),
+      icon: Sparkles,
+      color: AI_AGENT_COLOR,
+      dashed: true,
+      detail:
+        searching && thought !== null
+          ? ["A pensar no próximo candidato", "A pensar"]
+          : searching && aiWorking !== null
+            ? [`A medir ${aiWorking.model_display_name}`, aiWorking.model_display_name]
+            : own.length > 0
+              ? [
+                  `${formatQuantity(own.length, "proposta", "propostas")}, melhor ${objectiveValue(value, objective)}`,
+                  `Melhor ${objectiveValue(value, objective)} em ${formatCount(own.length)}`,
+                ]
+              : [`À espera · ${ai?.model ?? "modelo de linguagem"}`, "À espera"],
+      progress:
+        searching && aiWorking !== null ? aiWorking.fold / Math.max(1, aiWorking.folds) : null,
+      column: 2,
+    };
+  };
+
+  /** As ligações do agente de IA: do coordenador até ele, e dele ao líder (se liderar). */
+  const aiEdges = (): PlacedEdge[] => {
+    const top = agentTop(agents.length) + NODE_HEIGHT / 2;
+    const leads = leader?.ai === true && order(phase) >= 3;
+    return [
+      {
+        key: "para-ai",
+        from: center(columns.coordinator.x + columns.coordinator.width),
+        to: [columns.agents.x, top],
+        state: aiState,
+        color: AI_AGENT_COLOR,
+        label:
+          searching && thought !== null
+            ? "a pensar"
+            : searching && aiWorking !== null
+              ? `fold ${formatCount(aiWorking.fold)} de ${formatCount(aiWorking.folds)}`
+              : undefined,
+        column: 2,
+        order: agents.length,
+      },
+      {
+        key: "de-ai",
+        from: [columns.agents.x + columns.agents.width, top],
+        to: center(columns.winner.x),
+        state: leads ? (states.winner === "active" ? "active" : "done") : "idle",
+        color: AI_AGENT_COLOR,
+        column: 3,
+        order: agents.length,
+      },
+    ];
+  };
 
   const nodes: PlacedNode[] = [
     {
@@ -237,7 +330,7 @@ export function Flowchart({
     },
     ...agents.map((agent, index): PlacedNode => {
       const state = agentState(agent.family);
-      const own = candidates.filter((candidate) => candidate.family === agent.family);
+      const own = ownBy(agent.family);
       const value = best(agent.family);
       const active = state === "active" && working !== null;
       return {
@@ -260,6 +353,7 @@ export function Flowchart({
         column: 2,
       };
     }),
+    ...(ai === null ? [] : [aiNode()]),
     {
       key: "winner",
       x: columns.winner.x,
@@ -268,7 +362,7 @@ export function Flowchart({
       state: states.winner,
       title: phase === "done" || phase === "final" ? "Vencedor" : "Líder",
       icon: Trophy,
-      color: leader === null ? undefined : familyColor(leader.family),
+      color: leaderColor,
       detail:
         leader === null
           ? ["Ainda nenhum"]
@@ -308,7 +402,7 @@ export function Flowchart({
       const state = agentState(agent.family);
       const color = familyColor(agent.family);
       const active = state === "active" && working !== null;
-      const leads = leader?.family === agent.family && order(phase) >= 3;
+      const leads = leader?.family === agent.family && !leader.ai && order(phase) >= 3;
       return [
         {
           key: `para-${agent.family}`,
@@ -335,6 +429,7 @@ export function Flowchart({
         },
       ];
     }),
+    ...(ai === null ? [] : aiEdges()),
     {
       key: "teste",
       from: center(columns.winner.x + columns.winner.width),
@@ -461,10 +556,14 @@ function order(phase: SearchPhase | null): number {
 function describeNow(
   phase: SearchPhase | null,
   working: WorkInProgress | null,
+  thought: Thought | null,
   label: ReturnType<typeof useLabel>,
 ): string {
   if (phase === null) {
     return "A procura ainda não começou.";
+  }
+  if (thought !== null) {
+    return `Agora: ${thought.author} a pensar no candidato ${String(thought.candidate)}.`;
   }
   if (working !== null) {
     return `Agora: ${working.author} a medir ${working.model_display_name}, fold ${String(working.fold)} de ${String(working.folds)}.`;
@@ -501,6 +600,7 @@ function NodeBox({
     selected && "border-white bg-surface-high",
     lit !== undefined && "bg-surface-high",
     family && "px-3.5",
+    node.dashed === true && "border-dashed",
     onSelect !== undefined &&
       "cursor-pointer hover:border-[#4d4d4d] focus-visible:ring-2 focus-visible:ring-ring",
   );
@@ -509,10 +609,14 @@ function NodeBox({
     top: node.y,
     width: node.width,
     height: NODE_HEIGHT,
-    ...(family
+    ...((family || node.dashed === true) && color !== undefined
       ? {
           // Fraco à espera, mais forte depois de trabalhar, inteiro a trabalhar ou aberto.
-          borderColor: active || selected ? color : withAlpha(color, state === "done" ? 0.6 : 0.3),
+          // Um contorno tracejado tem metade da tinta: vai mais forte, para se ver como os outros.
+          borderColor:
+            active || selected
+              ? color
+              : withAlpha(color, (state === "done" ? 0.6 : 0.3) + (node.dashed === true ? 0.3 : 0)),
           boxShadow: selected
             ? `inset 0 0 0 1px ${color}`
             : active
@@ -661,7 +765,7 @@ function curve(from: Point, to: Point): string {
 function route(
   from: FlowNode,
   to: FlowNode,
-  via: ModelFamily | null,
+  via: ModelFamily | "ai" | null,
   edges: readonly PlacedEdge[],
   nodes: readonly PlacedNode[],
 ): string | null {

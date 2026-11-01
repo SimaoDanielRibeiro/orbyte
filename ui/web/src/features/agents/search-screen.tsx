@@ -102,6 +102,7 @@ function Search({ searchId }: { searchId: string }) {
       : (data.candidates.find((candidate) => candidate.number === data.winner) ?? null);
   const running = status === "pending" || status === "running" || status === "paused";
   const working = data === undefined ? live.working : null;
+  const thought = data === undefined ? live.thought : null;
   const leader = winner ?? live.leader;
   return (
     <>
@@ -126,6 +127,7 @@ function Search({ searchId }: { searchId: string }) {
                 "model_selection",
                 "screening_and_tuning",
                 "random_search",
+                ...(searchPlan?.ai_agent === true ? ["ai_agent"] : []),
                 "winners_curse",
                 "train_candidate",
               ]}
@@ -221,6 +223,8 @@ function Search({ searchId }: { searchId: string }) {
                 test={data?.test ?? null}
                 selected={selected}
                 onSelect={setSelected}
+                ai={searchPlan.ai_agent ? { model: searchPlan.ai_model } : null}
+                thought={thought}
               />
             )}
           </div>
@@ -232,6 +236,7 @@ function Search({ searchId }: { searchId: string }) {
           <Conversation
             messages={messages}
             active={view === "history" ? moment : null}
+            thought={view === "history" ? null : thought}
             className="max-h-[36rem]"
           />
         </section>

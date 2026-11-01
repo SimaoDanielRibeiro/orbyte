@@ -94,6 +94,10 @@ class ModelAgent:
         """Toma nota de uma combinação experimentada (para nunca a repetir)."""
         self._tried.add(_key(model, values))
 
+    def has_tried(self, model: type[LabModel[Any]], values: dict[str, Any]) -> bool:
+        """Se a combinação já foi experimentada (por este agente ou pelo agente de IA)."""
+        return _key(model, values) in self._tried
+
     def propose(
         self, model: type[LabModel[Any]], rng: np.random.Generator
     ) -> dict[str, Any] | None:

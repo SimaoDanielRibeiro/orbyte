@@ -131,6 +131,22 @@ def test_an_invalid_api_port_is_rejected(tmp_path: Path, port: str) -> None:
         Settings.from_env({"ML_LAB_API_PORT": port}, home=tmp_path)
 
 
+def test_the_ollama_is_local_by_default_and_can_move(tmp_path: Path) -> None:
+    default = Settings.from_env({}, home=tmp_path)
+    moved = Settings.from_env(
+        {"ML_LAB_OLLAMA_URL": " http://gpu.test:11434/ ", "ML_LAB_OLLAMA_MODEL": "qwen3:4b"},
+        home=tmp_path,
+    )
+
+    assert (default.ollama_url, default.ollama_model) == ("http://localhost:11434", "qwen3:8b")
+    assert (moved.ollama_url, moved.ollama_model) == ("http://gpu.test:11434", "qwen3:4b")
+
+
+def test_an_ollama_address_without_http_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(ConfigurationError, match="ML_LAB_OLLAMA_URL"):
+        Settings.from_env({"ML_LAB_OLLAMA_URL": "localhost:11434"}, home=tmp_path)
+
+
 def test_malformed_env_file_line_points_to_the_line(tmp_path: Path) -> None:
     write_env_file(tmp_path, "ML_LAB_LOG_LEVEL=INFO\nesta linha não tem igual\n")
 

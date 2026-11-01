@@ -140,4 +140,5 @@ filterwarnings = ["error"]
 markers = [
     "integration: fluxo completo de ponta a ponta; corre antes de cada push",
     "api: endpoints HTTP e WebSocket (a partir da fase 7); corre antes de cada push",
+    "ollama: conversa com o Ollama a sério; salta-se quando ele não está a correr (fase 13)",
 ]

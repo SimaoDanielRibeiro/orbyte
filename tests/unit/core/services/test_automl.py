@@ -1,21 +1,28 @@
 """O serviço dos agentes: o pedido, a procura em segundo plano e o vencedor no histórico."""
 
 import json
+import socket
+from pathlib import Path
 
 import pytest
 
+from ml_lab.config import Settings
 from ml_lab.core.foundation.errors import (
     CandidateNotFoundError,
     ColumnNotFoundError,
     InvalidParameterError,
+    LanguageModelError,
     SearchNotFoundError,
 )
+from ml_lab.core.schemas.automl import RecordedReply
 from ml_lab.core.schemas.serialization import to_json
 from ml_lab.core.services import (
     AgentRole,
     AutoMLRequest,
+    AutoMLService,
     JobStatus,
     Lab,
+    LanguageModelService,
     MessageKind,
     ModelFamily,
     Participant,
@@ -224,3 +231,57 @@ def test_the_result_becomes_strict_json(lab: Lab) -> None:
 
     assert '"search_id"' in text
     assert AutoMLRequest.model_validate(to_json(result)["request"]) == result.request
+
+
+# --- o agente de IA (fase 13) --------------------------------------------------------
+
+PROPOSAL = json.dumps(
+    {"model": "decision_tree", "values": {"max_depth": 2}, "reason": "Rasa decora menos."}
+)
+WITH_AI = REQUEST.model_copy(
+    update={
+        "ai_agent": True,
+        "settings": SearchSettings(budget=7, folds=3, finalists=3),
+        "ai_replies": (RecordedReply(thinking="Vou baixar a profundidade.", content=PROPOSAL),),
+    }
+)
+
+
+def test_with_saved_replies_the_ai_agent_takes_part_without_the_ollama(lab: Lab) -> None:
+    result = lab.automl.run(WITH_AI)
+
+    proposed = [candidate for candidate in result.candidates if candidate.ai]
+    assert [(c.model, c.hyperparameters["max_depth"]) for c in proposed] == [("decision_tree", 2)]
+    assert result.plan.ai_agent
+    assert "ai_comparison" in {notice.code for notice in result.notices}
+    assert any(m.kind is MessageKind.THOUGHT for m in result.messages)
+    assert result.request.ai_replies == WITH_AI.ai_replies
+    json.dumps(to_json(result), allow_nan=False)
+
+
+def test_the_result_request_repeats_the_ai_search_as_it_was(lab: Lab) -> None:
+    first = lab.automl.run(WITH_AI)
+
+    again = lab.automl.run(first.request)
+
+    assert [(c.model, c.hyperparameters, c.mean, c.ai) for c in first.candidates] == [
+        (c.model, c.hyperparameters, c.mean, c.ai) for c in again.candidates
+    ]
+
+
+def test_without_the_ollama_the_ai_agent_is_refused_saying_how_to_start_it(
+    lab: Lab, tmp_path: Path
+) -> None:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        closed = f"http://127.0.0.1:{probe.getsockname()[1]}"
+    settings = Settings.from_env({"ML_LAB_OLLAMA_URL": closed}, home=tmp_path)
+    service = AutoMLService(lab.datasets, lab.experiments, llm=LanguageModelService(settings))
+    alone = AutoMLService(lab.datasets, lab.experiments)
+    request = WITH_AI.model_copy(update={"ai_replies": ()})
+
+    with pytest.raises(LanguageModelError, match="ollama serve"):
+        service.start(request)
+    with pytest.raises(LanguageModelError, match="não tem um modelo de linguagem"):
+        alone.start(request)
+    assert service.plan(request).ai_agent  # o plano mostra-se na mesma, antes de pedir

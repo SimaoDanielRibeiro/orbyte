@@ -15,6 +15,7 @@ from ml_lab.api.routes import (
     explanations,
     history,
     laboratory,
+    llm,
     meta,
     packages,
     reinforcement,
@@ -31,6 +32,7 @@ ROUTERS: tuple[APIRouter, ...] = (
     automl.router,
     packages.router,
     packages.files,
+    llm.router,
     explanations.router,
     meta.router,
 )

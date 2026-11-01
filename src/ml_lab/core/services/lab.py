@@ -17,6 +17,7 @@ from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import ExperimentService
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.laboratory import LaboratoryService
+from ml_lab.core.services.llm import LanguageModelService
 from ml_lab.core.services.packages import PackageService
 from ml_lab.core.services.reinforcement import ReinforcementService
 from ml_lab.core.tracking.artifacts import ArtifactStore
@@ -43,6 +44,7 @@ class Lab:
             (ecrã Agentes).
         packages: Os pacotes dos modelos: guardar o que se preparou e aprendeu num ficheiro,
             a biblioteca e carregar um modelo treinado (ecrã Guardar).
+        llm: O modelo de linguagem dos agentes de IA (o Ollama): se está pronto e o que falta.
     """
 
     datasets: DatasetService
@@ -54,6 +56,7 @@ class Lab:
     reinforcement: ReinforcementService
     automl: AutoMLService
     packages: PackageService
+    llm: LanguageModelService
 
     @classmethod
     def create(
@@ -88,6 +91,7 @@ class Lab:
                 logger.exception("o run não ficou registado", extra={"run_id": event.run_id})
 
         bus.subscribe(RunFinished, record)
+        llm = LanguageModelService(settings)
         return cls(
             datasets=datasets,
             catalog=CatalogService(settings),
@@ -96,6 +100,9 @@ class Lab:
             laboratory=LaboratoryService(settings),
             history=history,
             reinforcement=reinforcement,
-            automl=AutoMLService(datasets, experiments, history=history, settings=settings),
+            automl=AutoMLService(
+                datasets, experiments, history=history, settings=settings, llm=llm
+            ),
             packages=PackageService(experiments, history, settings),
+            llm=llm,
         )

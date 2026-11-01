@@ -6960,6 +6960,77 @@
         }
       }
     },
+    "/llm/status": {
+      "get": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Se os agentes de IA podem trabalhar: o Ollama, o modelo e o que falta fazer.",
+        "operationId": "llm_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageModelStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vocabulary": {
       "get": {
         "tags": [
@@ -7324,7 +7395,7 @@
           "recipients"
         ],
         "title": "AgentMessage",
-        "description": "Uma mensagem da conversa: quem a diz, a quem, e o quê.\n\nAs mensagens contam a procura como uma troca: o agente de dados entrega o plano ao\ncoordenador (``REPORT``); o coordenador anuncia as rondas aos agentes (``ANNOUNCEMENT``),\npede a cada um que meça um candidato (``REQUEST``) e recebe a resposta com o resultado\n(``REPLY``); no fim, passa o melhor ao vencedor (``DECISION``) e o vencedor vai ao teste\n(``TEST``). É com ``kind`` e ``recipients`` que o histórico visual desenha cada troca.\n\nAttributes:\n    number: A ordem na conversa (1, 2, 3…).\n    role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.\n    author: O nome a mostrar de quem fala.\n    text: O que diz, em português.\n    phase: A fase da procura em que o disse.\n    family: Num agente de modelo, a sua família.\n    candidate: O candidato de que fala, se for o caso.\n    kind: O que a mensagem é na troca.\n    recipients: A quem se dirige (vazio: a quem acompanha a procura)."
+        "description": "Uma mensagem da conversa: quem a diz, a quem, e o quê.\n\nAs mensagens contam a procura como uma troca: o agente de dados entrega o plano ao\ncoordenador (``REPORT``); o coordenador anuncia as rondas aos agentes (``ANNOUNCEMENT``),\npede a cada um que meça um candidato (``REQUEST``) e recebe a resposta com o resultado\n(``REPLY``); no fim, passa o melhor ao vencedor (``DECISION``) e o vencedor vai ao teste\n(``TEST``). O agente de IA, antes de responder, pensa em voz alta (``THOUGHT``, sem\ndestinatários: é para quem acompanha). É com ``kind`` e ``recipients`` que o histórico\nvisual desenha cada troca.\n\nAttributes:\n    number: A ordem na conversa (1, 2, 3…).\n    role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.\n    author: O nome a mostrar de quem fala.\n    text: O que diz, em português.\n    phase: A fase da procura em que o disse.\n    family: Num agente de modelo, a sua família.\n    candidate: O candidato de que fala, se for o caso.\n    kind: O que a mensagem é na troca.\n    recipients: A quem se dirige (vazio: a quem acompanha a procura)."
       },
       "AgentModel": {
         "properties": {
@@ -7358,7 +7429,8 @@
         "enum": [
           "data",
           "coordinator",
-          "model"
+          "model",
+          "ai"
         ],
         "title": "AgentRole",
         "description": "Quem fala na conversa."
@@ -7554,6 +7626,22 @@
           },
           "settings": {
             "$ref": "#/components/schemas/SearchSettings"
+          },
+          "ai_agent": {
+            "type": "boolean",
+            "title": "Ai Agent",
+            "default": false
+          },
+          "ai_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Model"
           }
         },
         "type": "object",
@@ -7572,10 +7660,12 @@
           "train_rows",
           "test_rows",
           "search_rows",
-          "settings"
+          "settings",
+          "ai_agent",
+          "ai_model"
         ],
         "title": "AutoMLPlan",
-        "description": "O que os agentes vão fazer com um pedido (o ecrã mostra-o antes de começar).\n\nAttributes:\n    dataset_id: O dataset.\n    dataset_name: O nome a mostrar do dataset.\n    target: A coluna a prever.\n    task_type: A tarefa.\n    preparation: A preparação decidida (ou adotada) pelo agente de dados.\n    decisions: As decisões do agente de dados, com a razão de cada uma.\n    adopted: Se o agente de dados adotou uma preparação feita à mão.\n    objective: A métrica a otimizar.\n    agents: Os agentes de modelo chamados.\n    skipped: Os modelos que ficam de fora, com a razão.\n    baseline: O modelo de referência (o que os outros têm de bater), se entrar.\n    train_rows: As linhas de treino.\n    test_rows: As linhas de teste (guardadas até ao fim).\n    search_rows: As linhas que a validação cruzada usa (uma amostra, se houver a mais).\n    settings: O tamanho da procura."
+        "description": "O que os agentes vão fazer com um pedido (o ecrã mostra-o antes de começar).\n\nAttributes:\n    dataset_id: O dataset.\n    dataset_name: O nome a mostrar do dataset.\n    target: A coluna a prever.\n    task_type: A tarefa.\n    preparation: A preparação decidida (ou adotada) pelo agente de dados.\n    decisions: As decisões do agente de dados, com a razão de cada uma.\n    adopted: Se o agente de dados adotou uma preparação feita à mão.\n    objective: A métrica a otimizar.\n    agents: Os agentes de modelo chamados.\n    skipped: Os modelos que ficam de fora, com a razão.\n    baseline: O modelo de referência (o que os outros têm de bater), se entrar.\n    train_rows: As linhas de treino.\n    test_rows: As linhas de teste (guardadas até ao fim).\n    search_rows: As linhas que a validação cruzada usa (uma amostra, se houver a mais).\n    settings: O tamanho da procura.\n    ai_agent: Se o agente de IA entra na afinação.\n    ai_model: O modelo de linguagem que pensa por ele (\"qwen3:8b\"), se entrar."
       },
       "AutoMLRequest": {
         "properties": {
@@ -7646,6 +7736,19 @@
               }
             ],
             "title": "Seed"
+          },
+          "ai_agent": {
+            "type": "boolean",
+            "title": "Ai Agent",
+            "default": false
+          },
+          "ai_replies": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedReply"
+            },
+            "type": "array",
+            "title": "Ai Replies",
+            "default": []
           }
         },
         "additionalProperties": false,
@@ -7655,7 +7758,7 @@
           "target"
         ],
         "title": "AutoMLRequest",
-        "description": "O pedido aos agentes: que modelo prevê melhor ``target`` nestes dados?\n\nAttributes:\n    dataset: De onde vêm os dados.\n    target: A coluna a prever.\n    task_type: A tarefa; ``None`` aceita a sugestão do agente de dados.\n    objective: A métrica a otimizar (o nome no registo, como ``\"f1\"``); ``None`` deixa o\n        agente de dados sugerir.\n    families: As famílias de modelos que participam; vazio = todas.\n    include_didactic: Se entram também as implementações didáticas.\n    preparation: Uma preparação feita à mão, que o agente de dados adota; ``None`` deixa-o\n        decidir.\n    settings: O tamanho da procura.\n    seed: Seed raiz; ``None`` gera uma nova, que fica registada no resultado."
+        "description": "O pedido aos agentes: que modelo prevê melhor ``target`` nestes dados?\n\nAttributes:\n    dataset: De onde vêm os dados.\n    target: A coluna a prever.\n    task_type: A tarefa; ``None`` aceita a sugestão do agente de dados.\n    objective: A métrica a otimizar (o nome no registo, como ``\"f1\"``); ``None`` deixa o\n        agente de dados sugerir.\n    families: As famílias de modelos que participam; vazio = todas.\n    include_didactic: Se entram também as implementações didáticas.\n    preparation: Uma preparação feita à mão, que o agente de dados adota; ``None`` deixa-o\n        decidir.\n    settings: O tamanho da procura.\n    seed: Seed raiz; ``None`` gera uma nova, que fica registada no resultado.\n    ai_agent: Se o agente de IA entra na afinação (precisa do Ollama, ADR 0042).\n    ai_replies: As respostas do agente de IA de uma procura anterior: com elas, a procura\n        repete-se tal e qual, sem o Ollama. O resultado traz sempre as que usou."
       },
       "AutoMLResult": {
         "properties": {
@@ -7815,6 +7918,16 @@
                 "type": "null"
               }
             ]
+          },
+          "thought": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Thought"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7825,10 +7938,11 @@
           "candidates",
           "messages",
           "leader",
-          "working"
+          "working",
+          "thought"
         ],
         "title": "AutoMLUpdate",
-        "description": "O que mudou numa procura desde a última pergunta (o que a API transmite).\n\nAttributes:\n    state: O retrato do trabalho agora (o progresso conta candidatos).\n    phase: A fase da procura.\n    objective: A métrica que os agentes otimizam (para mostrar os valores).\n    candidates: Os candidatos novos (depois de ``after_step``), pela ordem.\n    messages: As mensagens novas da conversa (depois de ``after_message``).\n    leader: O melhor candidato até agora.\n    working: O candidato que um agente está a medir agora, e em que fold vai\n        (``None`` entre candidatos e fora das rondas)."
+        "description": "O que mudou numa procura desde a última pergunta (o que a API transmite).\n\nAttributes:\n    state: O retrato do trabalho agora (o progresso conta candidatos).\n    phase: A fase da procura.\n    objective: A métrica que os agentes otimizam (para mostrar os valores).\n    candidates: Os candidatos novos (depois de ``after_step``), pela ordem.\n    messages: As mensagens novas da conversa (depois de ``after_message``).\n    leader: O melhor candidato até agora.\n    working: O candidato que um agente está a medir agora, e em que fold vai\n        (``None`` entre candidatos e fora das rondas).\n    thought: O que o agente de IA está a pensar agora, até aqui (``None`` quando não pensa)."
       },
       "Body_datasets_upload": {
         "properties": {
@@ -7951,6 +8065,22 @@
               }
             ],
             "title": "Error"
+          },
+          "ai": {
+            "type": "boolean",
+            "title": "Ai",
+            "default": false
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
           }
         },
         "type": "object",
@@ -7967,10 +8097,12 @@
           "train_mean",
           "folds",
           "seconds",
-          "error"
+          "error",
+          "ai",
+          "reason"
         ],
         "title": "Candidate",
-        "description": "Um modelo com uns hiperparâmetros, medido com validação cruzada nos folds do treino.\n\nAttributes:\n    number: A ordem em que foi experimentado (1, 2, 3…): identifica-o na procura.\n    phase: A ronda em que entrou: a triagem ou a afinação.\n    family: A família do modelo (o agente que o propôs).\n    model: O modelo, no registo.\n    model_display_name: O nome a mostrar.\n    hyperparameters: Os hiperparâmetros, completos.\n    changes: Os que mudaram em relação aos valores por omissão.\n    mean: A média do objetivo nos folds de avaliação (``None`` se falhou).\n    std: O desvio padrão do objetivo nos folds de avaliação.\n    train_mean: A média do objetivo nos folds de treino: a distância a ``mean`` mostra\n        quanto o modelo decora.\n    folds: O objetivo em cada fold de avaliação.\n    seconds: Quanto tempo demoraram todos os folds.\n    error: Se falhou, porquê."
+        "description": "Um modelo com uns hiperparâmetros, medido com validação cruzada nos folds do treino.\n\nAttributes:\n    number: A ordem em que foi experimentado (1, 2, 3…): identifica-o na procura.\n    phase: A ronda em que entrou: a triagem ou a afinação.\n    family: A família do modelo (o agente que o propôs).\n    model: O modelo, no registo.\n    model_display_name: O nome a mostrar.\n    hyperparameters: Os hiperparâmetros, completos.\n    changes: Os que mudaram em relação aos valores por omissão.\n    mean: A média do objetivo nos folds de avaliação (``None`` se falhou).\n    std: O desvio padrão do objetivo nos folds de avaliação.\n    train_mean: A média do objetivo nos folds de treino: a distância a ``mean`` mostra\n        quanto o modelo decora.\n    folds: O objetivo em cada fold de avaliação.\n    seconds: Quanto tempo demoraram todos os folds.\n    error: Se falhou, porquê.\n    ai: Se foi o agente de IA a propô-lo (e não o sorteio do agente da família).\n    reason: Porque é que o agente de IA o propôs, nas palavras dele."
       },
       "CellKind": {
         "type": "string",
@@ -9975,6 +10107,69 @@
         "title": "LaboratoryDemo",
         "description": "Uma demonstração do Laboratório (o nome é o do método e o da rota)."
       },
+      "LanguageModelStatus": {
+        "properties": {
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "running": {
+            "type": "boolean",
+            "title": "Running"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "installed": {
+            "type": "boolean",
+            "title": "Installed"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "ready",
+          "running",
+          "url",
+          "model",
+          "installed",
+          "version",
+          "models",
+          "notices"
+        ],
+        "title": "LanguageModelStatus",
+        "description": "O estado do modelo de linguagem dos agentes de IA.\n\nAttributes:\n    ready: Se os agentes de IA podem trabalhar (o Ollama responde e tem o modelo).\n    running: Se o Ollama responde.\n    url: Onde o Ollama devia estar.\n    model: O modelo configurado (``ML_LAB_OLLAMA_MODEL``).\n    installed: Se o Ollama tem o modelo configurado.\n    version: A versão do Ollama, quando responde.\n    models: Os modelos que o Ollama tem.\n    notices: O que falta fazer, com um código estável (``ollama_not_running``,\n        ``model_not_installed``)."
+      },
       "LayerFrame": {
         "properties": {
           "activations": {
@@ -10623,7 +10818,8 @@
           "request",
           "reply",
           "decision",
-          "test"
+          "test",
+          "thought"
         ],
         "title": "MessageKind",
         "description": "O que uma mensagem é na troca entre os agentes (o histórico das trocas desenha-a)."
@@ -12022,6 +12218,7 @@
           "data",
           "coordinator",
           "model",
+          "ai",
           "winner",
           "test"
         ],
@@ -12632,6 +12829,26 @@
         ],
         "title": "Property",
         "description": "Um número simples do estado (as iterações, a inércia…), com o nome em português."
+      },
+      "RecordedReply": {
+        "properties": {
+          "thinking": {
+            "type": "string",
+            "title": "Thinking",
+            "default": ""
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "RecordedReply",
+        "description": "Uma resposta do agente de IA, guardada para a procura se repetir sem o modelo de linguagem.\n\nAttributes:\n    thinking: O raciocínio.\n    content: A resposta, como o modelo a escreveu (o JSON da proposta)."
       },
       "RegularizationDemo": {
         "properties": {
@@ -14054,6 +14271,31 @@
         "title": "TaskType",
         "description": "Lista fechada dos tipos de tarefa que o ML Lab sabe resolver.\n\nOs valores são estáveis porque ficam guardados em JSON e na base de dados.\nPara acrescentar um tipo novo, segue \"Adicionar um tipo de tarefa\" em\ndocs/architecture.md."
       },
+      "Thought": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "candidate": {
+            "type": "integer",
+            "title": "Candidate"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "author",
+          "candidate",
+          "text"
+        ],
+        "title": "Thought",
+        "description": "O agente de IA a pensar, agora: o raciocínio até aqui, que vai crescendo aos bocados.\n\nAttributes:\n    author: Quem pensa.\n    candidate: O número que o candidato proposto vai ter.\n    text: O raciocínio até aqui."
+      },
       "TrainingAnimation": {
         "properties": {
           "dimensions": {
@@ -14482,6 +14724,11 @@
           "folds": {
             "type": "integer",
             "title": "Folds"
+          },
+          "ai": {
+            "type": "boolean",
+            "title": "Ai",
+            "default": false
           }
         },
         "type": "object",
@@ -14494,10 +14741,11 @@
           "model_display_name",
           "changes",
           "fold",
-          "folds"
+          "folds",
+          "ai"
         ],
         "title": "WorkInProgress",
-        "description": "O que está a ser feito agora: um agente a medir um candidato, fold a fold.\n\nUm candidato só entra no quadro depois de medido; até lá, quem acompanha a procura sabe\npor aqui que agente trabalha, em quê, e em que fold vai (o fluxograma dos agentes).\n\nAttributes:\n    candidate: O número que o candidato vai ter.\n    phase: A ronda: a triagem ou a afinação.\n    family: A família do modelo (o agente que trabalha).\n    author: O nome a mostrar do agente que trabalha.\n    model: O modelo, no registo.\n    model_display_name: O nome a mostrar do modelo.\n    changes: Os hiperparâmetros que mudam em relação aos valores por omissão.\n    fold: O fold que está a treinar (1, 2…), ou 0 antes do primeiro.\n    folds: Quantos folds há."
+        "description": "O que está a ser feito agora: um agente a medir um candidato, fold a fold.\n\nUm candidato só entra no quadro depois de medido; até lá, quem acompanha a procura sabe\npor aqui que agente trabalha, em quê, e em que fold vai (o fluxograma dos agentes).\n\nAttributes:\n    candidate: O número que o candidato vai ter.\n    phase: A ronda: a triagem ou a afinação.\n    family: A família do modelo (o agente que trabalha).\n    author: O nome a mostrar do agente que trabalha.\n    model: O modelo, no registo.\n    model_display_name: O nome a mostrar do modelo.\n    changes: Os hiperparâmetros que mudam em relação aos valores por omissão.\n    fold: O fold que está a treinar (1, 2…), ou 0 antes do primeiro.\n    folds: Quantos folds há.\n    ai: Se o candidato é uma proposta do agente de IA (o fluxograma acende o nó dele)."
       }
     }
   },
