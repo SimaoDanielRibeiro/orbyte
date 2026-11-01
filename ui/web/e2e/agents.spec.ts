@@ -119,7 +119,8 @@ test("parar uma procura acaba-a com o melhor até aí", async ({ page }) => {
   test.setTimeout(300_000);
   await startSlowSearch(page);
 
-  await page.getByRole("button", { name: "Parar" }).click();
+  // Exato: o nó do agente de dados chama-se "A preparar", e "preparar" contém "parar".
+  await page.getByRole("button", { name: "Parar", exact: true }).click();
 
   await expect(page.locator("figure[data-phase='done']")).toBeVisible({ timeout: 240_000 });
   await expect(page.getByText(/A procura parou a pedido/)).toBeVisible();

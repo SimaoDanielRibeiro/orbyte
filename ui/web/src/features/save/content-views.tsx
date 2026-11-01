@@ -8,14 +8,7 @@
 import { cn } from "cn";
 import { useState } from "react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCount } from "@/lib/format";
 
 import { parseCsv } from "./csv";
@@ -131,9 +124,16 @@ function Primitive({ value }: { value: unknown }) {
 /** Um CSV (com cabeçalho) numa tabela. */
 export function CsvTable({ text, label }: { text: string; label: string }) {
   const [header = [], ...rows] = parseCsv(text);
+  // Um só contentor desliza (o `Table` traria outro, por dentro), e recebe o foco: com muitas
+  // colunas, as setas do teclado deslizam-no para o lado.
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <Table aria-label={label}>
+    <div
+      className="overflow-x-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      role="region"
+      aria-label={`${label} (desliza para o lado)`}
+      tabIndex={0}
+    >
+      <table aria-label={label} className="w-full caption-bottom text-sm">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             {header.map((name, index) => (
@@ -154,7 +154,7 @@ export function CsvTable({ text, label }: { text: string; label: string }) {
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+      </table>
     </div>
   );
 }

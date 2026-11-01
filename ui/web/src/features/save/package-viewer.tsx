@@ -146,7 +146,16 @@ export function PartContent({ part, className, scrollClassName }: PartContentPro
           {part.path} · {label("PackageFileKind", part.kind)} · {formatBytes(part.size)}
         </span>
       </div>
-      <div className={cn("max-h-[34rem] min-w-0 overflow-auto", scrollClassName)}>
+      {/* Desliza por dentro: com o foco, as setas do teclado também a deslizam. */}
+      <div
+        className={cn(
+          "max-h-[34rem] min-w-0 overflow-auto rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          scrollClassName,
+        )}
+        role="region"
+        aria-label={`O texto de ${part.path}`}
+        tabIndex={0}
+      >
         <Body part={part} />
       </div>
       {part.truncated && (

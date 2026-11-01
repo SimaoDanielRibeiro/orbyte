@@ -30,7 +30,8 @@ test("compara dois runs, muda o nome, guarda, apaga e reproduz", async ({ page, 
   await page.getByRole("checkbox", { name: "Comparar «Histórico C forte»" }).click();
   await page.getByRole("checkbox", { name: "Comparar «Histórico C fraco»" }).click();
   await expect(page.getByRole("heading", { name: "O que muda entre os runs" })).toBeVisible();
-  await expect(page.getByRole("rowheader", { name: /Hiperparâmetro · C/ })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Os hiperparâmetros" })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "C (inverso da regularização)" })).toBeVisible();
 
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
