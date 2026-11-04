@@ -38,17 +38,17 @@ class JobStatus(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar, em inglês."""
         return _STATUS_LABELS[self]
 
 
 _STATUS_LABELS: Final[Mapping[JobStatus, str]] = MappingProxyType(
     {
-        JobStatus.PENDING: "À espera",
-        JobStatus.RUNNING: "A treinar",
-        JobStatus.PAUSED: "Em pausa",
-        JobStatus.FINISHED: "Terminado",
-        JobStatus.FAILED: "Falhou",
+        JobStatus.PENDING: "Waiting",
+        JobStatus.RUNNING: "Training",
+        JobStatus.PAUSED: "Paused",
+        JobStatus.FINISHED: "Finished",
+        JobStatus.FAILED: "Failed",
     }
 )
 
@@ -98,7 +98,7 @@ class TrainingJob[T]:
         self._work = work
         self._result: T | None = None
         self._error: Exception | None = None
-        self._thread = threading.Thread(target=self._run, name=f"treino-{run_id}", daemon=True)
+        self._thread = threading.Thread(target=self._run, name=f"training-{run_id}", daemon=True)
         self._started = False
 
     def start(self) -> Self:
@@ -167,7 +167,7 @@ class TrainingJob[T]:
         """
         self._thread.join(timeout)
         if self._thread.is_alive():
-            raise TimeoutError(f"O treino {self.run_id} ainda não terminou.")
+            raise TimeoutError(f"Training {self.run_id} hasn't finished yet.")
         if self._error is not None:
             raise self._error
         assert self._result is not None  # o trabalho terminou sem erro

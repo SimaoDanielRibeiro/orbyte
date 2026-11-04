@@ -5,6 +5,10 @@ antes de implementar o algoritmo; a interface mostra-a ao lado do modelo. A fich
 cada modelo aponta para o seu ficheiro, e um teste de contrato confirma que ele existe (a
 partir da fase 2).
 
+As fichas escrevem-se em **inglês**, como todo o site (ADR 0043): são textos que a interface
+mostra. Os títulos das secções são os do modelo abaixo, por esta ordem, e dão as chaves estáveis
+de cada secção (`intuition`, `essential-maths`…), que um teste de contrato confirma.
+
 ## As fichas
 
 Uma ficha serve às duas versões de um algoritmo (a didática, em NumPy, e a do
@@ -12,31 +16,31 @@ scikit-learn) e à classificação e à regressão, quando o algoritmo faz as du
 
 **Classificação**
 
-- [Regressão logística](logistic_regression.md): scikit-learn e didática (gradiente
+- [Logistic regression](logistic_regression.md): scikit-learn e didática (gradiente
   descendente)
-- [Perceptrão](perceptron.md): didática
-- [K vizinhos mais próximos (KNN)](knn.md): scikit-learn e didática
-- [Naive Bayes gaussiano](gaussian_nb.md)
-- [Árvore de decisão](decision_tree.md): também de regressão
-- [Random Forest](random_forest.md): também de regressão
+- [Perceptron](perceptron.md): didática
+- [K-nearest neighbours (KNN)](knn.md): scikit-learn e didática
+- [Gaussian naive Bayes](gaussian_nb.md)
+- [Decision tree](decision_tree.md): também de regressão
+- [Random forest](random_forest.md): também de regressão
 - [Gradient boosting](gradient_boosting.md): também de regressão
 - [AdaBoost](adaboost.md): também de regressão
-- [SVM e SVR](svm.md): o SVR é a versão de regressão
+- [SVM and SVR](svm.md): o SVR é a versão de regressão
 
 **Regressão**
 
-- [Regressão linear](linear_regression.md): mínimos quadrados (scikit-learn) e didática
+- [Linear regression](linear_regression.md): mínimos quadrados (scikit-learn) e didática
   (gradiente descendente)
-- [Ridge e Lasso](ridge_lasso.md)
-- [Regressão polinomial](polynomial_regression.md)
+- [Ridge and Lasso](ridge_lasso.md)
+- [Polynomial regression](polynomial_regression.md)
 - E as versões de regressão da árvore, da Random Forest, do boosting e do SVM (acima).
 
 **Clustering**
 
 - [K-means](kmeans.md): scikit-learn e didática
 - [DBSCAN](dbscan.md)
-- [Clustering hierárquico](agglomerative.md)
-- [Mistura de gaussianas](gaussian_mixture.md)
+- [Hierarchical clustering](agglomerative.md)
+- [Gaussian mixture](gaussian_mixture.md)
 
 **Redução de dimensionalidade**
 
@@ -51,7 +55,7 @@ scikit-learn) e à classificação e à regressão, quando o algoritmo faz as du
 
 **Redes neuronais**
 
-- [Rede neuronal (MLP)](mlp.md): PyTorch, de classificação e de regressão
+- [Neural network (MLP)](mlp.md): PyTorch, de classificação e de regressão
 
 **Reinforcement learning** (agentes, não modelos: aprendem num ambiente, sem dataset)
 
@@ -60,32 +64,32 @@ scikit-learn) e à classificação e à regressão, quando o algoritmo faz as du
 
 **Escolher o modelo** (os agentes do modo automático, fase 9)
 
-- [Agentes de AutoML](automl.md): a triagem e a procura aleatória de hiperparâmetros,
+- [AutoML agents](automl.md): a triagem e a procura aleatória de hiperparâmetros,
   medidas com validação cruzada só no treino
 
 ## Modelo
 
 ````markdown
-# <Nome do algoritmo>
+# <Algorithm name>
 
-## Intuição
+## Intuition
 
-A ideia em poucas frases, sem fórmulas.
+The idea in a few sentences, with no formulas.
 
-## Matemática essencial
+## Essential maths
 
-O mínimo de matemática para perceber o que o treino faz.
+The least maths needed to understand what the training does.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
 
-## Quando usar
+## When to use
 
-## Armadilhas
+## Pitfalls
 
-## O que observar no treino
+## What to watch in training
 
-Que snapshots o algoritmo mostra e o que procurar neles.
+Which snapshots the algorithm shows and what to look for in them.
 ````

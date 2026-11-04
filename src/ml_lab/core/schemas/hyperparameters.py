@@ -1,13 +1,13 @@
 """Base dos hiperparâmetros dos modelos (Pydantic).
 
 Cada modelo declara os seus hiperparâmetros numa subclasse de ``Hyperparameters``,
-com tipos, limites, valores por omissão e textos em português::
+com tipos, limites, valores por omissão e textos em inglês::
 
     class KnnParams(Hyperparameters):
         n_neighbors: int = Field(5, ge=1, le=100, title="Número de vizinhos")
 
 Daqui sai tudo o resto, sem código específico por modelo: a validação dos valores
-(com mensagens em português), o JSON para guardar a experiência e o JSON Schema de
+(com mensagens em inglês), o JSON para guardar a experiência e o JSON Schema de
 onde a interface gera o formulário.
 
 Três extensões ao JSON Schema:
@@ -38,11 +38,11 @@ class Hyperparameters(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     @classmethod
-    def parse(cls, values: Mapping[str, Any], *, model: str = "modelo") -> Self:
+    def parse(cls, values: Mapping[str, Any], *, model: str = "model") -> Self:
         """Valida ``values``; os que faltam ficam com o valor por omissão.
 
         Raises:
-            HyperparameterError: Com uma frase em português por cada valor recusado.
+            HyperparameterError: Com uma frase por cada valor recusado.
         """
         try:
             return cls.model_validate(dict(values))

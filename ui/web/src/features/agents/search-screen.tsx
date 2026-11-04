@@ -5,11 +5,12 @@
  * melhor até agora, os candidatos que vão sendo medidos e a conversa dos agentes, com os botões
  * para pausar, retomar e parar. No fim: o vencedor e a sua nota no teste, a procura num gráfico,
  * o melhor de cada agente, o quadro completo e a ponte para o modo manual (treinar qualquer
- * candidato como um run normal).
+ * candidato como um run normal). A conversa abre-se em ecrã inteiro, como um chat
+ * (`ConversationRoom`), para se ler como a procura aconteceu.
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowRight, ChevronDown, LoaderCircle, Plus } from "lucide-react";
+import { ChevronDown, LoaderCircle, Maximize2, Plus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import type { AutoMlResult, Candidate } from "@/api/generated";
@@ -24,7 +25,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, NeedsStep, NextStep, Stat, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, Stat, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -42,10 +43,11 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton } from "@/features/data/require-dataset";
 import { familyColor } from "@/lib/families";
-import { formatCount, formatMetric, formatNumber } from "@/lib/format";
+import { formatCount, formatMetric, formatNumber, formatOrdinal } from "@/lib/format";
 import { useSession } from "@/state/session";
 
 import { AgentDetail } from "./agent-detail";
+import { ConversationRoom } from "./conversation-room";
 import { ExchangeHistory } from "./exchange-history";
 import { Flowchart, type FlowNode } from "./flowchart";
 import { PlanView } from "./plan-view";
@@ -55,7 +57,7 @@ import { useAgentSearch } from "./use-agent-search";
 import { changesText, objectiveValue } from "./values";
 
 export function SearchScreen() {
-  const { searchId } = useParams({ from: "/agentes/$searchId" });
+  const { searchId } = useParams({ from: "/agents/$searchId" });
   return (
     <Page>
       <Search key={searchId} searchId={searchId} />
@@ -70,6 +72,8 @@ function Search({ searchId }: { searchId: string }) {
   // O fluxograma ao vivo, ou o histórico das trocas (com a mensagem à vista, para a conversa).
   const [view, setView] = useState<"live" | "history">("live");
   const [moment, setMoment] = useState<number | null>(null);
+  // A conversa em ecrã inteiro, como um chat.
+  const [room, setRoom] = useState(false);
   const openSearch = useSession((state) => state.openSearch);
   const lost = detached && plan.error !== null && result.error !== null;
   useEffect(() => {
@@ -83,9 +87,9 @@ function Search({ searchId }: { searchId: string }) {
       <>
         <PageHeader title={SCREENS.agents.title} description={SCREENS.agents.description} />
         <NeedsStep
-          message="Esta procura já não está na memória da API: ela recomeçou, ou a procura saiu para dar lugar a outras. O run do vencedor continua no ecrã Histórico."
-          to="/agentes"
-          action="Fazer outro pedido aos agentes"
+          message="This search is no longer in the API's memory: the API restarted, or the search made room for newer ones. The winner's run is still in History."
+          to="/agents"
+          action="Make a new request to the agents"
         />
       </>
     );
@@ -104,22 +108,22 @@ function Search({ searchId }: { searchId: string }) {
   const working = data === undefined ? live.working : null;
   const thought = data === undefined ? live.thought : null;
   const leader = winner ?? live.leader;
+  const title =
+    searchPlan === undefined
+      ? "The agents' search"
+      : `Predict ${searchPlan.target} in ${searchPlan.dataset_name}`;
   return (
     <>
       <header className="flex flex-col gap-5 @4xl/main:flex-row @4xl/main:items-end @4xl/main:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">
-              {searchPlan === undefined
-                ? "A procura dos agentes"
-                : `Prever ${searchPlan.target} em ${searchPlan.dataset_name}`}
-            </h1>
+            <h1 className="text-title">{title}</h1>
             <WhyButton
-              title="A procura dos agentes"
+              title="The agents' search"
               description={
                 searchPlan === undefined
                   ? SCREENS.agents.description
-                  : `${label("TaskType", searchPlan.task_type)}, a otimizar ${searchPlan.objective.label.toLowerCase()}. ${SCREENS.agents.description}`
+                  : `${label("TaskType", searchPlan.task_type)}, optimizing ${searchPlan.objective.label.toLowerCase()}. ${SCREENS.agents.description}`
               }
               topics={[
                 "automl",
@@ -150,7 +154,7 @@ function Search({ searchId }: { searchId: string }) {
       {status === "failed" && (
         <ErrorNote
           className="mt-8"
-          error={new Error(live.state?.error ?? "A procura falhou sem dizer porquê.")}
+          error={new Error(live.state?.error ?? "The search failed without saying why.")}
         />
       )}
 
@@ -162,7 +166,7 @@ function Search({ searchId }: { searchId: string }) {
             type="single"
             variant="outline"
             size="sm"
-            aria-label="O que o fluxograma mostra"
+            aria-label="What the flowchart shows"
             value={view}
             onValueChange={(value) => {
               if (value === "live" || value === "history") {
@@ -172,19 +176,19 @@ function Search({ searchId }: { searchId: string }) {
             }}
           >
             <ToggleGroupItem value="live" className="px-3">
-              {data === undefined ? "Ao vivo" : "No fim"}
+              {data === undefined ? "Live" : "At the end"}
             </ToggleGroupItem>
             <ToggleGroupItem value="history" className="px-3" disabled={messages.length === 0}>
-              Histórico das trocas
+              Exchange history
             </ToggleGroupItem>
           </ToggleGroup>
           {/* O "?" explica a vista aberta (ADR 0038). */}
           {view === "history" ? (
             <Explain topic="exchange_history" align="end" />
           ) : (
-            <Explain title="Os agentes a trabalhar" align="end">
-              A caixa acesa é o agente que trabalha agora. Clica num agente para veres o que está a
-              fazer e o que já fez.
+            <Explain title="The agents at work" align="end">
+              The lit box is the agent working right now. Click an agent to see what it is doing and
+              what it has done.
             </Explain>
           )}
         </div>
@@ -192,7 +196,7 @@ function Search({ searchId }: { searchId: string }) {
 
       <div className="mt-6 grid gap-x-12 gap-y-10 @8xl/main:grid-cols-[minmax(0,1fr)_26rem]">
         <section
-          aria-label={view === "history" ? "O histórico das trocas" : "Os agentes a trabalhar"}
+          aria-label={view === "history" ? "The exchange history" : "The agents at work"}
           className="flex min-w-0 flex-col gap-3"
         >
           <div className="rounded-2xl bg-[radial-gradient(circle,#262626_1px,transparent_1.2px)] bg-size-[22px_22px] p-4">
@@ -230,9 +234,22 @@ function Search({ searchId }: { searchId: string }) {
           </div>
         </section>
         <section className="flex min-w-0 flex-col gap-4 @8xl/main:border-l @8xl/main:pl-8">
-          <h2 className="text-[0.9375rem] font-normal tracking-normal text-soft">
-            A conversa dos agentes
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-normal tracking-normal text-soft">
+              The agents&apos; conversation
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={messages.length === 0}
+              onClick={() => {
+                setRoom(true);
+              }}
+            >
+              <Maximize2 aria-hidden="true" />
+              Expand
+            </Button>
+          </div>
           <Conversation
             messages={messages}
             active={view === "history" ? moment : null}
@@ -241,11 +258,22 @@ function Search({ searchId }: { searchId: string }) {
           />
         </section>
       </div>
+      <ConversationRoom
+        open={room}
+        onOpenChange={setRoom}
+        title={title}
+        messages={messages}
+        candidates={candidates}
+        objective={objective}
+        thought={thought}
+        live={data === undefined && running}
+        test={data?.test ?? null}
+      />
 
       {data === undefined ? (
         <div className="mt-12 grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
           <Leader candidate={live.leader} objective={objective} />
-          <Part title="Os candidatos medidos">
+          <Part title="The candidates measured">
             <CandidateFeed candidates={candidates} objective={objective} leader={live.leader} />
           </Part>
         </div>
@@ -259,7 +287,7 @@ function Search({ searchId }: { searchId: string }) {
         <Collapsible className="group/plano mt-16">
           <CollapsibleTrigger asChild>
             <Button variant="outline">
-              Ver o plano da procura
+              See the search plan
               <ChevronDown
                 aria-hidden="true"
                 className="transition-transform group-data-[state=open]/plano:rotate-180"
@@ -272,11 +300,6 @@ function Search({ searchId }: { searchId: string }) {
         </Collapsible>
       )}
       {data === undefined && (status === "finished" || detached) && <PageSkeleton />}
-      {data?.run_id != null && (
-        <NextStep>
-          <WinnerProceed runId={data.run_id} />
-        </NextStep>
-      )}
 
       {searchPlan !== undefined && (
         <AgentDetail
@@ -310,18 +333,30 @@ interface ControlsProps {
   live: ReturnType<typeof useAgentSearch>["live"];
 }
 
-/** O estado da procura e os botões para a pausar, retomar e parar. */
+/**
+ * O estado da procura e os botões para a pausar, retomar e parar. Parar é parar tudo (ADR 0051):
+ * a procura acaba no fim do candidato atual, sem treinar um vencedor, e o ecrã volta logo ao
+ * pedido, para uma procura nova.
+ */
 function Controls({ searchId, status, measured, live }: ControlsProps) {
   const label = useLabel();
+  const navigate = useNavigate();
+  const openSearch = useSession((state) => state.openSearch);
   const path = { search_id: searchId };
   const pause = useMutation(automlPauseMutation());
   const resume = useMutation(automlResumeMutation());
-  const cancel = useMutation(automlCancelMutation());
+  const cancel = useMutation({
+    ...automlCancelMutation(),
+    onSuccess: () => {
+      openSearch(null);
+      void navigate({ to: "/agents" });
+    },
+  });
   const planned = live.state?.planned_steps ?? null;
   const paused = status === "paused";
   return (
     <section
-      aria-label="A procura a decorrer"
+      aria-label="The search in progress"
       className="flex w-full flex-col gap-3 @4xl/main:w-96"
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -339,11 +374,11 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
             />
           </span>
           <span className="font-medium text-strong">
-            {live.state === null ? "A ligar" : label("JobStatus", live.state.status)}
+            {live.state === null ? "Connecting" : label("JobStatus", live.state.status)}
           </span>
           <span className="font-mono text-xs text-dim tabular-nums">
             {formatCount(measured)}
-            {planned === null ? "" : ` de ${formatCount(planned)}`} candidatos medidos
+            {planned === null ? "" : ` of ${formatCount(planned)}`} candidates measured
           </span>
         </div>
         <div className="flex gap-2">
@@ -354,7 +389,7 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
               }}
               disabled={resume.isPending}
             >
-              Retomar
+              Resume
             </Button>
           ) : (
             <Button
@@ -364,7 +399,7 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
               }}
               disabled={pause.isPending || live.state === null}
             >
-              Pausar
+              Pause
             </Button>
           )}
           <Tooltip>
@@ -376,11 +411,12 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
                 }}
                 disabled={cancel.isPending || live.state === null}
               >
-                Parar
+                Stop
               </Button>
             </TooltipTrigger>
             <TooltipContent className="max-w-64">
-              A procura pára no fim do candidato atual; o vencedor é o melhor até aí.
+              Stops everything: nothing more is measured, no winner is trained, and you go back to a
+              new search.
             </TooltipContent>
           </Tooltip>
         </div>
@@ -388,7 +424,7 @@ function Controls({ searchId, status, measured, live }: ControlsProps) {
       {planned !== null && (
         <Progress
           value={Math.min(100, (measured / planned) * 100)}
-          aria-label="O progresso da procura"
+          aria-label="The search's progress"
         />
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
@@ -409,11 +445,11 @@ function NewSearch() {
       size="proceed"
       onClick={() => {
         openSearch(null);
-        void navigate({ to: "/agentes" });
+        void navigate({ to: "/agents" });
       }}
     >
       <Plus aria-hidden="true" />
-      Nova procura
+      New search
     </Button>
   );
 }
@@ -428,13 +464,13 @@ function Leader({
   const label = useLabel();
   if (candidate === null) {
     return (
-      <Part title="O melhor até agora">
-        <p className="text-sm text-soft">Ainda nenhum candidato medido.</p>
+      <Part title="The best so far">
+        <p className="text-sm text-soft">No candidate measured yet.</p>
       </Part>
     );
   }
   return (
-    <Part title="O melhor até agora">
+    <Part title="The best so far">
       <div>
         <p className="text-xl text-strong">{candidate.model_display_name}</p>
         <p className="mt-1 font-mono text-xs text-dim">
@@ -442,9 +478,9 @@ function Leader({
         </p>
       </div>
       <Stat
-        label={`${objective?.label ?? "Valor"} na validação cruzada`}
+        label={`${objective?.label ?? "Value"} in cross-validation`}
         value={objectiveValue(candidate.mean, objective)}
-        detail={`± ${objectiveValue(candidate.std, objective)} entre folds`}
+        detail={`± ${objectiveValue(candidate.std, objective)} across folds`}
       />
     </Part>
   );
@@ -476,57 +512,49 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
       {result.notices.length > 0 && <NoticeList notices={result.notices} />}
       <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
         {winner !== null && (
-          <Part title="O vencedor">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-2xl text-strong">{winner.model_display_name}</p>
-                <p className="mt-1 font-mono text-xs text-dim">
-                  {label("ModelFamily", winner.family)}, {changesText(winner)}
-                </p>
-              </div>
-              {result.run_id !== null && (
-                <Button asChild variant="outline">
-                  <Link to="/treinar/$runId" params={{ runId: result.run_id }}>
-                    Abrir o vencedor
-                  </Link>
-                </Button>
-              )}
+          <Part title="The winner">
+            {/* Abrir o vencedor fica só no cabeçalho, como o passo seguinte de todos os ecrãs. */}
+            <div>
+              <p className="text-2xl text-strong">{winner.model_display_name}</p>
+              <p className="mt-1 font-mono text-xs text-dim">
+                {label("ModelFamily", winner.family)}, {changesText(winner)}
+              </p>
             </div>
             <StatStrip
               compact
               items={[
                 {
-                  key: "validacao",
-                  label: "Validação cruzada",
+                  key: "validation",
+                  label: "Cross-validation",
                   value: objectiveValue(winner.mean, objective),
-                  detail: `± ${objectiveValue(winner.std, objective)} entre folds`,
+                  detail: `± ${objectiveValue(winner.std, objective)} across folds`,
                 },
                 {
-                  key: "teste",
-                  label: "No teste, uma só vez",
+                  key: "test",
+                  label: "On the test, once",
                   value: result.test === null ? "—" : formatMetric(result.test),
                 },
                 ...(baseline === null
                   ? []
                   : [
                       {
-                        key: "referencia",
-                        label: "A referência",
+                        key: "baseline",
+                        label: "The baseline",
                         value: objectiveValue(baseline.mean, objective),
                       },
                     ]),
                 {
-                  key: "candidatos",
-                  label: "Candidatos",
+                  key: "candidates",
+                  label: "Candidates",
                   value: formatCount(result.candidates.length),
-                  detail: `em ${formatNumber(result.duration_seconds, 1)} s`,
+                  detail: `in ${formatNumber(result.duration_seconds, 1)} s`,
                 },
               ]}
             />
           </Part>
         )}
         {best.length > 0 && (
-          <Part title="O melhor de cada agente">
+          <Part title="Each agent's best">
             <BarChart
               items={best.map(({ family, candidate }) => ({
                 key: family,
@@ -537,27 +565,27 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
               format={(value) => objectiveValue(value, objective)}
               valueLabel={objective.label}
               labelWidth={190}
-              description="O melhor candidato de cada agente, na validação cruzada."
+              description="Each agent's best candidate, in cross-validation."
               caption={
                 baseline === null
                   ? undefined
-                  : `A referência (${baseline.model_display_name} com os valores por omissão) tem ${objectiveValue(baseline.mean, objective)}.`
+                  : `The baseline (${baseline.model_display_name} with its default values) has ${objectiveValue(baseline.mean, objective)}.`
               }
             />
           </Part>
         )}
       </div>
-      <Part title="A procura">
+      <Part title="The search">
         <SearchChart
           candidates={result.candidates}
           objective={objective}
           families={families}
           winner={result.winner}
-          description="Cada candidato pela ordem em que foi medido, com a média e o desvio na validação cruzada."
+          description="Each candidate in the order it was measured, with its mean and deviation in cross-validation."
           caption={<TopicText topic="screening_and_tuning" />}
         />
       </Part>
-      <Part title="O quadro dos candidatos">
+      <Part title="The candidate board">
         <Board result={result} />
         <TrainCandidate result={result} />
       </Part>
@@ -565,13 +593,12 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
   );
 }
 
-/** Prosseguir para o vencedor, no "Treinar e avaliar" (o mesmo aspeto do `Proceed`). */
+/** Prosseguir para o vencedor, no "Train & evaluate" (o mesmo aspeto do `Proceed`). */
 function WinnerProceed({ runId }: { runId: string }) {
   return (
     <Button asChild variant="proceed" size="proceed">
-      <Link to="/treinar/$runId" params={{ runId }}>
-        Abrir o vencedor
-        <ArrowRight aria-hidden="true" />
+      <Link to="/train/$runId" params={{ runId }}>
+        Open the winner
       </Link>
     </Button>
   );
@@ -593,7 +620,7 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
     <div className="flex flex-col items-end gap-2 pt-4">
       <div className="flex flex-wrap items-center justify-end gap-3">
         <span className="flex items-center gap-1 text-sm text-soft">
-          Treinar um candidato à mão
+          Train a candidate by hand
           <Explain topic="train_candidate" />
         </span>
         <Select
@@ -602,7 +629,7 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
             setChosen(Number(value));
           }}
         >
-          <SelectTrigger className="min-w-72" aria-label="O candidato a treinar">
+          <SelectTrigger className="min-w-72" aria-label="The candidate to train">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -610,7 +637,7 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
               const one = result.candidates.find((item) => item.number === number);
               return (
                 <SelectItem key={number} value={String(number)}>
-                  {`${formatCount(index + 1)}.º ${one?.model_display_name ?? ""}, ${objectiveValue(one?.mean ?? null, objective)}`}
+                  {`${formatOrdinal(index + 1)} ${one?.model_display_name ?? ""}, ${objectiveValue(one?.mean ?? null, objective)}`}
                 </SelectItem>
               );
             })}
@@ -628,14 +655,14 @@ function TrainCandidate({ result }: { result: AutoMlResult }) {
               {
                 onSuccess: (job) => {
                   openRun(job.run_id, candidate?.model_display_name ?? null);
-                  void navigate({ to: "/treinar/$runId", params: { runId: job.run_id } });
+                  void navigate({ to: "/train/$runId", params: { runId: job.run_id } });
                 },
               },
             );
           }}
         >
           {train.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-          Treinar no modo manual
+          Train in manual mode
         </Button>
       </div>
       <ErrorNote error={train.error} />
@@ -657,7 +684,7 @@ interface PartProps {
  */
 function Part({ title, topic, children }: PartProps) {
   const heading = (
-    <h2 className="text-[0.9375rem] font-medium tracking-normal text-foreground">{title}</h2>
+    <h2 className="text-base font-medium tracking-normal text-foreground">{title}</h2>
   );
   return (
     <section className="flex min-w-0 flex-col gap-4">

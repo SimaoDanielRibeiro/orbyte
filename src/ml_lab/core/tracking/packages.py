@@ -133,14 +133,14 @@ class PackageContents:
         try:
             return json.loads(text)
         except json.JSONDecodeError as error:
-            raise PackageError(f"O ficheiro {path} do pacote não é JSON: {error}.") from error
+            raise PackageError(f"The package file {path} isn't JSON: {error}.") from error
 
     @property
     def manifest(self) -> dict[str, Any]:
         """O manifesto."""
         manifest = self.document(MANIFEST)
         if not isinstance(manifest, dict):
-            raise PackageError("O pacote não tem um manifesto válido (manifest.json).")
+            raise PackageError("The package has no valid manifest (manifest.json).")
         return manifest
 
     @property
@@ -243,7 +243,7 @@ def assemble(
     missing = [name for name in REQUIRED if name not in (*names, MANIFEST)]
     if unknown or missing:
         raise PackageError(
-            f"Um pacote não pode ter {unknown} e tem de ter {missing}: são os nomes do formato."
+            f"A package can't have {unknown} and must have {missing}: those are the format's names."
         )
     listed = [
         {"path": file.path, "bytes": len(file.content), "sha256": file.sha256}
@@ -267,14 +267,15 @@ def read_package(data: bytes, key: PackageKey) -> OpenedPackage:
     """
     if len(data) > MAX_PACKAGE_BYTES:
         raise PackageError(
-            f"O ficheiro tem {len(data) // (1024 * 1024)} MB: o maior pacote que se abre tem "
+            f"The file is {len(data) // (1024 * 1024)} MB: the largest package that opens is "
             f"{MAX_PACKAGE_BYTES // (1024 * 1024)} MB."
         )
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile as error:
         raise PackageError(
-            "Este ficheiro não é um pacote do ML Lab: um .mllab é um ZIP, e este não abre como um."
+            "This file isn't an Orbyte package: a .mllab is a ZIP, and this one doesn't open as "
+            "one."
         ) from error
     problems: list[str] = []
     files: list[PackageFile] = []
@@ -282,19 +283,17 @@ def read_package(data: bytes, key: PackageKey) -> OpenedPackage:
     with archive:
         for info in archive.infolist():
             if info.filename not in FILE_ORDER:
-                problems.append(
-                    f"O pacote tem um ficheiro que o formato não conhece: {info.filename}."
-                )
+                problems.append(f"The package has a file the format doesn't know: {info.filename}.")
                 continue
             total += info.file_size
             if total > MAX_PACKAGE_BYTES:
-                raise PackageError("O pacote, descomprimido, é grande demais para se abrir.")
+                raise PackageError("The package, uncompressed, is too large to open.")
             try:
                 content = archive.read(info)
             except (zipfile.BadZipFile, zlib.error, EOFError):
                 # Os bytes do ZIP estragaram-se (a impressão do próprio ZIP não confere): o resto
                 # lê-se na mesma, e o manifesto diz que falta este.
-                problems.append(f"O ficheiro {info.filename} está estragado e não se lê.")
+                problems.append(f"The file {info.filename} is damaged and can't be read.")
                 continue
             files.append(PackageFile(info.filename, content))
     contents = PackageContents(_ordered(files))
@@ -317,16 +316,18 @@ def load_model(opened: OpenedPackage) -> Any:
     """
     if not opened.intact:
         raise PackageError(
-            "O pacote está estragado ou foi alterado depois de feito, por isso o modelo não "
-            f"abre: {' '.join(opened.problems)}"
+            "The package is damaged or was changed after it was made, so the model won't "
+            f"open: {' '.join(opened.problems)}"
         )
     content = opened.contents.get(MODEL)
     if content is None:
-        raise PackageError("Este pacote não traz o modelo (foi guardado só com a ficha).")
+        raise PackageError(
+            "This package doesn't carry the model (it was saved with the card only)."
+        )
     try:
         return joblib.load(io.BytesIO(content))
     except Exception as error:  # um pickle de outra versão do código falha de muitas formas
-        raise TrackingError(f"O modelo do pacote não abriu: {error}") from error
+        raise TrackingError(f"The package's model didn't open: {error}") from error
 
 
 @dataclass(frozen=True, slots=True)
@@ -526,7 +527,7 @@ class PackageLibrary:
             )
         except (OSError, ValueError, KeyError) as error:
             raise TrackingError(
-                f"A biblioteca tem o pacote '{package_id}' estragado: {error}."
+                f"The library's package '{package_id}' is damaged: {error}."
             ) from error
 
 
@@ -547,16 +548,17 @@ def _manifest_of(contents: PackageContents) -> dict[str, Any]:
     """
     if contents.get(MANIFEST) is None:
         raise PackageError(
-            "Este ZIP não é um pacote do ML Lab: falta o manifest.json, que diz o que o pacote tem."
+            "This ZIP isn't an Orbyte package: it lacks the manifest.json, which says what the "
+            "package holds."
         )
     manifest = contents.manifest
     if manifest.get("format") != FORMAT:
-        raise PackageError("Este ZIP não é um pacote do ML Lab: o manifesto é de outro formato.")
+        raise PackageError("This ZIP isn't an Orbyte package: the manifest is of another format.")
     version = manifest.get("format_version")
     if not isinstance(version, int) or version > FORMAT_VERSION:
         raise PackageError(
-            f"Este pacote é da versão {version} do formato, e este ML Lab só lê até à "
-            f"{FORMAT_VERSION}: atualiza o ML Lab para o abrir."
+            f"This package is from version {version} of the format, and this Orbyte only reads "
+            f"up to {FORMAT_VERSION}: update Orbyte to open it."
         )
     return manifest
 
@@ -571,24 +573,24 @@ def _check(contents: PackageContents, manifest: Mapping[str, Any]) -> list[str]:
     }
     for name in REQUIRED:
         if contents.get(name) is None:
-            problems.append(f"Falta o ficheiro {name}.")
+            problems.append(f"The file {name} is missing.")
     for file in contents.files:
         if file.path in (MANIFEST, SIGNATURE):
             continue
         item = listed.get(file.path)
         if item is None:
-            problems.append(f"O ficheiro {file.path} não está no manifesto.")
+            problems.append(f"The file {file.path} isn't in the manifest.")
         elif item.get("sha256") != file.sha256 or item.get("bytes") != len(file.content):
-            problems.append(f"O ficheiro {file.path} não é o que o manifesto descreve.")
+            problems.append(f"The file {file.path} isn't what the manifest describes.")
     for name in listed:
         if contents.get(name) is None:
-            problems.append(f"O manifesto descreve {name}, e o pacote não o tem.")
+            problems.append(f"The manifest describes {name}, and the package doesn't have it.")
     return problems
 
 
 def _file_name(name: str) -> str:
     """Um nome de ficheiro seguro para descarregar (sem pastas), com a extensão do formato."""
-    base = Path(name).name.strip() or "modelo"
+    base = Path(name).name.strip() or "model"
     return base if base.endswith(EXTENSION) else f"{base}{EXTENSION}"
 
 

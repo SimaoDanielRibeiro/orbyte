@@ -3,11 +3,15 @@ name = "ml-lab"
 version = "0.1.0"
 description = "Laboratório de machine learning para aprender: treino passo a passo, métricas e registo de experiências."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 authors = [{ name = "Simão" }]
 # As bibliotecas de dados e ML entram fase a fase (ver docs/architecture.md, secção Roadmap):
 # fase 1: numpy, pandas (+ openpyxl para Excel) · fase 2: scikit-learn, pydantic
 # fase 5: joblib (já vinha com o scikit-learn) · fase 6: torch · fase 7: fastapi
+# fase 11: onnx, skl2onnx, onnxruntime
+# ADR 0052: pyarrow (Parquet) e python-calamine (o Excel antigo, .xls; o pandas deixou o xlrd)
 dependencies = [
     "fastapi>=0.162.0",
     "joblib>=1.6.0",
@@ -16,7 +20,9 @@ dependencies = [
     "onnxruntime>=1.31.1",
     "openpyxl>=3.1.5",
     "pandas>=3.1.0",
+    "pyarrow>=26.0.1",
     "pydantic>=2.14.1",
+    "python-calamine>=0.9.1",
     "python-multipart>=0.0.32",
     "scikit-learn>=1.9.1",
     "skl2onnx>=1.20.0",

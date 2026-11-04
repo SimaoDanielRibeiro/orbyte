@@ -280,9 +280,9 @@ def _correlation_notices(correlations: CorrelationMatrix, target: str | None) ->
                     notices.append(
                         Notice.warning(
                             "possible_leakage",
-                            f"{feature} está quase perfeitamente correlacionada com o alvo "
-                            f"(r = {r}). Pode ser uma fuga de dados: confirma que a coluna existe "
-                            "antes de se saber o resultado.",
+                            f"{feature} is almost perfectly correlated with the target "
+                            f"(r = {r}). It may be data leakage: check that the column exists "
+                            "before the outcome is known.",
                             feature,
                         )
                     )
@@ -290,8 +290,8 @@ def _correlation_notices(correlations: CorrelationMatrix, target: str | None) ->
                 notices.append(
                     Notice.info(
                         "high_correlation",
-                        f"{first} e {second} estão muito correlacionadas (r = {r}): dizem quase "
-                        "o mesmo, e alguns modelos ficam instáveis com as duas.",
+                        f"{first} and {second} are highly correlated (r = {r}): they say almost "
+                        "the same thing, and some models become unstable with both.",
                         first,
                     )
                 )
@@ -322,10 +322,10 @@ def _balance_notices(balance: ClassBalance) -> list[Notice]:
         notices.append(
             Notice.warning(
                 "class_imbalance",
-                f"A classe {smallest.value} só tem {format_percent(smallest.ratio)} das linhas "
-                f"({format_count(smallest.count)}). Com classes desequilibradas, a exatidão "
-                "engana: um modelo que nunca prevê esta classe parece bom. Vê também a recall "
-                "e a exatidão equilibrada.",
+                f"The class {smallest.value} only has {format_percent(smallest.ratio)} of the "
+                f"rows ({format_count(smallest.count)}). With imbalanced classes, accuracy "
+                "misleads: a model that never predicts this class looks good. Look at the recall "
+                "and the balanced accuracy too.",
                 balance.target,
             )
         )
@@ -334,8 +334,8 @@ def _balance_notices(balance: ClassBalance) -> list[Notice]:
         notices.append(
             Notice.warning(
                 "tiny_class",
-                f"As classes {', '.join(tiny)} têm uma só linha: não podem estar no treino e no "
-                "teste ao mesmo tempo, e a divisão estratificada não é possível.",
+                f"The classes {', '.join(tiny)} have a single row: they can't be in both the "
+                "training and the test data, and the stratified split isn't possible.",
                 balance.target,
             )
         )
@@ -343,7 +343,7 @@ def _balance_notices(balance: ClassBalance) -> list[Notice]:
         notices.append(
             Notice.error(
                 "single_class",
-                f"O alvo {balance.target} tem um só valor: não há nada para prever.",
+                f"The target {balance.target} has a single value: there's nothing to predict.",
                 balance.target,
             )
         )
@@ -394,25 +394,26 @@ def _dataset_notices(n_rows: int, profiled_rows: int, n_duplicates: int) -> list
         notices.append(
             Notice.warning(
                 "duplicate_rows",
-                f"Há {format_quantity(n_duplicates, 'linha duplicada', 'linhas duplicadas')} "
-                f"({format_percent(n_duplicates / n_rows)}): a limpeza pode removê-las.",
+                f"There are "
+                f"{format_quantity(n_duplicates, 'duplicate row', 'duplicate rows')} "
+                f"({format_percent(n_duplicates / n_rows)}): the cleaning can drop them.",
             )
         )
     if profiled_rows < n_rows:
         notices.append(
             Notice.info(
                 "sampled_profile",
-                f"As distribuições e as correlações usam uma amostra de "
-                f"{format_count(profiled_rows)} das {format_count(n_rows)} linhas; as contagens "
-                "de nulos e de duplicados usam todas. O treino usa sempre todas.",
+                f"The distributions and the correlations use a sample of "
+                f"{format_count(profiled_rows)} of the {format_count(n_rows)} rows; the counts of "
+                "nulls and duplicates use them all. The training always uses them all.",
             )
         )
     if 0 < n_rows < FEW_ROWS:
         notices.append(
             Notice.info(
                 "few_rows",
-                f"Só há {format_count(n_rows)} linhas: os resultados vão variar bastante "
-                "consoante a divisão em treino e teste.",
+                f"There are only {format_count(n_rows)} rows: the results will vary a lot "
+                "depending on the split into training and test data.",
             )
         )
     return notices

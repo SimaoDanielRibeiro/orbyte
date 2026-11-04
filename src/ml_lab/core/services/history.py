@@ -33,6 +33,7 @@ from ml_lab.core.services.comparison import MAX_COMPARED, RunComparison, compare
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import ExperimentResult, ExperimentService, RunArtifacts
 from ml_lab.core.services.reinforcement import ReinforcementResult, ReinforcementService
+from ml_lab.core.services.story import TrainingStory, training_story
 from ml_lab.core.tracking.artifacts import ArtifactStore
 from ml_lab.core.tracking.store import ExperimentStore, RunEntry
 from ml_lab.core.training.jobs import TrainingJob
@@ -184,8 +185,8 @@ class HistoryService:
         entry = self._store.entry(run_id)
         if entry.task_type is TaskType.CONTROL:
             raise InvalidParameterError(
-                f"O run '{run_id}' é de reinforcement learning: abre-o no ecrã Reinforcement "
-                "learning."
+                f"The run '{run_id}' is reinforcement learning: open it in the Reinforcement "
+                "learning screen."
             )
         result = from_json(ExperimentResult, self._store.document(run_id))
         if not entry.saved:
@@ -195,10 +196,29 @@ class HistoryService:
         except MLLabError as error:
             notice = Notice.warning(
                 "not_restored",
-                f"O modelo guardado não voltou a abrir ({error}). Os gráficos da avaliação e o "
-                "Explicar ficam indisponíveis para este run; o resto está como foi registado.",
+                f"The saved model didn't open again ({error}). The evaluation charts and Explain "
+                "aren't available for this run; the rest is as it was recorded.",
             )
             return replace(result, notices=(notice, *result.notices))
+
+    def story(self, run_id: str) -> TrainingStory:
+        """O que aconteceu no treino de um run, contado em capítulos curtos (ecrã Explicar).
+
+        Escreve-se com o resultado registado, por isso serve qualquer run de um modelo,
+        guardado ou não. Se o run ainda estiver em memória, a preparação conta-se com os
+        números concretos de cada passo (ADR 0047).
+
+        Raises:
+            RunNotFoundError: Se o run não estiver no registo.
+            InvalidParameterError: Se o run for de reinforcement learning.
+            TrainingInProgressError: Se o run ainda estiver a treinar.
+        """
+        result = self.open(run_id)
+        try:
+            lineage = self._experiments.artifacts(run_id).dataset.lineage.steps
+        except RunNotInMemoryError:  # um run do histórico, não guardado: conta-se sem os números
+            lineage = ()
+        return training_story(result, lineage)
 
     def open_reinforcement(self, run_id: str) -> ReinforcementResult:
         """O resultado de um run de reinforcement learning, pronto a mostrar.
@@ -218,7 +238,7 @@ class HistoryService:
         entry = self._store.entry(run_id)
         if entry.task_type is not TaskType.CONTROL:
             raise InvalidParameterError(
-                f"O run '{run_id}' não é de reinforcement learning: abre-o no ecrã Histórico."
+                f"The run '{run_id}' isn't reinforcement learning: open it in the History screen."
             )
         result = from_json(ReinforcementResult, self._store.document(run_id))
         trace = self._files.document(run_id, "trace") if entry.saved else None
@@ -234,7 +254,7 @@ class HistoryService:
         chosen = list(dict.fromkeys(run_ids))
         if not 2 <= len(chosen) <= MAX_COMPARED:
             raise InvalidParameterError(
-                f"Escolhe entre 2 e {MAX_COMPARED} runs diferentes para comparar."
+                f"Choose between 2 and {MAX_COMPARED} different runs to compare."
             )
         entries = [self._store.entry(run_id) for run_id in chosen]
         return compare_runs(entries, [self._document(entry) for entry in entries])
@@ -299,7 +319,7 @@ def _entry(result: RunResult) -> RunEntry:
     return RunEntry(
         run_id=result.run_id,
         created_at=datetime.now(UTC),
-        name=f"{result.model_display_name} em {result.dataset_name}",
+        name=f"{result.model_display_name} on {result.dataset_name}",
         dataset_name=result.dataset_name,
         task_type=result.task_type,
         model_name=result.model_name,
@@ -333,5 +353,5 @@ def _step_by_step(result: RunResult) -> dict[str, Any]:
 def _name(name: str) -> str:
     cleaned = name.strip()
     if not cleaned:
-        raise InvalidParameterError("O nome do run não pode ficar vazio.")
+        raise InvalidParameterError("The run's name can't be empty.")
     return cleaned

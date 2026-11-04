@@ -46,8 +46,8 @@ def test_the_metrics_of_a_task_come_with_their_formulas(client: TestClient) -> N
     cards = {card["name"]: card for card in response.json()}
     assert "precision" in cards
     assert "r2" not in cards
-    assert cards["precision"]["formula"].startswith(r"\text{precisão}")
-    assert cards["precision"]["symbols"][0]["symbol"] == r"\mathrm{VP}"
+    assert cards["precision"]["formula"].startswith(r"\text{precision}")
+    assert cards["precision"]["symbols"][0]["symbol"] == r"\mathrm{TP}"
 
 
 def test_a_demo_report_brings_the_terms_of_each_formula(client: TestClient) -> None:
@@ -55,7 +55,7 @@ def test_a_demo_report_brings_the_terms_of_each_formula(client: TestClient) -> N
 
     metrics = {metric["name"]: metric for metric in demo["reports"]["test"]["metrics"]}
     symbols = [term["symbol"] for term in metrics["precision"]["terms"]]
-    assert symbols == [r"\mathrm{VP}", r"\mathrm{FP}"]
+    assert symbols == [r"\mathrm{TP}", r"\mathrm{FP}"]
     assert metrics["roc_auc"]["terms"] == []
 
 

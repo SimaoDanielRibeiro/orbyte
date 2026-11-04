@@ -1,57 +1,57 @@
-# PCA (análise de componentes principais)
+# PCA (principal component analysis)
 
-## Intuição
+## Intuition
 
-Dados com muitas features não cabem num gráfico. A PCA procura as **direções em que os dados
-variam mais** e reescreve cada ponto nessas direções. A primeira componente é a direção de
-maior variação; a segunda, a de maior variação entre as perpendiculares à primeira; e assim
-por diante. Ficar com as duas primeiras dá um gráfico 2D que guarda o máximo possível da
-"forma" dos dados.
+Data with many features doesn't fit on a chart. PCA looks for the **directions in which the data
+varies most** and rewrites each point in those directions. The first component is the direction
+of greatest variation; the second, the one of greatest variation among those perpendicular to the
+first; and so on. Keeping the first two gives a 2D chart that holds as much as possible of the
+data's "shape".
 
-É o que o ecrã Preparar já usa para a projeção 2D, aqui como modelo, com o número de
-componentes à escolha.
+It's what the Prepare screen already uses for the 2D projection, here as a model, with the number
+of components up to you.
 
-## Matemática essencial
+## Essential maths
 
-1. Centra os dados: $X_c = X - \bar{x}$.
-2. Calcula a matriz de covariância: $\Sigma = \frac{1}{n-1} X_c^\top X_c$.
-3. Os **vetores próprios** de $\Sigma$ são as componentes principais; os **valores
-   próprios** $\lambda_j$ são a variância dos dados ao longo de cada uma.
-4. Projeta: as novas coordenadas são $Z = X_c W_k$, com as $k$ componentes de maior
-   $\lambda_j$ nas colunas de $W_k$.
+1. Centre the data: $X_c = X - \bar{x}$.
+2. Compute the covariance matrix: $\Sigma = \frac{1}{n-1} X_c^\top X_c$.
+3. The **eigenvectors** of $\Sigma$ are the principal components; the **eigenvalues**
+   $\lambda_j$ are the variance of the data along each one.
+4. Project: the new coordinates are $Z = X_c W_k$, with the $k$ components of largest
+   $\lambda_j$ in the columns of $W_k$.
 
-A **variância explicada** de cada componente é $\lambda_j / \sum_l \lambda_l$: a fração da
-variação total que ela guarda. A versão didática (`pca_numpy`) faz exatamente estas contas
-com `np.linalg.eigh`; a do scikit-learn usa a decomposição em valores singulares (SVD) dos
-dados centrados, que dá as mesmas componentes com mais estabilidade numérica. O sinal de cada
-componente é arbitrário; as duas escolhem o que torna positivo o maior valor da componente.
+The **explained variance** of each component is $\lambda_j / \sum_l \lambda_l$: the share of the
+total variation it keeps. The teaching version (`pca_numpy`) does exactly these sums with
+`np.linalg.eigh`; scikit-learn's uses the singular value decomposition (SVD) of the centred data,
+which gives the same components with more numerical stability. The sign of each component is
+arbitrary; both pick the one that makes the component's largest value positive.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_components` | Quantas direções guardar. Com 2, os dados cabem num gráfico | 2 |
-| `whiten` | No scikit-learn, dividir cada componente pelo seu desvio padrão (todas ficam com variância 1) | não |
+| `n_components` | How many directions to keep. With 2, the data fits on a chart | 2 |
+| `whiten` | In scikit-learn, divide each component by its standard deviation (they all end up with variance 1) | no |
 
-## Quando usar
+## When to use
 
-- Para **ver** dados com muitas features num gráfico 2D.
-- Para **simplificar** antes de outro modelo: menos features, menos ruído, treino mais rápido.
-- Para perceber que features andam juntas (os pesos de cada componente).
+- To **see** data with many features on a 2D chart.
+- To **simplify** before another model: fewer features, less noise, faster training.
+- To understand which features go together (each component's weights).
 
-## Armadilhas
+## Pitfalls
 
-- **Escala das features:** sem padronização, a feature com números maiores domina a primeira
-  componente só por causa da unidade. Padroniza na preparação.
-- **É linear:** estruturas curvas (um rolo, um anel) ficam esmagadas. O t-SNE mostra melhor os
-  vizinhos, mas não é linear nem reversível.
-- **Variância não é importância:** a direção que mais varia pode não ser a que separa as
-  classes.
-- **As componentes são misturas** de todas as features: dar-lhes nome nem sempre é fácil.
+- **Feature scale:** without standardisation, the feature with the largest numbers dominates the
+  first component just because of its unit. Standardise in the preparation.
+- **It's linear:** curved structures (a roll, a ring) get squashed. t-SNE shows the neighbours
+  better, but it's neither linear nor reversible.
+- **Variance isn't importance:** the direction that varies most may not be the one that separates
+  the classes.
+- **The components are mixtures** of all the features: naming them isn't always easy.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar** vês o **mapa**: os pontos de treino nas duas
-primeiras componentes, pintados com a coluna de referência, se a escolheste no ecrã Preparar.
-Na avaliação, a variância explicada de cada componente e a "confiança dos vizinhos" dizem quanto
-o mapa guardou dos dados originais.
+It trains in one go. On the **Train & evaluate** screen you see the **map**: the training points on
+the first two components, coloured by the reference column, if you picked one on the Prepare
+screen. In the evaluation, each component's explained variance and the "neighbour trust" say how
+much of the original data the map kept.

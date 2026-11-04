@@ -19,10 +19,10 @@ class GradientBoostingParams(Hyperparameters):
         default=100,
         ge=10,
         le=500,
-        title="Número de árvores (etapas)",
+        title="Number of trees (stages)",
         description=(
-            "Quantas árvores se juntam, uma de cada vez. Ao contrário da Random Forest, "
-            "árvores a mais acabam por decorar o treino."
+            "How many trees are added, one at a time. Unlike the random forest, too many "
+            "trees end up memorising the training data."
         ),
         json_schema_extra={"x-search": {"values": [50, 100, 200, 300]}},
     )
@@ -30,10 +30,10 @@ class GradientBoostingParams(Hyperparameters):
         default=0.1,
         ge=0.001,
         le=1.0,
-        title="Taxa de aprendizagem",
+        title="Learning rate",
         description=(
-            "Quanto conta cada árvore nova. Taxas pequenas precisam de mais árvores, mas "
-            "costumam generalizar melhor."
+            "How much each new tree counts. Small rates need more trees, but tend to "
+            "generalise better."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 0.3]}},
     )
@@ -41,18 +41,18 @@ class GradientBoostingParams(Hyperparameters):
         default=3,
         ge=1,
         le=10,
-        title="Profundidade de cada árvore",
-        description="Árvores pequenas (de 2 a 5 níveis) bastam: o poder vem de as juntar.",
+        title="Depth of each tree",
+        description="Small trees (2 to 5 levels) are enough: the power comes from combining them.",
         json_schema_extra={"x-search": {"values": [2, 3, 4, 5]}},
     )
     subsample: float = Field(
         default=1.0,
         ge=0.1,
         le=1.0,
-        title="Fração das linhas por árvore",
+        title="Share of rows per tree",
         description=(
-            "Abaixo de 1, cada árvore vê só uma amostra das linhas (stochastic gradient "
-            "boosting): mais ruído em cada árvore, menos overfitting no conjunto."
+            "Below 1, each tree sees only a sample of the rows (stochastic gradient "
+            "boosting): more noise in each tree, less overfitting in the ensemble."
         ),
         json_schema_extra={"x-search": {"range": [0.6, 1.0]}},
     )
@@ -65,16 +65,16 @@ class AdaBoostParams(Hyperparameters):
         default=50,
         ge=10,
         le=500,
-        title="Número de modelos (etapas)",
-        description="Quantos modelos fracos (árvores de um só nível) se juntam, no máximo.",
+        title="Number of models (stages)",
+        description="How many weak models (one-level trees) are combined, at most.",
         json_schema_extra={"x-search": {"values": [25, 50, 100, 200]}},
     )
     learning_rate: float = Field(
         default=1.0,
         ge=0.01,
         le=5.0,
-        title="Taxa de aprendizagem",
-        description="Quanto conta cada modelo novo: menor exige mais modelos, mas é mais estável.",
+        title="Learning rate",
+        description="How much each new model counts: smaller needs more models, but is steadier.",
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.05, 2.0]}},
     )
 

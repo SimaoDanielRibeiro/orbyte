@@ -28,17 +28,17 @@ class SearchPhase(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar, em inglês."""
         return _PHASE_LABELS[self]
 
 
 _PHASE_LABELS: Final[Mapping[SearchPhase, str]] = MappingProxyType(
     {
-        SearchPhase.DATA: "Preparar os dados",
-        SearchPhase.SCREENING: "Ronda 1 · triagem",
-        SearchPhase.TUNING: "Ronda 2 · afinação",
-        SearchPhase.FINAL: "Treinar e testar o vencedor",
-        SearchPhase.DONE: "Terminada",
+        SearchPhase.DATA: "Prepare the data",
+        SearchPhase.SCREENING: "Round 1 · screening",
+        SearchPhase.TUNING: "Round 2 · tuning",
+        SearchPhase.FINAL: "Train and test the winner",
+        SearchPhase.DONE: "Done",
     }
 )
 
@@ -53,28 +53,28 @@ class AgentRole(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface, em inglês."""
         return _ROLE_LABELS[self]
 
 
 _ROLE_LABELS: Final[Mapping[AgentRole, str]] = MappingProxyType(
     {
-        AgentRole.DATA: "Agente de dados",
-        AgentRole.COORDINATOR: "Coordenador",
-        AgentRole.MODEL: "Agente de modelo",
-        AgentRole.AI: "Agente de IA",
+        AgentRole.DATA: "Data agent",
+        AgentRole.COORDINATOR: "Coordinator",
+        AgentRole.MODEL: "Model agent",
+        AgentRole.AI: "AI agent",
     }
 )
 
 
-DATA_AGENT: Final = "Agente de dados"
-COORDINATOR: Final = "Coordenador"
-AI_AGENT: Final = "Agente · IA"
+DATA_AGENT: Final = "Data agent"
+COORDINATOR: Final = "Coordinator"
+AI_AGENT: Final = "Agent · AI"
 
 
 def model_agent_name(family: ModelFamily) -> str:
-    """O nome do agente de uma família ("Agente · Árvores de decisão")."""
-    return f"Agente · {family.label}"
+    """O nome do agente de uma família ("Agent · Decision trees")."""
+    return f"Agent · {family.label}"
 
 
 class ParticipantKind(StrEnum):
@@ -89,18 +89,18 @@ class ParticipantKind(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar, em inglês."""
         return _PARTICIPANT_LABELS[self]
 
 
 _PARTICIPANT_LABELS: Final[Mapping[ParticipantKind, str]] = MappingProxyType(
     {
-        ParticipantKind.DATA: "Agente de dados",
-        ParticipantKind.COORDINATOR: "Coordenador",
-        ParticipantKind.MODEL: "Agente de modelo",
-        ParticipantKind.AI: "Agente de IA",
-        ParticipantKind.WINNER: "Vencedor",
-        ParticipantKind.TEST: "Teste",
+        ParticipantKind.DATA: "Data agent",
+        ParticipantKind.COORDINATOR: "Coordinator",
+        ParticipantKind.MODEL: "Model agent",
+        ParticipantKind.AI: "AI agent",
+        ParticipantKind.WINNER: "Winner",
+        ParticipantKind.TEST: "Test",
     }
 )
 
@@ -142,19 +142,19 @@ class MessageKind(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar, em inglês."""
         return _MESSAGE_KIND_LABELS[self]
 
 
 _MESSAGE_KIND_LABELS: Final[Mapping[MessageKind, str]] = MappingProxyType(
     {
-        MessageKind.REPORT: "Relatório",
-        MessageKind.ANNOUNCEMENT: "Anúncio",
-        MessageKind.REQUEST: "Pedido",
-        MessageKind.REPLY: "Resposta",
-        MessageKind.DECISION: "Decisão",
-        MessageKind.TEST: "Teste",
-        MessageKind.THOUGHT: "Pensamento",
+        MessageKind.REPORT: "Report",
+        MessageKind.ANNOUNCEMENT: "Announcement",
+        MessageKind.REQUEST: "Request",
+        MessageKind.REPLY: "Reply",
+        MessageKind.DECISION: "Decision",
+        MessageKind.TEST: "Test",
+        MessageKind.THOUGHT: "Thought",
     }
 )
 
@@ -175,7 +175,7 @@ class AgentMessage:
         number: A ordem na conversa (1, 2, 3…).
         role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.
         author: O nome a mostrar de quem fala.
-        text: O que diz, em português.
+        text: O que diz, em inglês.
         phase: A fase da procura em que o disse.
         family: Num agente de modelo, a sua família.
         candidate: O candidato de que fala, se for o caso.

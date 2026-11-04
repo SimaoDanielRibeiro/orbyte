@@ -46,7 +46,7 @@ export function GridWorld({
   path = [],
   description,
   caption,
-  valueLabel = "Valor",
+  valueLabel = "Value",
   maxCell = 64,
   legend = true,
   className,
@@ -76,7 +76,7 @@ export function GridWorld({
         <div className="flex min-h-6 items-start justify-between gap-3">
           <div className="min-w-0">{legend && <GridLegend />}</div>
           {hasCaption && (
-            <Explain title="Como se lê" label="Como se lê este gráfico" align="end">
+            <Explain title="How to read it" label="How to read this chart" align="end">
               {caption}
             </Explain>
           )}
@@ -282,11 +282,11 @@ function CellTip({
     <>
       {value !== null && <TooltipRow value={formatNumber(value, 3)} label={valueLabel} />}
       {action !== null && (
-        <div className="text-muted-foreground">Escolhe {layout.action_labels[action]}</div>
+        <div className="text-muted-foreground">Chooses {layout.action_labels[action]}</div>
       )}
       <div className="text-muted-foreground">
-        {kind === "empty" ? "" : `${kindLabel} · `}linha {Math.floor(state / layout.columns) + 1},
-        coluna {(state % layout.columns) + 1}
+        {kind === "empty" ? "" : `${kindLabel} · `}row {Math.floor(state / layout.columns) + 1},
+        column {(state % layout.columns) + 1}
       </div>
     </>
   );
@@ -307,7 +307,7 @@ function GridLegend() {
           }}
         />
         <span className="tabular-nums">1</span>
-        <span>valor</span>
+        <span>value</span>
       </li>
       {(["goal", "trap", "wall"] as const).map((kind) => (
         <li key={kind} className="flex items-center gap-1.5">
@@ -324,7 +324,7 @@ function GridLegend() {
           className="h-0.5 w-3 rounded-full"
           style={{ background: LIGHT_INK }}
         />
-        Caminho a partir da partida
+        Path from the start
       </li>
     </ul>
   );

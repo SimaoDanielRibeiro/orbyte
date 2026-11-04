@@ -60,11 +60,12 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
     <section aria-labelledby="preparar-resultado" aria-busy={pending}>
       <div className="flex min-h-8 flex-wrap items-center justify-between gap-3">
         <h2 id="preparar-resultado" className="text-xl">
-          O resultado
+          The result
         </h2>
         {pending && (
-          <span className="flex items-center gap-2 font-mono text-xs text-dim" role="status">
-            <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />A preparar
+          <span className="flex items-center gap-2 text-sm text-dim" role="status">
+            <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
+            Preparing
           </span>
         )}
       </div>
@@ -75,14 +76,14 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
             <StackedBars
               rows={[
                 {
-                  key: "partes",
-                  label: "Linhas",
+                  key: "parts",
+                  label: "Rows",
                   segments: summary.partitions.map((part) => ({
                     key: part.partition,
                     label: label("Partition", part.partition),
                     value: part.n_rows,
                     color: PARTITION_TONES[part.partition],
-                    detail: formatQuantity(part.n_rows, "linha", "linhas"),
+                    detail: formatQuantity(part.n_rows, "row", "rows"),
                   })),
                 },
               ]}
@@ -91,13 +92,13 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
                 label: `${label("Partition", part.partition)}: ${formatCount(part.n_rows)}`,
                 color: PARTITION_TONES[part.partition],
               }))}
-              description="Como as linhas se dividem entre o treino, a validação e o teste."
+              description="How the rows are split between training, validation and test."
               labelWidth={56}
             />
             <Facts
               size="sm"
               facts={[
-                { label: "Tarefa", value: label("TaskType", summary.task_type) },
+                { label: "Task", value: label("TaskType", summary.task_type) },
                 { label: "Features", value: formatCount(summary.feature_names.length) },
                 ...(summary.class_labels.length > 0
                   ? [{ label: "Classes", value: formatCount(summary.class_labels.length) }]
@@ -113,15 +114,15 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
           <Tabs value={tab} onValueChange={setTab} className="mt-2">
             <div className="flex items-center gap-1">
               <TabsList
-                aria-label="O resultado por partes"
-                className="flex-wrap group-data-horizontal/tabs:h-auto"
+                aria-label="The result in parts"
+                className="flex-wrap justify-start group-data-horizontal/tabs:h-auto"
               >
-                <TabsTrigger value="lineage">Linhagem</TabsTrigger>
+                <TabsTrigger value="lineage">Lineage</TabsTrigger>
                 {summary.class_labels.length > 0 && (
                   <TabsTrigger value="classes">Classes</TabsTrigger>
                 )}
-                <TabsTrigger value="tables">Antes e depois</TabsTrigger>
-                <TabsTrigger value="projection">Projeção 2D</TabsTrigger>
+                <TabsTrigger value="tables">Before and after</TabsTrigger>
+                <TabsTrigger value="projection">Projection</TabsTrigger>
               </TabsList>
               {/* A linhagem explica-se ao lado dos separadores; os gráficos têm o "?" deles. */}
               {tab === "lineage" && <Explain topic="lineage" />}
@@ -137,19 +138,19 @@ export function PrepareResult({ summary, pending, error }: PrepareResultProps) {
               </TabsContent>
             )}
             <TabsContent value="tables" className="mt-3 flex flex-col gap-4">
-              <Panel title="Depois da limpeza">
+              <Panel title="After cleaning">
                 <TablePreviewView
                   preview={summary.cleaned_preview}
-                  label="Os dados depois da limpeza"
+                  label="The data after cleaning"
                 />
               </Panel>
               <Panel
-                title="Depois das transformações"
-                explain="O treino tal como o modelo o recebe: as colunas já preenchidas, codificadas e na mesma escala."
+                title="After the transformations"
+                explain="The training set as the model receives it: the columns already filled, encoded and on the same scale."
               >
                 <TablePreviewView
                   preview={summary.transformed_preview}
-                  label="O treino depois das transformações"
+                  label="The training set after the transformations"
                 />
               </Panel>
             </TabsContent>
@@ -180,21 +181,21 @@ function Lineage({ steps }: { steps: readonly LineageStep[] }) {
                 newStage && index > 0 && "border-t",
               )}
             >
-              <span className="pt-0.5 mono-label">
+              <span className="pt-0.5 small-label">
                 {newStage ? label("Stage", step.stage) : ""}
               </span>
               <div>
                 <p className="text-sm text-strong">{step.description}</p>
                 <dl className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-dim">
-                  {rows !== null && <Change title="Linhas" value={rows} />}
+                  {rows !== null && <Change title="Rows" value={rows} />}
                   {step.columns_added.length > 0 && (
-                    <Change title="Novas" value={columnsText(step.columns_added)} />
+                    <Change title="New" value={columnsText(step.columns_added)} />
                   )}
                   {step.columns_removed.length > 0 && (
-                    <Change title="Removidas" value={columnsText(step.columns_removed)} />
+                    <Change title="Removed" value={columnsText(step.columns_removed)} />
                   )}
                   {step.columns_changed.length > 0 && (
-                    <Change title="Mudaram" value={columnsText(step.columns_changed)} />
+                    <Change title="Changed" value={columnsText(step.columns_changed)} />
                   )}
                 </dl>
               </div>
@@ -229,7 +230,7 @@ function columnsText(columns: readonly string[]): string {
     return formatList(columns);
   }
   const rest = columns.length - LISTED_COLUMNS;
-  return `${columns.slice(0, LISTED_COLUMNS).join(", ")} e mais ${formatCount(rest)}`;
+  return `${columns.slice(0, LISTED_COLUMNS).join(", ")} and ${formatCount(rest)} more`;
 }
 
 /** A proporção de cada classe em cada parte: na divisão estratificada, as partes alinham. */
@@ -248,13 +249,13 @@ function ClassesPerPartition({ summary }: { summary: PreparationSummary }) {
             label: name,
             value: counts.get(name) ?? 0,
             color: color(name),
-            detail: formatQuantity(counts.get(name) ?? 0, "linha", "linhas"),
+            detail: formatQuantity(counts.get(name) ?? 0, "row", "rows"),
           })),
         };
       })}
       format={(share) => formatPercent(share)}
       legend={summary.class_labels.map((name) => ({ label: name, color: color(name) }))}
-      description="A proporção de cada classe no treino, na validação e no teste."
+      description="The share of each class in training, validation and test."
       caption={<TopicText topic="split_classes" />}
     />
   );
@@ -267,7 +268,7 @@ function Projection({ summary }: { summary: PreparationSummary }) {
   if (points === null) {
     return (
       <p className="text-sm text-soft">
-        Com menos de duas features, não há projeção 2D para mostrar.
+        With fewer than two features, there is no 2D projection to show.
       </p>
     );
   }
@@ -282,7 +283,7 @@ function Projection({ summary }: { summary: PreparationSummary }) {
   const axis = (index: 0 | 1) =>
     ratio === null
       ? points.axis_labels[index]
-      : `${points.axis_labels[index]} (${formatPercent(ratio[index])} da variância)`;
+      : `${points.axis_labels[index]} (${formatPercent(ratio[index])} of the variance)`;
   const partitions = [...new Set(points.partitions)];
 
   const scatter: ScatterPoint[] = points.x.map((x, index) => {
@@ -327,7 +328,7 @@ function Projection({ summary }: { summary: PreparationSummary }) {
               shape: PARTITION_SHAPES[partition],
             })),
           ]}
-          description="Os dados projetados em duas dimensões, pintados pela classe, com a forma da parte da divisão."
+          description="The data projected onto two dimensions, colored by class, with the shape of its part of the split."
           caption={
             <>
               {points.labels.length === 0 && points.values.length > 0 && (
@@ -339,7 +340,7 @@ function Projection({ summary }: { summary: PreparationSummary }) {
                       background: `linear-gradient(to right, ${sequential(0)}, ${sequential(0.5)}, ${sequential(1)})`,
                     }}
                   />
-                  O alvo, de {formatStatistic(low)} a {formatStatistic(high)}.
+                  The target, from {formatStatistic(low)} to {formatStatistic(high)}.
                 </p>
               )}
               <TopicText topic="projection" />
@@ -361,7 +362,7 @@ function Loadings({ summary }: { summary: PreparationSummary }) {
   }
   const strongest = Math.max(...loadings.flat().map(Math.abs), 1e-9);
   return (
-    <Panel title="O peso de cada feature nas componentes">
+    <Panel title="Each feature's weight on the components">
       <div className="max-w-md">
         <Heatmap
           rows={points.feature_names}
@@ -371,7 +372,7 @@ function Loadings({ summary }: { summary: PreparationSummary }) {
           )}
           color={(value) => diverging(value / strongest)}
           format={(value) => formatNumber(value, 2)}
-          description="O peso de cada feature em cada componente principal."
+          description="The weight of each feature on each principal component."
           caption={<TopicText topic="pca_loadings" />}
           labelWidth={130}
           cellHeight={30}

@@ -24,7 +24,7 @@ function Tabs({
 // escolhido acende num degrau acima, com o contorno fino (ADR 0032). As duas variantes do
 // shadcn ficam iguais, para os ecrãs não terem de mudar.
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center gap-1 rounded-[10px] border border-[#2a2a2a] bg-surface p-1 text-soft group-data-horizontal/tabs:h-10 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
+  "group/tabs-list inline-flex w-fit items-center justify-center gap-1 rounded-[10px] border border-[#2a2a2a] bg-surface p-1 text-soft group-data-horizontal/tabs:h-11 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
   {
     variants: {
       variant: {
@@ -58,7 +58,7 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex h-8 flex-none items-center justify-center gap-1.5 rounded-[8px] border border-transparent px-3 text-sm whitespace-nowrap text-soft transition-colors outline-none group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-strong focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative inline-flex h-9 flex-none items-center justify-center gap-1.5 rounded-[8px] border border-transparent px-3.5 text-sm whitespace-nowrap text-soft transition-[color,background-color,border-color,box-shadow] outline-none group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-strong focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         "data-active:border-[#333] data-active:bg-surface-high data-active:font-medium data-active:text-strong data-active:shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]",
         className,
       )}
@@ -72,7 +72,8 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn(
-        "flex-1 rounded-md text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-card",
+        // O separador escolhido entra a subir um nada (ADR 0048): vê-se que o conteúdo mudou.
+        "flex-1 animate-in rounded-md text-sm fade-in-0 outline-none slide-in-from-bottom-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-card",
         className,
       )}
       {...props}

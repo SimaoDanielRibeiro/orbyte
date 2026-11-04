@@ -1,4 +1,4 @@
-"""Esquemas Pydantic: hiperparâmetros, configuração da experiência e mensagens em português."""
+"""Esquemas Pydantic: hiperparâmetros, configuração da experiência e mensagens que explicam."""
 
 import doctest
 import json
@@ -58,22 +58,22 @@ def test_missing_values_take_their_defaults() -> None:
 @pytest.mark.parametrize(
     ("values", "message"),
     [
-        ({"rate": 0}, "Taxa tem de ser maior do que 0."),
-        ({"rate": 2}, "Taxa não pode passar de 1."),
-        ({"count": 0}, "Contagem tem de ser pelo menos 1."),
-        ({"count": 10}, "Contagem tem de ser menor do que 10."),
-        ({"count": "x"}, "Contagem tem de ser um número inteiro; recebi 'x'."),
-        ({"mode": "c"}, "Modo tem de ser um destes: 'a' or 'b'."),
-        ({"active": "talvez"}, "Ativo tem de ser verdadeiro ou falso; recebi 'talvez'."),
-        ({"speed": 1}, "speed não é um parâmetro deste modelo."),
+        ({"rate": 0}, "Taxa must be greater than 0."),
+        ({"rate": 2}, "Taxa can't be more than 1."),
+        ({"count": 0}, "Contagem must be at least 1."),
+        ({"count": 10}, "Contagem must be less than 10."),
+        ({"count": "x"}, "Contagem must be a whole number; got 'x'."),
+        ({"mode": "c"}, "Modo must be one of: 'a' or 'b'."),
+        ({"active": "talvez"}, "Ativo must be true or false; got 'talvez'."),
+        ({"speed": 1}, "speed isn't a parameter of this model."),
     ],
 )
-def test_each_problem_is_explained_in_portuguese(values: dict[str, object], message: str) -> None:
+def test_each_problem_is_explained_in_plain_words(values: dict[str, object], message: str) -> None:
     with pytest.raises(HyperparameterError) as error:
         Example.parse(values, model="exemplo")
 
     assert error.value.problems == (message,)
-    assert str(error.value).startswith("Hiperparâmetros inválidos para 'exemplo':")
+    assert str(error.value).startswith("Invalid hyperparameters for 'exemplo':")
 
 
 def test_hyperparameters_are_immutable() -> None:
@@ -91,7 +91,7 @@ def test_titles_and_form_schema() -> None:
         "active": "Ativo",
     }
     assert schema["properties"]["C"]["x-scale"] == "log"
-    assert schema["properties"]["class_weight"]["x-labels"]["balanced"] == "Equilibrado"
+    assert schema["properties"]["class_weight"]["x-labels"]["balanced"] == "Balanced"
     assert schema["properties"]["max_iter"]["minimum"] == 10
 
 
@@ -132,8 +132,8 @@ def test_json_values_are_turned_into_the_right_types() -> None:
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        ({"seed": -1}, "seed tem de ser pelo menos 0."),
-        ({"seed": 2**32}, "seed não pode passar de 4294967295."),
+        ({"seed": -1}, "seed must be at least 0."),
+        ({"seed": 2**32}, "seed can't be more than 4294967295."),
         ({"model": {"name": ""}}, "model.name"),
     ],
 )
@@ -146,7 +146,7 @@ def test_invalid_configurations_are_explained(change: dict[str, object], message
     assert message in " ".join(describe_errors(error.value))
 
 
-def test_errors_from_the_data_layer_keep_their_portuguese_message() -> None:
+def test_errors_from_the_data_layer_keep_their_own_message() -> None:
     values = iris_config().model_dump(mode="json")
     values["preparation"]["split"]["test_size"] = 1.5
 
@@ -154,14 +154,14 @@ def test_errors_from_the_data_layer_keep_their_portuguese_message() -> None:
         ExperimentConfig.model_validate(values)
 
     (message,) = describe_errors(error.value)
-    assert message.startswith("A proporção de teste tem de estar entre 0 e 1")
+    assert message.startswith("The test share must be between 0 and 1")
 
 
 def test_missing_fields_are_named() -> None:
     with pytest.raises(ValidationError) as error:
         ExperimentConfig.model_validate({"dataset": {"kind": "sample"}})
 
-    assert "Falta o valor de model." in describe_errors(error.value)
+    assert "model is missing a value." in describe_errors(error.value)
 
 
 def test_the_configuration_is_immutable() -> None:

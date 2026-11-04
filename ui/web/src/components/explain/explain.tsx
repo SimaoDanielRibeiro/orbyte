@@ -77,7 +77,7 @@ export function Explain({
     <Popover>
       <PopoverTrigger asChild>
         <ExplainTrigger
-          label={label ?? (heading === undefined ? "Explicar" : `Explicar: ${heading}`)}
+          label={label ?? (heading === undefined ? "Explain" : `Explain: ${heading}`)}
           className={className}
         />
       </PopoverTrigger>
@@ -89,7 +89,7 @@ export function Explain({
         {heading !== undefined && <p className="text-sm font-medium text-strong">{heading}</p>}
         {explanation !== undefined && <Prose text={explanation.text} size="small" />}
         {children !== undefined && children !== null && (
-          <div className="text-[0.8125rem] leading-relaxed text-soft">{children}</div>
+          <div className="text-sm leading-relaxed text-soft">{children}</div>
         )}
       </PopoverContent>
     </Popover>
@@ -111,7 +111,7 @@ export function PageExplain({ title, description, topics = [] }: PageExplainProp
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <ExplainTrigger label={`Sobre o ecrã ${title}`} className="size-7" />
+        <ExplainTrigger label={`About the ${title} screen`} className="size-7" />
       </SheetTrigger>
       <SheetContent
         side="right"

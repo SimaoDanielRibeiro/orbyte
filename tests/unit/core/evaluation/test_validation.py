@@ -83,7 +83,7 @@ def test_tasks_without_a_target_have_no_cross_validation() -> None:
     model = MODELS.get("kmeans")
     clustering = PreparationConfig(task_type=TaskType.CLUSTERING)
 
-    with pytest.raises(ModelError, match="alvo"):
+    with pytest.raises(ModelError, match="against a target"):
         cross_validate(model, model.info.hyperparameters(), 0, folds(clustering))
 
 
@@ -122,7 +122,7 @@ def test_a_lower_is_better_metric_is_measured_as_it_is() -> None:
 def test_a_metric_that_needs_probabilities_refuses_a_model_without_them() -> None:
     model = MODELS.get("perceptron")
 
-    with pytest.raises(CapabilityError, match="probabilidades"):
+    with pytest.raises(CapabilityError, match="probabilities"):
         cross_validate(
             model,
             model.info.hyperparameters(),
@@ -135,7 +135,7 @@ def test_a_metric_that_needs_probabilities_refuses_a_model_without_them() -> Non
 def test_a_metric_from_another_task_is_refused() -> None:
     model = MODELS.get("logistic_regression")
 
-    with pytest.raises(ModelError, match="não é uma métrica de classificação"):
+    with pytest.raises(ModelError, match="isn't a multiclass classification metric"):
         cross_validate(
             model,
             model.info.hyperparameters(),

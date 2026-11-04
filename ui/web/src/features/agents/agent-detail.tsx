@@ -50,7 +50,14 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { withAlpha } from "@/lib/colors";
-import { formatCount, formatMetric, formatNumber, formatQuantity, formatValue } from "@/lib/format";
+import {
+  formatCount,
+  formatMetric,
+  formatNumber,
+  formatOrdinal,
+  formatQuantity,
+  formatValue,
+} from "@/lib/format";
 
 import { AI_AGENT_COLOR, COORDINATOR_COLOR, DATA_AGENT_COLOR, familyColor } from "./agent-colors";
 import type { FlowNode } from "./flowchart";
@@ -128,7 +135,7 @@ export function AgentDetail(props: AgentDetailProps) {
           >
             <SheetHeader className="shrink-0 gap-5 border-b px-7 pt-6 pb-5">
               <div className="flex flex-col gap-2 pr-10">
-                <SheetTitle className="text-[1.375rem] leading-tight font-medium tracking-[-0.01em] text-strong">
+                <SheetTitle className="text-2xl leading-tight font-medium tracking-[-0.01em] text-strong">
                   {heading.title}
                 </SheetTitle>
                 {/* O que o agente faz, numa frase: os números do painel já o dizem à vista. */}
@@ -136,7 +143,7 @@ export function AgentDetail(props: AgentDetailProps) {
               </div>
               <NodeSwitcher {...props} node={node} onSelect={onSelect} label={label} />
               {tabs.length > 1 && (
-                <TabsList aria-label="O que ver deste agente">
+                <TabsList aria-label="What to see about this agent">
                   {tabs.map((one) => (
                     <TabsTrigger key={one.value} value={one.value}>
                       {one.title}
@@ -179,54 +186,54 @@ function tabsOf(node: FlowNode, props: AgentDetailProps): TabInfo[] {
       return [];
     case "data":
       return [
-        { value: "plan", title: "O plano" },
+        { value: "plan", title: "The plan" },
         {
           value: "conversation",
-          title: "O que disse",
+          title: "What it said",
           count: said((message) => message.role === "data"),
         },
       ];
     case "coordinator":
       return [
-        { value: "summary", title: "Resumo" },
+        { value: "summary", title: "Summary" },
         {
           value: "conversation",
-          title: "O que disse",
+          title: "What it said",
           count: said((message) => message.role === "coordinator"),
         },
       ];
     case "ai":
       return props.phase === null
-        ? [{ value: "summary", title: "Resumo" }]
+        ? [{ value: "summary", title: "Summary" }]
         : [
-            { value: "summary", title: "Resumo" },
+            { value: "summary", title: "Summary" },
             {
               value: "candidates",
-              title: "Propostas",
+              title: "Proposals",
               count: props.candidates.filter((candidate) => candidate.ai).length,
             },
             {
               value: "conversation",
-              title: "O que pensou e disse",
+              title: "What it thought and said",
               count: said((message) => message.role === "ai"),
             },
           ];
     default:
       // Antes de a procura começar, um agente só tem os modelos que vai experimentar.
       return props.phase === null
-        ? [{ value: "summary", title: "Resumo" }]
+        ? [{ value: "summary", title: "Summary" }]
         : [
-            { value: "summary", title: "Resumo" },
+            { value: "summary", title: "Summary" },
             {
               value: "candidates",
-              title: "Candidatos",
+              title: "Candidates",
               count: props.candidates.filter(
                 (candidate) => candidate.family === node && !candidate.ai,
               ).length,
             },
             {
               value: "conversation",
-              title: "O que disse",
+              title: "What it said",
               count: said((message) => message.family === node),
             },
           ];
@@ -247,8 +254,8 @@ function headingOf(
         title: label("AgentRole", "data"),
         description:
           props.plan === undefined
-            ? "Prepara os dados antes de os outros agentes começarem."
-            : `Separou ${formatCount(props.plan.train_rows)} linhas para treinar e guardou ${formatCount(props.plan.test_rows)} para o teste do vencedor.`,
+            ? "Prepares the data before the other agents start."
+            : `Set aside ${formatCount(props.plan.train_rows)} rows for training and kept ${formatCount(props.plan.test_rows)} for the winner's test.`,
         color: DATA_AGENT_COLOR,
       };
     case "coordinator":
@@ -256,20 +263,20 @@ function headingOf(
         title: label("AgentRole", "coordinator"),
         description:
           props.phase === null
-            ? "Vai repartir os candidatos pelos agentes e comparar o que cada um mede."
+            ? "Will share the candidates among the agents and compare what each one measures."
             : props.budget === null
-              ? `Mediu ${formatQuantity(props.candidates.length, "candidato", "candidatos")}.`
-              : `Mediu ${formatCount(props.candidates.length)} de ${formatCount(props.budget)} candidatos do orçamento.`,
+              ? `Measured ${formatQuantity(props.candidates.length, "candidate", "candidates")}.`
+              : `Measured ${formatCount(props.candidates.length)} of the ${formatCount(props.budget)} candidates in the budget.`,
         color: COORDINATOR_COLOR,
       };
     case "winner":
     case "test":
       return {
-        title: finished ? "O vencedor" : "O líder",
+        title: finished ? "The winner" : "The leader",
         description:
           props.leader === null
-            ? "Ainda não há líder: o primeiro candidato medido passa a sê-lo."
-            : `${props.leader.model_display_name}, o melhor na validação cruzada${finished ? "" : " até agora"}.`,
+            ? "No leader yet: the first candidate measured becomes it."
+            : `${props.leader.model_display_name}, the best in cross-validation${finished ? "" : " so far"}.`,
         color: props.leader === null ? "#fafafa" : familyColor(props.leader.family),
       };
     case "ai":
@@ -292,14 +299,14 @@ function aiStatus(props: AgentDetailProps): string {
   const { phase, working, candidates } = props;
   const own = candidates.filter((candidate) => candidate.ai).length;
   if (phase === null) {
-    return "Entra na afinação: lê os resultados e pensa no próximo candidato.";
+    return "Joins the tuning: reads the results and thinks about the next candidate.";
   }
   if (working?.ai === true) {
-    return `A medir a proposta dele, ${working.model_display_name}.`;
+    return `Measuring its proposal, ${working.model_display_name}.`;
   }
   return own === 0
-    ? "Ainda não propôs nenhum candidato medido."
-    : `Propôs ${formatQuantity(own, "candidato medido", "candidatos medidos")}.`;
+    ? "Hasn't proposed a measured candidate yet."
+    : `Proposed ${formatQuantity(own, "measured candidate", "measured candidates")}.`;
 }
 
 /** O que um agente de uma família está a fazer, numa frase. */
@@ -308,19 +315,19 @@ function familyStatus(family: ModelFamily, props: AgentDetailProps): string {
   const own = candidates.filter((candidate) => candidate.family === family && !candidate.ai).length;
   const searching = phase === "screening" || phase === "tuning";
   if (phase === null) {
-    return "Ainda não começou: em baixo estão os modelos que vai experimentar.";
+    return "Hasn't started yet: below are the models it will try.";
   }
   if (searching && working?.family === family && !working.ai) {
-    return `A medir ${working.model_display_name}, fold ${formatCount(working.fold)} de ${formatCount(working.folds)}.`;
+    return `Measuring ${working.model_display_name}, fold ${formatCount(working.fold)} of ${formatCount(working.folds)}.`;
   }
   if (own === 0) {
     return phase === "done"
-      ? "Não chegou a medir nenhum candidato."
-      : "À espera da sua vez: o coordenador ainda não lhe deu nenhum candidato.";
+      ? "Never got to measure a candidate."
+      : "Waiting for its turn: the coordinator hasn't given it a candidate yet.";
   }
   return phase === "done"
-    ? `Terminou: mediu ${formatQuantity(own, "candidato", "candidatos")}.`
-    : `Mediu ${formatQuantity(own, "candidato", "candidatos")}; espera pelo próximo.`;
+    ? `Done: measured ${formatQuantity(own, "candidate", "candidates")}.`
+    : `Measured ${formatQuantity(own, "candidate", "candidates")}; waiting for the next one.`;
 }
 
 /**
@@ -354,7 +361,7 @@ function NodeSwitcher({
       : []),
     {
       key: "winner",
-      title: finished ? "Vencedor" : "Líder",
+      title: finished ? "Winner" : "Leader",
       color: leader === null ? "#fafafa" : familyColor(leader.family),
     },
   ];
@@ -367,7 +374,7 @@ function NodeSwitcher({
           onSelect(value as FlowNode);
         }
       }}
-      aria-label="Ver outro agente"
+      aria-label="See another agent"
       // No telemóvel, uma fila que rola para o lado; com espaço, os agentes partem em linhas.
       className="-mx-7 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-7 sm:mx-0 sm:flex-wrap sm:px-0"
     >
@@ -380,7 +387,7 @@ function NodeSwitcher({
             borderColor: option.key === current ? option.color : withAlpha(option.color, 0.4),
           }}
           className={cn(
-            "flex h-7 shrink-0 items-center rounded-full border px-3 text-[0.8125rem] whitespace-nowrap text-soft transition-colors outline-none hover:text-strong focus-visible:ring-2 focus-visible:ring-ring",
+            "flex h-7 shrink-0 items-center rounded-full border px-3 text-xs whitespace-nowrap text-soft transition-colors outline-none hover:text-strong focus-visible:ring-2 focus-visible:ring-ring",
             "data-[state=on]:bg-surface-high data-[state=on]:text-strong",
           )}
         >
@@ -417,7 +424,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
             className="flex flex-col gap-3 rounded-xl border bg-ground p-4"
             style={{ borderColor: color }}
           >
-            <p className="text-sm text-strong">A medir {busy.model_display_name}</p>
+            <p className="text-sm text-strong">Measuring {busy.model_display_name}</p>
             <p className="font-mono text-xs text-dim">{changesText(busy)}</p>
             <div className="flex items-center gap-3">
               <span className="h-1 flex-1 overflow-hidden rounded bg-[#2a2a2a]">
@@ -430,7 +437,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
                 />
               </span>
               <span className="font-mono text-xs text-dim tabular-nums">
-                fold {formatCount(busy.fold)} de {formatCount(busy.folds)}
+                fold {formatCount(busy.fold)} of {formatCount(busy.folds)}
               </span>
             </div>
           </div>
@@ -440,34 +447,34 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
           <StatRow
             items={[
               {
-                key: "melhor",
-                label: `O melhor (${objective?.label.toLowerCase() ?? "valor"})`,
+                key: "best",
+                label: `The best (${objective?.label.toLowerCase() ?? "value"})`,
                 value: objectiveValue(best.mean, objective),
-                detail: `± ${objectiveValue(best.std, objective)} entre folds`,
+                detail: `± ${objectiveValue(best.std, objective)} across folds`,
               },
               {
-                key: "treino",
-                label: "No treino",
+                key: "train",
+                label: "On training",
                 value: objectiveValue(best.train_mean, objective),
               },
               {
-                key: "medidos",
-                label: "Candidatos",
+                key: "measured",
+                label: "Candidates",
                 value: formatCount(own.length),
-                detail: `${formatNumber(seconds, 2)} s a medir`,
+                detail: `${formatNumber(seconds, 2)} s measuring`,
               },
               place > 0
                 ? {
-                    key: "lugar",
-                    label: "Lugar no quadro",
-                    value: `${formatCount(place)}.º`,
-                    detail: `de ${formatCount(ranking?.length ?? 0)} candidatos`,
+                    key: "place",
+                    label: "Place on the board",
+                    value: formatOrdinal(place),
+                    detail: `of ${formatCount(ranking?.length ?? 0)} candidates`,
                   }
                 : {
-                    key: "lider",
-                    label: "Para o líder",
-                    value: gap === null ? "É o líder" : signed(gap, objective),
-                    detail: gap === null ? undefined : "a diferença do seu melhor",
+                    key: "leader",
+                    label: "To the leader",
+                    value: gap === null ? "It's the leader" : signed(gap, objective),
+                    detail: gap === null ? undefined : "the gap from its best",
                     tone: gap === null ? "positive" : "neutral",
                   },
             ]}
@@ -475,7 +482,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
         )}
 
         {agent !== undefined && agent.models.length > 0 && (
-          <Block title="Os modelos que experimenta">
+          <Block title="The models it tries">
             <ul className="grid gap-3 @xl/panel:grid-cols-2">
               {agent.models.map((model) => {
                 const tried = own.filter((candidate) => candidate.model === model.name);
@@ -487,7 +494,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
                     style={{ borderColor: withAlpha(color, 0.55) }}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-[0.9375rem] text-strong">{model.display_name}</span>
+                      <span className="text-base text-strong">{model.display_name}</span>
                       {tried.length > 0 && (
                         <span className="shrink-0 text-right font-mono text-xs text-dim tabular-nums">
                           {formatCount(tried.length)}×
@@ -500,7 +507,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
                       )}
                     </div>
                     {model.searches.length === 0 ? (
-                      <p className="font-mono text-xs text-dim">Só os valores por omissão.</p>
+                      <p className="font-mono text-xs text-dim">Only the default values.</p>
                     ) : (
                       <ul className="flex flex-col gap-1.5">
                         {model.searches.map((search) => (
@@ -522,7 +529,7 @@ function FamilyDetail(props: AgentDetailProps & { family: ModelFamily }) {
         <>
           <TabsContent value="candidates">
             {own.length === 0 ? (
-              <p className="text-sm text-soft">Ainda não mediu nenhum candidato.</p>
+              <p className="text-sm text-soft">Hasn't measured a candidate yet.</p>
             ) : (
               <CandidateList
                 candidates={own}
@@ -564,9 +571,9 @@ function AiDetail(props: AgentDetailProps) {
             className="flex flex-col gap-2 rounded-xl border border-dashed bg-ground p-4"
             style={{ borderColor: AI_AGENT_COLOR }}
           >
-            <p className="text-sm text-strong">A medir a proposta: {busy.model_display_name}</p>
+            <p className="text-sm text-strong">Measuring its proposal: {busy.model_display_name}</p>
             <p className="font-mono text-xs text-dim">
-              {changesText(busy)} · fold {formatCount(busy.fold)} de {formatCount(busy.folds)}
+              {changesText(busy)} · fold {formatCount(busy.fold)} of {formatCount(busy.folds)}
             </p>
           </div>
         )}
@@ -574,33 +581,33 @@ function AiDetail(props: AgentDetailProps) {
           <StatRow
             items={[
               {
-                key: "melhor",
-                label: `A melhor proposta (${objective?.label.toLowerCase() ?? "valor"})`,
+                key: "best",
+                label: `The best proposal (${objective?.label.toLowerCase() ?? "value"})`,
                 value: objectiveValue(best.mean, objective),
                 detail: best.model_display_name,
               },
               {
-                key: "propostas",
-                label: "Propostas medidas",
+                key: "proposals",
+                label: "Proposals measured",
                 value: formatCount(own.length),
               },
               place > 0
                 ? {
-                    key: "lugar",
-                    label: "Lugar no quadro",
-                    value: `${formatCount(place)}.º`,
-                    detail: `de ${formatCount(ranking?.length ?? 0)} candidatos`,
+                    key: "place",
+                    label: "Place on the board",
+                    value: formatOrdinal(place),
+                    detail: `of ${formatCount(ranking?.length ?? 0)} candidates`,
                   }
                 : {
-                    key: "lider",
-                    label: "É o líder?",
-                    value: leader?.number === best.number ? "Sim" : "Não",
+                    key: "leader",
+                    label: "Is it the leader?",
+                    value: leader?.number === best.number ? "Yes" : "No",
                   },
             ]}
           />
         )}
         <Block
-          title={`Como pensa${props.plan?.ai_model == null ? "" : ` (${props.plan.ai_model})`}`}
+          title={`How it thinks${props.plan?.ai_model == null ? "" : ` (${props.plan.ai_model})`}`}
         >
           <TopicText topic="ai_agent" className="max-w-[65ch]" />
         </Block>
@@ -610,7 +617,7 @@ function AiDetail(props: AgentDetailProps) {
         <>
           <TabsContent value="candidates" className="flex flex-col gap-8">
             {own.length === 0 ? (
-              <p className="text-sm text-soft">Ainda não tem nenhuma proposta medida.</p>
+              <p className="text-sm text-soft">No proposal measured yet.</p>
             ) : (
               <>
                 <CandidateList
@@ -622,14 +629,14 @@ function AiDetail(props: AgentDetailProps) {
                   final={phase === "done"}
                   label={label}
                 />
-                <Block title="Porque propôs cada uma">
+                <Block title="Why it proposed each one">
                   <ol className="flex flex-col gap-3">
                     {own.map((candidate) => (
                       <li key={candidate.number} className="text-sm leading-relaxed">
                         <span className="font-mono text-xs text-dim tabular-nums">
-                          n.º {formatCount(candidate.number)} · {candidate.model_display_name}
+                          #{formatCount(candidate.number)} · {candidate.model_display_name}
                         </span>
-                        <p className="text-soft">{candidate.reason ?? "Não disse porquê."}</p>
+                        <p className="text-soft">{candidate.reason ?? "It didn't say why."}</p>
                       </li>
                     ))}
                   </ol>
@@ -651,7 +658,7 @@ function DataDetail(props: AgentDetailProps) {
     <>
       <TabsContent value="plan">
         {props.plan === undefined ? (
-          <p className="text-sm text-soft">O plano ainda não chegou.</p>
+          <p className="text-sm text-soft">The plan hasn't arrived yet.</p>
         ) : (
           <PlanView plan={props.plan} />
         )}
@@ -680,30 +687,30 @@ function CoordinatorDetail(props: AgentDetailProps) {
         <StatRow
           items={[
             {
-              key: "medidos",
-              label: "Candidatos medidos",
+              key: "measured",
+              label: "Candidates measured",
               value: formatCount(candidates.length),
-              detail: budget === null ? undefined : `de ${formatCount(budget)} no orçamento`,
+              detail: budget === null ? undefined : `of ${formatCount(budget)} in the budget`,
             },
             {
-              key: "triagem",
+              key: "screening",
               label: label("SearchPhase", "screening"),
               value: formatCount(screening),
             },
             {
-              key: "afinacao",
+              key: "tuning",
               label: label("SearchPhase", "tuning"),
               value: formatCount(candidates.length - screening),
             },
             {
-              key: "falhados",
-              label: "Falharam",
+              key: "failed",
+              label: "Failed",
               value: formatCount(failed),
               tone: failed === 0 ? "positive" : "negative",
             },
           ]}
         />
-        <Block title="Como repartiu os candidatos">
+        <Block title="How it shared the candidates">
           <ul className="flex flex-col gap-3">
             {counts.map(({ family, count }) => (
               <li
@@ -744,7 +751,7 @@ function LeaderDetail(props: AgentDetailProps) {
   if (leader === null) {
     return (
       <p className="text-sm text-soft">
-        Quando o coordenador medir o primeiro candidato, ele aparece aqui.
+        When the coordinator measures the first candidate, it shows up here.
       </p>
     );
   }
@@ -756,7 +763,7 @@ function LeaderDetail(props: AgentDetailProps) {
         <div className="min-w-0">
           <p className="text-2xl text-strong">{leader.model_display_name}</p>
           <p
-            className="mt-3 inline-flex h-7 items-center rounded-full border px-3 text-[0.8125rem] text-soft"
+            className="mt-3 inline-flex h-7 items-center rounded-full border px-3 text-xs text-soft"
             style={{ borderColor: color }}
           >
             {label("ModelFamily", leader.family)}
@@ -764,8 +771,8 @@ function LeaderDetail(props: AgentDetailProps) {
         </div>
         {runId != null && (
           <Button asChild>
-            <Link to="/treinar/$runId" params={{ runId }}>
-              Abrir o vencedor
+            <Link to="/train/$runId" params={{ runId }}>
+              Open the winner
             </Link>
           </Button>
         )}
@@ -773,36 +780,36 @@ function LeaderDetail(props: AgentDetailProps) {
       <StatRow
         items={[
           {
-            key: "validacao",
-            label: "Validação cruzada",
+            key: "validation",
+            label: "Cross-validation",
             value: objectiveValue(leader.mean, objective),
-            detail: `± ${objectiveValue(leader.std, objective)} entre folds`,
+            detail: `± ${objectiveValue(leader.std, objective)} across folds`,
           },
           {
-            key: "treino",
-            label: "No treino",
+            key: "train",
+            label: "On training",
             value: objectiveValue(leader.train_mean, objective),
           },
           {
-            key: "teste",
-            label: "No teste",
-            value: test == null ? "No fim" : formatMetric(test),
-            detail: "uma só vez, no fim",
+            key: "test",
+            label: "On the test",
+            value: test == null ? "At the end" : formatMetric(test),
+            detail: "only once, at the end",
           },
           {
-            key: "tempo",
-            label: "A medir",
+            key: "time",
+            label: "Measuring",
             value: `${formatNumber(leader.seconds, 2)} s`,
           },
         ]}
       />
-      <Block title="Cada fold da validação cruzada">
+      <Block title="Each cross-validation fold">
         <FoldDots candidate={leader} domain={domainOf([leader])} color={color} />
-        <p className="font-mono text-xs text-dim">
-          Cada ponto é a nota num fold; o traço branco é a média.
+        <p className="text-xs text-dim">
+          Each dot is the score on one fold; the white line is the mean.
         </p>
       </Block>
-      <Block title="Os hiperparâmetros">
+      <Block title="The hyperparameters">
         <dl className="grid gap-x-10 gap-y-2.5 @xl/panel:grid-cols-2">
           {Object.entries(leader.hyperparameters).map(([name, value]) => (
             <div
@@ -811,7 +818,7 @@ function LeaderDetail(props: AgentDetailProps) {
             >
               <dt className="truncate font-mono text-xs text-dim">
                 {name}
-                {changed.includes(name) && <span className="ml-1.5 text-soft">(mudou)</span>}
+                {changed.includes(name) && <span className="ml-1.5 text-soft">(changed)</span>}
               </dt>
               <dd className="text-sm text-strong tabular-nums">{formatValue(value)}</dd>
             </div>
@@ -870,21 +877,21 @@ function CandidateList({
             )}
           >
             <span className="pt-0.5 font-mono text-xs text-dim tabular-nums">
-              n.º {formatCount(candidate.number)}
+              #{formatCount(candidate.number)}
             </span>
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-sm text-strong">
                 {isBest && (
                   <Star
-                    aria-label="O melhor deste agente"
+                    aria-label="This agent's best"
                     className="size-3.5 shrink-0 fill-current"
                     style={{ color }}
                   />
                 )}
                 <span className="truncate">{candidate.model_display_name}</span>
                 {leads && (
-                  <span className="shrink-0 rounded-full border border-[#3a3a3a] px-2 text-[12px] text-soft">
-                    {final ? "vencedor" : "líder"}
+                  <span className="shrink-0 rounded-full border border-[#3a3a3a] px-2 text-[13px] text-soft">
+                    {final ? "winner" : "leader"}
                   </span>
                 )}
               </p>
@@ -901,13 +908,13 @@ function CandidateList({
                       ± {objectiveValue(candidate.std, objective)}
                     </span>
                   </p>
-                  <p className="mt-1 font-mono text-[12px] text-dim">
-                    treino {objectiveValue(candidate.train_mean, objective)} ·{" "}
+                  <p className="mt-1 font-mono text-[13px] text-dim">
+                    train {objectiveValue(candidate.train_mean, objective)} ·{" "}
                     {formatNumber(candidate.seconds, 2)} s
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-negative">falhou</p>
+                <p className="text-sm text-negative">failed</p>
               )}
             </div>
             {candidate.error === null ? (
@@ -945,7 +952,7 @@ function FoldDots({
   return (
     <div
       role="img"
-      aria-label={`As notas nos ${String(folds.length)} folds: ${folds.map((value) => formatNumber(value, 3)).join(", ")}.`}
+      aria-label={`The scores on the ${String(folds.length)} folds: ${folds.map((value) => formatNumber(value, 3)).join(", ")}.`}
       className="relative h-4"
     >
       <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-px bg-[#2e2e2e]" />
@@ -971,7 +978,7 @@ function FoldDots({
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-[0.9375rem] font-medium tracking-normal text-foreground">{title}</h3>
+      <h3 className="text-base font-medium tracking-normal text-foreground">{title}</h3>
       {children}
     </section>
   );

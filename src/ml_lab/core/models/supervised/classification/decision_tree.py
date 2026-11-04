@@ -31,13 +31,13 @@ class DecisionTreeParams(TreeParams):
 
     criterion: Literal["gini", "entropy"] = Field(
         default="gini",
-        title="Medida de impureza",
+        title="Impurity measure",
         description=(
-            "Como se mede a mistura de classes num nó. Gini e entropia escolhem quase sempre "
-            "as mesmas divisões; a entropia vem da teoria da informação."
+            "How the mix of classes in a node is measured. Gini and entropy almost always pick "
+            "the same splits; entropy comes from information theory."
         ),
         json_schema_extra={
-            "x-labels": {"gini": "Gini", "entropy": "Entropia"},
+            "x-labels": {"gini": "Gini", "entropy": "Entropy"},
             "x-search": {"values": ["gini", "entropy"]},
         },
     )
@@ -49,10 +49,10 @@ class DecisionTree(GrowingSklearnModel[DecisionTreeParams]):
 
     info = ModelInfo(
         name="decision_tree",
-        display_name="Árvore de decisão",
+        display_name="Decision tree",
         summary=(
-            "Uma sequência de perguntas sim/não sobre as features que acaba numa classe. Fácil "
-            "de ler, mas decora o treino se crescer demais."
+            "A sequence of yes/no questions about the features that ends in a class. Easy to "
+            "read, but it memorises the training data if it grows too much."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.TREE,

@@ -29,7 +29,7 @@ class OneHotEncoder(Transform):
     """
 
     name = "one_hot"
-    title = "Codificação one-hot"
+    title = "One-hot encoding"
 
     def __init__(self, columns: Sequence[str]) -> None:
         super().__init__(columns)
@@ -38,13 +38,14 @@ class OneHotEncoder(Transform):
     @override
     def describe(self) -> str:
         parts = [
-            f"{column} → {format_quantity(len(self.categories[column]), 'coluna', 'colunas')} "
+            f"{column} → {format_quantity(len(self.categories[column]), 'column', 'columns')} "
             f"({', '.join(self.output_names(column))})"
             for column in self.columns
         ]
         return (
-            f"Categorias aprendidas no treino e trocadas por colunas 0/1: {'; '.join(parts)}. "
-            "Uma categoria que só apareça na validação ou no teste fica com zeros."
+            f"Categories learned on the training data and swapped for 0/1 columns: "
+            f"{'; '.join(parts)}. A category that only shows up in the validation or test data "
+            "gets zeros."
         )
 
     def output_names(self, column: str) -> tuple[str, ...]:
@@ -109,12 +110,12 @@ class BooleanEncoder(Transform):
     """
 
     name = "boolean_to_number"
-    title = "Booleanos para 0/1"
+    title = "Booleans to 0/1"
 
     @override
     def describe(self) -> str:
         columns = ", ".join(self.columns)
-        return f"Colunas booleanas convertidas em 1 (verdadeiro) e 0 (falso): {columns}."
+        return f"Boolean columns converted to 1 (true) and 0 (false): {columns}."
 
     @override
     def _fit(self, frame: pd.DataFrame) -> None:

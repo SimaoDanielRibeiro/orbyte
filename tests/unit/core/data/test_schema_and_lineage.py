@@ -50,16 +50,16 @@ def test_with_roles_changes_only_the_given_columns() -> None:
 
 
 def test_unknown_columns_are_reported_with_a_suggestion() -> None:
-    with pytest.raises(ColumnNotFoundError, match="Querias dizer 'Survived'"):
+    with pytest.raises(ColumnNotFoundError, match="Did you mean 'Survived'"):
         titanic_schema().with_target("Survivd")
     with pytest.raises(ColumnNotFoundError):
         titanic_schema().with_roles({"Cabin": ColumnRole.IGNORED})
 
 
 def test_a_schema_rejects_repeated_names_and_two_targets() -> None:
-    with pytest.raises(InvalidParameterError, match="repetidas"):
+    with pytest.raises(InvalidParameterError, match="Repeated columns"):
         TableSchema((ColumnSchema("a", ColumnKind.NUMERIC), ColumnSchema("a", ColumnKind.TEXT)))
-    with pytest.raises(InvalidParameterError, match="um alvo"):
+    with pytest.raises(InvalidParameterError, match="one target"):
         TableSchema(
             (
                 ColumnSchema("a", ColumnKind.NUMERIC, ColumnRole.TARGET),
@@ -100,7 +100,7 @@ def test_steps_count_removed_rows_and_become_plain_records() -> None:
 
     assert step("x").rows_removed == 2
     assert LineageStep(Stage.SPLIT, "split", "dividido").rows_removed == 0
-    assert record["stage_label"] == "Limpeza"
+    assert record["stage_label"] == "Cleaning"
     assert record["rows_before"] == 10
     assert record["columns_added"] == []
 

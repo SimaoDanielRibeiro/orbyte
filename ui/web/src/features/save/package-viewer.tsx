@@ -107,10 +107,8 @@ export function PartList({ parts, chosen, onChoose, label }: PartListProps) {
                 )}
               >
                 <Icon aria-hidden="true" className="size-4 shrink-0 text-dim" />
-                <span className="min-w-0 flex-1 truncate font-mono text-[0.8125rem]">
-                  {part.path}
-                </span>
-                <span className="shrink-0 font-mono text-[0.6875rem] text-dim tabular-nums">
+                <span className="min-w-0 flex-1 truncate font-mono text-sm">{part.path}</span>
+                <span className="shrink-0 font-mono text-[0.75rem] text-dim tabular-nums">
                   {formatBytes(part.size)}
                 </span>
               </button>
@@ -134,12 +132,12 @@ export function PartContent({ part, className, scrollClassName }: PartContentPro
   const label = useLabel();
   return (
     <section
-      aria-label={`O conteúdo de ${part.path}`}
+      aria-label={`The content of ${part.path}`}
       className={cn("flex min-w-0 flex-col gap-3 rounded-xl border bg-ground p-4", className)}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <div className="flex min-w-0 items-center gap-1">
-          <h3 className="text-[0.9375rem] font-medium tracking-normal text-strong">{part.title}</h3>
+          <h3 className="text-base font-medium tracking-normal text-strong">{part.title}</h3>
           <Explain title={part.title}>{part.description}</Explain>
         </div>
         <span className="font-mono text-xs text-dim">
@@ -153,13 +151,13 @@ export function PartContent({ part, className, scrollClassName }: PartContentPro
           scrollClassName,
         )}
         role="region"
-        aria-label={`O texto de ${part.path}`}
+        aria-label={`The text of ${part.path}`}
         tabIndex={0}
       >
         <Body part={part} />
       </div>
       {part.truncated && (
-        <p className="font-mono text-xs text-dim">Mostra-se o princípio; o ficheiro tem o resto.</p>
+        <p className="text-xs text-dim">Only the beginning is shown; the file has the rest.</p>
       )}
     </section>
   );
@@ -173,7 +171,7 @@ function Body({ part }: { part: PackagePart }) {
     case "json":
       return <JsonTree text={text} />;
     case "csv":
-      return <CsvTable text={text} label={`As linhas de ${part.path}`} />;
+      return <CsvTable text={text} label={`The rows of ${part.path}`} />;
     case "text":
       return (
         <pre className="font-mono text-xs break-all whitespace-pre-wrap text-soft">{text}</pre>
@@ -183,7 +181,7 @@ function Body({ part }: { part: PackagePart }) {
         <div className="flex items-start gap-3 text-sm text-soft">
           <Binary aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-dim" />
           <p className="max-w-[60ch]">
-            Um ficheiro binário de {formatBytes(part.size)}: não se lê como texto.{" "}
+            A binary file of {formatBytes(part.size)}: it can&apos;t be read as text.{" "}
             {part.description}
           </p>
           <Explain topic={BINARY_TOPICS[part.path]?.topic} />

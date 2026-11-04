@@ -56,7 +56,7 @@ class ModelFamily(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar na interface."""
         return _FAMILY_LABELS[self]
 
     @property
@@ -74,28 +74,28 @@ class Implementation(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar na interface."""
         return _IMPLEMENTATION_LABELS[self]
 
 
 _FAMILY_LABELS: Final[Mapping[ModelFamily, str]] = MappingProxyType(
     {
-        ModelFamily.LINEAR: "Modelos lineares",
-        ModelFamily.INSTANCE_BASED: "Baseados em instâncias",
-        ModelFamily.PROBABILISTIC: "Modelos probabilísticos",
-        ModelFamily.TREE: "Árvores de decisão",
-        ModelFamily.ENSEMBLE: "Ensembles (conjuntos de modelos)",
-        ModelFamily.KERNEL: "Métodos de kernel",
-        ModelFamily.CENTROID: "Baseados em centróides",
-        ModelFamily.DENSITY: "Baseados em densidade",
-        ModelFamily.HIERARCHICAL: "Hierárquicos",
-        ModelFamily.PROJECTION: "Projeções",
-        ModelFamily.NEURAL: "Redes neuronais",
+        ModelFamily.LINEAR: "Linear models",
+        ModelFamily.INSTANCE_BASED: "Instance-based",
+        ModelFamily.PROBABILISTIC: "Probabilistic models",
+        ModelFamily.TREE: "Decision trees",
+        ModelFamily.ENSEMBLE: "Ensembles",
+        ModelFamily.KERNEL: "Kernel methods",
+        ModelFamily.CENTROID: "Centroid-based",
+        ModelFamily.DENSITY: "Density-based",
+        ModelFamily.HIERARCHICAL: "Hierarchical",
+        ModelFamily.PROJECTION: "Projections",
+        ModelFamily.NEURAL: "Neural networks",
     }
 )
 _IMPLEMENTATION_LABELS: Final[Mapping[Implementation, str]] = MappingProxyType(
     {
-        Implementation.DIDACTIC: "Didática (NumPy)",
+        Implementation.DIDACTIC: "Teaching (NumPy)",
         Implementation.SKLEARN: "scikit-learn",
         Implementation.PYTORCH: "PyTorch",
     }
@@ -161,8 +161,8 @@ class LabModel[P: Hyperparameters](ABC):
         chosen = hyperparameters if hyperparameters is not None else expected()
         if not isinstance(chosen, expected):
             raise ModelError(
-                f"'{self.info.name}' recebe hiperparâmetros do tipo {expected.__name__}, "
-                f"não {type(chosen).__name__}."
+                f"'{self.info.name}' takes hyperparameters of type {expected.__name__}, "
+                f"not {type(chosen).__name__}."
             )
         self.hyperparameters = cast("P", chosen)
         self.seed = validate_seed(seed)
@@ -194,11 +194,11 @@ class LabModel[P: Hyperparameters](ABC):
         """
         if X.ndim != 2 or X.shape[0] == 0:
             raise ModelError(
-                f"X tem de ser uma matriz (linhas × features) com linhas; tem forma {X.shape}."
+                f"X must be a matrix (rows × features) with rows; its shape is {X.shape}."
             )
         if y is not None and y.shape != (X.shape[0],):
             raise ModelError(
-                f"y tem de ter um valor por linha de X: {y.shape} em vez de ({X.shape[0]},)."
+                f"y must have one value per row of X: {y.shape} instead of ({X.shape[0]},)."
             )
         self._notices = []
         self._fit(X, y, context or NullTrainingContext())
@@ -217,7 +217,7 @@ class LabModel[P: Hyperparameters](ABC):
         """
         if self.info.task_types == {TaskType.DIMENSIONALITY_REDUCTION}:
             raise CapabilityError(
-                f"'{self.info.display_name}' reduz dimensões, não prevê: usa transform."
+                f"'{self.info.display_name}' reduces dimensions, it doesn't predict: use transform."
             )
         self._check_ready(X)
         return np.asarray(self._predict(X))
@@ -230,7 +230,7 @@ class LabModel[P: Hyperparameters](ABC):
                 que não viu no treino (``info.supports_new_data``).
         """
         if TaskType.DIMENSIONALITY_REDUCTION not in self.info.task_types:
-            raise CapabilityError(f"'{self.info.display_name}' não reduz dimensões.")
+            raise CapabilityError(f"'{self.info.display_name}' doesn't reduce dimensions.")
         self._check_ready(X)
         return np.asarray(self._transform(X), dtype=np.float64)
 
@@ -241,7 +241,7 @@ class LabModel[P: Hyperparameters](ABC):
             CapabilityError: Se o modelo não detetar anomalias.
         """
         if TaskType.ANOMALY_DETECTION not in self.info.task_types:
-            raise CapabilityError(f"'{self.info.display_name}' não deteta anomalias.")
+            raise CapabilityError(f"'{self.info.display_name}' doesn't detect anomalies.")
         self._check_ready(X)
         return np.asarray(self._anomaly_scores(X), dtype=np.float64)
 
@@ -252,7 +252,7 @@ class LabModel[P: Hyperparameters](ABC):
             CapabilityError: Se o modelo não der probabilidades.
         """
         if not self.info.supports_proba:
-            raise CapabilityError(f"'{self.info.display_name}' não dá probabilidades.")
+            raise CapabilityError(f"'{self.info.display_name}' doesn't give probabilities.")
         self._check_ready(X)
         return np.asarray(self._predict_proba(X), dtype=np.float64)
 
@@ -284,11 +284,11 @@ class LabModel[P: Hyperparameters](ABC):
     def _check_ready(self, X: Features) -> None:
         if self._n_features is None:
             raise NotFittedError(
-                f"'{self.info.display_name}' ainda não treinou: chama fit antes de prever."
+                f"'{self.info.display_name}' hasn't trained yet: call fit before predicting."
             )
         if X.ndim != 2 or X.shape[1] != self._n_features:
             raise ModelError(
-                f"O modelo treinou com {self._n_features} features e recebeu {X.shape} para prever."
+                f"The model trained with {self._n_features} features and got {X.shape} to predict."
             )
 
     @abstractmethod
@@ -297,16 +297,16 @@ class LabModel[P: Hyperparameters](ABC):
 
     def _predict(self, X: Features) -> NDArray[Any]:
         """Prevê (o modelo já treinou e ``X`` tem o número certo de features)."""
-        raise CapabilityError(f"'{self.info.display_name}' não implementa predict.")
+        raise CapabilityError(f"'{self.info.display_name}' doesn't implement predict.")
 
     def _predict_proba(self, X: Features) -> NDArray[np.float64]:
-        raise CapabilityError(f"'{self.info.display_name}' não implementa predict_proba.")
+        raise CapabilityError(f"'{self.info.display_name}' doesn't implement predict_proba.")
 
     def _transform(self, X: Features) -> NDArray[np.float64]:
-        raise CapabilityError(f"'{self.info.display_name}' não implementa transform.")
+        raise CapabilityError(f"'{self.info.display_name}' doesn't implement transform.")
 
     def _anomaly_scores(self, X: Features) -> NDArray[np.float64]:
-        raise CapabilityError(f"'{self.info.display_name}' não implementa anomaly_scores.")
+        raise CapabilityError(f"'{self.info.display_name}' doesn't implement anomaly_scores.")
 
     def _probe_values(self, probe: Features) -> NDArray[np.float64] | None:
         """As previsões nos pontos da sonda, conforme a tarefa.

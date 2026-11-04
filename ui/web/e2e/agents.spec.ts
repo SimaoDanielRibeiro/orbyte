@@ -51,24 +51,23 @@ async function setSlider(page: Page, name: string, steps: number): Promise<void>
  */
 async function startSlowSearch(page: Page): Promise<void> {
   await loadSample(page, "Titanic");
-  await page.goto("/agentes");
-  // Um grupo de botões de alternar é uma barra de ferramentas para os leitores de ecrã.
-  const agents = page.getByRole("toolbar", { name: "Os agentes chamados" });
-  await expect(agents).toBeVisible({ timeout: 60_000 });
-  for (const name of await agents.getByRole("button").allTextContents()) {
-    if (!["Modelos lineares", "Redes neuronais"].includes(name.trim())) {
-      await agents.getByRole("button", { name: name.trim(), exact: true }).click();
-    }
-  }
-  await expect(agents.getByRole("button", { pressed: true })).toHaveCount(2);
-  await setSlider(page, "Orçamento (candidatos)", 5); // 6 candidatos
-  await setSlider(page, "Folds da validação cruzada", 1); // 3 folds
-  await expect(page.getByRole("slider", { name: "Orçamento (candidatos)" })).toHaveAttribute(
+  await page.goto("/agents");
+  // A escolha dos modelos: todos à partida; tira-se tudo e marcam-se duas famílias inteiras.
+  const models = page.getByRole("region", { name: "The models" });
+  await expect(models).toBeVisible({ timeout: 60_000 });
+  await models.getByRole("button", { name: "None" }).click();
+  await models.getByRole("checkbox", { name: "Linear models", exact: true }).click();
+  await models.getByRole("checkbox", { name: "Neural networks", exact: true }).click();
+  // Os três lineares (com os didáticos, que agora também entram) e a rede.
+  await expect(models.getByRole("status")).toHaveText(/^4 of \d+ models$/);
+  await setSlider(page, "Budget (candidates)", 5); // 6 candidatos
+  await setSlider(page, "Cross-validation folds", 1); // 3 folds
+  await expect(page.getByRole("slider", { name: "Budget (candidates)" })).toHaveAttribute(
     "aria-valuenow",
     "6",
   );
-  await page.getByRole("button", { name: "Pedir aos agentes" }).click();
-  await expect(page).toHaveURL(/\/agentes\/search-/);
+  await page.getByRole("button", { name: "Ask the agents" }).click();
+  await expect(page).toHaveURL(/\/agents\/search-/);
 }
 
 test("uma procura passa por todas as fases no fluxograma, com pausa e retoma", async ({ page }) => {
@@ -76,11 +75,11 @@ test("uma procura passa por todas as fases no fluxograma, com pausa e retoma", a
   await recordPhases(page);
   await startSlowSearch(page);
 
-  await page.getByRole("button", { name: "Pausar" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Em pausa" })).toBeVisible({
+  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Paused" })).toBeVisible({
     timeout: 60_000,
   });
-  await page.getByRole("button", { name: "Retomar" }).click();
+  await page.getByRole("button", { name: "Resume" }).click();
   await expect(page.locator("figure[data-phase='done']")).toBeVisible({ timeout: 240_000 });
 
   // O fluxograma passou pela procura e acabou; as fases que duram muito pouco (a do agente de
@@ -88,54 +87,62 @@ test("uma procura passa por todas as fases no fluxograma, com pausa e retoma", a
   const shown = await phases(page);
   expect(shown).toContain("screening");
   expect(shown.at(-1)).toBe("done");
-  const conversation = page.getByRole("heading", { name: "A conversa dos agentes" }).locator("..");
+  const conversation = page
+    .getByRole("heading", { name: "The agents' conversation" })
+    .locator("../..");
   for (const label of [
-    "Preparar os dados",
-    "Ronda 1 · triagem",
-    "Ronda 2 · afinação",
-    "Treinar e testar o vencedor",
+    "Prepare the data",
+    "Round 1 · screening",
+    "Round 2 · tuning",
+    "Train and test the winner",
   ]) {
     await expect(conversation.getByText(label).first()).toBeVisible();
   }
-  await expect(page.getByRole("heading", { level: 2, name: "O vencedor" })).toBeVisible();
-  await expect(
-    page.getByRole("heading", { level: 2, name: "O quadro dos candidatos" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "The winner" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "The candidate board" })).toBeVisible();
 
   // O histórico das trocas repete a procura: no fim, o coordenador passa o melhor ao vencedor,
   // o vencedor vai ao teste, e a leitura do teste fecha a conversa.
-  await page.getByRole("radio", { name: "Histórico das trocas" }).click();
-  const moment = page.getByRole("slider", { name: "O momento da procura" });
+  await page.getByRole("radio", { name: "Exchange history" }).click();
+  const moment = page.getByRole("slider", { name: "The moment of the search" }).first();
   await moment.focus();
   await page.keyboard.press("End");
-  await expect(moment).toHaveAttribute("aria-valuetext", /Coordenador, teste$/);
+  await expect(moment).toHaveAttribute("aria-valuetext", /Coordinator, test$/);
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.press("ArrowLeft");
-  await expect(moment).toHaveAttribute("aria-valuetext", /Coordenador, decisão$/);
-  await expect(conversation.getByText("para Vencedor")).toBeVisible();
+  await expect(moment).toHaveAttribute("aria-valuetext", /Coordinator, decision$/);
+  await expect(conversation.getByText("to Winner")).toBeVisible();
 });
 
-test("parar uma procura acaba-a com o melhor até aí", async ({ page }) => {
+test("parar uma procura para tudo e volta ao pedido", async ({ page, request }) => {
   test.setTimeout(300_000);
   await startSlowSearch(page);
+  const searchId = /\/agents\/(search-[^/?#]+)/.exec(page.url())?.[1];
+  expect(searchId).toBeDefined();
 
-  // Exato: o nó do agente de dados chama-se "A preparar", e "preparar" contém "parar".
-  await page.getByRole("button", { name: "Parar", exact: true }).click();
+  // Parar é parar tudo (ADR 0051): o ecrã volta logo ao pedido, para uma procura nova.
+  await page.getByRole("button", { name: "Stop", exact: true }).click();
+  await expect(page).toHaveURL(/\/agents$/);
+  await expect(page.getByRole("button", { name: "Ask the agents" })).toBeVisible();
 
-  await expect(page.locator("figure[data-phase='done']")).toBeVisible({ timeout: 240_000 });
-  await expect(page.getByText(/A procura parou a pedido/)).toBeVisible();
+  // E a procura acaba sem treinar um vencedor: nada vai para o histórico.
+  await expect
+    .poll(
+      async () => {
+        const result = await request.get(`/api/automl/${String(searchId)}/result`);
+        return result.ok()
+          ? ((await result.json()) as { run_id: string | null }).run_id
+          : "running";
+      },
+      { timeout: 240_000 },
+    )
+    .toBeNull();
 
-  // Sai-se para o Treinar e volta-se aos Agentes: a procura está lá como ficou, sem clicar em nada.
-  const url = page.url();
-  const nav = page.getByRole("navigation", { name: "Ecrãs" });
-  await nav.getByRole("link", { name: "Treinar e avaliar" }).click();
-  await expect(page).toHaveURL(/\/treinar/);
-  await nav.getByRole("link", { name: "Agentes" }).click();
-  await expect(page).toHaveURL(url);
-  await expect(page.locator("figure[data-phase='done']")).toBeVisible();
-
-  // "Nova procura" esquece-a e volta ao pedido.
-  await page.getByRole("button", { name: "Nova procura" }).click();
-  await expect(page).toHaveURL(/\/agentes$/);
-  await expect(page.getByRole("button", { name: "Pedir aos agentes" })).toBeVisible();
+  // Sai-se para o Treinar e volta-se aos Agentes: o pedido está lá, e não a procura parada.
+  const nav = page.getByRole("navigation", { name: "Screens" });
+  await nav.getByRole("link", { name: "Train & evaluate" }).click();
+  await expect(page).toHaveURL(/\/train/);
+  await nav.getByRole("link", { name: "Agents" }).click();
+  await expect(page).toHaveURL(/\/agents$/);
+  await expect(page.getByRole("button", { name: "Ask the agents" })).toBeVisible();
 });

@@ -36,13 +36,14 @@ class ProjectionConfig:
 
     def __post_init__(self) -> None:
         if self.method not in ("auto", "pca", "columns"):
-            raise InvalidParameterError(f"Método de projeção '{self.method}' desconhecido.")
+            raise InvalidParameterError(f"Unknown projection method '{self.method}'.")
         if self.columns is not None:
             object.__setattr__(self, "columns", tuple(self.columns))
         if self.method == "columns" and (self.columns is None or len(self.columns) != 2):
-            raise InvalidParameterError(
-                "A projeção por colunas precisa de exatamente duas colunas."
-            )
+            raise InvalidParameterError("The projection by columns needs exactly two columns.")
+
+
+_NO_GEOMETRY = "This projection didn't keep its geometry."
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -76,7 +77,7 @@ class Projection:
             result: NDArray[np.float64] = points[:, list(self.column_positions)]
             return result
         if self.loadings is None or self.center is None:
-            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+            raise InvalidParameterError(_NO_GEOMETRY)
         projected: NDArray[np.float64] = (points - self.center) @ self.loadings.T
         return projected
 
@@ -88,13 +89,13 @@ class Projection:
         outras direções ficam na média do treino: o plano é um "corte" pelo meio dos dados.
         """
         if self.center is None:
-            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+            raise InvalidParameterError(_NO_GEOMETRY)
         if self.method == "columns" and self.column_positions is not None:
             points = np.tile(self.center, (len(plane), 1))
             points[:, list(self.column_positions)] = plane
             return points
         if self.loadings is None:
-            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+            raise InvalidParameterError(_NO_GEOMETRY)
         mapped: NDArray[np.float64] = self.center + plane @ self.loadings
         return mapped
 
@@ -109,7 +110,7 @@ class Projection:
             selected: NDArray[np.float64] = covariance[np.ix_(positions, positions)]
             return selected
         if self.loadings is None:
-            raise InvalidParameterError("Esta projeção não guardou a sua geometria.")
+            raise InvalidParameterError(_NO_GEOMETRY)
         projected: NDArray[np.float64] = self.loadings @ covariance @ self.loadings.T
         return projected
 
@@ -153,7 +154,7 @@ def project_2d(
             center=train.mean(axis=0),
             column_positions=(positions[0], positions[1]),
         )
-        description = f"Projeção 2D nas colunas {first} e {second}."
+        description = f"2D projection on the columns {first} and {second}."
     else:
         pca = fit_pca(train, n_components=2)
         ratios = tuple(float(r) for r in pca.explained_variance_ratio)
@@ -167,8 +168,9 @@ def project_2d(
             center=pca.mean,
         )
         description = (
-            f"Projeção 2D com PCA aprendida no treino: PC1 explica {format_percent(ratios[0])} "
-            f"e PC2 {format_percent(ratios[1])} da variância das {len(feature_names)} features."
+            f"2D projection with PCA learned on the training data: PC1 explains "
+            f"{format_percent(ratios[0])} and PC2 {format_percent(ratios[1])} of the variance of "
+            f"the {len(feature_names)} features."
         )
     step = LineageStep(
         stage=Stage.PROJECTION,

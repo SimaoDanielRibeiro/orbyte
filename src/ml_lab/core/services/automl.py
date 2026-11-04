@@ -89,7 +89,7 @@ from ml_lab.core.services.llm import LanguageModelService
 from ml_lab.core.training.control import TrainingControl
 from ml_lab.core.training.jobs import JobRegistry, JobState, TrainingJob
 from ml_lab.core.training.recorder import SnapshotRecorder, StepRecord
-from ml_lab.formatting import format_count, format_quantity
+from ml_lab.formatting import format_count, format_ordinal, format_quantity
 from ml_lab.logging import get_logger
 
 logger = get_logger(__name__)
@@ -151,7 +151,7 @@ class ModelAgentCard:
 
     Attributes:
         family: A família de que trata.
-        name: O nome a mostrar ("Agente · Árvores de decisão").
+        name: O nome a mostrar ("Agent · Decision trees").
         models: Os modelos que experimenta.
     """
 
@@ -169,8 +169,9 @@ class AutoMLOptions:
         supported: Se os agentes trabalham nesta tarefa.
         reason: Se não trabalham, porquê.
         objectives: As métricas que sabem otimizar; a primeira é a principal.
-        agents: Os agentes de modelo, com os modelos de cada um.
-        skipped: Os modelos da tarefa que ficam de fora, com a razão.
+        agents: Os agentes de modelo, com todos os modelos que podem entrar com este objetivo:
+            é entre eles que o ecrã escolhe os da procura (``AutoMLRequest.models``).
+        skipped: Os modelos da tarefa que não se podem medir com este objetivo, com a razão.
         settings_schema: O JSON Schema do tamanho da procura (de onde se gera o formulário).
         settings: Os valores por omissão do tamanho da procura.
         doc: A ficha didática dos agentes, em Markdown.
@@ -470,7 +471,10 @@ class AutoMLService:
         return job.state()
 
     def cancel(self, search_id: str) -> JobState:
-        """Pede à procura que pare no fim do candidato atual (o vencedor é o melhor até aí).
+        """Pede à procura que pare no fim do candidato atual, e que pare aí tudo (ADR 0051).
+
+        O melhor até aí fica no quadro, mas não treina com o treino todo nem vai ao teste: nada
+        fica no histórico.
 
         Raises:
             SearchNotFoundError: Se não houver nenhuma procura com esse identificador.
@@ -611,11 +615,11 @@ class AutoMLService:
         llm: LanguageModel
         if request.ai_replies:
             replies = [Reply(reply.thinking, reply.content) for reply in request.ai_replies]
-            llm = ScriptedModel(replies, name=preview.ai_model or "respostas guardadas")
+            llm = ScriptedModel(replies, name=preview.ai_model or "saved answers")
         elif self._llm is None:
             raise LanguageModelError(
-                "Este laboratório não tem um modelo de linguagem ligado: o agente de IA não pode "
-                "entrar. Faz o pedido sem ele."
+                "This lab has no language model connected: the AI agent can't join. Make the "
+                "request without it."
             )
         else:
             llm = self._llm.model()
@@ -659,7 +663,7 @@ class AutoMLService:
             data.task_type,
             objective,
             families=request.families,
-            include_didactic=request.include_didactic,
+            models=request.models,
         )
         dataset = self._datasets.prepared(request.dataset, data.preparation, seeds.seed).dataset
         settings = request.settings
@@ -667,7 +671,7 @@ class AutoMLService:
         search_rows = min(train_rows, settings.max_rows)
         if not 2 <= settings.folds <= search_rows:
             raise InvalidParameterError(
-                f"A validação cruzada precisa de entre 2 e {search_rows} folds; pediste "
+                f"Cross-validation needs between 2 and {search_rows} folds; you asked for "
                 f"{settings.folds}."
             )
         baseline = SUGGESTED_MODELS.get(data.task_type)
@@ -736,8 +740,13 @@ class AutoMLService:
                 baseline=preview.baseline,
                 ai=plan.ai,
             ).search()
-            log.enter(SearchPhase.FINAL)
-            run_id, test = self._train_winner(plan, outcome)
+            if outcome.stopped:
+                # Parar é parar tudo (ADR 0051): o melhor até aí não treina com o treino todo nem
+                # vai ao teste, e nada fica no histórico. Quem parou volta a um pedido novo.
+                run_id, test = None, None
+            else:
+                log.enter(SearchPhase.FINAL)
+                run_id, test = self._train_winner(plan, outcome)
         finally:
             log.enter(SearchPhase.DONE)
         if plan.ai is not None:
@@ -797,10 +806,10 @@ class AutoMLService:
         plan.log.say(
             AgentRole.COORDINATOR,
             COORDINATOR,
-            f"A treinar o vencedor, {winner.model_display_name}, com o treino todo "
-            f"({format_quantity(preview.train_rows, 'linha', 'linhas')}), e a avaliá-lo no teste "
-            f"({format_quantity(preview.test_rows, 'linha', 'linhas')}), pela primeira e única "
-            "vez.",
+            f"Training the winner, {winner.model_display_name}, on all the training data "
+            f"({format_quantity(preview.train_rows, 'row', 'rows')}), and evaluating it on the "
+            f"test data ({format_quantity(preview.test_rows, 'row', 'rows')}), for the first and "
+            "only time.",
             candidate=winner.number,
             kind=MessageKind.TEST,
             recipients=TO_TEST,
@@ -813,7 +822,7 @@ class AutoMLService:
         )
         experiment = self._experiments.run(config)
         test = experiment.main_report.find(objective.name)
-        self._name_run(experiment.run_id, f"Agentes · {winner.model_display_name}", preview)
+        self._name_run(experiment.run_id, f"Agents · {winner.model_display_name}", preview)
         reading = _test_reading(winner, test, objective, sampled=preview.sampled)
         # A leitura do teste é para quem acompanha a procura: não tem destinatários.
         plan.log.say(
@@ -869,29 +878,30 @@ def _agent_card(agent: ModelAgent) -> ModelAgentCard:
 def _opening(preview: AutoMLPlan, objective: Objective) -> list[str]:
     """O que o coordenador diz antes da triagem: o objetivo, os dados e os agentes."""
     texts = [
-        f"Vou otimizar {objective.label} ({objective.direction}), medida com validação "
-        f"cruzada em {preview.settings.folds} folds, só com as "
-        f"{format_count(preview.train_rows)} linhas de treino. As "
-        f"{format_count(preview.test_rows)} linhas de teste ficam guardadas: só o vencedor as "
-        "vê, no fim."
+        f"I'll optimise {objective.label} ({objective.direction}), measured with "
+        f"{preview.settings.folds}-fold cross-validation, using only the "
+        f"{format_count(preview.train_rows)} training rows. The "
+        f"{format_count(preview.test_rows)} test rows stay put away: only the winner sees them, "
+        "at the end."
     ]
     if preview.sampled:
-        how = ", com a proporção de cada classe" if preview.task_type.is_classification else ""
+        how = ", keeping the share of each class" if preview.task_type.is_classification else ""
         texts.append(
-            f"O treino tem {format_count(preview.train_rows)} linhas: para a procura ser rápida, "
-            f"a validação cruzada usa uma amostra de {format_count(preview.search_rows)}{how}. "
-            "O vencedor treina no fim com todas."
+            f"The training data has {format_count(preview.train_rows)} rows: to keep the search "
+            f"quick, the cross-validation uses a sample of {format_count(preview.search_rows)}"
+            f"{how}. The winner trains on all of them at the end."
         )
     agents = ", ".join(agent.family.label.lower() for agent in preview.agents)
-    text = f"Chamei {format_quantity(len(preview.agents), 'agente', 'agentes')}: {agents}."
+    text = f"I called {format_quantity(len(preview.agents), 'agent', 'agents')}: {agents}."
     if preview.skipped:
-        text += f" Ficam de fora: {describe_skipped(preview.skipped)}."
+        text += f" Left out: {describe_skipped(preview.skipped)}."
     texts.append(text)
     if preview.ai_agent:
         texts.append(
-            f"Chamei também o agente de IA ({preview.ai_model}). Na afinação, em vez de sortear, "
-            "lê os resultados e pensa no próximo candidato. As propostas dele medem-se como as "
-            "outras, e no fim vê-se se encontrou melhor do que a procura aleatória."
+            f"I also called the AI agent ({preview.ai_model}). In the tuning, instead of drawing "
+            "at random, it reads the results and thinks about the next candidate. Its proposals "
+            "are measured like the others, and at the end we see whether it found better than "
+            "the random search."
         )
     return texts
 
@@ -901,23 +911,23 @@ def _test_reading(
 ) -> str:
     """O que o coordenador diz do teste do vencedor, comparado com a validação cruzada."""
     if test is None or test.value is None or winner.mean is None:
-        return "O teste não deu um valor para o objetivo (faltava alguma classe no teste)."
+        return "The test gave no value for the objective (some class was missing from the test)."
     expected = f"{objective.written(winner.mean)} ± {objective.written(winner.std)}"
-    text = f"No teste: {test.formatted}. Na validação cruzada esperava-se {expected}."
+    text = f"On the test: {test.formatted}. The cross-validation expected {expected}."
     spread = winner.std or 0.0
     if abs(test.value - winner.mean) <= spread:
-        return f"{text} Dentro do previsto: a estimativa da validação cruzada era honesta."
+        return f"{text} As expected: the cross-validation estimate was honest."
     if objective.is_better(test.value, winner.mean):
         extra = (
-            " O modelo final treinou com todas as linhas, e a procura só com uma amostra: com "
-            "mais dados, é normal sair melhor."
+            " The final model trained on every row, and the search on a sample only: with more "
+            "data, it's normal to come out better."
             if sampled
-            else " O teste também é uma amostra, e também tem sorte."
+            else " The test is a sample too, and it has luck too."
         )
-        return f"{text} Acima do previsto.{extra}"
+        return f"{text} Better than expected.{extra}"
     return (
-        f"{text} Abaixo do previsto: entre muitos candidatos, o vencedor também teve alguma "
-        "sorte nos folds, e o teste corrige-o (o vencedor é sempre um pouco otimista)."
+        f"{text} Below expectations: among many candidates, the winner also had some luck with "
+        "the folds, and the test corrects it (the winner is always a bit optimistic)."
     )
 
 
@@ -930,9 +940,9 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
         notices.append(
             Notice.info(
                 "stopped_early",
-                f"A procura parou a pedido ao fim de "
-                f"{format_quantity(len(result.candidates), 'candidato', 'candidatos')}: o "
-                "vencedor é o melhor até aí.",
+                f"The search stopped on request after "
+                f"{format_quantity(len(result.candidates), 'candidate', 'candidates')}: nothing "
+                "more was measured, and no winner was trained or tested.",
             )
         )
     if winner is not None and winner.mean is not None and result.baseline is not None:
@@ -942,8 +952,8 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
             notices.append(
                 Notice.info(
                     "baseline_won",
-                    f"A referência ({reference.model_display_name}, com os valores por omissão) "
-                    "ganhou: nenhum modelo mais complexo a bateu. Às vezes, o mais simples chega.",
+                    f"The baseline ({reference.model_display_name}, with the default values) "
+                    "won: no more complex model beat it. Sometimes the simplest is enough.",
                 )
             )
         else:
@@ -951,8 +961,8 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
             notices.append(
                 Notice.info(
                     "baseline_beaten",
-                    f"O vencedor bate a referência ({reference.model_display_name}, "
-                    f"{objective.written(reference.mean)}) por {gap}, na validação cruzada.",
+                    f"The winner beats the baseline ({reference.model_display_name}, "
+                    f"{objective.written(reference.mean)}) by {gap}, in the cross-validation.",
                 )
             )
     if winner is not None and len(ranked) > 1 and winner.mean is not None:
@@ -961,10 +971,10 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
             notices.append(
                 Notice.info(
                     "close_race",
-                    f"O segundo ({second.model_display_name}"
-                    f"{', com ' + describe_changes(second.changes) if second.changes else ''}) "
-                    f"fica a {objective.gap(winner.mean, second.mean)}, menos do que o desvio "
-                    "padrão entre folds: na prática, empatam.",
+                    f"The second ({second.model_display_name}"
+                    f"{', with ' + describe_changes(second.changes) if second.changes else ''}) "
+                    f"is {objective.gap(winner.mean, second.mean)} behind, less than the "
+                    "standard deviation between folds: in practice, they're tied.",
                 )
             )
     if result.plan.ai_agent:
@@ -975,16 +985,16 @@ def _with_notices(result: AutoMLResult, objective: Objective) -> AutoMLResult:
         notices.append(
             Notice.warning(
                 "failed_candidates",
-                f"{format_quantity(len(failed), 'candidato falhou', 'candidatos falharam')} na "
-                f"validação cruzada ({names}): ficam no quadro, com a razão.",
+                f"{format_quantity(len(failed), 'candidate failed', 'candidates failed')} in "
+                f"the cross-validation ({names}): they stay on the board, with the reason.",
             )
         )
     if winner is None:
         notices.append(
             Notice.warning(
                 "no_winner",
-                "Nenhum candidato chegou ao fim da validação cruzada: não há vencedor. Vê as "
-                "razões no quadro, ou experimenta outras famílias de modelos.",
+                "No candidate made it to the end of the cross-validation: there's no winner. See "
+                "the reasons on the board, or try other model families.",
             )
         )
     return replace(result, notices=tuple(notices))
@@ -996,28 +1006,28 @@ def _ai_reading(result: AutoMLResult, objective: Objective) -> Notice:
     if not proposed:
         return Notice.info(
             "ai_no_proposals",
-            "O agente de IA não chegou a ter uma proposta medida (as razões estão na conversa): "
-            "a afinação ficou só com a procura aleatória.",
+            "The AI agent never got a proposal measured (the reasons are in the conversation): "
+            "the tuning only had the random search.",
         )
     best = min(proposed, key=lambda candidate: objective.key(candidate.mean))
     place = result.ranking.index(best.number) + 1
     drawn = [c for c in result.candidates if not c.ai and c.phase is SearchPhase.TUNING and c.mean]
-    count = format_quantity(len(proposed), "proposta", "propostas")
+    count = format_quantity(len(proposed), "proposal", "proposals")
     if place == 1:
         text = (
-            f"O vencedor foi proposto pelo agente de IA: com {count}, encontrou o melhor candidato "
-            "da procura."
+            f"The winner was proposed by the AI agent: with {count}, it found the search's best "
+            "candidate."
         )
     else:
         text = (
-            f"O agente de IA fez {count}; a melhor ({best.model_display_name}, "
-            f"{objective.written(best.mean)}) ficou em {place}.º lugar."
+            f"The AI agent made {count}; the best one ({best.model_display_name}, "
+            f"{objective.written(best.mean)}) came {format_ordinal(place)}."
         )
     if drawn:
         rival = min(drawn, key=lambda candidate: objective.key(candidate.mean))
         text += (
-            f" Na afinação, a procura aleatória, com "
-            f"{format_quantity(len(drawn), 'sorteio', 'sorteios')}, chegou a "
+            f" In the tuning, the random search, with "
+            f"{format_quantity(len(drawn), 'draw', 'draws')}, reached "
             f"{objective.written(rival.mean)}."
         )
     return Notice.info("ai_comparison", text)

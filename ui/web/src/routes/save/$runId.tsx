@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { SaveScreen } from "@/features/save/save-screen";
 
-export const Route = createFileRoute("/guardar/$runId")({
+export const Route = createFileRoute("/save/$runId")({
   component: SaveRun,
 });
 

@@ -19,7 +19,7 @@ from ml_lab.core.foundation.types import TaskType
 
 REGRESSION = (TaskType.REGRESSION,)
 
-_COUNT: Final = ("n", "Exemplos avaliados")
+_COUNT: Final = ("n", "Examples evaluated")
 
 
 # --- os termos das fórmulas ----------------------------------------------------------------
@@ -36,7 +36,7 @@ def _squared_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     return (
         MetricTerm(
             r"\sum_{i=1}^{n} (y_i - \hat{y}_i)^2",
-            "Soma dos erros ao quadrado",
+            "Sum of the squared errors",
             float(np.sum(errors**2)),
         ),
         MetricTerm(*_COUNT, float(len(errors))),
@@ -48,7 +48,7 @@ def _absolute_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     return (
         MetricTerm(
             r"\sum_{i=1}^{n} |y_i - \hat{y}_i|",
-            "Soma dos erros absolutos",
+            "Sum of the absolute errors",
             float(np.sum(np.abs(errors))),
         ),
         MetricTerm(*_COUNT, float(len(errors))),
@@ -59,13 +59,13 @@ def _r2_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     truth = np.asarray(inputs.truth, dtype=np.float64)
     return (
         MetricTerm(
-            r"\mathrm{SQ}_{\text{res}}",
-            "Soma dos quadrados dos resíduos",
+            r"\mathrm{SS}_{\text{res}}",
+            "Sum of squared residuals",
             float(np.sum(_errors(inputs) ** 2)),
         ),
         MetricTerm(
-            r"\mathrm{SQ}_{\text{tot}}",
-            "Soma dos quadrados à volta da média",
+            r"\mathrm{SS}_{\text{tot}}",
+            "Sum of squares around the mean",
             float(np.sum((truth - truth.mean()) ** 2)),
         ),
     )

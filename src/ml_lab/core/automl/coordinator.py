@@ -24,6 +24,10 @@ A conversa conta a procura como uma troca, com quem fala a quem: o coordenador a
 ronda aos agentes, dá a vez a um agente de cada vez (um pedido, com o número do candidato que
 vai sair dele), o agente responde-lhe com o resultado, e no fim o coordenador passa o melhor ao
 vencedor. O histórico visual da interface desenha estas trocas pela ordem.
+
+E conta-a por palavras (ADR 0049): o pedido diz porquê (a referência, a primeira impressão, a
+distância ao primeiro), e a resposta diz o que se experimentou, o que o resultado quer dizer e
+se ajudou. Os números ficam no cartão do candidato, ao lado.
 """
 
 import math
@@ -57,7 +61,7 @@ from ml_lab.core.evaluation.validation import cross_validate
 from ml_lab.core.foundation.errors import LanguageModelError
 from ml_lab.core.models.base import LabModel
 from ml_lab.core.training.control import TrainingControl
-from ml_lab.formatting import format_count, format_quantity
+from ml_lab.formatting import format_count, format_list, format_quantity
 from ml_lab.logging import get_logger
 
 logger = get_logger(__name__)
@@ -148,7 +152,10 @@ class Coordinator:
             self._tuning()
         ranked = rank(self._candidates, self._objective)
         winner = ranked[0] if ranked else None
-        self._announce(winner, ranked)
+        # Parar é parar tudo (ADR 0051): não se anuncia um vencedor, porque ele não vai treinar
+        # nem ao teste. O melhor até aí fica no quadro.
+        if not self._stopped:
+            self._announce(winner, ranked)
         return SearchOutcome(
             candidates=tuple(self._candidates),
             ranking=tuple(candidate.number for candidate in ranked),
@@ -164,38 +171,51 @@ class Coordinator:
         planned = order[: self._budget]
         families = len({agent.family for agent, _ in planned})
         self._say(
-            f"Ronda 1, triagem: {format_quantity(len(planned), 'modelo', 'modelos')} de "
-            f"{format_quantity(families, 'família', 'famílias')}, cada um com os valores por "
-            "omissão. Diz que famílias se dão bem com estes dados, antes de gastar o "
-            "orçamento a afinar.",
+            f"Round 1, screening: {format_quantity(len(planned), 'model', 'models')} from "
+            f"{format_quantity(families, 'family', 'families')}, each with the default values. "
+            "It tells which families get on well with this data, before spending the budget "
+            "on tuning.",
             recipients=to_agents(agent.family for agent, _ in planned),
         )
         if len(planned) < len(order):
             left_out = ", ".join(model.info.display_name for _, model in order[len(planned) :])
             self._say(
-                f"O orçamento só chega para {len(planned)} dos {len(order)} modelos: ficam de "
-                f"fora {left_out}."
+                f"The budget only covers {len(planned)} of the {len(order)} models: left out "
+                f"are {left_out}."
             )
         for agent, model in planned:
             if not self._may_continue():
                 return
-            self._ask(agent, f"mede {model.info.display_name} com os valores por omissão.")
+            name = model.info.display_name
+            if model.info.name == self._baseline:
+                request = (
+                    f"start with {name}, with its default settings: it's the reference, the "
+                    "result the other models must beat."
+                )
+            else:
+                request = (
+                    f"measure {name} with its default settings: a first impression, before any "
+                    "tuning."
+                )
+            self._ask(agent, request)
             candidate = self._evaluate(agent, model, agent.defaults(model), SearchPhase.SCREENING)
             self._agent_says(agent, candidate, None)
 
     def _tuning(self) -> None:
         finalists = self._choose_finalists()
         if not finalists:
-            self._say("Nenhum modelo passou a triagem: não há nada para afinar.")
+            self._say("No model got through the screening: there's nothing to tune.")
             return
-        names = ", ".join(
-            f"{model.info.display_name} ({self._objective.written(self._best(model))})"
-            for _, model in finalists
+        names = format_list(
+            [
+                f"{model.info.display_name} at {self._objective.written(self._best(model))}"
+                for _, model in finalists
+            ]
         )
         self._say(
-            f"Passam à afinação: {names}. À vez, o agente de cada um propõe outra combinação "
-            "de hiperparâmetros, sorteada do espaço de procura do modelo (procura aleatória), "
-            f"até gastar os {format_count(self._left())} candidatos que sobram do orçamento.",
+            f"Through to the tuning: {names}. In turn, each one's agent tries new values for its "
+            "settings, drawn at random from the ranges worth searching (random search), until "
+            f"the {format_count(self._left())} candidates left in the budget are spent.",
             recipients=to_agents(agent.family for agent, _ in finalists),
         )
         self._log.enter(SearchPhase.TUNING)
@@ -204,9 +224,9 @@ class Coordinator:
         if self._ai is not None:
             rotation.append(None)
             self._say(
-                f"{self._ai.name}, entras também na afinação. Na tua vez, olha para todos os "
-                "resultados e propõe o próximo candidato entre os finalistas: mede-se como os "
-                "outros, com validação cruzada, e conta para o orçamento.",
+                f"{self._ai.name}, you join the tuning too. On your turn, look at all the results "
+                "and propose the next candidate among the finalists: it's measured like the "
+                "others, with cross-validation, and counts towards the budget.",
                 recipients=TO_AI,
             )
         while rotation and self._left() > 0:
@@ -216,15 +236,15 @@ class Coordinator:
                     rotation.append(None)
                 continue
             agent, model = entry
-            turn = f"é a tua vez de afinar {model.info.display_name}."
+            turn = f"it's your turn to tune {model.info.display_name}."
             if agent.space(model).is_empty:
                 self._ask(agent, turn, numbered=False)
                 self._agent_says(
                     agent,
                     None,
                     None,
-                    text=f"{model.info.display_name} não tem hiperparâmetros para afinar: fica "
-                    "na corrida com os valores por omissão.",
+                    text=f"{model.info.display_name} has no settings to tune: it stays in the "
+                    "race with its default values.",
                 )
                 continue
             values = agent.propose(model, self._rng)
@@ -234,12 +254,13 @@ class Coordinator:
                     agent,
                     None,
                     None,
-                    text=f"Já experimentei todas as combinações de {model.info.display_name}.",
+                    text=f"I've already tried every combination of {model.info.display_name}'s "
+                    "settings: there's nothing new to measure.",
                 )
                 continue
             if not self._may_continue():
                 return
-            self._ask(agent, turn)
+            self._ask(agent, self._tuning_request(model))
             best_before = self._best(model)
             candidate = self._evaluate(agent, model, values, SearchPhase.TUNING)
             self._agent_says(agent, candidate, best_before)
@@ -258,7 +279,7 @@ class Coordinator:
             return False
         number = self._log.next_number
         self._say(
-            f"{ai.name}, é a tua vez: escolhe o próximo candidato entre os finalistas.",
+            f"{ai.name}, it's your turn: choose the next candidate among the finalists.",
             kind=MessageKind.REQUEST,
             recipients=TO_AI,
             candidate=number,
@@ -268,7 +289,7 @@ class Coordinator:
         try:
             turn = ai.propose(finalists, self._candidates, on_thinking=self._log.think)
         except LanguageModelError as error:
-            self._ai_says(f"Não consegui responder: {error} A afinação continua sem mim.")
+            self._ai_says(f"I couldn't answer: {error} The tuning goes on without me.")
             return False
         finally:
             self._log.stop_thinking()
@@ -282,9 +303,9 @@ class Coordinator:
             self._ai_refusals += 1
             out = self._ai_refusals >= MAX_REFUSALS
             self._say(
-                f"{ai.name}, a tua proposta não serve: {turn.problem}. Não a meço, e não conta "
-                "para o orçamento."
-                + (f" É a {MAX_REFUSALS}.ª seguida: sais da afinação." if out else ""),
+                f"{ai.name}, your proposal won't do: {turn.problem}. I won't measure it, and it "
+                "doesn't count towards the budget."
+                + (f" That's {MAX_REFUSALS} in a row: you leave the tuning." if out else ""),
                 recipients=TO_AI,
             )
             return not out
@@ -292,9 +313,9 @@ class Coordinator:
         model = proposal.model
         defaults = proposal.agent.defaults(model)
         changes = {k: v for k, v in proposal.values.items() if defaults.get(k) != v}
-        settings = describe_changes(changes) or "os valores por omissão"
+        settings = describe_changes(changes) or "the default values"
         self._ai_says(
-            f"Proponho {model.info.display_name} com {settings}. {proposal.reason}",
+            f"I propose {model.info.display_name} with {settings}. {proposal.reason}",
             candidate=number,
         )
         best_before = self._best(model)
@@ -306,11 +327,50 @@ class Coordinator:
             author=ai.name,
             reason=proposal.reason,
         )
+        leader_before, first = self._before(candidate)
         self._ai_says(
-            proposal.agent.report(candidate, best_before, self._objective),
+            proposal.agent.report(
+                candidate, best_before, self._objective, leader_before=leader_before, first=first
+            ),
             candidate=candidate.number,
         )
         return True
+
+    def _tuning_request(self, model: type[LabModel[Any]]) -> str:
+        """O pedido da afinação: o modelo, onde está em relação ao primeiro, e o que se quer."""
+        name, objective = model.info.display_name, self._objective
+        best = self._best(model)
+        ranked = rank(self._candidates, objective)
+        leader = ranked[0] if ranked else None
+        if best is None or leader is None or leader.mean is None:
+            return (
+                f"it's your turn to tune {name}: draw new values for its settings and see if it "
+                "does better."
+            )
+        if leader.model == model.info.name:
+            return (
+                f"it's your turn to tune {name}. It leads the search with "
+                f"{objective.written(best)}: draw new values for its settings and see if it goes "
+                "further."
+            )
+        if objective.written(best) == objective.written(leader.mean):
+            return (
+                f"it's your turn to tune {name}. Its best so far, {objective.written(best)}, is "
+                f"level with the leader, {leader.model_display_name}: draw new values for its "
+                "settings and see if it pulls ahead."
+            )
+        return (
+            f"it's your turn to tune {name}. Its best so far is {objective.written(best)}, "
+            f"{objective.gap(leader.mean, best)} behind the leader, {leader.model_display_name} "
+            f"({objective.written(leader.mean)}): draw new values for its settings and see if it "
+            "catches up."
+        )
+
+    def _before(self, candidate: Candidate) -> tuple[float | None, bool]:
+        """O melhor resultado da procura antes de ``candidate``, e se ele é o primeiro."""
+        previous = [c for c in self._candidates if c.number != candidate.number]
+        ranked = rank(previous, self._objective)
+        return (ranked[0].mean if ranked else None), not previous
 
     def _screening_order(self) -> list[Entry]:
         """Os modelos da triagem: uma família de cada vez, com a referência à frente."""
@@ -422,22 +482,42 @@ class Coordinator:
     def _announce(self, winner: Candidate | None, ranked: Sequence[Candidate]) -> None:
         """Escolhe o vencedor e passa-o à etapa seguinte (o treino com tudo e o teste)."""
         if winner is None:
-            self._say("Nenhum candidato chegou ao fim da validação cruzada: não há vencedor.")
+            self._say("No candidate made it to the end of the cross-validation: there's no winner.")
             return
         objective = self._objective
-        settings = describe_changes(winner.changes) or "os valores por omissão"
+        agent = next((a for a in self._agents if winner.family is a.family), None)
+        model = next(
+            (m for m in (agent.models if agent else ()) if m.info.name == winner.model), None
+        )
+        if not winner.changes:
+            settings = "its default settings"
+        elif agent is not None and model is not None:
+            settings = agent.explain_changes(model, winner.changes)
+        else:
+            settings = describe_changes(winner.changes)
         text = (
-            f"O melhor na validação cruzada é {winner.model_display_name}, com {settings}: "
+            f"The best in the cross-validation is {winner.model_display_name}, with {settings}: "
             f"{objective.written(winner.mean)} ± {objective.written(winner.std)} "
             f"({objective.label}, {objective.direction})."
         )
+        reading = objective.reading(winner.mean)
+        if reading:
+            text += f" {reading}."
         second = ranked[1] if len(ranked) > 1 else None
         if second is not None and second.mean is not None and winner.mean is not None:
-            gap = objective.gap(winner.mean, second.mean)
-            text += (
-                f" O segundo é {second.model_display_name} ({objective.written(second.mean)}), "
-                f"a {gap}."
-            )
+            if objective.written(second.mean) == objective.written(winner.mean):
+                # Um empate à vista: o vencedor ganha pelo desvio padrão ou por ter vindo antes.
+                text += (
+                    f" The second, {second.model_display_name}, is level with it "
+                    f"({objective.written(second.mean)}): with a difference this small, either is "
+                    "as good a choice."
+                )
+            else:
+                gap = objective.gap(winner.mean, second.mean)
+                text += (
+                    f" The second is {second.model_display_name} "
+                    f"({objective.written(second.mean)}), {gap} behind."
+                )
         self._say(text, kind=MessageKind.DECISION, recipients=TO_WINNER, candidate=winner.number)
 
     def _say(
@@ -493,7 +573,10 @@ class Coordinator:
     ) -> None:
         if text is None:
             assert candidate is not None
-            text = agent.report(candidate, best_before, self._objective)
+            leader_before, first = self._before(candidate)
+            text = agent.report(
+                candidate, best_before, self._objective, leader_before=leader_before, first=first
+            )
         self._log.say(
             AgentRole.MODEL,
             agent.name,
@@ -521,6 +604,9 @@ class Coordinator:
         self._control.wait_while_paused()
         if self._control.stop_requested and not self._stopped:
             self._stopped = True
-            measured = format_quantity(len(self._candidates), "candidato", "candidatos")
-            self._say(f"Pediste para parar, ao fim de {measured}: o vencedor é o melhor até aqui.")
+            measured = format_quantity(len(self._candidates), "candidate", "candidates")
+            self._say(
+                f"You asked to stop, after {measured}: nothing more is measured, and no winner "
+                "is trained."
+            )
         return not self._stopped

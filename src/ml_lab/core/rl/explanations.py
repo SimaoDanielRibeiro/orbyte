@@ -10,105 +10,116 @@ RL_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
     {
         "reinforcement_learning": Explanation(
             "Reinforcement learning",
-            "Não há dataset: um **agente** aprende a agir num **ambiente**. Em cada passo vê o "
-            "estado em que está, escolhe uma ação e recebe uma **recompensa**. Ninguém lhe diz "
-            "qual era a ação certa; só no fim percebe o que valeu a pena. Com muitos "
-            "**episódios** (tentativas, do início ao fim), aprende que ações levam a mais "
-            "recompensa: é aprender por tentativa e erro.",
+            "There's no dataset: an **agent** learns to act in an **environment**. At each step "
+            "it sees the state it's in, picks an action and gets a **reward**. Nobody tells it "
+            "which action was right; only at the end does it find out what paid off. Over many "
+            "**episodes** (attempts, from start to finish), it learns which actions lead to "
+            "more reward: it's learning by trial and error.",
         ),
         "rl_state": Explanation(
-            "O estado",
-            "O agente vê onde está: a célula da grelha. Não vê o mapa nem sabe onde fica o "
-            "objetivo; sabe só o que já aprendeu sobre cada célula, os seus valores Q.",
+            "The state",
+            "The agent sees where it is: the cell of the grid. It doesn't see the map or know "
+            "where the goal is; it only knows what it has already learned about each cell, its "
+            "Q values.",
         ),
         "rl_action": Explanation(
-            "A ação",
-            "Escolhe para onde ir. Com probabilidade ε, escolhe ao acaso: **explora**. No resto "
-            "das vezes, escolhe a ação de maior Q: **aproveita** o que já sabe. O ε começa em 1 "
-            "e desce ao longo do treino.",
+            "The action",
+            "It picks where to go. With probability ε, it picks at random: it **explores**. The "
+            "rest of the time, it picks the action with the highest Q: it **exploits** what it "
+            "already knows. ε starts at 1 and falls during training.",
         ),
         "rl_reward": Explanation(
-            "A recompensa",
-            "O ambiente responde com a célula onde o agente foi parar e uma recompensa: −0,01 "
-            "por cada passo, −1 numa armadilha e +1 no objetivo. As duas últimas acabam o "
-            "episódio.",
+            "The reward",
+            "The environment answers with the cell where the agent ended up and a reward: −0.01 "
+            "for each step, −1 in a trap and +1 at the goal. The last two end the episode.",
         ),
         "rl_update": Explanation(
-            "A correção",
-            "O agente compara o que esperava, Q(s, a), com o que viu: a recompensa mais o "
-            "melhor Q da célula seguinte, descontado por γ. A diferença é a **surpresa**, e o "
-            "Q anda uma fração α dela. Na grelha, a cor da célula muda: é assim que o valor do "
-            "objetivo se espalha para trás.",
+            "The update",
+            "The agent compares what it expected, Q(s, a), with what it saw: the reward plus "
+            "the best Q of the next cell, discounted by γ. The difference is the **surprise**, "
+            "and Q moves a fraction α of it. On the grid, the colour of the cell changes: "
+            "that's how the value of the goal spreads backwards.",
+        ),
+        "rl_update_network": Explanation(
+            "The update",
+            "The surprise is the same as in Q-learning: what the agent saw (the reward plus the "
+            "best Q of the next cell, discounted by γ) minus what it expected, Q(s, a). But "
+            "there's no table to correct. The step goes into the **replay memory**, and the "
+            "network takes a training step on a batch of steps drawn from it at random. So the "
+            "value of a cell changes a little at every step, even of cells the agent isn't on, "
+            "and the colours on the grid shift more slowly and more smoothly than with a table.",
         ),
         "q_values": Explanation(
-            "Valores Q e política",
-            "O **Q(estado, ação)** é a recompensa que o agente espera ganhar até ao fim do "
-            "episódio se fizer aquela ação ali, e depois jogar o melhor que sabe. A "
-            "**política** é a regra de escolha: em cada estado, a ação de maior Q. No "
-            "início, os Q são todos zero e o agente não sabe nada; o objetivo é acertá-los.",
+            "Q values and policy",
+            "**Q(state, action)** is the reward the agent expects to earn until the end of the "
+            "episode if it takes that action there, and then plays the best it knows. The "
+            "**policy** is the rule for choosing: in each state, the action with the highest "
+            "Q. At the start, every Q is zero and the agent knows nothing; the goal is to get "
+            "them right.",
         ),
         "temporal_difference": Explanation(
-            "O erro de diferença temporal",
-            "Depois de cada passo, o Q-learning compara o que esperava, Q(s, a), com o que viu: "
-            "a recompensa mais o melhor Q do estado seguinte, descontado. A diferença é a "
-            "**surpresa**, e o Q anda uma fração dela (a taxa de aprendizagem α). É assim que o "
-            "+1 do objetivo se espalha para trás, de célula em célula, até à partida.",
+            "The temporal-difference error",
+            "After each step, Q-learning compares what it expected, Q(s, a), with what it saw: "
+            "the reward plus the best Q of the next state, discounted. The difference is the "
+            "**surprise**, and Q moves a fraction of it (the learning rate α). That's how the "
+            "+1 of the goal spreads backwards, cell by cell, all the way to the start.",
         ),
         "exploration": Explanation(
-            "Explorar ou aproveitar (ε-greedy)",
-            "Se o agente escolhesse sempre a ação de maior Q, nunca descobria caminhos "
-            "melhores do que o primeiro que encontrou. Com **ε-greedy**, escolhe ao acaso com "
-            "probabilidade ε (explorar) e a melhor que conhece no resto das vezes "
-            "(aproveitar). O ε começa alto, quando não se sabe nada, e desce ao longo do "
-            "treino.",
+            "Explore or exploit (ε-greedy)",
+            "If the agent always picked the action with the highest Q, it would never find "
+            "paths better than the first one it found. With **ε-greedy**, it picks at random "
+            "with probability ε (exploring) and the best it knows the rest of the time "
+            "(exploiting). ε starts high, when nothing is known, and falls during training.",
         ),
         "discount": Explanation(
-            "O desconto (γ)",
-            "Uma recompensa futura vale menos do que uma já: cada passo para o futuro "
-            "multiplica-a por γ. Com γ = 0,95, chegar ao objetivo daqui a 10 passos vale 0,95¹⁰ "
-            "≈ 0,6. É por isso que o caminho curto vale mais do que o longo, e que um γ baixo "
-            "faz um agente míope, que só liga ao que está perto.",
+            "The discount (γ)",
+            "A future reward is worth less than one now: each step into the future multiplies "
+            "it by γ. With γ = 0.95, reaching the goal 10 steps from now is worth 0.95¹⁰ ≈ 0.6. "
+            "That's why the short path is worth more than the long one, and why a low γ makes "
+            "a short-sighted agent that only cares about what's close.",
         ),
         "deep_q_network": Explanation(
-            "DQN: uma rede no lugar da tabela",
-            "O DQN aprende os mesmos Q, mas com uma rede neuronal, o que permite estados "
-            "demasiados para uma tabela. Treinar uma rede com a surpresa de cada passo é "
-            "instável, e por isso há duas peças: a **memória de repetição**, de onde se tiram "
-            "lotes de passos ao acaso (passos seguidos são parecidos demais), e a **rede-alvo**, "
-            "uma cópia que só se atualiza de vez em quando e que calcula os alvos (sem ela, o "
-            "alvo mexia-se a cada passo de treino).",
+            "DQN: a network in place of the table",
+            "DQN learns the same Q values, but with a neural network, which allows too many "
+            "states for a table. Training a network on the surprise of each step is unstable, "
+            "so there are two extra pieces: the **replay memory**, from which batches of steps "
+            "are drawn at random (consecutive steps are too alike), and the **target "
+            "network**, a copy that's only updated now and then and that computes the targets "
+            "(without it, the target would move at every training step).",
         ),
         "policy_map": Explanation(
-            "Como ler a grelha",
-            "A cor de cada célula é o seu valor: o maior Q das suas ações, ou seja, quanto o "
-            "agente espera ganhar a partir dali. As setas são a política: a ação que escolhe "
-            "em cada célula. A linha é o caminho que faria a partir da partida, sem escorregar. "
-            "Percorre os episódios para ver o valor a espalhar-se a partir do objetivo.",
+            "How to read the grid",
+            "The colour of each cell is its value: the highest Q of its actions, that is, how "
+            "much the agent expects to earn from there. The arrows are the policy: the action "
+            "it picks in each cell. The line is the path it would take from the start, without "
+            "slipping. Step through the episodes to watch the value spread out from the goal.",
         ),
         "reward_curve": Explanation(
-            "A recompensa por episódio",
-            "Cada ponto é a recompensa de um episódio do treino; a linha é a média móvel. "
-            "Os episódios são ruidosos porque o agente ainda explora ao acaso. A curva sobe "
-            "quando o agente aprende a chegar ao objetivo e a fazê-lo em menos passos.",
+            "The reward per episode",
+            "Each point is the reward of a training episode; the line is the moving average. "
+            "The episodes are noisy because the agent still explores at random. The curve rises "
+            "when the agent learns to reach the goal, and to do it in fewer steps.",
         ),
         "success_curve": Explanation(
-            "Os episódios que chegam ao objetivo",
-            "A parte dos últimos episódios (a mesma janela da média móvel) em que o agente "
-            "chegou ao objetivo. Sobe quando ele aprende o caminho; a treinar, raramente chega "
-            "aos 100%, porque o agente continua a explorar ao acaso de vez em quando.",
+            "The episodes that reach the goal",
+            "The share of the latest episodes (the same window as the moving average) in which "
+            "the agent reached the goal. It rises when the agent learns the path; while "
+            "training, it rarely reaches 100%, because the agent keeps exploring at random now "
+            "and then.",
         ),
         "q_table": Explanation(
-            "Como ler a tabela Q",
-            "Uma grelha por ação: a cor de cada célula é o Q dessa ação ali, o que o agente "
-            "espera ganhar se a fizer e depois jogar o melhor que sabe. Em cada célula, a "
-            "política escolhe a ação com o Q mais alto das quatro grelhas.",
+            "How to read the Q table",
+            "One grid per action: the colour of each cell is the Q of that action there, what "
+            "the agent expects to earn if it takes it and then plays the best it knows. In "
+            "each cell, the policy picks the action with the highest Q across the four grids.",
         ),
         "rl_evaluation": Explanation(
-            "Treino e teste num agente",
-            "No **treino**, o agente ainda explora: as métricas são dos últimos episódios, "
-            "com ε. No **teste**, joga episódios novos com a política aprendida, sem explorar "
-            "e sem aprender: é o que sabe fazer. A diferença entre os dois é o preço de "
-            "explorar. No penhasco, cai nas armadilhas a treinar, mas atravessa no teste.",
+            "Training and test for an agent",
+            "In **training**, the agent still explores: the metrics come from the latest "
+            "episodes, with ε. On the **test**, it plays new episodes with the learned policy, "
+            "without exploring or learning: it's what it knows how to do. The difference "
+            "between the two is the price of exploring. On the cliff, it falls into the traps "
+            "while training, but it gets across on the test.",
         ),
     }
 )

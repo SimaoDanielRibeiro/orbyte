@@ -32,10 +32,10 @@ class RidgeParams(LinearRegressionParams):
         default=1.0,
         ge=0.0001,
         le=10_000,
-        title="Alpha (força da regularização)",
+        title="Alpha (regularisation strength)",
         description=(
-            "Quanto custam os pesos grandes. Alpha a zero é a regressão linear; alpha enorme "
-            "encolhe tudo e o modelo quase só prevê a média."
+            "How much large weights cost. Alpha at zero is linear regression; a huge alpha "
+            "shrinks everything and the model predicts little more than the mean."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 100]}},
     )
@@ -48,10 +48,10 @@ class LassoParams(LinearRegressionParams):
         default=0.1,
         ge=0.0001,
         le=100,
-        title="Alpha (força da regularização)",
+        title="Alpha (regularisation strength)",
         description=(
-            "Quanto custam os pesos. Quanto maior, mais pesos ficam exatamente a zero (as "
-            "features correspondentes deixam de contar)."
+            "How much the weights cost. The larger it is, the more weights end up exactly at "
+            "zero (the matching features stop counting)."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.0001, 1]}},
     )
@@ -59,8 +59,8 @@ class LassoParams(LinearRegressionParams):
         default=1_000,
         ge=100,
         le=100_000,
-        title="Máximo de iterações",
-        description="O Lasso não tem fórmula fechada: o otimizador melhora os pesos aos poucos.",
+        title="Maximum iterations",
+        description="Lasso has no closed form: the optimiser improves the weights bit by bit.",
     )
 
 
@@ -70,10 +70,10 @@ class Ridge(SklearnModel[RidgeParams]):
 
     info = ModelInfo(
         name="ridge",
-        display_name="Ridge (regularização L2)",
+        display_name="Ridge (L2 regularisation)",
         summary=(
-            "A regressão linear com os pesos encolhidos: mais estável quando há features "
-            "correlacionadas ou mais features do que convém."
+            "Linear regression with shrunken weights: steadier when there are correlated "
+            "features or more features than is wise."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.LINEAR,
@@ -100,10 +100,10 @@ class Lasso(SklearnModel[LassoParams]):
 
     info = ModelInfo(
         name="lasso",
-        display_name="Lasso (regularização L1)",
+        display_name="Lasso (L1 regularisation)",
         summary=(
-            "A regressão linear que põe a zero os pesos das features menos úteis: escolhe "
-            "as features enquanto aprende."
+            "Linear regression that sets the weights of the least useful features to zero: it "
+            "picks the features while it learns."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.LINEAR,

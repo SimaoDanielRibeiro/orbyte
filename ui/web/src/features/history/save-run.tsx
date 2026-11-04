@@ -29,7 +29,7 @@ export function SaveRunButton({ runId }: { runId: string }) {
     ...historySaveMutation(),
     onSuccess: () => {
       invalidateHistory(queryClient);
-      toast.success("Experiência guardada: está no ecrã Histórico.");
+      toast.success("Run saved: it's in History.");
     },
   });
   if (entry.error !== null) {
@@ -48,12 +48,12 @@ export function SaveRunButton({ runId }: { runId: string }) {
             }}
           >
             {saved ? <Check aria-hidden="true" /> : <Save aria-hidden="true" />}
-            {saved ? "Experiência guardada" : "Guardar experiência"}
+            {saved ? "Run saved" : "Save the run"}
           </Button>
         </TooltipTrigger>
         <TooltipContent className="max-w-72">
-          Cada run já fica no histórico. Guardar junta-lhe o modelo treinado e o treino passo a
-          passo: volta a abrir com tudo, mesmo depois de a API recomeçar.
+          Every run already stays in the history. Saving adds the trained model and the step-by-step
+          training: it opens again with everything, even after the API restarts.
         </TooltipContent>
       </Tooltip>
       <ErrorNote error={save.error} />

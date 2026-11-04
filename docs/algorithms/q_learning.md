@@ -1,93 +1,96 @@
 # Q-learning
 
-## Intuição
+## Intuition
 
-Não há dataset nem respostas certas. Há um **agente** num **ambiente**: em cada passo vê onde
-está (o **estado**), escolhe uma **ação** e recebe uma **recompensa**. Na grelha do ML Lab, o
-agente ganha +1 ao chegar ao objetivo, perde 1 numa armadilha e paga 0,01 por cada passo.
-Ninguém lhe diz que ação era a boa: tem de descobrir, jogando muitas vezes (os **episódios**).
+There's no dataset and no right answers. There's an **agent** in an **environment**: at each step
+it sees where it is (the **state**), picks an **action** and gets a **reward**. In Orbyte's grid
+world, the agent earns +1 when it reaches the goal, loses 1 in a trap and pays 0.01 for each step.
+Nobody tells it which action was the good one: it has to find out by playing many times (the
+**episodes**).
 
-O Q-learning guarda uma **tabela**: para cada estado e cada ação, um número **Q(s, a)**, a
-recompensa que espera ganhar daqui até ao fim se fizer aquela ação ali e depois jogar o
-melhor que sabe. A **política** é escolher, em cada estado, a ação de maior Q.
+Q-learning keeps a **table**: for each state and each action, a number **Q(s, a)**, the reward it
+expects to earn from here to the end if it takes that action there and then plays the best it
+knows. The **policy** is to pick, in each state, the action with the highest Q.
 
-No início a tabela está toda a zeros: o agente não sabe nada e anda ao acaso. Quando chega ao
-objetivo pela primeira vez, a ação que o levou lá ganha valor. No episódio seguinte, a célula
-antes dessa também ganha, porque leva a uma célula que já vale alguma coisa. O +1 do objetivo
-**espalha-se para trás**, célula a célula, até à partida. Na grelha do ecrã Reinforcement
-learning vê-se isso a acontecer, episódio a episódio.
+At the start the table is all zeros: the agent knows nothing and wanders at random. When it
+reaches the goal for the first time, the action that took it there gains value. In the next
+episode, the cell before that one gains too, because it leads to a cell that's already worth
+something. The goal's +1 **spreads backwards**, cell by cell, all the way to the start. On the
+Reinforcement learning screen's grid you can watch it happen, episode by episode.
 
-## Matemática essencial
+## Essential maths
 
-Depois de cada passo (estado $s$, ação $a$, recompensa $r$, estado seguinte $s'$), o Q-learning
-corrige um único número da tabela:
+After each step (state $s$, action $a$, reward $r$, next state $s'$), Q-learning corrects a single
+number in the table:
 
 $$Q(s, a) \leftarrow Q(s, a) + \alpha \big[\, r + \gamma \max_{a'} Q(s', a') - Q(s, a) \,\big]$$
 
-- $r + \gamma \max_{a'} Q(s', a')$ é o **alvo**: a recompensa que se viu, mais o melhor que se
-  espera a partir do estado seguinte. Se o episódio acabou ali (objetivo ou armadilha), o alvo
-  é só $r$: não há futuro;
-- a diferença entre o alvo e o $Q(s, a)$ é o **erro de diferença temporal**: a surpresa;
-- $\alpha$ (`learning_rate`) é a fração da surpresa que se corrige;
-- $\gamma$ (`discount`) é o **desconto**: uma recompensa a $k$ passos de distância vale
-  $\gamma^k$. Com $\gamma = 0{,}95$, o objetivo a 10 passos vale $0{,}95^{10} \approx 0{,}6$, e
-  é por isso que o caminho curto vale mais do que o longo.
+- $r + \gamma \max_{a'} Q(s', a')$ is the **target**: the reward it saw, plus the best it expects
+  from the next state. If the episode ended there (goal or trap), the target is just $r$: there's
+  no future;
+- the difference between the target and $Q(s, a)$ is the **temporal-difference error**: the
+  surprise;
+- $\alpha$ (`learning_rate`) is the share of the surprise that gets corrected;
+- $\gamma$ (`discount`) is the **discount**: a reward $k$ steps away is worth $\gamma^k$. With
+  $\gamma = 0.95$, the goal 10 steps away is worth $0.95^{10} \approx 0.6$, and that's why the
+  short path is worth more than the long one.
 
-Para escolher a ação, o agente usa **ε-greedy**: com probabilidade $\varepsilon$, uma ação ao
-acaso (**explorar**); senão, a de maior Q (**aproveitar**). O $\varepsilon$ começa em
-`epsilon_start` e desce em linha reta até `epsilon_end`, ao longo da fração `exploration_fraction`
-dos episódios. Sem explorar, o agente repetia o primeiro caminho que encontrou, mesmo que
-houvesse um melhor.
+To pick the action, the agent uses **ε-greedy**: with probability $\varepsilon$, a random action
+(**exploring**); otherwise, the one with the highest Q (**exploiting**). $\varepsilon$ starts at
+`epsilon_start` and falls in a straight line to `epsilon_end`, over the `exploration_fraction` of
+the episodes. Without exploring, the agent would repeat the first path it found, even if there
+were a better one.
 
-O $\max$ no alvo faz do Q-learning um método **off-policy**: aprende o valor da melhor
-política, mesmo enquanto se porta mal (a explorar). É a diferença para o SARSA, que usa no alvo
-a ação que vai mesmo fazer.
+The $\max$ in the target makes Q-learning an **off-policy** method: it learns the value of the
+best policy, even while it behaves badly (exploring). That's the difference from SARSA, which uses
+in the target the action it's actually going to take.
 
-Esgotar os passos de um episódio não é um estado final: o agente só parou de jogar. Por isso,
-nesse último passo, o alvo continua a contar com o futuro.
+Running out of steps in an episode isn't a final state: the agent just stopped playing. So, in
+that last step, the target still counts on the future.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `episodes` | Quantas vezes o agente atravessa o ambiente: é o limite do treino | 500 |
-| `learning_rate` | O $\alpha$: quanto cada passo corrige o Q. Com 1, o Q passa a ser só o que se viu agora; com 0,1, muda devagar | 0,5 |
-| `discount` | O $\gamma$: quanto vale o futuro. Perto de 1, o agente pensa a longo prazo; perto de 0, é míope | 0,95 |
-| `epsilon_start` | A exploração no primeiro episódio (1 = sempre ao acaso) | 1 |
-| `epsilon_end` | A exploração depois de descer: nunca a zero, para continuar a experimentar | 0,05 |
-| `exploration_fraction` | Em que parte dos episódios o $\varepsilon$ desce do início ao fim | 0,5 |
+| `episodes` | How many times the agent crosses the environment: it's the training's limit | 500 |
+| `learning_rate` | The $\alpha$: how much each step corrects Q. At 1, Q becomes only what was just seen; at 0.1, it changes slowly | 0.5 |
+| `discount` | The $\gamma$: how much the future is worth. Close to 1, the agent thinks long term; close to 0, it's short-sighted | 0.95 |
+| `epsilon_start` | The exploration in the first episode (1 = always at random) | 1 |
+| `epsilon_end` | The exploration once it has come down: never zero, so it keeps trying things | 0.05 |
+| `exploration_fraction` | Over what part of the episodes $\varepsilon$ falls from start to end | 0.5 |
 
-## Quando usar
+## When to use
 
-- Quando os estados e as ações se contam e cabem numa tabela: grelhas, jogos de tabuleiro
-  pequenos, problemas de inventário com poucos níveis.
-- Para aprender reinforcement learning: tudo se vê e tudo se explica, número a número.
-- Quando há estados demais para uma tabela (imagens, posições contínuas), a tabela é
-  substituída por uma rede neuronal: é o **DQN**.
+- When the states and actions can be counted and fit in a table: grids, small board games,
+  inventory problems with few levels.
+- To learn reinforcement learning: everything can be seen and explained, number by number.
+- When there are too many states for a table (images, continuous positions), the table is replaced
+  by a neural network: that's **DQN**.
 
-## Armadilhas
+## Pitfalls
 
-- **Explorar pouco.** Com `epsilon_end` a zero e `exploration_fraction` curta, o agente fica
-  com o primeiro caminho que encontrou. No labirinto, pode nunca descobrir o caminho.
-- **Ambientes com acaso.** Com escorregar, o mesmo passo dá recompensas diferentes, e uma
-  `learning_rate` alta faz o Q saltar com cada surpresa. Com escorregar, experimenta 0,1.
-- **O preço de explorar.** No penhasco, o Q-learning aprende o caminho colado às armadilhas, o
-  mais curto. Durante o treino, o $\varepsilon$ ainda escolhe ao acaso e o agente cai muitas
-  vezes: a recompensa do treino fica abaixo da do teste. É o que o relatório compara.
-- **Desconto baixo.** Com $\gamma$ perto de 0, o objetivo distante quase não vale nada, e um
-  agente longe dele não tem por onde se guiar.
-- **Poucos episódios.** O valor tem de se espalhar do objetivo até à partida; num mapa grande,
-  isso leva muitos episódios.
+- **Exploring too little.** With `epsilon_end` at zero and a short `exploration_fraction`, the
+  agent sticks to the first path it found. In the maze, it may never find the way.
+- **Environments with chance.** With slipping, the same step gives different rewards, and a high
+  `learning_rate` makes Q jump with every surprise. With slipping, try 0.1.
+- **The price of exploring.** On the cliff, Q-learning learns the path right along the traps, the
+  shortest. During training, $\varepsilon$ still picks at random and the agent falls in often: the
+  training reward stays below the test reward. That's what the report compares.
+- **A low discount.** With $\gamma$ close to 0, the distant goal is worth almost nothing, and an
+  agent far from it has nothing to guide it.
+- **Too few episodes.** The value has to spread from the goal to the start; on a large map, that
+  takes many episodes.
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Reinforcement learning**:
+On the **Reinforcement learning** screen:
 
-- a **recompensa por episódio** começa baixa (o agente anda às voltas e paga cada passo) e
-  sobe quando aprende o caminho. A linha é a média móvel, porque cada episódio é ruidoso;
-- a **grelha** pinta cada célula com o seu valor e mostra a política (as setas) e o caminho que
-  o agente faria. Percorre os episódios e vê o valor a espalhar-se a partir do objetivo;
-- a **tabela Q**, ação a ação: ao lado das armadilhas, a ação que lá entra fica negativa.
+- the **reward per episode** starts low (the agent wanders around and pays for each step) and
+  rises when it learns the path. The line is the moving average, because each episode is noisy;
+- the **grid** colours each cell by its value and shows the policy (the arrows) and the path the
+  agent would take. Step through the episodes and watch the value spread out from the goal;
+- the **Q table**, action by action: next to the traps, the action that steps into one turns
+  negative.
 
-Experimenta o penhasco com escorregar a 0 e a 0,1: com acaso, o caminho colado às armadilhas
-deixa de ser o melhor.
+Try the cliff with slipping at 0 and at 0.1: with chance, the path right along the traps stops
+being the best.

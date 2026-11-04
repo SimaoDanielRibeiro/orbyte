@@ -55,8 +55,8 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        // O cabeçalho em mono e cinzento, como os rótulos da referência: os números falam mais alto.
-        "h-10 px-3 text-left align-middle font-mono text-xs font-normal whitespace-nowrap text-dim [&:has([role=checkbox])]:pr-0",
+        // O cabeçalho pequeno e cinzento, em Geist (ADR 0045): os números da tabela falam mais alto.
+        "h-10 px-3 text-left align-middle text-xs font-medium whitespace-nowrap text-dim [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

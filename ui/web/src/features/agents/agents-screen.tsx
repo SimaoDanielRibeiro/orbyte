@@ -1,20 +1,21 @@
 /**
- * O ecrã Agentes: o pedido aos agentes (o que prever, a métrica, os agentes chamados e o tamanho
- * da procura) e, ao lado, o plano que o agente de dados já fez para ele, com o fluxograma dos
- * agentes que vão trabalhar. "Pedir aos agentes" começa a procura e abre a página dela.
+ * O ecrã Agentes: o pedido aos agentes, arrumado em três partes (ADR 0049):
+ *
+ * 1. **o pedido**, à esquerda: o que prever, a métrica, o tamanho da procura e as opções;
+ * 2. **os modelos**, à direita: todos os que se podem medir, por família, e cada um pode sair
+ *    da procura (`model-picker.tsx`);
+ * 3. por baixo, a toda a largura, **quem vai trabalhar** (o fluxograma dos agentes, que segue
+ *    a escolha) e **o plano** que o agente de dados já fez para o pedido.
+ *
+ * "Ask the agents" fica no cabeçalho, à direita, como o passo seguinte de todos os ecrãs
+ * (ADR 0044): começa a procura e abre a página dela.
  */
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, LoaderCircle, Sparkles } from "lucide-react";
+import { LoaderCircle, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import type {
-  AutoMlPlan,
-  AutoMlRequest,
-  DatasetSummary,
-  ModelFamily,
-  TaskType,
-} from "@/api/generated";
+import type { AutoMlPlan, AutoMlRequest, DatasetSummary, TaskType } from "@/api/generated";
 import {
   automlOptionsOptions,
   automlStartMutation,
@@ -23,7 +24,6 @@ import {
 } from "@/api/generated/@tanstack/react-query.gen";
 import { automlPlan } from "@/api/generated/sdk.gen";
 import { useLabel, useVocabulary } from "@/api/vocabulary";
-import { ChipGroup } from "@/components/forms/chip-group";
 import { schemaDefaults, type Values } from "@/components/forms/schema";
 import { SchemaForm } from "@/components/forms/schema-form";
 import { Explain } from "@/components/explain/explain";
@@ -44,39 +44,57 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { RequireDataset } from "@/features/data/require-dataset";
+import { useOpenDataset } from "@/features/data/use-open-dataset";
 import { useDebounced } from "@/hooks/use-debounced";
-import { familyColor } from "@/lib/families";
 import { isValidSeed, MAX_SEED } from "@/lib/seed";
 import { useSession } from "@/state/session";
 
 import { AI_AGENT_COLOR } from "./agent-colors";
 import { AgentDetail } from "./agent-detail";
 import { Flowchart, type FlowNode } from "./flowchart";
+import { ModelPicker } from "./model-picker";
 import { PlanView } from "./plan-view";
 
 /**
  * Só se vê sem uma procura aberta: com uma, a rota passa logo para ela (até "Nova procura").
  */
 export function AgentsScreen() {
+  const { datasetId, query, lost } = useOpenDataset();
+  // Com o dataset aberto, é o pedido que desenha o cabeçalho (com o botão de começar).
+  const open = datasetId !== null && !lost && query.data !== undefined;
   return (
     <Page>
-      <PageHeader
-        title={SCREENS.agents.title}
-        description={SCREENS.agents.description}
-        topics={[
-          "automl",
-          "automatic_or_manual",
-          "data_agent",
-          "model_selection",
-          "screening_and_tuning",
-          "random_search",
-          "ai_agent",
-          "winners_curse",
-        ]}
-      />
+      {!open && <AgentsHeader />}
       <RequireDataset>{(dataset) => <Setup key={dataset.id} dataset={dataset} />}</RequireDataset>
     </Page>
   );
+}
+
+function AgentsHeader({ children }: { children?: ReactNode }) {
+  return (
+    <PageHeader
+      title={SCREENS.agents.title}
+      description={SCREENS.agents.description}
+      topics={[
+        "automl",
+        "automatic_or_manual",
+        "data_agent",
+        "model_selection",
+        "screening_and_tuning",
+        "random_search",
+        "ai_agent",
+        "winners_curse",
+      ]}
+    >
+      {children}
+    </PageHeader>
+  );
+}
+
+/** Os modelos escolhidos numa tarefa (mudar de tarefa volta a escolher todos). */
+interface Picked {
+  task: TaskType;
+  models: string[];
 }
 
 function Setup({ dataset }: { dataset: DatasetSummary }) {
@@ -94,7 +112,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
   );
   const [chosenTask, setChosenTask] = useState<TaskType | null>(null);
   const [objective, setObjective] = useState<string | null>(null);
-  const [families, setFamilies] = useState<ModelFamily[] | null>(null);
+  const [picked, setPicked] = useState<Picked | null>(null);
   const [settings, setSettings] = useState<Values | null>(null);
   const [seed, setSeed] = useState(42);
   const [own, setOwn] = useState(false);
@@ -120,23 +138,34 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
           tasks.includes(suggestion.data.task_type)
         ? suggestion.data.task_type
         : (tasks[0] ?? null);
+  // A métrica escolhida muda os modelos que podem entrar (sem probabilidades, não há ROC AUC).
   const options = useQuery({
-    ...automlOptionsOptions({ query: { task_type: task ?? "binary_classification" } }),
+    ...automlOptionsOptions({
+      query: { task_type: task ?? "binary_classification", objective: objective ?? undefined },
+    }),
     enabled: task !== null,
     staleTime: "static",
+    // Ao mudar de métrica, a lista fica à vista até chegar a nova (não pisca).
+    placeholderData: keepPreviousData,
   });
+  const available = (options.data?.agents ?? []).flatMap((agent) =>
+    agent.models.map((model) => model.name),
+  );
+  const models = picked !== null && picked.task === task ? picked.models : available;
   const ownAllowed = preparation?.datasetId === dataset.id && preparation.config.target === target;
   const validSeed = isValidSeed(seed);
 
+  // As opções de outra tarefa (ainda à vista enquanto chegam as novas) não fazem um pedido: os
+  // modelos delas não são desta tarefa.
   const request: AutoMlRequest | null =
-    task === null || options.data === undefined || !validSeed
+    task === null || options.data?.task_type !== task || !validSeed || models.length === 0
       ? null
       : {
           dataset: dataset.source,
           target,
           task_type: task,
           objective,
-          families: families ?? options.data.agents.map((agent) => agent.family),
+          models,
           preparation: own && ownAllowed ? preparation.config : null,
           settings: settings ?? options.data.settings,
           seed,
@@ -161,7 +190,7 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
     ...automlStartMutation(),
     onSuccess: (job) => {
       openSearch(job.run_id);
-      void navigate({ to: "/agentes/$searchId", params: { searchId: job.run_id } });
+      void navigate({ to: "/agents/$searchId", params: { searchId: job.run_id } });
     },
   });
 
@@ -171,12 +200,32 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
   const preview = plan.data !== undefined && !unsupported ? plan.data : null;
 
   return (
-    // O fluxograma em cima, a toda a largura; por baixo, o pedido e o plano em duas colunas iguais.
-    <div className="mt-8 flex flex-col gap-12">
-      {preview !== null && <WhoWorks plan={preview} />}
-      <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
-        <div className="flex flex-col gap-6 self-start">
-          <Field label="Coluna-alvo" htmlFor="agentes-alvo" help={suggestion.data?.reason}>
+    <>
+      <AgentsHeader>
+        {!unsupported && (
+          <Button
+            variant="proceed"
+            size="proceed"
+            disabled={request === null || plan.data === undefined || start.isPending}
+            onClick={() => {
+              if (request !== null) {
+                start.mutate({ body: request });
+              }
+            }}
+          >
+            {start.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
+            Ask the agents
+          </Button>
+        )}
+      </AgentsHeader>
+      <ErrorNote error={start.error ?? plan.error ?? options.error} className="mt-6" />
+
+      <div className="mt-12 grid gap-x-14 gap-y-14 @5xl/main:grid-cols-[minmax(0,25rem)_minmax(0,1fr)]">
+        <section aria-labelledby="agentes-pedido" className="flex flex-col gap-6 self-start">
+          <h2 id="agentes-pedido" className="text-xl">
+            The request
+          </h2>
+          <Field label="Target column" htmlFor="agentes-alvo" help={suggestion.data?.reason}>
             <Select
               value={target}
               onValueChange={(value) => {
@@ -203,17 +252,17 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
               <p className="text-sm text-soft">{suggestion.data.reason}</p>
               <p className="text-sm text-soft">
                 {options.data?.reason ??
-                  "Os agentes não trabalham com este alvo: experimenta outra coluna, ou o modo manual."}
+                  "The agents don't work with this target: try another column, or the manual mode."}
               </p>
               <Button asChild variant="outline">
-                <Link to="/preparar">Ir para o modo manual</Link>
+                <Link to="/prepare">Go to the manual mode</Link>
               </Button>
             </div>
           ) : (
             task !== null && (
               <>
                 {tasks.length > 1 && (
-                  <Field label="Tarefa" htmlFor="agentes-tarefa">
+                  <Field label="Task" htmlFor="agentes-tarefa">
                     <Select
                       value={task}
                       onValueChange={(value) => {
@@ -239,16 +288,16 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                 ) : (
                   <>
                     <Field
-                      label="A métrica a otimizar"
+                      label="The metric to optimize"
                       htmlFor="agentes-metrica"
-                      help="A sugerida é a do agente de dados (a razão está nas decisões dele)."
+                      help="The suggested one comes from the data agent (the reason is in its decisions)."
                     >
                       <Select
                         value={objective ?? plan.data?.objective.name ?? ""}
                         onValueChange={setObjective}
                       >
                         <SelectTrigger id="agentes-metrica" className="w-full">
-                          <SelectValue placeholder="A escolher" />
+                          <SelectValue placeholder="Choosing" />
                         </SelectTrigger>
                         <SelectContent>
                           {options.data.objectives.map((one) => (
@@ -259,25 +308,8 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                         </SelectContent>
                       </Select>
                     </Field>
-                    <Field
-                      label="Os agentes"
-                      help="Um agente por família de modelos: cada um experimenta os modelos da sua família."
-                    >
-                      <ChipGroup
-                        label="Os agentes chamados"
-                        options={options.data.agents.map((agent) => ({
-                          value: agent.family,
-                          label: label("ModelFamily", agent.family),
-                          color: familyColor(agent.family),
-                        }))}
-                        value={families ?? options.data.agents.map((agent) => agent.family)}
-                        onChange={(chosen) => {
-                          setFamilies(chosen as ModelFamily[]);
-                        }}
-                      />
-                    </Field>
-                    <section className="flex flex-col gap-3">
-                      <h2 className="text-sm font-normal text-soft">O tamanho da procura</h2>
+                    <section className="flex flex-col gap-3 border-t border-[#202020] pt-6">
+                      <h3 className="text-base font-medium text-strong">The size of the search</h3>
                       <SchemaForm
                         schema={options.data.settings_schema}
                         values={
@@ -290,104 +322,107 @@ function Setup({ dataset }: { dataset: DatasetSummary }) {
                         idPrefix="agentes-procura"
                       />
                     </section>
-                    <Field
-                      label="Seed"
-                      htmlFor="agentes-seed"
-                      help="A mesma seed dá a mesma divisão, os mesmos folds e os mesmos sorteios da procura."
-                    >
-                      <Input
-                        id="agentes-seed"
-                        name="seed"
-                        autoComplete="off"
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={MAX_SEED}
-                        step={1}
-                        value={Number.isNaN(seed) ? "" : seed}
-                        onChange={(event) => {
-                          setSeed(event.target.valueAsNumber);
-                        }}
-                        aria-invalid={!validSeed}
-                        className="w-40 tabular-nums"
-                      />
-                    </Field>
-                    {ownAllowed && (
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-1">
-                          <Label htmlFor="agentes-preparacao" className="text-sm text-soft">
-                            Usar a minha preparação
-                          </Label>
-                          <Explain title="Usar a minha preparação">
-                            O agente de dados adota a tua limpeza, divisão e transformações.
-                          </Explain>
-                        </div>
-                        <Switch id="agentes-preparacao" checked={own} onCheckedChange={setOwn} />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-1">
-                          <Sparkles
-                            aria-hidden="true"
-                            className="mr-1 size-4"
-                            style={{ color: AI_AGENT_COLOR }}
-                          />
-                          <Label htmlFor="agentes-ia" className="text-sm text-soft">
-                            Chamar o agente de IA
-                            {llm.data !== undefined && (
-                              <span className="ml-1.5 font-mono text-xs text-dim">
-                                {llm.data.model}
-                              </span>
-                            )}
-                          </Label>
-                          <Explain topic="ai_agent" />
-                        </div>
-                        <Switch
-                          id="agentes-ia"
-                          checked={ai && aiReady}
-                          disabled={!aiReady}
-                          onCheckedChange={setAi}
-                        />
-                      </div>
-                      {llm.data !== undefined && !aiReady && (
-                        <NoticeList notices={llm.data.notices} />
-                      )}
-                    </div>
-                    <div className="flex flex-col items-start gap-3">
-                      <Button
-                        variant="proceed"
-                        size="proceed"
-                        disabled={request === null || plan.data === undefined || start.isPending}
-                        onClick={() => {
-                          if (request !== null) {
-                            start.mutate({ body: request });
-                          }
-                        }}
+                    <section className="flex flex-col gap-5 border-t border-[#202020] pt-6">
+                      <Field
+                        label="Seed"
+                        htmlFor="agentes-seed"
+                        help="The same seed gives the same split, the same folds and the same draws in the search."
                       >
-                        {start.isPending && (
-                          <LoaderCircle aria-hidden="true" className="animate-spin" />
+                        <Input
+                          id="agentes-seed"
+                          name="seed"
+                          autoComplete="off"
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={MAX_SEED}
+                          step={1}
+                          value={Number.isNaN(seed) ? "" : seed}
+                          onChange={(event) => {
+                            setSeed(event.target.valueAsNumber);
+                          }}
+                          aria-invalid={!validSeed}
+                          className="w-40 tabular-nums"
+                        />
+                      </Field>
+                      {ownAllowed && (
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-1">
+                            <Label htmlFor="agentes-preparacao" className="text-sm text-soft">
+                              Use my preparation
+                            </Label>
+                            <Explain title="Use my preparation">
+                              The data agent adopts your cleaning, split and transformations.
+                            </Explain>
+                          </div>
+                          <Switch id="agentes-preparacao" checked={own} onCheckedChange={setOwn} />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-1">
+                            <Sparkles
+                              aria-hidden="true"
+                              className="mr-1 size-4"
+                              style={{ color: AI_AGENT_COLOR }}
+                            />
+                            <Label htmlFor="agentes-ia" className="text-sm text-soft">
+                              Call the AI agent
+                              {llm.data !== undefined && (
+                                <span className="ml-1.5 font-mono text-xs text-dim">
+                                  {llm.data.model}
+                                </span>
+                              )}
+                            </Label>
+                            <Explain topic="ai_agent" />
+                          </div>
+                          <Switch
+                            id="agentes-ia"
+                            checked={ai && aiReady}
+                            disabled={!aiReady}
+                            onCheckedChange={setAi}
+                          />
+                        </div>
+                        {llm.data !== undefined && !aiReady && (
+                          <NoticeList notices={llm.data.notices} />
                         )}
-                        Pedir aos agentes
-                        {!start.isPending && <ArrowRight aria-hidden="true" />}
-                      </Button>
-                      <ErrorNote error={start.error ?? plan.error ?? options.error} />
-                    </div>
+                      </div>
+                    </section>
                   </>
                 )}
               </>
             )
           )}
-        </div>
-        <div className="min-w-0">
-          {preview !== null && (
-            <Panel title="O plano do agente de dados" topic="data_agent" as="h2">
-              <PlanView plan={preview} />
-            </Panel>
-          )}
-        </div>
+        </section>
+
+        {!unsupported && task !== null && (
+          <section aria-labelledby="agentes-modelos" className="min-w-0">
+            {options.data === undefined ? (
+              <Skeleton className="h-96 w-full rounded-2xl" />
+            ) : (
+              <ModelPicker
+                titleId="agentes-modelos"
+                agents={options.data.agents}
+                unavailable={options.data.skipped}
+                chosen={models}
+                onChange={(chosen) => {
+                  setPicked({ task, models: chosen });
+                }}
+              />
+            )}
+          </section>
+        )}
       </div>
-    </div>
+
+      {preview !== null && (
+        <div className="mt-20 flex flex-col gap-20">
+          <WhoWorks plan={preview} />
+          <Panel title="The data agent's plan" topic="data_agent" as="h2">
+            <PlanView plan={preview} models={false} />
+          </Panel>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -396,11 +431,7 @@ function WhoWorks({ plan }: { plan: AutoMlPlan }) {
   const [selected, setSelected] = useState<FlowNode | null>(null);
   return (
     <>
-      <Panel
-        title="Quem vai trabalhar"
-        as="h2"
-        explain="Clica num agente para veres os modelos que vai experimentar."
-      >
+      <Panel title="Who will work" as="h2" explain="Click an agent to see the models it will try.">
         <div className="rounded-2xl bg-[radial-gradient(circle,#262626_1px,transparent_1.2px)] bg-size-[22px_22px] p-4">
           <Flowchart
             agents={plan.agents}

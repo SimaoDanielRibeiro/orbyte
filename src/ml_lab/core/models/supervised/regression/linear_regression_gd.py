@@ -47,10 +47,10 @@ class LinearRegressionGDParams(Hyperparameters):
         default=0.1,
         ge=0.0001,
         le=5,
-        title="Taxa de aprendizagem",
+        title="Learning rate",
         description=(
-            "Tamanho de cada passo. Pequena demais, o treino arrasta-se; grande demais, o erro "
-            "cresce em vez de descer (com features padronizadas, acima de ~1 costuma explodir)."
+            "The size of each step. Too small, training drags on; too large, the error grows "
+            "instead of falling (with standardised features, above ~1 it usually blows up)."
         ),
         json_schema_extra={"x-scale": "log"},
     )
@@ -58,23 +58,23 @@ class LinearRegressionGDParams(Hyperparameters):
         default=1_000,
         ge=10,
         le=20_000,
-        title="Máximo de épocas",
-        description="Quantas passagens pelos dados de treino, no máximo.",
+        title="Maximum epochs",
+        description="How many passes over the training data, at most.",
     )
     tol: float = Field(
         default=1e-6,
         ge=1e-10,
         le=0.01,
-        title="Tolerância de paragem",
+        title="Stopping tolerance",
         description=(
-            "Pára quando o gradiente (medido na escala do alvo) fica mais pequeno do que isto."
+            "Stops when the gradient (measured on the target's scale) gets smaller than this."
         ),
         json_schema_extra={"x-scale": "log"},
     )
     fit_intercept: bool = Field(
         default=True,
-        title="Aprender a ordenada (b)",
-        description="Sem ordenada, a reta é obrigada a passar pela origem.",
+        title="Learn the intercept (b)",
+        description="Without an intercept, the line has to go through the origin.",
     )
 
 
@@ -84,10 +84,10 @@ class LinearRegressionGD(LabModel[LinearRegressionGDParams]):
 
     info = ModelInfo(
         name="linear_regression_gd",
-        display_name="Regressão linear (gradiente descendente)",
+        display_name="Linear regression (gradient descent)",
         summary=(
-            "A regressão linear escrita em NumPy e treinada passo a passo: vês a reta a ajustar-se "
-            "e o erro a descer até à solução dos mínimos quadrados."
+            "Linear regression written in NumPy and trained step by step: you see the line fit "
+            "itself and the error fall down to the least-squares solution."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.LINEAR,
@@ -120,7 +120,7 @@ class LinearRegressionGD(LabModel[LinearRegressionGDParams]):
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if y is None:
-            raise ModelError("A regressão linear precisa do alvo para aprender.")
+            raise ModelError("Linear regression needs the target to learn.")
         params = self.hyperparameters
         target = y.astype(np.float64)
         n_samples, n_features = X.shape
@@ -157,8 +157,8 @@ class LinearRegressionGD(LabModel[LinearRegressionGDParams]):
         self._note(
             Notice.warning(
                 "not_converged",
-                f"O gradiente descendente fez as {format_count(params.max_epochs)} épocas sem "
-                "chegar ao mínimo: aumenta o máximo de épocas ou a taxa de aprendizagem.",
+                f"Gradient descent ran all {format_count(params.max_epochs)} epochs without "
+                "reaching the minimum: raise the maximum epochs or the learning rate.",
             )
         )
 

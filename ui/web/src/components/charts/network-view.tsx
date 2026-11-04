@@ -48,7 +48,7 @@ export function NetworkView({
     network.frames.at(-1);
   const columns: Column[] = [
     {
-      name: "Entrada",
+      name: "Input",
       detail: `${formatCount(network.inputs)} features`,
       units: network.inputs,
       hidden: false,
@@ -95,7 +95,7 @@ export function NetworkView({
                 background: `linear-gradient(to right, ${sequential(0)}, ${sequential(0.5)}, ${sequential(1)})`,
               }}
             />
-            Ativação média, de baixa a alta
+            Mean activation, from low to high
           </li>
           <li className="flex items-center gap-1.5">
             <span
@@ -103,7 +103,7 @@ export function NetworkView({
               className="size-2 rounded-full"
               style={{ background: OTHER }}
             />
-            Parado
+            Stuck
           </li>
         </ul>
       }
@@ -123,15 +123,15 @@ export function NetworkView({
             <TooltipRow
               value={
                 column.stuck[u] === true
-                  ? "parado"
+                  ? "stuck"
                   : activation === undefined
                     ? column.name
                     : formatNumber(activation, 2)
               }
-              label={activation === undefined ? "" : "ativação média"}
+              label={activation === undefined ? "" : "mean activation"}
             />
             <div className="text-muted-foreground">
-              {column.name}, neurónio {formatCount(u + 1)}
+              {column.name}, neuron {formatCount(u + 1)}
             </div>
           </ChartTooltip>
         );
@@ -198,7 +198,7 @@ export function NetworkView({
                     textAnchor="middle"
                     className="fill-muted-foreground text-[11px]"
                   >
-                    e mais {formatCount(column.units - MAX_UNITS)}
+                    and {formatCount(column.units - MAX_UNITS)} more
                   </text>
                 )}
                 <text

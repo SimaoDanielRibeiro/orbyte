@@ -79,24 +79,25 @@ def to_matrix(frame: pd.DataFrame, partition: Partition) -> Features:
     not_numeric = [str(name) for name in frame.columns if not _is_number(frame[name])]
     if not_numeric:
         raise DataError(
-            f"As colunas {', '.join(not_numeric)} ainda não são números "
-            f"({partition.label.lower()}): converte-as na limpeza ou deixa a codificação "
-            "tratar delas."
+            f"The columns {', '.join(not_numeric)} aren't numbers yet "
+            f"({partition.label.lower()} data): convert them in the cleaning or let the encoding "
+            "handle them."
         )
     matrix = frame.to_numpy(dtype=np.float64, na_value=np.nan)
     missing = np.isnan(matrix).sum(axis=0)
     if missing.any():
         details = ", ".join(
-            f"{frame.columns[int(i)]} ({format_quantity(int(missing[i]), 'valor', 'valores')})"
+            f"{frame.columns[int(i)]} ({format_quantity(int(missing[i]), 'value', 'values')})"
             for i in np.flatnonzero(missing)
         )
         raise DataError(
-            f"Ainda há valores em falta no {partition.label.lower()}: {details}. Ativa a "
-            "imputação na transformação ou remove essas linhas na limpeza."
+            f"There are still missing values in the {partition.label.lower()} data: {details}. "
+            "Turn on imputation in the transformation or drop those rows in the cleaning."
         )
     if not np.isfinite(matrix).all():
         raise DataError(
-            f"Há valores infinitos no {partition.label.lower()}: confirma os dados de origem."
+            f"There are infinite values in the {partition.label.lower()} data: check the source "
+            "data."
         )
     return matrix
 
@@ -116,12 +117,12 @@ def encode_classes(target: pd.Series, labels: tuple[str, ...]) -> NDArray[np.int
         DataError: Se houver valores em falta ou classes que não estão em ``labels``.
     """
     if target.isna().any():
-        raise DataError("O alvo ainda tem valores em falta: essas linhas têm de ser removidas.")
+        raise DataError("The target still has missing values: those rows must be dropped.")
     positions = {label: index for index, label in enumerate(labels)}
     codes = _label_text(target).map(positions)
     if codes.isna().any():
         unknown = sorted(set(_label_text(target)) - set(labels))
-        raise DataError(f"O alvo tem classes desconhecidas: {', '.join(unknown)}.")
+        raise DataError(f"The target has unknown classes: {', '.join(unknown)}.")
     return np.asarray(codes.to_numpy(), dtype=np.int64)
 
 
@@ -133,12 +134,12 @@ def to_target(target: pd.Series) -> NDArray[np.float64]:
     """
     if not pd.api.types.is_numeric_dtype(target) or pd.api.types.is_bool_dtype(target):
         raise DataError(
-            f"O alvo {target.name} não é numérico: a regressão precisa de números. Converte-o na "
-            "limpeza ou escolhe uma tarefa de classificação."
+            f"The target {target.name} isn't numeric: regression needs numbers. Convert it in "
+            "the cleaning or choose a classification task."
         )
     values = target.to_numpy(dtype=np.float64, na_value=np.nan)
     if np.isnan(values).any():
-        raise DataError("O alvo ainda tem valores em falta: essas linhas têm de ser removidas.")
+        raise DataError("The target still has missing values: those rows must be dropped.")
     return values
 
 

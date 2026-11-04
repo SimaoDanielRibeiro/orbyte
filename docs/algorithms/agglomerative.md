@@ -1,53 +1,53 @@
-# Clustering hierárquico (aglomerativo)
+# Hierarchical clustering (agglomerative)
 
-## Intuição
+## Intuition
 
-Começa com cada ponto sozinho no seu grupo e, passo a passo, **junta os dois grupos mais
-próximos**, até sobrar um só. O histórico das junções forma uma árvore, o **dendrograma**:
-cortá-lo a uma certa altura dá um certo número de grupos. Em vez de uma divisão, dá uma
-hierarquia inteira: espécies dentro de géneros, géneros dentro de famílias.
+It starts with each point alone in its own group and, step by step, **joins the two closest
+groups**, until only one is left. The history of the joins forms a tree, the **dendrogram**:
+cutting it at a certain height gives a certain number of groups. Instead of one split, it gives a
+whole hierarchy: species within genera, genera within families.
 
-## Matemática essencial
+## Essential maths
 
-O algoritmo é sempre o mesmo; muda a forma de medir a distância entre dois grupos $A$ e $B$
-(a **ligação**):
+The algorithm is always the same; what changes is how the distance between two groups $A$ and $B$
+is measured (the **linkage**):
 
-- **simples**: a menor distância entre um ponto de $A$ e um de $B$ (segue cadeias de pontos);
-- **completa**: a maior distância (prefere grupos compactos);
-- **média**: a média das distâncias entre todos os pares;
-- **Ward**: o aumento da variância dentro dos grupos se $A$ e $B$ se juntarem (dá grupos
-  redondos e equilibrados, como o k-means).
+- **single**: the smallest distance between a point of $A$ and one of $B$ (it follows chains of
+  points);
+- **complete**: the largest distance (it prefers compact groups);
+- **average**: the mean of the distances between every pair;
+- **Ward**: the increase in the variance within the groups if $A$ and $B$ were joined (it gives
+  round, balanced groups, like k-means).
 
-Em cada passo, junta o par com a menor distância. A altura de cada junção no dendrograma é
-essa distância. Para ter $k$ grupos, desfazem-se as últimas $k - 1$ junções.
+At each step, it joins the pair with the smallest distance. The height of each join in the
+dendrogram is that distance. To get $k$ groups, the last $k - 1$ joins are undone.
 
-O laboratório guarda o dendrograma no estado do modelo. Para pontos novos (que o
-scikit-learn não prevê), usa o grupo do ponto de treino mais próximo.
+The lab keeps the dendrogram in the model's state. For new points (which scikit-learn doesn't
+predict), it uses the group of the closest training point.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_clusters` | Em quantos grupos se corta o dendrograma | 3 |
-| `linkage` | A distância entre grupos: `ward`, `complete`, `average` ou `single` | `ward` |
+| `n_clusters` | How many groups the dendrogram is cut into | 3 |
+| `linkage` | The distance between groups: `ward`, `complete`, `average` or `single` | `ward` |
 
-## Quando usar
+## When to use
 
-- Quando interessa a **estrutura em vários níveis**, e não só uma divisão.
-- Com **poucos dados** (até alguns milhares de linhas), para ver o dendrograma e escolher o
-  número de grupos olhando para as alturas das junções.
+- When the **structure on several levels** matters, and not just one split.
+- With **little data** (up to a few thousand rows), to see the dendrogram and choose the number
+  of groups by looking at the heights of the joins.
 
-## Armadilhas
+## Pitfalls
 
-- **Memória:** guarda a distância entre todos os pares de pontos ($n^2/2$). O laboratório
-  recusa mais de 5000 linhas de treino.
-- **Decisões irreversíveis:** uma junção má no início nunca se desfaz.
-- **A ligação simples encadeia:** dois grupos ligados por uma fila de pontos juntam-se cedo
-  demais.
-- **Escala das features:** as distâncias misturam todas as features. Padroniza.
+- **Memory:** it keeps the distance between every pair of points ($n^2/2$). The lab refuses more
+  than 5,000 training rows.
+- **Irreversible decisions:** a bad join early on is never undone.
+- **Single linkage chains:** two groups connected by a line of points join too early.
+- **Feature scale:** the distances mix all the features. Standardise.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar** vês os grupos no plano e, na avaliação, o
-**dendrograma**: as últimas 30 junções, com a linha do corte que dá os grupos escolhidos. Uma
-junção muito mais alta do que as outras é um sítio natural para cortar.
+It trains in one go. On the **Train & evaluate** screen you see the groups on the plane and, in
+the evaluation, the **dendrogram**: the last 30 joins, with the cut line that gives the chosen
+groups. A join much higher than the others is a natural place to cut.

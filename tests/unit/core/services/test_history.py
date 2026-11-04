@@ -58,7 +58,7 @@ def test_every_finished_run_is_recorded_on_its_own(lab: Lab) -> None:
     assert [run.run_id for run in lab.history.runs()] == [result.run_id]
     assert entry.metrics == result.main_report.values()
     assert entry.primary_metric == "accuracy"
-    assert entry.name == "Regressão logística em Iris"
+    assert entry.name == "Logistic regression on Iris"
     assert not entry.saved
 
 
@@ -128,7 +128,7 @@ def test_the_comparison_shows_only_the_choices_that_change(lab: Lab) -> None:
     comparison = lab.history.compare([strong.run_id, weak.run_id])
 
     assert [difference.label for difference in comparison.differences] == [
-        "Hiperparâmetro · C (inverso da regularização)"
+        "Hyperparameter · C (inverse of regularisation)"
     ]
     accuracy = next(metric for metric in comparison.metrics if metric.name == "accuracy")
     assert accuracy.values == (strong.primary.value, weak.primary.value)  # type: ignore[union-attr]
@@ -155,8 +155,8 @@ def test_the_preparation_choices_are_written_with_their_names(lab: Lab) -> None:
 
     differences = {difference.label: difference.values for difference in comparison.differences}
     # O nome da operação e o da estratégia, e não o JSON da configuração nem o nome do campo.
-    assert differences["Limpeza"] == ("nenhuma", "Remover colunas (sepal_width)")
-    assert differences["Divisão · estratégia"] == ("Aleatória", "Estratificada")
+    assert differences["Cleaning"] == ("none", "Drop columns (sepal_width)")
+    assert differences["Split · strategy"] == ("Random", "Stratified")
 
 
 def test_the_differences_are_grouped_with_each_model_hyperparameters_together(lab: Lab) -> None:
@@ -187,8 +187,8 @@ def test_the_differences_are_grouped_with_each_model_hyperparameters_together(la
     # Os de cada modelo seguidos: primeiro os da regressão logística (só A), depois os do KNN.
     owners = [difference.values[0] != "—" for difference in hyperparameters]
     assert owners == sorted(owners, reverse=True)
-    assert all(not difference.name.startswith("Hiperparâmetro") for difference in hyperparameters)
-    assert hyperparameters[0].label == f"Hiperparâmetro · {hyperparameters[0].name}"
+    assert all(not difference.name.startswith("Hyperparameter") for difference in hyperparameters)
+    assert hyperparameters[0].label == f"Hyperparameter · {hyperparameters[0].name}"
 
 
 def test_reproducing_a_run_gives_the_same_metrics(lab: Lab) -> None:
@@ -233,7 +233,7 @@ def test_runs_can_be_filtered_renamed_and_deleted(lab: Lab, tmp_path: Path) -> N
     assert renamed.name == "Base"
     assert [entry.run_id for entry in lab.history.runs()] == [classifier.run_id]
     assert not (tmp_path / "artifacts" / "runs" / clustering.run_id).exists()
-    with pytest.raises(InvalidParameterError, match="vazio"):
+    with pytest.raises(InvalidParameterError, match="can't be empty"):
         lab.history.rename(classifier.run_id, "   ")
     with pytest.raises(RunNotFoundError):
         lab.history.entry(clustering.run_id)
@@ -242,7 +242,7 @@ def test_runs_can_be_filtered_renamed_and_deleted(lab: Lab, tmp_path: Path) -> N
 def test_comparing_needs_between_two_and_five_runs(lab: Lab) -> None:
     result = run(lab)
 
-    with pytest.raises(InvalidParameterError, match="entre 2 e 5"):
+    with pytest.raises(InvalidParameterError, match="between 2 and 5"):
         lab.history.compare([result.run_id, result.run_id])
 
 

@@ -2,7 +2,7 @@
 
 Uma ficha de modelo diz o que o modelo prevê, com que dados aprendeu, como se portou, onde não
 se deve confiar nele e como se usa. É o que quem recebe o ficheiro lê primeiro, antes de
-abrir os JSON. Os números vêm escritos à portuguesa, como em todo o laboratório.
+abrir os JSON. Está em inglês e os números escrevem-se como em todo o site (ADR 0043).
 """
 
 import json
@@ -70,15 +70,15 @@ def model_card(
     sections = [
         f"# {name}",
         _summary(result, preparation, info),
-        "## Como foi feito",
+        "## How it was made",
         _how(result, dataset, info),
-        "## Como se portou",
+        "## How it did",
         _performance(result),
-        "## Os limites",
+        "## Its limits",
         _limits(result, preparation, info),
-        "## O que vai neste pacote",
+        "## What's in this package",
         _files(files),
-        "## Como se usa",
+        "## How to use it",
         _usage(files, onnx, onnx_reason),
     ]
     return "\n\n".join(section for section in sections if section) + "\n"
@@ -88,23 +88,23 @@ def _summary(result: ExperimentResult, preparation: FittedPreparation, info: Mod
     columns = format_list([column.name for column in preparation.columns])
     task = result.task_type.label.lower()
     if preparation.target is not None and result.task_type.requires_target:
-        what = f"prevê **{preparation.target}** ({task}) a partir de {columns}"
+        what = f"predicts **{preparation.target}** ({task}) from {columns}"
     else:
-        what = f"faz {task} com {columns}"
+        what = f"does {task} with {columns}"
     # Travessões, e não parênteses: o nome do modelo pode ter os seus (o gradiente descendente).
-    return f"Este modelo — {info.display_name} — {what}. Foi treinado no ML Lab."
+    return f"This model — {info.display_name} — {what}. It was trained in Orbyte."
 
 
 def _how(result: ExperimentResult, dataset: Dataset, info: ModelInfo) -> str:
     parts = [
-        f"{dataset.splits[partition].X.shape[0]} no {partition.label.lower()}"
+        f"{dataset.splits[partition].X.shape[0]} for {partition.label.lower()}"
         for partition in (Partition.TRAIN, Partition.VALIDATION, Partition.TEST)
         if partition in dataset.splits
     ]
-    parts[0] = parts[0].replace(" no ", " linhas no ", 1)
+    parts[0] = parts[0].replace(" for ", " rows for ", 1)
     lines = [
-        f"- **Dados:** {result.dataset_name}: {format_list(parts)} (seed {result.seed}).",
-        "- **Preparação**, pela ordem:",
+        f"- **Data:** {result.dataset_name}: {format_list(parts)} (seed {result.seed}).",
+        "- **Preparation**, in order:",
         *(
             f"  - {step.description}"
             for step in dataset.lineage
@@ -115,15 +115,15 @@ def _how(result: ExperimentResult, dataset: Dataset, info: ModelInfo) -> str:
         f"{key} = {format_value(value)}" for key, value in sorted(result.hyperparameters.items())
     )
     lines.append(
-        f"- **Modelo:** {info.display_name} ({info.family.label.lower()}, "
-        f"{info.implementation.label})" + (f", com {settings}." if settings else ".")
+        f"- **Model:** {info.display_name} ({info.family.label.lower()}, "
+        f"{info.implementation.label})" + (f", with {settings}." if settings else ".")
     )
     return "\n".join(lines)
 
 
 def _performance(result: ExperimentResult) -> str:
     partitions = [partition for partition in Partition if partition in result.reports]
-    header = "| Métrica | " + " | ".join(p.label for p in partitions) + " |"
+    header = "| Metric | " + " | ".join(p.label for p in partitions) + " |"
     rule = "|---|" + "---|" * len(partitions)
     rows = []
     for metric in result.main_report.metrics:
@@ -141,26 +141,27 @@ def _limits(result: ExperimentResult, preparation: FittedPreparation, info: Mode
     for column in preparation.columns:
         if column.kind is ColumnKind.NUMERIC and column.minimum is not None:
             lines.append(
-                f"- Viu {column.name} de {format_value(column.minimum)} a "
-                f"{format_value(column.maximum)}: fora disso, a previsão é uma extrapolação."
+                f"- It saw {column.name} from {format_value(column.minimum)} to "
+                f"{format_value(column.maximum)}: outside that, the prediction is an "
+                "extrapolation."
             )
         elif column.kind is ColumnKind.CATEGORICAL and column.categories:
             shown = format_list(list(column.categories[:8]))
             more = "…" if len(column.categories) > 8 else ""
-            lines.append(
-                f"- {column.name} só com {shown}{more}: uma categoria nova conta como nenhuma."
-            )
+            lines.append(f"- {column.name} only with {shown}{more}: a new category counts as none.")
     if not info.supports_new_data:
-        lines.append(f"- {info.display_name} não prevê linhas novas: só descreve as do treino.")
+        lines.append(
+            f"- {info.display_name} doesn't predict new rows: it only describes the training ones."
+        )
     if info.keeps_training_rows:
         lines.append(
-            f"- {info.display_name} guarda linhas do treino dentro dele (já transformadas): "
-            "quem tiver o modelo consegue vê-las."
+            f"- {info.display_name} keeps training rows inside it (already transformed): "
+            "whoever has the model can see them."
         )
     lines.extend(
         f"- {notice.message}" for notice in result.notices if notice.level is not NoticeLevel.INFO
     )
-    return "\n".join(lines) or "- O treino não deixou avisos."
+    return "\n".join(lines) or "- The training left no warnings."
 
 
 def _onnx_example(onnx: OnnxSignature) -> list[str]:
@@ -171,7 +172,7 @@ def _onnx_example(onnx: OnnxSignature) -> list[str]:
         for entry in onnx.inputs[:MAX_EXAMPLE_INPUTS]
     ]
     if len(onnx.inputs) > MAX_EXAMPLE_INPUTS:
-        feeds.append(f"    # … e as outras {len(onnx.inputs) - MAX_EXAMPLE_INPUTS} colunas")
+        feeds.append(f"    # … and the other {len(onnx.inputs) - MAX_EXAMPLE_INPUTS} columns")
     outputs = ", ".join(onnx.outputs)
     received = f"{outputs} = " if len(onnx.outputs) > 1 else f"({outputs},) = "
     return [
@@ -180,10 +181,10 @@ def _onnx_example(onnx: OnnxSignature) -> list[str]:
         "import onnxruntime as ort",
         "",
         'session = ort.InferenceSession("model.onnx")',
-        "linha = {",
+        "row = {",
         *feeds,
         "}",
-        f"{received}session.run(None, linha)",
+        f"{received}session.run(None, row)",
         f"print({outputs})",
         "```",
     ]
@@ -198,33 +199,38 @@ def _literal(value: float | str) -> str:
 
 def _files(files: Sequence[CardFile]) -> str:
     rows = [f"| `{file.path}` | {file.description} |" for file in files]
-    return "\n".join(["| Ficheiro | O que tem |", "|---|---|", *rows])
+    return "\n".join(["| File | What it has |", "|---|---|", *rows])
 
 
 def _usage(files: Sequence[CardFile], onnx: OnnxSignature | None, onnx_reason: str | None) -> str:
     paths = {file.path for file in files}
     lines = [
-        '- **No ML Lab:** carrega este ficheiro no ecrã Guardar, em "Carregar um modelo '
-        'treinado". O run entra no histórico e abre-se no Treinar e avaliar.',
+        '- **In Orbyte:** load this file in the Save screen, under "Load a trained model". The '
+        "run goes into the history and opens in Train & evaluate.",
     ]
     if onnx is not None:
         lines.extend(
             [
-                "- **Noutra app:** o `model.onnx` junta a preparação e o modelo, e abre-se com o "
-                "ONNX Runtime (em Python, C#, Java, JavaScript…), sem o ML Lab. Cada coluna é "
-                "uma entrada com uma linha por exemplo: os números em `float64` (`nan` quando "
-                "faltam) e as categorias em texto (vazio quando faltam). Em Python, com os "
-                "valores típicos do treino:",
+                "- **In another app:** `model.onnx` joins the preparation and the model, and opens "
+                "with ONNX Runtime (in Python, C#, Java, JavaScript…), without Orbyte. Each column "
+                "is an input with one row per example: the numbers as `float64` (`nan` when "
+                "missing) and the categories as text (empty when missing). In Python, with the "
+                "typical training values:",
                 "",
                 *(f"  {line}" if line else "" for line in _onnx_example(onnx)),
             ]
         )
     elif onnx_reason is not None:
-        lines.append(f"- **Noutra app:** este pacote vai sem o `model.onnx`. {onnx_reason}")
+        lines.append(
+            f"- **In another app:** this package comes without `model.onnx`. {onnx_reason}"
+        )
     lines.append(
-        "- **Os ficheiros:** o formato está descrito em `docs/formato-mllab.md`, no ML Lab. Os "
-        "JSON leem-se em qualquer editor de texto."
+        "- **The files:** the format is described in `docs/formato-mllab.md`, in the Orbyte "
+        "repository. The JSON files can be read in any text editor."
     )
     if "model.joblib" not in paths:
-        lines.append("- Este pacote vai **sem o modelo** (só a ficha): lê-se tudo, mas não prevê.")
+        lines.append(
+            "- This package comes **without the model** (only the card): everything can be read, "
+            "but it doesn't predict."
+        )
     return "\n".join(lines)

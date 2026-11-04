@@ -1,110 +1,110 @@
-# Regressão linear
+# Linear regression
 
-## Intuição
+## Intuition
 
-A regressão linear prevê um **número** (o preço de uma casa, a nota de um exame) como uma soma
-pesada das features mais uma constante: "cada quarto a mais acrescenta tanto ao preço, cada
-quilómetro até ao centro tira tanto". Com uma só feature, o modelo é uma reta; com duas, um
-plano; com mais, um hiperplano, a mesma ideia em mais dimensões.
+Linear regression predicts a **number** (the price of a house, an exam grade) as a weighted sum
+of the features plus a constant: "each extra room adds so much to the price, each kilometre to
+the centre takes off so much". With a single feature, the model is a straight line; with two, a
+plane; with more, a hyperplane, the same idea in more dimensions.
 
-Aprender é escolher os pesos que põem a reta o mais perto possível dos pontos de treino. "Perto"
-mede-se com o **erro quadrático**: a distância vertical de cada ponto à reta, ao quadrado.
+Learning is choosing the weights that put the line as close as possible to the training points.
+"Close" is measured with the **squared error**: the vertical distance from each point to the
+line, squared.
 
-## Matemática essencial
+## Essential maths
 
-Para um exemplo com features $x$, a previsão é
+For an example with features $x$, the prediction is
 
 $$\hat y = w \cdot x + b$$
 
-e o treino procura os $w$ e $b$ que minimizam o **erro quadrático médio** (EQM; na
-avaliação aparece com a sigla inglesa, MSE) no treino:
+and training looks for the $w$ and $b$ that minimise the **mean squared error** (MSE) on the
+training data:
 
-$$\text{EQM}(w, b) = \frac{1}{n} \sum_i (\hat y_i - y_i)^2$$
+$$\text{MSE}(w, b) = \frac{1}{n} \sum_i (\hat y_i - y_i)^2$$
 
-O quadrado faz os erros grandes contarem muito mais: errar por 10 custa 100 vezes mais do que
-errar por 1. É por isso que um único ponto muito fora da tendência consegue puxar a reta.
+The square makes large errors count much more: missing by 10 costs 100 times more than missing
+by 1. That's why a single point far from the trend can pull the line.
 
-Há duas maneiras de chegar aos melhores pesos.
+There are two ways to reach the best weights.
 
-**De uma vez, pela fórmula dos mínimos quadrados** (`linear_regression`, do scikit-learn). O
-EQM é uma "taça" (uma função quadrática dos pesos), e o fundo da taça tem fórmula:
-$w = (X^\top X)^{-1} X^\top y$. O scikit-learn calcula-a de forma numericamente mais estável,
-sem inverter a matriz.
+**In one go, with the least-squares formula** (`linear_regression`, from scikit-learn). The MSE
+is a "bowl" (a quadratic function of the weights), and the bottom of the bowl has a formula:
+$w = (X^\top X)^{-1} X^\top y$. scikit-learn computes it in a numerically more stable way,
+without inverting the matrix.
 
-**Aos poucos, por gradiente descendente** (`linear_regression_gd`, a versão didática do
-laboratório). Começa com
-$w = 0$ e $b = 0$ e, em cada **época** (uma passagem por todos os exemplos de treino):
+**Bit by bit, by gradient descent** (`linear_regression_gd`, the lab's teaching version). It
+starts with $w = 0$ and $b = 0$ and, in each **epoch** (one pass over all the training examples):
 
-1. calcula os resíduos com os pesos atuais: $r_i = \hat y_i - y_i$;
-2. calcula o gradiente, a direção em que o erro mais sobe:
-   $\nabla_w = \frac{1}{n} X^\top r$ e $\nabla_b = \frac{1}{n} \sum_i r_i$ (é o gradiente de
-   $\text{EQM}/2$, que tem o mesmo mínimo e uma fórmula mais limpa);
-3. dá um passo no sentido contrário: $w \leftarrow w - \eta \, \nabla_w$, onde $\eta$ é a
-   **taxa de aprendizagem**.
+1. compute the residuals with the current weights: $r_i = \hat y_i - y_i$;
+2. compute the gradient, the direction in which the error rises most:
+   $\nabla_w = \frac{1}{n} X^\top r$ and $\nabla_b = \frac{1}{n} \sum_i r_i$ (it's the gradient
+   of $\text{MSE}/2$, which has the same minimum and a cleaner formula);
+3. take a step the opposite way: $w \leftarrow w - \eta \, \nabla_w$, where $\eta$ is the
+   **learning rate**.
 
-Como a taça só tem um fundo, o gradiente descendente chega sempre lá, desde que os passos não
-sejam grandes demais. O limite depende da inclinação da taça na direção mais íngreme: com
-features padronizadas, taxas até cerca de 1 costumam funcionar; acima disso, cada passo salta
-por cima do fundo e cai mais alto do outro lado, e o erro **explode**.
+As the bowl has only one bottom, gradient descent always gets there, as long as the steps aren't
+too large. The limit depends on how steep the bowl is in its steepest direction: with
+standardised features, rates up to about 1 usually work; above that, each step jumps over the
+bottom and lands higher on the other side, and the error **blows up**.
 
-No fim, o **R²** resume a qualidade: $R^2 = 1 - \frac{\sum_i (y_i - \hat y_i)^2}{\sum_i (y_i -
-\bar y)^2}$, a fração da variação do alvo que o modelo explica. Prever sempre a média dá
-$R^2 = 0$; um modelo pior do que isso tem $R^2$ negativo.
+At the end, **R²** sums up the quality: $R^2 = 1 - \frac{\sum_i (y_i - \hat y_i)^2}{\sum_i (y_i -
+\bar y)^2}$, the share of the target's variation that the model explains. Always predicting the
+mean gives $R^2 = 0$; a model worse than that has a negative $R^2$.
 
-## Hiperparâmetros
+## Hyperparameters
 
-Nas duas versões:
+In both versions:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a reta é obrigada a passar pela origem) | sim |
+| `fit_intercept` | Whether it learns the intercept $b$ (without it, the line has to go through the origin) | yes |
 
-Só no gradiente descendente:
+Only in gradient descent:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `learning_rate` | Tamanho de cada passo do gradiente descendente: pequeno demais arrasta-se, grande demais explode | 0,1 |
-| `max_epochs` | Máximo de passagens pelos dados de treino | 1000 |
-| `tol` | Pára quando o gradiente (medido na escala do alvo) fica abaixo disto: chegou ao fundo | 1e-6 |
+| `learning_rate` | The size of each gradient descent step: too small drags on, too large blows up | 0.1 |
+| `max_epochs` | The most passes over the training data | 1000 |
+| `tol` | Stops when the gradient (measured on the target's scale) falls below this: it reached the bottom | 1e-6 |
 
-## Quando usar
+## When to use
 
-- Como **primeiro modelo** de qualquer regressão: é rápido e dá a referência que os modelos mais
-  complexos têm de bater.
-- Quando a relação entre as features e o alvo é aproximadamente uma reta, ou quando é preciso
-  **explicar** a previsão: cada peso diz quanto o alvo muda por cada unidade da feature.
+- As the **first model** for any regression: it's fast and gives the baseline that more complex
+  models have to beat.
+- When the relationship between the features and the target is roughly a straight line, or when
+  the prediction has to be **explained**: each weight says how much the target changes per unit
+  of the feature.
 
-## Armadilhas
+## Pitfalls
 
-- **É linear.** Uma relação curva (o preço que sobe cada vez mais depressa com a área) fica mal
-  descrita: os resíduos mostram um padrão em vez de ruído. Features polinomiais ajudam.
-- **Outliers.** O erro ao quadrado dá a um único ponto extremo um peso enorme: vê os outliers na
-  limpeza antes de treinar.
-- **Escala das features.** O gradiente descendente sofre muito sem padronização: a taça fica um
-  vale estreito e comprido, onde a taxa que serve a uma feature é grande demais para outra. O
-  treino explode (aviso "a loss explodiu") ou demora milhares de épocas. Padroniza na
-  preparação.
-- **Features redundantes.** Se uma feature é combinação de outras (o one-hot com todas as
-  categorias mais a ordenada, por exemplo), há infinitas soluções igualmente boas: os pesos
-  deixam de se poder ler um a um e o gradiente descendente avança muito devagar ao longo do
-  "fundo plano" da taça. As previsões continuam boas; a regularização (Ridge) resolve.
-- **Extrapolar.** Fora da gama dos dados de treino, a reta continua a subir (ou a descer) sem
-  limite, mesmo quando a realidade não o faz.
+- **It's linear.** A curved relationship (a price that rises faster and faster with the area) is
+  badly described: the residuals show a pattern instead of noise. Polynomial features help.
+- **Outliers.** The squared error gives a single extreme point a huge weight: look at the
+  outliers in the cleaning before training.
+- **Feature scale.** Gradient descent suffers a lot without standardisation: the bowl becomes a
+  long, narrow valley, where the rate that suits one feature is too large for another. The
+  training blows up (the "loss blew up" warning) or takes thousands of epochs. Standardise in
+  the preparation.
+- **Redundant features.** If one feature is a combination of others (one-hot with every category
+  plus the intercept, for example), there are infinitely many equally good solutions: the weights
+  can no longer be read one by one and gradient descent moves very slowly along the bowl's "flat
+  bottom". The predictions stay good; regularisation (Ridge) fixes it.
+- **Extrapolating.** Outside the range of the training data, the line keeps going up (or down)
+  without limit, even when reality doesn't.
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Treinar e avaliar**, a versão didática mostra, época a época:
+On the **Train & evaluate** screen, the teaching version shows, epoch by epoch:
 
-- a **curva da loss** (o EQM no treino): desce depressa no início e depois cada vez mais devagar,
-  à medida que se aproxima do fundo da taça;
-- com uma só feature, a **reta a rodar e a deslocar-se** por cima da nuvem de pontos até se
-  ajustar a ela; com mais features, o valor previsto em cada ponto do plano da projeção 2D.
+- the **loss curve** (the MSE on the training data): it falls fast at first and then more and
+  more slowly, as it gets close to the bottom of the bowl;
+- with a single feature, the **line turning and shifting** over the cloud of points until it
+  fits it; with more features, the predicted value at each point of the 2D projection's plane.
 
-Experimenta a taxa de aprendizagem nos dados sintéticos de regressão: com 0,01 o treino
-arrasta-se e não chega ao fundo nas 1000 épocas; com 0,5 chega lá em pouco mais de 20; com 3
-explode logo nas primeiras épocas, e o treino pára com o aviso "a loss explodiu". A
-demonstração "Taxa de aprendizagem" do ecrã Laboratório desenha o caminho dos pesos na própria
-taça.
+Try the learning rate on the synthetic regression data: at 0.01 the training drags on and
+doesn't reach the bottom in 1000 epochs; at 0.5 it gets there in a little over 20; at 3 it blows
+up in the first epochs, and the training stops with the "loss blew up" warning. The Lab screen's
+"Learning rate" demo draws the path of the weights on the bowl itself.
 
-A versão do scikit-learn treina de uma vez: compara os pesos das duas em **O que aprendeu**. Quando
-o gradiente descendente converge, coincidem.
+The scikit-learn version trains in one go: compare the weights of both in **What it learned**.
+When gradient descent converges, they match.

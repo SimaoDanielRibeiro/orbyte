@@ -34,19 +34,19 @@ TRAINING_WINDOW: Final = 100
 """Os últimos episódios do treino que entram no relatório do treino."""
 
 _SUCCESS: Final = (
-    "A proporção de episódios que acabaram no objetivo.",
-    "No teste, sem explorar: 100% quer dizer que a política aprendida chega sempre lá. Num "
-    "ambiente onde se escorrega, nenhuma política chega sempre.",
+    "The share of episodes that ended at the goal.",
+    "On the test, without exploring: 100% means the learned policy always gets there. In an "
+    "environment where you slip, no policy always does.",
 )
 _REWARD: Final = (
-    "A soma das recompensas de um episódio, em média: +1 no objetivo, −1 numa armadilha e "
-    "−0,01 por passo.",
-    "Quanto maior, melhor: perto de 1 é chegar ao objetivo pelo caminho curto.",
+    "The sum of the rewards of an episode, on average: +1 at the goal, −1 in a trap and "
+    "−0.01 per step.",
+    "The higher, the better: close to 1 is reaching the goal by the short path.",
 )
 _LENGTH: Final = (
-    "Quantos passos dura um episódio, em média.",
-    "Lê-se com a taxa de sucesso: poucos passos e sucesso é o caminho curto; poucos passos sem "
-    "sucesso é cair numa armadilha; muitos passos é andar às voltas.",
+    "How many steps an episode lasts, on average.",
+    "Read it with the success rate: few steps and success is the short path; few steps without "
+    "success is falling into a trap; many steps is wandering around.",
 )
 
 
@@ -106,7 +106,7 @@ def episodes_report(outcomes: Sequence[EpisodeOutcome], partition: Partition) ->
         metrics=(
             MetricResult(
                 "success_rate",
-                "Taxa de sucesso",
+                "Success rate",
                 _mean([float(outcome.reached) for outcome in outcomes]),
                 True,
                 True,
@@ -114,7 +114,7 @@ def episodes_report(outcomes: Sequence[EpisodeOutcome], partition: Partition) ->
             ),
             MetricResult(
                 "mean_reward",
-                "Recompensa média",
+                "Mean reward",
                 _mean([outcome.reward for outcome in outcomes]),
                 True,
                 False,
@@ -122,7 +122,7 @@ def episodes_report(outcomes: Sequence[EpisodeOutcome], partition: Partition) ->
             ),
             MetricResult(
                 "mean_length",
-                "Passos por episódio",
+                "Steps per episode",
                 _mean([float(outcome.length) for outcome in outcomes]),
                 None,
                 False,
@@ -140,18 +140,18 @@ def reading(train: EvaluationReport, test: EvaluationReport, slip: float) -> tup
         notices.append(
             Notice.warning(
                 "not_solved",
-                f"A política aprendida só chega ao objetivo em {format_percent(learned)} dos "
-                "episódios, num ambiente sem acaso: ainda não aprendeu o caminho. Experimenta "
-                "mais episódios.",
+                f"The learned policy reaches the goal in only {format_percent(learned)} of the "
+                "episodes, in an environment without chance: it hasn't learned the path yet. "
+                "Try more episodes.",
             )
         )
     if learned - trained >= 0.1:
         notices.append(
             Notice.info(
                 "exploration_cost",
-                f"No treino, o agente chegou ao objetivo em {format_percent(trained)} dos "
-                f"episódios; com a política aprendida, chega em {format_percent(learned)}. A "
-                "diferença é o preço de explorar: o ε continua a escolher ao acaso, até ao fim.",
+                f"In training, the agent reached the goal in {format_percent(trained)} of the "
+                f"episodes; with the learned policy, it does in {format_percent(learned)}. The "
+                "difference is the price of exploring: ε keeps picking at random, to the end.",
             )
         )
     return tuple(notices)

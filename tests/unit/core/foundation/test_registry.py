@@ -78,7 +78,7 @@ def test_unknown_name_raises_a_clear_error_with_a_suggestion() -> None:
     registry.add("knn", object())
     registry.add("kmeans", object())
 
-    with pytest.raises(ComponentNotFoundError, match="Querias dizer 'knn'") as error:
+    with pytest.raises(ComponentNotFoundError, match="Did you mean 'knn'") as error:
         registry.get("knm")
 
     assert error.value.registry == "models"
@@ -97,7 +97,7 @@ def test_duplicate_names_are_rejected() -> None:
 def test_invalid_names_are_rejected(name: str) -> None:
     registry: Registry[object] = Registry("models")
 
-    with pytest.raises(RegistryError, match="Nome inválido"):
+    with pytest.raises(RegistryError, match="Invalid name"):
         registry.add(name, object())
 
 
@@ -134,14 +134,14 @@ def test_filters_components_by_task_type() -> None:
 def test_filtering_needs_a_task_types_reader() -> None:
     registry: Registry[object] = Registry("transforms")
 
-    with pytest.raises(RegistryError, match="não está organizado por tipo de tarefa"):
+    with pytest.raises(RegistryError, match="isn't organized by task type"):
         registry.for_task(TaskType.REGRESSION)
 
 
 def test_component_without_task_types_is_rejected() -> None:
     registry = models_registry()
 
-    with pytest.raises(RegistryError, match="não declara nenhum tipo de tarefa"):
+    with pytest.raises(RegistryError, match="declares no task type"):
         registry.add("empty", Model)
 
 
@@ -152,7 +152,7 @@ def _read_missing_card(component: object) -> Iterable[TaskType]:
 def test_errors_reading_task_types_are_explained() -> None:
     registry: Registry[object] = Registry("models", task_types=_read_missing_card)
 
-    with pytest.raises(RegistryError, match="Não foi possível ler os tipos de tarefa de 'knn'"):
+    with pytest.raises(RegistryError, match="Couldn't read the task types of 'knn'"):
         registry.add("knn", object())
 
 

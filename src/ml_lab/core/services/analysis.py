@@ -49,14 +49,14 @@ FOLDS: Final = 5
 _HOW_TO_READ: Final[Mapping[Literal["weights", "replace"], str]] = MappingProxyType(
     {
         "weights": (
-            "É um modelo linear: cada barra é o peso da feature vezes o seu valor nesta linha, e "
-            "a previsão (ou a pontuação da classe) é a ordenada mais a soma das barras. As barras "
-            "positivas empurram a previsão para cima; as negativas, para baixo."
+            "It's a linear model: each bar is the feature's weight times its value in this row, "
+            "and the prediction (or the class score) is the intercept plus the sum of the bars. "
+            "Positive bars push the prediction up; negative ones, down."
         ),
         "replace": (
-            "Cada barra é quanto a previsão muda por a feature ter este valor, em vez da média do "
-            "treino: as positivas empurram a previsão para cima, as negativas para baixo. É uma "
-            "aproximação, porque ignora as interações entre features."
+            "Each bar is how much the prediction changes because the feature has this value, "
+            "instead of the training mean: positive ones push the prediction up, negative ones "
+            "down. It's an approximation, because it ignores the interactions between features."
         ),
     }
 )
@@ -191,10 +191,12 @@ class AnalysisService:
         artifacts = self._experiments.artifacts(run_id)
         model, dataset = artifacts.model, artifacts.dataset
         if not dataset.task_type.requires_target:
-            raise ModelError("Só se explicam previsões nas tarefas com alvo.")
+            raise ModelError("Predictions can only be explained in tasks with a target.")
         test = dataset.test
         if not 0 <= row < len(test):
-            raise ModelError(f"O teste tem {len(test)} linhas: escolhe uma de 0 a {len(test) - 1}.")
+            raise ModelError(
+                f"The test data has {len(test)} rows: choose one from 0 to {len(test) - 1}."
+            )
         x = test.X[row : row + 1]
         predicted = model.predict(x)[0]
         probabilities: tuple[tuple[str, float], ...] = ()
@@ -221,9 +223,9 @@ class AnalysisService:
             effects = np.asarray(weights.weights[output]) * x[0]
             base = weights.intercept_for(output)
             if classification:
-                label = f"Contributo para a pontuação de «{weights.outputs[output]}»"
+                label = f"Contribution to the score of “{weights.outputs[output]}”"
             else:
-                label = f"Contributo para a previsão de {dataset.target_name or 'alvo'}"
+                label = f"Contribution to the prediction of {dataset.target_name or 'the target'}"
             method = "weights"
         else:
             chosen = int(predicted) if classification else None
@@ -257,8 +259,8 @@ class AnalysisService:
         config = artifacts.config
         if not artifacts.dataset.task_type.requires_target:
             raise ModelError(
-                "A validação cruzada mede previsões contra um alvo: "
-                f"{artifacts.dataset.task_type.label.lower()} não tem."
+                "Cross-validation measures predictions against a target: "
+                f"{artifacts.dataset.task_type.label.lower()} has none."
             )
         seed = _seed(config.seed)
         folds = self._datasets.folds(config.dataset, config.preparation, seed, k)
@@ -298,17 +300,17 @@ def _replacement_effects(
     changed = np.repeat(x, dataset.n_features, axis=0)
     changed[np.arange(dataset.n_features), np.arange(dataset.n_features)] = means
     if dataset.task_type is TaskType.REGRESSION:
-        target = dataset.target_name or "alvo"
+        target = dataset.target_name or "the target"
         original = float(model.predict(x)[0])
         return original - np.asarray(model.predict(changed), dtype=np.float64), (
-            f"Quanto a previsão de {target} muda por causa do valor desta feature"
+            f"How much the prediction of {target} changes because of this feature's value"
         )
     if model.info.supports_proba and predicted is not None:
         original = float(class_probabilities(model, x, dataset.n_classes)[0, predicted])
         label = dataset.class_labels[predicted]
         return original - class_probabilities(model, changed, dataset.n_classes)[:, predicted], (
-            f"Quanto a probabilidade de «{label}» muda por causa do valor desta feature"
+            f"How much the probability of “{label}” changes because of this feature's value"
         )
     original_class = model.predict(x)[0]
     changes = (np.asarray(model.predict(changed)) != original_class).astype(np.float64)
-    return changes, "1 se trocar esta feature pela média muda a classe prevista"
+    return changes, "1 if swapping this feature for the mean changes the predicted class"

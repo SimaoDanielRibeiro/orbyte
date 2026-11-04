@@ -78,7 +78,7 @@ class MetricInputs:
 
 def _required(values: NDArray[Any] | None, name: str) -> NDArray[Any]:
     if values is None:
-        raise ModelError(f"Esta métrica precisa de {name}, que não foi dado.")
+        raise ModelError(f"This metric needs {name}, which wasn't given.")
     return values
 
 
@@ -87,8 +87,8 @@ class MetricTerm:
     r"""Uma quantidade da fórmula de uma métrica, com o valor nos dados avaliados.
 
     Attributes:
-        symbol: O símbolo, como aparece na fórmula (em LaTeX), por exemplo ``\mathrm{VP}``.
-        label: O nome a mostrar ("Verdadeiros positivos").
+        symbol: O símbolo, como aparece na fórmula (em LaTeX), por exemplo ``\mathrm{TP}``.
+        label: O nome a mostrar ("True positives").
         value: O valor.
         group: Numa métrica que é a média de uma conta por classe, o número da classe deste
             termo; ``None`` nos termos da métrica inteira.
@@ -183,7 +183,7 @@ def metric(
     required = frozenset(needs) | ({"y_proba"} if needs_proba else set())
     unknown = required - set(INPUT_NAMES)
     if unknown:
-        raise ValueError(f"A métrica {name} pede entradas que não existem: {sorted(unknown)}.")
+        raise ValueError(f"The metric {name} asks for inputs that don't exist: {sorted(unknown)}.")
 
     def decorator(function: MetricFunction) -> MetricFunction:
         METRICS.add(

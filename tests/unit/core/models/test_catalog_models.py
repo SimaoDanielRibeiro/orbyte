@@ -95,7 +95,7 @@ def test_agglomerative_keeps_the_dendrogram_and_refuses_too_many_rows(
     assert linkage[-1, 3] == len(X)  # a última junção junta todos os pontos
     assert np.all(np.diff(linkage[:, 2]) >= -1e-12)  # com Ward, as distâncias só sobem
     monkeypatch.setattr(agglomerative_module, "MAX_ROWS", 50)
-    with pytest.raises(ModelError, match="pares"):
+    with pytest.raises(ModelError, match="pairs"):
         make("agglomerative").fit(X)
 
 
@@ -114,9 +114,9 @@ def test_tsne_only_maps_its_training_points() -> None:
     model = make("tsne", perplexity=10).fit(X)
 
     assert model.transform(X).shape == (len(X), 2)
-    with pytest.raises(CapabilityError, match="treinou"):
+    with pytest.raises(CapabilityError, match="trained on"):
         model.transform(X[:5])
-    with pytest.raises(ModelError, match="perplexidade"):
+    with pytest.raises(ModelError, match="perplexity"):
         make("tsne", perplexity=50).fit(X[:30])
 
 
@@ -146,15 +146,15 @@ def test_the_mixture_reports_full_covariance_matrices(covariance_type: str) -> N
 def test_misconfigured_models_explain_what_to_change() -> None:
     X, y = classes()
 
-    with pytest.raises(ModelError, match="vizinhos"):
+    with pytest.raises(ModelError, match="neighbours"):
         make("knn", n_neighbors=100).fit(X[:20], y[:20])
-    with pytest.raises(ModelError, match="termos"):
+    with pytest.raises(ModelError, match="terms"):
         make("polynomial_regression", degree=15).fit(np.zeros((10, 12)), np.zeros(10))
-    with pytest.raises(ModelError, match="componentes"):
+    with pytest.raises(ModelError, match="components"):
         make("pca", n_components=5).fit(X)
-    with pytest.raises(ModelError, match="dois exemplos"):
+    with pytest.raises(ModelError, match="two training examples"):
         make("svm").fit(X[:11], np.array([0] * 10 + [1]))
-    with pytest.raises(ModelError, match="grupos"):
+    with pytest.raises(ModelError, match="clusters"):
         make("kmeans_numpy", n_clusters=20).fit(X[:10])
 
 

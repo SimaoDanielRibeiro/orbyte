@@ -55,7 +55,7 @@ def test_a_linear_prediction_is_the_intercept_plus_the_contributions(lab: Lab) -
     )
     effects = [abs(item.effect) for item in explanation.contributions]
     assert effects == sorted(effects, reverse=True)
-    assert "ordenada" in explanation.how_to_read  # como se lê, para este método
+    assert "intercept" in explanation.how_to_read  # como se lê, para este método
 
 
 def test_other_models_are_explained_by_replacing_each_feature_with_its_mean(lab: Lab) -> None:
@@ -66,8 +66,8 @@ def test_other_models_are_explained_by_replacing_each_feature_with_its_mean(lab:
     assert explanation.method == "replace"
     assert len(explanation.contributions) == 4
     assert sum(p for _, p in explanation.probabilities) == pytest.approx(1.0)
-    assert "probabilidade" in explanation.effect_label.lower()
-    assert "aproximação" in explanation.how_to_read
+    assert "probability" in explanation.effect_label.lower()
+    assert "approximation" in explanation.how_to_read
 
 
 def test_rows_and_tasks_are_checked(lab: Lab) -> None:
@@ -76,17 +76,17 @@ def test_rows_and_tasks_are_checked(lab: Lab) -> None:
         lab, "kmeans", IRIS, PreparationConfig(target="species", task_type=TaskType.CLUSTERING)
     )
 
-    with pytest.raises(ModelError, match="linhas"):
+    with pytest.raises(ModelError, match="rows"):
         lab.analysis.explain_row(run_id, lab.analysis.test_rows(run_id))
-    with pytest.raises(ModelError, match="alvo"):
+    with pytest.raises(ModelError, match="against a target"):
         lab.analysis.cross_validation(clustering)
-    with pytest.raises(ModelError, match="alvo"):
+    with pytest.raises(ModelError, match="tasks with a target"):
         lab.analysis.explain_row(clustering, 0)
     assert lab.analysis.charts(clustering).silhouette is not None
 
 
 def test_a_forgotten_run_cannot_be_analysed(lab: Lab) -> None:
-    with pytest.raises(ModelError, match="memória"):
+    with pytest.raises(ModelError, match="no longer in memory"):
         lab.analysis.charts("run-que-nao-existe")
 
 

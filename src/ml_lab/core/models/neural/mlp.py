@@ -45,28 +45,28 @@ class MLPParams(TrainingParams):
         default=2,
         ge=1,
         le=4,
-        title="Camadas escondidas",
-        description="Quantas camadas entre a entrada e a saída. Mais camadas, formas mais ricas.",
+        title="Hidden layers",
+        description="How many layers between the input and the output. More layers, richer shapes.",
         json_schema_extra={"x-search": {"values": [1, 2, 3]}},
     )
     units: int = Field(
         default=16,
         ge=2,
         le=128,
-        title="Neurónios por camada",
-        description="Quantos neurónios tem cada camada escondida. Poucos: fronteira mais simples.",
+        title="Neurons per layer",
+        description="How many neurons each hidden layer has. Few: a simpler boundary.",
         json_schema_extra={"x-search": {"values": [8, 16, 32, 64]}},
     )
     activation: Activation = Field(
         default="relu",
-        title="Ativação",
+        title="Activation",
         description=(
-            "A não linearidade de cada neurónio. A ReLU é a habitual; a tanh e a sigmoide "
-            "saturam, e em redes fundas os gradientes podem desaparecer."
+            "Each neuron's non-linearity. ReLU is the usual one; tanh and the sigmoid "
+            "saturate, and in deep networks the gradients can vanish."
         ),
         # A sigmoide fica fora da procura: satura, e quase nunca ganha às outras duas.
         json_schema_extra={
-            "x-labels": {"relu": "ReLU", "tanh": "tanh", "sigmoid": "Sigmoide"},
+            "x-labels": {"relu": "ReLU", "tanh": "tanh", "sigmoid": "Sigmoid"},
             "x-search": {"values": ["relu", "tanh"]},
         },
     )
@@ -105,10 +105,10 @@ class MLPClassifier(TorchClassifier[MLPParams]):
 
     info = ModelInfo(
         name="mlp",
-        display_name="Rede neuronal (MLP)",
+        display_name="Neural network (MLP)",
         summary=(
-            "Camadas de neurónios com uma ativação não linear: aprende fronteiras curvas, "
-            "como as das luas. Vês a fronteira a curvar-se e o que cada camada faz."
+            "Layers of neurons with a non-linear activation: it learns curved boundaries, "
+            "like the moons'. You see the boundary bend and what each layer does."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.NEURAL,
@@ -133,10 +133,10 @@ class MLPRegressor(TorchRegressor[MLPParams]):
 
     info = ModelInfo(
         name="mlp_regression",
-        display_name="Rede neuronal (MLP, regressão)",
+        display_name="Neural network (MLP, regression)",
         summary=(
-            "A mesma rede, com um neurónio de saída sem ativação: aprende relações não "
-            "lineares entre as features e o alvo."
+            "The same network, with one output neuron and no activation: it learns non-linear "
+            "relationships between the features and the target."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.NEURAL,

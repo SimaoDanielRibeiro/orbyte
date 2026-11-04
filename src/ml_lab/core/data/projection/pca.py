@@ -58,7 +58,7 @@ def fit_pca(values: NDArray[np.float64], n_components: int = 2) -> PCA:
     """
     n_samples, n_features = values.shape
     if n_samples < 2:
-        raise DataError("A PCA precisa de pelo menos duas linhas para medir a variância.")
+        raise DataError("PCA needs at least two rows to measure the variance.")
     k = min(n_components, n_samples, n_features)
     mean = values.mean(axis=0)
     _, singular_values, vt = np.linalg.svd(values - mean, full_matrices=False)

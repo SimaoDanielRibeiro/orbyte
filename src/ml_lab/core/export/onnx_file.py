@@ -40,8 +40,8 @@ RELATIVE: Final = 1e-4
 ``float32``, como as árvores, afastam-se do laboratório no sétimo algarismo)."""
 
 _TOO_DIFFERENT: Final = (
-    "O ONNX não deu as mesmas previsões do laboratório nas linhas de exemplo, por isso fica de "
-    "fora: um modelo que prevê outra coisa é pior do que nenhum."
+    "The ONNX didn't give the same predictions as the lab on the example rows, so it's left "
+    "out: a model that predicts something else is worse than none."
 )
 
 
@@ -88,9 +88,9 @@ def export_onnx(model: LabModel[Any], preparation: FittedPreparation) -> bytes:
     classes = [preparation.class_labels[code] for code in prediction.classes]
     content = graph.model(
         doc=(
-            f"{model.info.display_name}, com a preparação dos dados à frente (ML Lab). Uma "
-            "entrada (N, 1) por coluna: os números em double, com NaN onde faltam; as "
-            f"categorias em texto, vazio onde faltam. Saídas: {', '.join(outputs)}."
+            f"{model.info.display_name}, with the data preparation in front (Orbyte). One "
+            "input (N, 1) per column: numbers as double, with NaN where missing; categories "
+            f"as text, empty where missing. Outputs: {', '.join(outputs)}."
         ),
         metadata={
             "ml_lab.format": FORMAT,
@@ -105,8 +105,7 @@ def export_onnx(model: LabModel[Any], preparation: FittedPreparation) -> bytes:
     inputs, rows = preparation.check_rows()
     if not len(rows):
         raise CapabilityError(
-            "Não há linhas de exemplo completas para confirmar a conversão, por isso o ONNX "
-            "fica de fora."
+            "There are no complete example rows to confirm the conversion, so the ONNX is left out."
         )
     _confirm(run_onnx(content, inputs), model, rows, preparation.class_labels)
     return content
@@ -141,9 +140,7 @@ def preparation_onnx(preparation: FittedPreparation) -> bytes:
     graph = Graph()
     features = preparation_graph(graph, preparation)
     graph.output(features, "features", DOUBLE, ["N", len(preparation.feature_names)])
-    return bytes(
-        graph.model(doc="A preparação dos dados (ML Lab).", metadata={}).SerializeToString()
-    )
+    return bytes(graph.model(doc="The data preparation (Orbyte).", metadata={}).SerializeToString())
 
 
 def run_onnx(content: bytes, inputs: Mapping[str, NDArray[Any]]) -> dict[str, NDArray[Any]]:

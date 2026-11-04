@@ -2,7 +2,7 @@
 
 Cada etapa do ML Lab pode produzir avisos ("30% de nulos na coluna Cabin", "a
 classe positiva só tem 5% das linhas"). Um aviso tem um nível, um código estável
-(para testes e para a interface os agrupar) e uma mensagem em português.
+(para testes e para a interface os agrupar) e uma mensagem em inglês.
 
 Exemplo:
     >>> notice = Notice.warning("missing_values", "A coluna Age tem 19,9% de nulos.", "Age")
@@ -33,12 +33,12 @@ class NoticeLevel(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface, em inglês."""
         return _LEVEL_LABELS[self]
 
 
 _LEVEL_LABELS: Final[Mapping[NoticeLevel, str]] = MappingProxyType(
-    {NoticeLevel.INFO: "Nota", NoticeLevel.WARNING: "Aviso", NoticeLevel.ERROR: "Erro"}
+    {NoticeLevel.INFO: "Note", NoticeLevel.WARNING: "Warning", NoticeLevel.ERROR: "Error"}
 )
 
 
@@ -49,7 +49,7 @@ class Notice:
     Attributes:
         level: Gravidade do aviso.
         code: Código estável em ``snake_case``, por exemplo ``"missing_values"``.
-        message: Explicação em português, com o que fazer quando há alguma coisa a fazer.
+        message: Explicação em inglês, com o que fazer quando há alguma coisa a fazer.
         subject: Aquilo a que o aviso se refere (uma coluna, uma métrica...), se houver.
     """
 

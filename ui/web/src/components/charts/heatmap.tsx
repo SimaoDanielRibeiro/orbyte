@@ -106,7 +106,7 @@ export function Heatmap({
                 <text
                   key={name}
                   transform={`translate(${String((x(index) ?? 0) + x.bandwidth() / 2)},-8) rotate(-40)`}
-                  className="fill-muted-foreground text-[12px]"
+                  className="fill-muted-foreground text-[13px]"
                 >
                   {name.length > 14 ? `${name.slice(0, 13)}…` : name}
                 </text>
@@ -118,7 +118,7 @@ export function Heatmap({
                 y={(y(index) ?? 0) + y.bandwidth() / 2}
                 dy="0.32em"
                 textAnchor="end"
-                className="fill-foreground text-xs"
+                className="fill-foreground text-[14px]"
               >
                 {name.length > 18 ? `${name.slice(0, 17)}…` : name}
               </text>
@@ -158,7 +158,7 @@ export function Heatmap({
                         y={(y(rowIndex) ?? 0) + y.bandwidth() / 2}
                         dy="0.32em"
                         textAnchor="middle"
-                        className="text-xs tabular-nums"
+                        className="text-[14px] tabular-nums"
                         fill={inkOn(fill)}
                       >
                         {format(value)}
@@ -173,7 +173,7 @@ export function Heatmap({
                 x={plot.width / 2}
                 y={plot.height + 20}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[12px]"
+                className="fill-muted-foreground text-[13px]"
               >
                 {columnTitle}
               </text>

@@ -75,8 +75,8 @@ def preparation_graph(graph: Graph, preparation: FittedPreparation) -> str:
         column = frame.get(name)
         if column is None or column.kind not in (ColumnKind.NUMERIC, ColumnKind.BOOLEAN):
             raise CapabilityError(
-                f"A feature {name} não sai da preparação como um número: esta preparação "
-                "ainda não passa para ONNX."
+                f"The feature {name} doesn't come out of the preparation as a number: this "
+                "preparation can't go to ONNX yet."
             )
         features.append(column.value)
     return graph.op("Concat", features, "features_preparadas", axis=1)
@@ -102,11 +102,11 @@ def _clean(graph: Graph, frame: dict[str, _Column], applied: AppliedStep) -> Non
         return
     params, learned = applied.step.params, applied.learned
     if applied.step.operation != "treat_outliers":
-        raise CapabilityError(f"A limpeza {applied.step.operation} ainda não passa para ONNX.")
+        raise CapabilityError(f"The cleaning step {applied.step.operation} can't go to ONNX yet.")
     column = frame.get(str(params["column"]))
     if params.get("method", "clip") != "clip" or "lower" not in learned or column is None:
         return
-    value = _number(column, "limitar os extremos")
+    value = _number(column, "clip the extremes")
     lower = graph.constant(np.float64(learned["lower"]), "limite_inferior")
     upper = graph.constant(np.float64(learned["upper"]), "limite_superior")
     clipped = graph.op("Clip", [value, lower, upper], f"{params['column']}_limitada")
@@ -123,8 +123,8 @@ def _transform(graph: Graph, frame: dict[str, _Column], step: Transform) -> None
                 frame.pop(name, None)
         case DateFeatures():
             raise CapabilityError(
-                "As datas ainda não passam para ONNX: o formato não tem um tipo de data, e as "
-                "partes (ano, mês, dia) teriam de ser calculadas pela app."
+                "Dates can't go to ONNX yet: the format has no date type, and the parts (year, "
+                "month, day) would have to be computed by the app."
             )
         case Imputer():
             for name in step.columns:
@@ -133,7 +133,7 @@ def _transform(graph: Graph, frame: dict[str, _Column], step: Transform) -> None
             for name in step.columns:
                 column = frame.pop(name)
                 frame[Binning.output_name(name)] = _Column(
-                    _bins(graph, _number(column, "dividir em intervalos"), name, step.edges[name]),
+                    _bins(graph, _number(column, "split into bins"), name, step.edges[name]),
                     ColumnKind.NUMERIC,
                 )
         case BooleanEncoder():
@@ -143,7 +143,7 @@ def _transform(graph: Graph, frame: dict[str, _Column], step: Transform) -> None
                 _one_hot(graph, frame, name, step.categories[name])
         case PolynomialFeatures():
             for term, output in zip(step.terms(), step.output_names(), strict=True):
-                factors = [_number(frame[name], "multiplicar") for name in term]
+                factors = [_number(frame[name], "multiply") for name in term]
                 product = factors[0]
                 for factor in factors[1:]:
                     product = graph.op("Mul", [product, factor], output)
@@ -155,7 +155,7 @@ def _transform(graph: Graph, frame: dict[str, _Column], step: Transform) -> None
             for name in step.columns:
                 _scale(graph, frame[name], name, step.minimums[name], step.ranges[name])
         case _:
-            raise CapabilityError(f"A transformação «{step.title}» ainda não passa para ONNX.")
+            raise CapabilityError(f"The transformation “{step.title}” can't go to ONNX yet.")
 
 
 def _impute(graph: Graph, column: _Column, name: str, fill: Any) -> None:
@@ -166,7 +166,7 @@ def _impute(graph: Graph, column: _Column, name: str, fill: Any) -> None:
         value = graph.constant(np.array([str(fill)], dtype=object), f"{name}_preenche")
     else:
         number = _zero_one(fill) if column.kind is ColumnKind.BOOLEAN else float(fill)
-        missing = graph.op("IsNaN", [_number(column, "imputar")], f"{name}_falta")
+        missing = graph.op("IsNaN", [_number(column, "impute")], f"{name}_falta")
         value = graph.constant(np.array([number], dtype=np.float64), f"{name}_preenche")
     column.value = graph.op("Where", [missing, value, column.value], f"{name}_imputada")
 
@@ -193,9 +193,7 @@ def _one_hot(
     """Uma coluna 0/1 por categoria do treino; uma categoria nova fica com zeros em todas."""
     column = frame.pop(name)
     if not column.text:
-        raise CapabilityError(
-            f"A coluna {name} não é de texto: o one-hot dela não passa para ONNX."
-        )
+        raise CapabilityError(f"The column {name} isn't text: its one-hot can't go to ONNX.")
     for category in categories:
         constant = graph.constant(np.array([category], dtype=object), f"{name}_{category}_texto")
         same = graph.op("Equal", [column.value, constant], f"{name}_{category}_igual")
@@ -206,7 +204,7 @@ def _one_hot(
 
 def _scale(graph: Graph, column: _Column, name: str, center: float, scale: float) -> None:
     """``(x - centro) / escala``, com os valores do treino."""
-    value = _number(column, "escalar")
+    value = _number(column, "scale")
     shifted = graph.op(
         "Sub", [value, graph.constant(np.float64(center), f"{name}_centro")], f"{name}_centrada"
     )
@@ -219,8 +217,8 @@ def _number(column: _Column, doing: str) -> str:
     """O tensor de uma coluna numérica, ou a razão por que não se pode ``doing``."""
     if column.kind not in (ColumnKind.NUMERIC, ColumnKind.BOOLEAN) or not column.value:
         raise CapabilityError(
-            f"Para {doing}, a coluna tinha de ser um número, e é {column.kind.label.lower()}: "
-            "esta preparação ainda não passa para ONNX."
+            f"To {doing}, the column had to be a number, and it's {column.kind.label.lower()}: "
+            "this preparation can't go to ONNX yet."
         )
     return column.value
 

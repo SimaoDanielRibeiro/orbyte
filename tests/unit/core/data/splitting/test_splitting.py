@@ -53,7 +53,7 @@ def test_strategy_names_from_json_are_accepted() -> None:
 def test_sizes_round_the_test_up_like_scikit_learn() -> None:
     assert partition_sizes(891, SplitConfig()) == (712, 0, 179)
     assert partition_sizes(100, SplitConfig(test_size=0.2, validation_size=0.1)) == (70, 10, 20)
-    with pytest.raises(DataError, match="não há linhas suficientes"):
+    with pytest.raises(DataError, match="there aren't enough rows"):
         partition_sizes(2, SplitConfig(test_size=0.5, validation_size=0.4))
 
 
@@ -85,11 +85,11 @@ def test_stratified_split_keeps_the_class_proportions() -> None:
 
 
 def test_stratified_split_needs_a_target_without_tiny_classes() -> None:
-    with pytest.raises(InvalidParameterError, match="precisa de um alvo"):
+    with pytest.raises(InvalidParameterError, match="needs a target"):
         split(labels(), "stratified")
-    with pytest.raises(DataError, match="só têm uma linha"):
+    with pytest.raises(DataError, match="only have one row"):
         split(pd.DataFrame({"y": ["a", "b", "b", "b"]}), "stratified", target="y")
-    with pytest.raises(DataError, match="valores em falta"):
+    with pytest.raises(DataError, match="has missing values"):
         split(pd.DataFrame({"y": ["a", None, "b", "b"]}), "stratified", target="y")
 
 
@@ -120,15 +120,17 @@ def test_time_split_without_a_column_uses_the_row_order() -> None:
 
 
 def test_time_split_needs_a_complete_time_column() -> None:
-    with pytest.raises(DataError, match="não é de datas"):
+    with pytest.raises(DataError, match="is neither dates nor numbers"):
         split(pd.DataFrame({"t": ["a", "b"] * 5}), "time", time_column="t")
-    with pytest.raises(DataError, match="valores em falta"):
+    with pytest.raises(DataError, match="has missing values"):
         split(pd.DataFrame({"t": [1.0, np.nan] * 5}), "time", time_column="t")
 
 
 def test_the_lineage_explains_the_split() -> None:
     _, step = split_rows(labels(), SplitConfig(SplitStrategy.RANDOM), seed=4, root_seed=42)
 
-    assert step.description.startswith("Divisão aleatória com a seed 4, derivada da seed 42")
-    assert "treino 80 linhas (80,0%)" in step.description
+    assert step.description.startswith(
+        "Random split with the seed 4, derived from the experiment's seed 42"
+    )
+    assert "training 80 rows (80.0%)" in step.description
     assert step.params["seed"] == 4

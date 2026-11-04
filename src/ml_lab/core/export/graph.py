@@ -60,7 +60,7 @@ class Graph:
     def input(self, name: str, elem_type: int, columns: int) -> str:
         """Uma entrada do grafo, ``(linhas, columns)``, com o nome exato que as apps usam."""
         if name in self._used:
-            raise ValueError(f"O nome {name!r} já existe no grafo.")
+            raise ValueError(f"The name {name!r} already exists in the graph.")
         self._used.add(name)
         self._inputs.append(helper.make_tensor_value_info(name, elem_type, ["N", columns]))
         return name
@@ -106,7 +106,7 @@ class Graph:
     def output(self, value: str, name: str, elem_type: int, shape: Sequence[int | str]) -> None:
         """Uma saída do grafo, com o nome exato que as apps pedem."""
         if name not in OUTPUT_NAMES and name in self._used:
-            raise ValueError(f"O nome {name!r} já existe no grafo.")
+            raise ValueError(f"The name {name!r} already exists in the graph.")
         self._used.add(name)
         self._nodes.append(helper.make_node("Identity", [value], [name], name=f"saida:{name}"))
         self._outputs.append(helper.make_tensor_value_info(name, elem_type, list(shape)))
@@ -158,7 +158,7 @@ class Graph:
             opset_imports=[
                 helper.make_opsetid(domain, version) for domain, version in self._opsets.items()
             ],
-            producer_name="ML Lab",
+            producer_name="Orbyte",
             doc_string=doc,
         )
         model.ir_version = IR_VERSION

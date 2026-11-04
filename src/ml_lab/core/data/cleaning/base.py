@@ -95,7 +95,7 @@ class CleaningOperation:
             inspect.signature(self.function).bind(frame, **params)
         except TypeError as error:
             raise InvalidParameterError(
-                f"Parâmetros inválidos para a operação '{self.name}': {error}."
+                f"Invalid parameters for the operation '{self.name}': {error}."
             ) from error
         return self.function(frame, **params)
 

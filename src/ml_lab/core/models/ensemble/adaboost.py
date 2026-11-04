@@ -31,13 +31,13 @@ class AdaBoostRegressionParams(AdaBoostParams):
 
     loss: Literal["linear", "square", "exponential"] = Field(
         default="linear",
-        title="Loss dos erros",
+        title="Error loss",
         description=(
-            "Como o tamanho do erro de cada exemplo vira o seu peso na etapa seguinte: "
-            "proporcional, ao quadrado (os grandes erros pesam muito mais) ou exponencial."
+            "How the size of each example's error becomes its weight in the next stage: "
+            "proportional, squared (big errors weigh much more) or exponential."
         ),
         json_schema_extra={
-            "x-labels": {"linear": "Linear", "square": "Quadrada", "exponential": "Exponencial"},
+            "x-labels": {"linear": "Linear", "square": "Squared", "exponential": "Exponential"},
             "x-search": {"values": ["linear", "square", "exponential"]},
         },
     )
@@ -51,8 +51,8 @@ class AdaBoost(GrowingSklearnModel[AdaBoostParams]):
         name="adaboost",
         display_name="AdaBoost",
         summary=(
-            "Junta modelos muito simples, cada um focado nos exemplos que os anteriores "
-            "falharam: a fronteira constrói-se aos bocadinhos."
+            "Combines very simple models, each focused on the examples the previous ones "
+            "got wrong: the boundary is built bit by bit."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.ENSEMBLE,
@@ -92,10 +92,10 @@ class AdaBoostRegression(GrowingSklearnModel[AdaBoostRegressionParams]):
 
     info = ModelInfo(
         name="adaboost_regression",
-        display_name="AdaBoost (regressão)",
+        display_name="AdaBoost (regression)",
         summary=(
-            "Árvores em sequência, cada uma a dar mais atenção aos exemplos com mais erro; a "
-            "previsão é a mediana pesada das árvores."
+            "Trees in sequence, each paying more attention to the examples with the most "
+            "error; the prediction is the weighted median of the trees."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.ENSEMBLE,

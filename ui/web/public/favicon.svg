@@ -1,6 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <mask id="orbita" maskUnits="userSpaceOnUse">
+      <rect width="32" height="32" fill="white"/>
+      <circle cx="22.92" cy="7.81" r="3.9" fill="black"/>
+    </mask>
+  </defs>
   <rect width="32" height="32" rx="8" fill="#121212"/>
-  <path d="M5 21.5 C11 21.5 12.5 10 17 11.5 S22.5 22 27 10.5" fill="none" stroke="#fafafa" stroke-width="2.6" stroke-linecap="round"/>
-  <circle cx="9.5" cy="11" r="2.8" fill="#6996d4"/>
-  <circle cx="21.5" cy="23.5" r="2.8" fill="#e2b94e"/>
+  <ellipse cx="16" cy="16" rx="13" ry="6.2" transform="rotate(-28 16 16)" fill="none" stroke="#fafafa" stroke-width="2.3" mask="url(#orbita)"/>
+  <circle cx="22.92" cy="7.81" r="2.35" fill="#fafafa"/>
 </svg>

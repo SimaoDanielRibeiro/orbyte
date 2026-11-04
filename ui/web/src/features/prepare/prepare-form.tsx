@@ -83,7 +83,7 @@ export function PrepareForm({
   return (
     // Os passos separados por um filete, sem números (a ordem é a da página; ADR 0038).
     <div className="@container/form flex flex-col divide-y">
-      <Step number={1} title="Alvo e tarefa">
+      <Step number={1} title="Target and task">
         <TaskControls
           dataset={dataset}
           choices={choices}
@@ -93,7 +93,7 @@ export function PrepareForm({
           taskType={taskType}
         />
       </Step>
-      <Step number={2} title="Limpeza">
+      <Step number={2} title="Cleaning">
         {cleaning === undefined ? (
           <ControlsSkeleton />
         ) : (
@@ -105,7 +105,7 @@ export function PrepareForm({
           />
         )}
       </Step>
-      <Step number={3} title="Divisão">
+      <Step number={3} title="Split">
         {options === undefined ? (
           <ControlsSkeleton />
         ) : (
@@ -117,7 +117,7 @@ export function PrepareForm({
           />
         )}
       </Step>
-      <Step number={4} title="Transformações">
+      <Step number={4} title="Transformations">
         <TransformControls
           dataset={dataset}
           choices={choices}
@@ -182,7 +182,7 @@ function Field({ label, htmlFor, help, readout, children, className }: FieldProp
 
 function ControlsSkeleton() {
   return (
-    <div className="flex flex-col gap-3" role="status" aria-busy="true" aria-label="A carregar">
+    <div className="flex flex-col gap-3" role="status" aria-busy="true" aria-label="Loading">
       <Skeleton className="h-4 w-40" />
       <Skeleton className="h-9 w-full" />
     </div>
@@ -210,7 +210,7 @@ function TaskControls({
   const label = useLabel();
   return (
     <>
-      <Field label="Coluna-alvo" htmlFor="preparar-alvo" help={<TopicText topic="task" />}>
+      <Field label="Target column" htmlFor="preparar-alvo" help={<TopicText topic="task" />}>
         <Select
           value={choices.target ?? NONE}
           onValueChange={(value) => {
@@ -221,7 +221,7 @@ function TaskControls({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>Sem alvo (aprendizagem não supervisionada)</SelectItem>
+            <SelectItem value={NONE}>No target (unsupervised learning)</SelectItem>
             {dataset.columns.map((column) => (
               <SelectItem key={column.name} value={column.name}>
                 {column.name}
@@ -240,13 +240,13 @@ function TaskControls({
           <NoticeList notices={suggestion.notices} />
           {taskType !== null && suggestion.allowed.length > 0 && (
             <Field
-              label="Tipo de tarefa"
+              label="Task type"
               htmlFor="preparar-tarefa"
               help={
                 <>
                   <p>{suggestion.reason}</p>
                   <p className="mt-2">
-                    A sugerida vem primeiro; as outras também fazem sentido para este alvo.
+                    The suggested one comes first; the others also make sense for this target.
                   </p>
                   {options?.reference_note !== undefined && options.reference_note !== null && (
                     <p className="mt-2">{options.reference_note}</p>
@@ -335,10 +335,10 @@ function CleaningControls({
         );
       })}
       {!suggestions.some((suggestion) => suggestion.step.operation === "drop_duplicates") && (
-        <p className="mono-label">Não há linhas duplicadas.</p>
+        <p className="text-sm text-dim">There are no duplicate rows.</p>
       )}
       <Field
-        label={dropColumns?.title ?? "Remover colunas"}
+        label={dropColumns?.title ?? "Drop columns"}
         help={
           cleaning.dropped.some((column) => reasons.has(column)) ? (
             <ul className="flex flex-col gap-1">
@@ -354,7 +354,7 @@ function CleaningControls({
         }
       >
         <ChipGroup
-          label={dropColumns?.title ?? "Remover colunas"}
+          label={dropColumns?.title ?? "Drop columns"}
           options={candidates.map((column) => ({ value: column.name, label: column.name }))}
           value={cleaning.dropped}
           onChange={(dropped) => {
@@ -375,15 +375,15 @@ function CleaningControls({
             aria-hidden="true"
             className="size-4 transition-transform group-data-[state=open]:rotate-180"
           />
-          Mais operações de limpeza
+          More cleaning operations
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col gap-6">
           <Field
-            label={dropMissing?.title ?? "Remover linhas com valores em falta"}
+            label={dropMissing?.title ?? "Drop rows with missing values"}
             help={dropMissing?.description}
           >
             <ChipGroup
-              label={dropMissing?.title ?? "Remover linhas com valores em falta"}
+              label={dropMissing?.title ?? "Drop rows with missing values"}
               options={remaining.map((column) => ({ value: column.name, label: column.name }))}
               value={cleaning.dropMissing}
               onChange={(dropMissing) => {
@@ -391,9 +391,9 @@ function CleaningControls({
               }}
             />
           </Field>
-          <Field label={outliers?.title ?? "Tratar valores extremos"} help={outliers?.description}>
+          <Field label={outliers?.title ?? "Treat outliers"} help={outliers?.description}>
             <ChipGroup
-              label={outliers?.title ?? "Tratar valores extremos"}
+              label={outliers?.title ?? "Treat outliers"}
               options={numeric.map((column) => ({ value: column.name, label: column.name }))}
               value={cleaning.outliers}
               onChange={(chosen) => {
@@ -402,7 +402,7 @@ function CleaningControls({
             />
           </Field>
           {cleaning.outliers.length > 0 && (
-            <Field label="Como tratar os extremos">
+            <Field label="How to treat the outliers">
               <ToggleGroup
                 type="single"
                 variant="outline"
@@ -413,14 +413,14 @@ function CleaningControls({
                     set({ outlierMethod: method as OutlierMethod });
                   }
                 }}
-                aria-label="Como tratar os extremos"
+                aria-label="How to treat the outliers"
                 className="flex-wrap justify-start"
               >
                 <ToggleGroupItem value="clip" className="px-3">
-                  Limitar aos limites
+                  Clip to the limits
                 </ToggleGroupItem>
                 <ToggleGroupItem value="remove" className="px-3">
-                  Remover as linhas
+                  Drop the rows
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
@@ -445,7 +445,7 @@ function SplitControls({
   const validSeed = Number.isInteger(choices.seed) && choices.seed >= 0 && choices.seed <= MAX_SEED;
   return (
     <>
-      <Field label="Estratégia">
+      <Field label="Strategy">
         <ToggleGroup
           type="single"
           variant="outline"
@@ -456,7 +456,7 @@ function SplitControls({
               onChange({ ...choices, strategy: chosen as SplitStrategy });
             }
           }}
-          aria-label="Estratégia da divisão"
+          aria-label="Split strategy"
           className="flex-wrap justify-start"
         >
           {options.split_strategies.map((one) => (
@@ -467,7 +467,7 @@ function SplitControls({
         </ToggleGroup>
       </Field>
       <div className="grid gap-6 @lg/form:grid-cols-2">
-        <Field label="Teste" htmlFor="divisao-teste" readout={formatPercent(choices.testSize, 0)}>
+        <Field label="Test" htmlFor="divisao-teste" readout={formatPercent(choices.testSize, 0)}>
           <Slider
             id="divisao-teste"
             aria-labelledby="divisao-teste-rotulo"
@@ -484,7 +484,7 @@ function SplitControls({
           />
         </Field>
         <Field
-          label="Validação"
+          label="Validation"
           htmlFor="divisao-validacao"
           readout={formatPercent(choices.validationSize, 0)}
         >
@@ -504,7 +504,7 @@ function SplitControls({
           />
         </Field>
       </div>
-      <Field label="Seed" htmlFor="divisao-seed" help="A mesma seed dá sempre a mesma divisão.">
+      <Field label="Seed" htmlFor="divisao-seed" help="The same seed always gives the same split.">
         <Input
           id="divisao-seed"
           name="seed"
@@ -523,7 +523,7 @@ function SplitControls({
         />
       </Field>
       {strategy === "time" && (
-        <Field label="Coluna do tempo" htmlFor="divisao-tempo">
+        <Field label="Time column" htmlFor="divisao-tempo">
           <Select
             value={choices.timeColumn ?? NONE}
             onValueChange={(value) => {
@@ -534,7 +534,7 @@ function SplitControls({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>A ordem das linhas</SelectItem>
+              <SelectItem value={NONE}>The order of the rows</SelectItem>
               {times.map((column) => (
                 <SelectItem key={column.name} value={column.name}>
                   {column.name}
@@ -566,7 +566,7 @@ function TransformControls({
   return (
     <>
       <div className="grid gap-6 @lg/form:grid-cols-2">
-        <Field label="Nulos nas colunas numéricas" htmlFor="transformar-numericos">
+        <Field label="Nulls in numeric columns" htmlFor="transformar-numericos">
           <EnumSelect
             id="transformar-numericos"
             value={transforms.numericImputation}
@@ -574,27 +574,27 @@ function TransformControls({
               value,
               label: label("ImputationStrategy", value),
             }))}
-            none="Não preencher"
+            none="Don't fill"
             onChange={(value) => {
               set({ numericImputation: value as ImputationStrategy | null });
             }}
           />
         </Field>
-        <Field label="Nulos nas colunas categóricas" htmlFor="transformar-categoricos">
+        <Field label="Nulls in categorical columns" htmlFor="transformar-categoricos">
           <EnumSelect
             id="transformar-categoricos"
             value={transforms.categoricalImputation}
             options={[
               { value: "most_frequent", label: label("ImputationStrategy", "most_frequent") },
             ]}
-            none="Não preencher"
+            none="Don't fill"
             onChange={(value) => {
               set({ categoricalImputation: value as ImputationStrategy | null });
             }}
           />
         </Field>
       </div>
-      <Field label="Escala" htmlFor="transformar-escala">
+      <Field label="Scaling" htmlFor="transformar-escala">
         <EnumSelect
           id="transformar-escala"
           value={transforms.scaling}
@@ -602,15 +602,15 @@ function TransformControls({
             value,
             label: label("ScalingMethod", value),
           }))}
-          none="Sem escala"
+          none="No scaling"
           onChange={(value) => {
             set({ scaling: value as ScalingMethod | null });
           }}
         />
       </Field>
       <Field
-        label="Grau das features polinomiais"
-        help="1 é sem features polinomiais; 2 junta os quadrados e os produtos de cada par (x², x·y)."
+        label="Polynomial features degree"
+        help="1 means no polynomial features; 2 adds the squares and the products of each pair (x², x·y)."
       >
         <ToggleGroup
           type="single"
@@ -622,7 +622,7 @@ function TransformControls({
               set({ polynomialDegree: Number(value) });
             }
           }}
-          aria-label="Grau das features polinomiais"
+          aria-label="Polynomial features degree"
           className="justify-start"
         >
           {[1, 2, 3].map((degree) => (
@@ -635,10 +635,10 @@ function TransformControls({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1">
           <Label htmlFor="transformar-datas" className="text-sm text-soft">
-            Extrair as partes das datas
+            Extract the date parts
           </Label>
-          <Explain title="Extrair as partes das datas">
-            O ano, o mês, o dia e o dia da semana de cada data, em colunas novas.
+          <Explain title="Extract the date parts">
+            The year, month, day and weekday of each date, in new columns.
           </Explain>
         </div>
         <Switch
@@ -650,11 +650,11 @@ function TransformControls({
         />
       </div>
       <Field
-        label="Dividir em intervalos"
-        help="Cada coluna escolhida passa a intervalos, com os limites tirados dos quantis do treino."
+        label="Bin into intervals"
+        help="Each chosen column becomes intervals, with the limits taken from the training quantiles."
       >
         <ChipGroup
-          label="Colunas a dividir em intervalos"
+          label="Columns to bin into intervals"
           options={numeric.map((column) => ({ value: column.name, label: column.name }))}
           value={transforms.binned.filter((column) => !dropped.includes(column))}
           onChange={(binned) => {
@@ -664,7 +664,7 @@ function TransformControls({
       </Field>
       {transforms.binned.length > 0 && (
         <Field
-          label="Número de intervalos"
+          label="Number of intervals"
           htmlFor="transformar-intervalos"
           readout={String(transforms.nBins)}
         >

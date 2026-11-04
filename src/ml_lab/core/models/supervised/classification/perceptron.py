@@ -40,10 +40,10 @@ class PerceptronParams(Hyperparameters):
         default=1.0,
         ge=0.001,
         le=10,
-        title="Taxa de aprendizagem",
+        title="Learning rate",
         description=(
-            "Tamanho de cada correção. Como os pesos começam a zero, só muda a escala dos "
-            "pesos, não a fronteira; importa quando há ordenada."
+            "The size of each correction. As the weights start at zero, it only changes the "
+            "scale of the weights, not the boundary; it matters when there's an intercept."
         ),
         json_schema_extra={"x-scale": "log"},
     )
@@ -51,21 +51,21 @@ class PerceptronParams(Hyperparameters):
         default=100,
         ge=1,
         le=1_000,
-        title="Máximo de épocas",
-        description="Quantas passagens pelos dados de treino, no máximo.",
+        title="Maximum epochs",
+        description="How many passes over the training data, at most.",
     )
     shuffle: bool = Field(
         default=True,
-        title="Baralhar a cada época",
+        title="Shuffle every epoch",
         description=(
-            "Percorrer os exemplos por uma ordem diferente em cada época. A fronteira final "
-            "depende da ordem; baralhar evita ciclos em que os mesmos erros se repetem."
+            "Go through the examples in a different order each epoch. The final boundary "
+            "depends on the order; shuffling avoids cycles where the same errors repeat."
         ),
     )
     fit_intercept: bool = Field(
         default=True,
-        title="Aprender a ordenada (b)",
-        description="Sem ordenada, a fronteira é obrigada a passar pela origem.",
+        title="Learn the intercept (b)",
+        description="Without an intercept, the boundary has to go through the origin.",
     )
 
 
@@ -75,10 +75,11 @@ class Perceptron(LabModel[PerceptronParams]):
 
     info = ModelInfo(
         name="perceptron",
-        display_name="Perceptrão",
+        display_name="Perceptron",
         summary=(
-            "O primeiro classificador que aprende: uma reta que só se corrige quando erra. Vês "
-            "a fronteira a saltar a cada época até separar as classes (se der)."
+            "The first classifier that learns: a straight line that only corrects itself when "
+            "it's wrong. You see the boundary jump every epoch until it separates the classes "
+            "(if it can)."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.LINEAR,
@@ -115,11 +116,11 @@ class Perceptron(LabModel[PerceptronParams]):
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if y is None:
-            raise ModelError("O perceptrão precisa do alvo para aprender.")
+            raise ModelError("The perceptron needs the target to learn.")
         params = self.hyperparameters
         self._classes = np.unique(y).astype(np.int64)
         if len(self._classes) < 2:
-            raise ModelError("O perceptrão precisa de pelo menos duas classes no treino.")
+            raise ModelError("The perceptron needs at least two classes in the training data.")
         # +1 para "é desta classe", -1 para "não é"; com duas classes, um só perceptrão.
         codes = np.searchsorted(self._classes, y)
         n_outputs = 1 if len(self._classes) == 2 else len(self._classes)
@@ -159,9 +160,9 @@ class Perceptron(LabModel[PerceptronParams]):
         self._note(
             Notice.info(
                 "not_separated",
-                f"Ao fim de {format_count(params.max_epochs)} épocas, o perceptrão ainda errava "
-                "no treino: as classes não se separam com uma reta (ou precisava de mais "
-                "épocas). Ficou com os pesos da última época.",
+                f"After {format_count(params.max_epochs)} epochs, the perceptron still made "
+                "mistakes on the training data: the classes can't be split by a straight line "
+                "(or it needed more epochs). It kept the weights from the last epoch.",
             )
         )
 

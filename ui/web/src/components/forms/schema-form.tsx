@@ -65,12 +65,12 @@ interface ControlProps {
 function Control({ id, property, value, onChange }: ControlProps) {
   const title = property.title ?? id;
   const labels = property["x-labels"] ?? {};
+  // Um número também pode ter nome (a profundidade 0 é "no limit").
   const shown =
-    property.enum !== undefined
-      ? (labels[String(value)] ?? String(value))
-      : property.type === "boolean"
-        ? null
-        : formatValue(value);
+    property.type === "boolean"
+      ? null
+      : (labels[String(value)] ??
+        (property.enum !== undefined ? String(value) : formatValue(value)));
 
   return (
     <div className="flex flex-col gap-2.5 py-3.5 first:pt-0 last:pb-0">

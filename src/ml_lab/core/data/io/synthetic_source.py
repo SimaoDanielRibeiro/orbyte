@@ -71,14 +71,14 @@ class ParameterSpec:
                 estiver fora dos limites.
         """
         if isinstance(value, bool) or not isinstance(value, int | float):
-            raise InvalidParameterError(f"'{self.label}' tem de ser um número.")
+            raise InvalidParameterError(f"'{self.label}' must be a number.")
         if self.kind == "integer" and not float(value).is_integer():
-            raise InvalidParameterError(f"'{self.label}' tem de ser um número inteiro.")
+            raise InvalidParameterError(f"'{self.label}' must be a whole number.")
         if not self.minimum <= value <= self.maximum:
             decimals = 0 if self.kind == "integer" else 2
             raise InvalidParameterError(
-                f"'{self.label}' tem de estar entre {format_number(self.minimum, decimals)} e "
-                f"{format_number(self.maximum, decimals)}; recebi {format_number(value, 2)}."
+                f"'{self.label}' must be between {format_number(self.minimum, decimals)} and "
+                f"{format_number(self.maximum, decimals)}; got {format_number(value, 2)}."
             )
         return int(value) if self.kind == "integer" else float(value)
 
@@ -133,8 +133,8 @@ class GeneratorInfo:
         unknown = sorted(set(values) - known)
         if unknown:
             raise InvalidParameterError(
-                f"O gerador '{self.name}' não tem os parâmetros {', '.join(unknown)}. "
-                f"Aceita: {', '.join(sorted(known))}."
+                f"The generator '{self.name}' has no parameters {', '.join(unknown)}. "
+                f"It accepts: {', '.join(sorted(known))}."
             )
         return {p.name: p.validate(values.get(p.name, p.default)) for p in self.parameters}
 
@@ -192,7 +192,7 @@ class SyntheticSource(DataSource):
         if generated.details:
             description = f"{description} {generated.details}"
         return LoadedTable(
-            name=f"{info.title} (sintético)",
+            name=f"{info.title} (synthetic)",
             frame=generated.frame,
             spec=self.spec(),
             description=description,
@@ -213,7 +213,7 @@ class SyntheticSource(DataSource):
 # --- geradores --------------------------------------------------------------------------
 
 _N_SAMPLES = ParameterSpec(
-    "n_samples", "Número de pontos", "integer", 200, 20, 5_000, "Quantas linhas gerar."
+    "n_samples", "Number of points", "integer", 200, 20, 5_000, "How many rows to generate."
 )
 
 
@@ -228,16 +228,22 @@ def _table(
 
 @generator(
     "moons",
-    title="Luas",
+    title="Moons",
     description=(
-        "Duas meias-luas encaixadas uma na outra. Não se separam com uma reta, por isso mostram "
-        "o que um modelo não linear consegue e um linear não."
+        "Two half-moons fitted into each other. A straight line can't separate them, so they "
+        "show what a non-linear model can do and a linear one can't."
     ),
     task_type=TaskType.BINARY_CLASSIFICATION,
     parameters=(
         _N_SAMPLES,
         ParameterSpec(
-            "noise", "Ruído", "number", 0.2, 0.0, 1.0, "Desvio padrão do ruído somado a cada ponto."
+            "noise",
+            "Noise",
+            "number",
+            0.2,
+            0.0,
+            1.0,
+            "Standard deviation of the noise added to each point.",
         ),
     ),
 )
@@ -260,22 +266,22 @@ def moons(rng: np.random.Generator, *, n_samples: int, noise: float) -> Generate
 
 @generator(
     "circles",
-    title="Círculos",
-    description=(
-        "Um círculo dentro de outro: o caso clássico em que nenhuma fronteira linear funciona."
-    ),
+    title="Circles",
+    description=("One circle inside another: the classic case where no linear boundary works."),
     task_type=TaskType.BINARY_CLASSIFICATION,
     parameters=(
         _N_SAMPLES,
-        ParameterSpec("noise", "Ruído", "number", 0.1, 0.0, 0.5, "Desvio padrão do ruído."),
+        ParameterSpec(
+            "noise", "Noise", "number", 0.1, 0.0, 0.5, "Standard deviation of the noise."
+        ),
         ParameterSpec(
             "factor",
-            "Raio interior",
+            "Inner radius",
             "number",
             0.5,
             0.1,
             0.9,
-            "Raio do círculo interior, em proporção do exterior.",
+            "Radius of the inner circle, as a share of the outer one.",
         ),
     ),
 )
@@ -298,25 +304,25 @@ def circles(rng: np.random.Generator, *, n_samples: int, noise: float, factor: f
 
 @generator(
     "blobs",
-    title="Nuvens (blobs)",
+    title="Blobs",
     description=(
-        "Nuvens de pontos à volta de centros escolhidos ao acaso. Servem para clustering (sem "
-        "alvo) e para classificação multiclasse (com a nuvem como alvo)."
+        "Clouds of points around centres chosen at random. They work for clustering (without a "
+        "target) and for multiclass classification (with the cloud as the target)."
     ),
     task_type=TaskType.MULTICLASS_CLASSIFICATION,
     parameters=(
-        ParameterSpec("n_samples", "Número de pontos", "integer", 300, 20, 5_000),
-        ParameterSpec("centers", "Número de nuvens", "integer", 3, 2, 8),
+        ParameterSpec("n_samples", "Number of points", "integer", 300, 20, 5_000),
+        ParameterSpec("centers", "Number of clouds", "integer", 3, 2, 8),
         ParameterSpec(
             "cluster_std",
-            "Dispersão",
+            "Spread",
             "number",
             1.0,
             0.1,
             5.0,
-            "Desvio padrão de cada nuvem: valores altos fazem as nuvens sobrepor-se.",
+            "Standard deviation of each cloud: high values make the clouds overlap.",
         ),
-        ParameterSpec("n_features", "Número de features", "integer", 2, 2, 10),
+        ParameterSpec("n_features", "Number of features", "integer", 2, 2, 10),
     ),
 )
 def blobs(
@@ -343,17 +349,23 @@ def blobs(
 
 @generator(
     "regression",
-    title="Regressão linear",
+    title="Linear regression",
     description=(
-        "Um alvo que é uma combinação linear das features mais ruído. Um bom modelo de "
-        "regressão deve reencontrar os coeficientes usados."
+        "A target that's a linear combination of the features plus noise. A good regression "
+        "model should find the coefficients used again."
     ),
     task_type=TaskType.REGRESSION,
     parameters=(
         _N_SAMPLES,
-        ParameterSpec("n_features", "Número de features", "integer", 1, 1, 10),
+        ParameterSpec("n_features", "Number of features", "integer", 1, 1, 10),
         ParameterSpec(
-            "noise", "Ruído", "number", 1.0, 0.0, 20.0, "Desvio padrão do ruído somado ao alvo."
+            "noise",
+            "Noise",
+            "number",
+            1.0,
+            0.0,
+            20.0,
+            "Standard deviation of the noise added to the target.",
         ),
     ),
 )
@@ -370,24 +382,30 @@ def regression(
         f"{format_number(c, 1)}·x{index + 1}" for index, c in enumerate(coefficients)
     )
     details = (
-        f"Regra usada: target = {terms} + {format_number(intercept, 1)} + ruído "
-        f"(desvio padrão {format_number(noise, 1)})."
+        f"Rule used: target = {terms} + {format_number(intercept, 1)} + noise "
+        f"(standard deviation {format_number(noise, 1)})."
     )
     return Generated(_table(points, target, rng), details)
 
 
 @generator(
     "wave",
-    title="Onda",
+    title="Wave",
     description=(
-        "Um alvo que sobe e desce com a feature (um seno), mais ruído. Uma reta não o consegue "
-        "seguir: mostra o que os modelos de regressão não lineares fazem e um linear não."
+        "A target that rises and falls with the feature (a sine), plus noise. A straight line "
+        "can't follow it: it shows what non-linear regression models do and a linear one can't."
     ),
     task_type=TaskType.REGRESSION,
     parameters=(
         _N_SAMPLES,
         ParameterSpec(
-            "noise", "Ruído", "number", 0.3, 0.0, 2.0, "Desvio padrão do ruído somado ao alvo."
+            "noise",
+            "Noise",
+            "number",
+            0.3,
+            0.0,
+            2.0,
+            "Standard deviation of the noise added to the target.",
         ),
     ),
 )
@@ -395,31 +413,31 @@ def wave(rng: np.random.Generator, *, n_samples: int, noise: float) -> Generated
     """``target = sen(x1) + ruído``, com ``x1`` uniforme em [-3, 3]: uma volta e meia do seno."""
     points = rng.uniform(-3, 3, size=(n_samples, 1))
     target = np.sin(points[:, 0]) + rng.normal(scale=noise, size=n_samples)
-    details = f"Regra usada: target = sen(x1) + ruído (desvio padrão {format_number(noise, 1)})."
+    details = f"Rule used: target = sin(x1) + noise (standard deviation {format_number(noise, 1)})."
     return Generated(_table(points, target, rng), details)
 
 
 @generator(
     "anomalies",
-    title="Anomalias",
+    title="Anomalies",
     description=(
-        "Pontos normais em duas nuvens e alguns pontos espalhados ao acaso à volta delas. A "
-        "coluna target diz quais são as anomalias: escolhe-a como referência, com a tarefa "
-        "deteção de anomalias, para ver se o detetor as encontra sem a ter visto."
+        "Normal points in two clouds and a few points scattered at random around them. The "
+        "target column says which ones are the anomalies: choose it as the reference, with the "
+        "anomaly detection task, to see whether the detector finds them without having seen it."
     ),
     task_type=TaskType.ANOMALY_DETECTION,
     parameters=(
         _N_SAMPLES,
         ParameterSpec(
             "contamination",
-            "Proporção de anomalias",
+            "Share of anomalies",
             "number",
             0.05,
             0.01,
             0.3,
-            "Que fração dos pontos são anomalias.",
+            "What fraction of the points are anomalies.",
         ),
-        ParameterSpec("n_features", "Número de features", "integer", 2, 2, 10),
+        ParameterSpec("n_features", "Number of features", "integer", 2, 2, 10),
     ),
 )
 def anomalies(
@@ -437,9 +455,9 @@ def anomalies(
         ]
     )
     outliers = rng.uniform(normal.min(axis=0) - 3, normal.max(axis=0) + 3, (n_outliers, n_features))
-    target = np.array(["normal"] * n_normal + ["anomalia"] * n_outliers)
+    target = np.array(["normal"] * n_normal + ["anomaly"] * n_outliers)
     details = (
-        f"{n_outliers} anomalias espalhadas ao acaso; algumas podem cair dentro de uma nuvem, e "
-        "aí nenhum detetor as distingue."
+        f"{n_outliers} anomalies scattered at random; some may fall inside a cloud, and then no "
+        "detector can tell them apart."
     )
     return Generated(_table(np.vstack([normal, outliers]), target, rng), details)

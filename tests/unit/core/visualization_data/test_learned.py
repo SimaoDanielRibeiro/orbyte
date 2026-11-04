@@ -38,11 +38,11 @@ def test_a_tree_is_written_as_rules_with_its_importances_and_numbers() -> None:
 
     learned = view("decision_tree", iris, max_depth=2)
 
-    assert learned.tree_rules[0].startswith("se petal")
+    assert learned.tree_rules[0].startswith("if petal")
     assert any(line.strip().startswith("→ setosa") for line in learned.tree_rules)
     importances = [value for _, value in learned.importances]
     assert importances == sorted(importances, reverse=True)
-    assert ("Profundidade da árvore", 2) in [(p.label, p.value) for p in learned.properties]
+    assert ("Tree depth", 2) in [(p.label, p.value) for p in learned.properties]
 
 
 def test_a_tree_is_also_given_as_nodes_to_draw() -> None:
@@ -77,7 +77,7 @@ def test_a_regression_tree_predicts_numbers_without_classes() -> None:
 
     assert len(learned.tree) == 7  # 1 + 2 + 4 nós
     assert all(node.share is None and node.code is None for node in learned.tree)
-    assert "," in learned.tree[-1].prediction  # um número à portuguesa
+    assert "." in learned.tree[-1].prediction  # um número escrito como no site
 
 
 def test_the_weights_name_what_each_row_explains() -> None:
@@ -96,7 +96,7 @@ def test_the_weights_name_what_each_row_explains() -> None:
     assert binary.outputs == (titanic.class_labels[1],)  # um só vetor: o da classe positiva
     assert binary.row_for(0) == binary.row_for(1) == 0
     assert regression is not None
-    assert regression.outputs == ("Previsão de target",)
+    assert regression.outputs == ("Prediction of target",)
     assert regression.codes == ()
     assert len(regression.weights[0]) == line.n_features
 
@@ -107,7 +107,7 @@ def test_polynomial_weights_are_per_term_and_say_so() -> None:
     learned = view("polynomial_regression", line, degree=3)
 
     assert learned.weights is None
-    assert "um por termo" in learned.notes[0]
+    assert "one per term" in learned.notes[0]
 
 
 def test_cluster_centers_are_named_by_group_even_with_a_reference() -> None:
@@ -116,7 +116,7 @@ def test_cluster_centers_are_named_by_group_even_with_a_reference() -> None:
     learned = view("kmeans", iris, n_clusters=3)
 
     centers = learned.tables[0]
-    assert centers.rows == ("Grupo 1", "Grupo 2", "Grupo 3")  # não as espécies da referência
+    assert centers.rows == ("Group 1", "Group 2", "Group 3")  # não as espécies da referência
     assert centers.columns == iris.feature_names
 
 
@@ -127,6 +127,6 @@ def test_pca_shows_its_components_and_svm_its_support_vectors() -> None:
     components = view("pca", iris, n_components=2).tables[0]
     support = next(p for p in view("svm", supervised).properties if p.name == "n_support")
 
-    assert components.rows == ("Componente 1", "Componente 2")
+    assert components.rows == ("Component 1", "Component 2")
     assert isinstance(support.value, str)
     assert support.value.count("+") == 2  # um número por classe, e o total

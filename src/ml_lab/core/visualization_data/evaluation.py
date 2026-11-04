@@ -37,7 +37,7 @@ SILHOUETTE_SAMPLE: Final = 2_000
 DENDROGRAM_LEAVES: Final = 30
 """O dendrograma mostra só as últimas junções: os grupos mais pequenos ficam numa folha."""
 
-CORRECT, WRONG = "Certo", "Errado"
+CORRECT, WRONG = "Right", "Wrong"
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,7 +213,7 @@ def _anomalies(model: LabModel[Any], dataset: Dataset, partition: Partition) -> 
     truth = split.y.astype(np.int64) if split.y is not None and dataset.n_classes == 2 else None
     roc: tuple[Curve, ...] = ()
     if truth is not None and len(np.unique(truth)) == 2:
-        roc = (_roc(truth, scores, "Anomalia"),)
+        roc = (_roc(truth, scores, "Anomaly"),)
     # Com referência, separar pelas anomalias verdadeiras mostra o que o limiar deixa escapar
     # (anomalias abaixo dele) e os falsos alarmes (normais acima); sem ela, só há a decisão.
     groups = flags if truth is None else truth
@@ -263,7 +263,7 @@ def residuals(actual: NDArray[np.float64], predicted: NDArray[np.float64]) -> Re
         predicted=tuple(float(v) for v in predicted[::step]),
         actual=tuple(float(v) for v in actual[::step]),
         errors=tuple(float(v) for v in errors[::step]),
-        histogram=histogram(errors, [errors], ("Erros",)),
+        histogram=histogram(errors, [errors], ("Errors",)),
     )
 
 

@@ -26,10 +26,10 @@ def test_numbers_become_a_float64_matrix() -> None:
 @pytest.mark.parametrize(
     ("frame", "message"),
     [
-        (pd.DataFrame({"a": ["x", "y"]}), "ainda não são números"),
-        (pd.DataFrame({"a": [True, False]}), "ainda não são números"),
-        (pd.DataFrame({"a": [1.0, np.nan]}), r"a \(1 valor\)"),
-        (pd.DataFrame({"a": [1.0, np.inf]}), "infinitos"),
+        (pd.DataFrame({"a": ["x", "y"]}), "aren't numbers yet"),
+        (pd.DataFrame({"a": [True, False]}), "aren't numbers yet"),
+        (pd.DataFrame({"a": [1.0, np.nan]}), r"a \(1 value\)"),
+        (pd.DataFrame({"a": [1.0, np.inf]}), "infinite values"),
     ],
 )
 def test_text_missing_and_infinite_values_cannot_reach_the_models(
@@ -51,15 +51,15 @@ def test_classes_become_their_position_in_the_labels() -> None:
 
     assert codes.dtype == np.int64
     assert codes.tolist() == [1, 0, 1]
-    with pytest.raises(DataError, match="desconhecidas: c"):
+    with pytest.raises(DataError, match="unknown classes: c"):
         encode_classes(pd.Series(["a", "c"]), ("a", "b"))
 
 
 def test_regression_targets_must_be_complete_numbers() -> None:
     assert to_target(pd.Series([1, 2])).tolist() == [1.0, 2.0]
-    with pytest.raises(DataError, match="não é numérico"):
+    with pytest.raises(DataError, match="isn't numeric"):
         to_target(pd.Series(["1", "2"], name="preço"))
-    with pytest.raises(DataError, match="valores em falta"):
+    with pytest.raises(DataError, match="missing values"):
         to_target(pd.Series([1.0, np.nan]))
 
 

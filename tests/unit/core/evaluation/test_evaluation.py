@@ -79,26 +79,26 @@ def evaluate(
     )
 
 
-def report(partition: Partition, accuracy: float | None) -> EvaluationReport:
-    result = MetricResult("accuracy", "Exatidão", accuracy, True, True, "o quê", "como")
-    return EvaluationReport(partition, TaskType.BINARY_CLASSIFICATION, 10, (result,))
+def report(partition: Partition, accuracy: float | None, rows: int = 10) -> EvaluationReport:
+    result = MetricResult("accuracy", "Accuracy", accuracy, True, True, "what", "how")
+    return EvaluationReport(partition, TaskType.BINARY_CLASSIFICATION, rows, (result,))
 
 
 # --- relatório ------------------------------------------------------------------------
 
 
-def test_results_are_formatted_the_portuguese_way() -> None:
-    assert MetricResult("a", "A", 0.9667, True, True, "", "").formatted == "96,7%"
-    assert MetricResult("b", "B", 0.1234, False, False, "", "").formatted == "0,123"
+def test_results_are_formatted_as_on_the_site() -> None:
+    assert MetricResult("a", "A", 0.9667, True, True, "", "").formatted == "96.7%"
+    assert MetricResult("b", "B", 0.1234, False, False, "", "").formatted == "0.123"
     assert MetricResult("c", "C", None, True, True, "", "").formatted == "—"
     assert MetricResult("d", "D", float("nan"), True, False, "", "").formatted == "—"
 
 
 def test_counts_are_shown_without_decimals() -> None:
-    # Uma métrica que só descreve (o número de grupos) é uma contagem: "3", não "3,000".
+    # Uma métrica que só descreve (o número de grupos) é uma contagem: "3", não "3.000".
     assert MetricResult("n", "N", 3.0, None, False, "", "").formatted == "3"
-    assert MetricResult("s", "S", 3.0, True, False, "", "").formatted == "3,000"
-    assert MetricResult("r", "R", 0.25, None, False, "", "").formatted == "0,250"
+    assert MetricResult("s", "S", 3.0, True, False, "", "").formatted == "3.000"
+    assert MetricResult("r", "R", 0.25, None, False, "", "").formatted == "0.250"
 
 
 def test_reports_find_metrics_and_become_plain_json() -> None:
@@ -108,7 +108,7 @@ def test_reports_find_metrics_and_become_plain_json() -> None:
     assert result.values() == {"accuracy": 0.8}
     assert to_json(result)["partition"] == "train"
     json.dumps(to_json(result), allow_nan=False)
-    with pytest.raises(ComponentNotFoundError, match="Querias dizer 'accuracy'"):
+    with pytest.raises(ComponentNotFoundError, match="Did you mean 'accuracy'"):
         result.metric("acuracy")
 
 
@@ -139,7 +139,7 @@ def test_a_model_no_better_than_the_majority_class_is_flagged() -> None:
     notice = result.notices[0]
     assert notice.code == "below_baseline"
     assert notice.level is NoticeLevel.WARNING
-    assert "«não» acertava 66,7%" in notice.message
+    assert "Always predicting “não” would get 66.7% right" in notice.message
 
 
 def test_probabilities_cover_classes_missing_from_training() -> None:
@@ -195,18 +195,25 @@ def test_each_task_type_gets_its_evaluator() -> None:
 
 
 @pytest.mark.parametrize(
-    ("train", "test", "code"),
+    ("train", "test", "rows", "code"),
     [
-        (0.99, 0.80, "overfitting"),
-        (0.85, 0.83, "no_overfitting"),
-        (0.80, 0.90, "lucky_test"),
+        (0.99, 0.80, 10, "overfitting"),
+        (0.85, 0.83, 10, "no_overfitting"),
+        (0.80, 0.90, 10, "lucky_test"),
+        # Perto em pontos, mas o que falha passa de 0 para 7,4%, e não é ruído com 30 000
+        # linhas de teste (ADR 0051): decorou o treino.
+        (1.00, 0.926, 30_000, "overfitting"),
+        # O Iris: 3 erros em 30 linhas de teste ainda cabem no ruído (1 erro já dava 96,7%).
+        (0.975, 0.90, 30, "no_overfitting"),
+        # Cinco pontos com o que falha a subir pouco (de 15% para 20%) não é decorar.
+        (0.85, 0.80, 30_000, "no_overfitting"),
     ],
 )
-def test_train_and_test_are_compared(train: float, test: float, code: str) -> None:
+def test_train_and_test_are_compared(train: float, test: float, rows: int, code: str) -> None:
     notices = compare_train_and_test(
         {
             Partition.TRAIN: report(Partition.TRAIN, train),
-            Partition.TEST: report(Partition.TEST, test),
+            Partition.TEST: report(Partition.TEST, test, rows),
         }
     )
 
@@ -222,12 +229,29 @@ def test_the_overfitting_warning_quotes_both_values() -> None:
     (notice,) = compare_train_and_test(reports)
 
     assert notice.level is NoticeLevel.WARNING
-    assert notice.message.startswith("Exatidão: 99,0% no treino e 80,0% no teste, 19,0 pontos")
+    assert notice.message.startswith(
+        "Accuracy: 99.0% on the training data and 80.0% on the test data, 19.0 points"
+    )
+
+
+def test_a_small_gap_with_a_much_bigger_error_says_why_it_is_overfitting() -> None:
+    reports = {
+        Partition.TRAIN: report(Partition.TRAIN, 1.0),
+        Partition.TEST: report(Partition.TEST, 0.926, 30_000),
+    }
+
+    (notice,) = compare_train_and_test(reports)
+
+    assert notice.level is NoticeLevel.WARNING
+    assert "only 7.4 points apart" in notice.message
+    assert "(7.4%) is more than twice what it misses on the training data (0.0%)" in (
+        notice.message
+    )
 
 
 def test_the_comparison_reads_well_for_any_primary_metric() -> None:
     def r2(partition: Partition, value: float) -> EvaluationReport:
-        result = MetricResult("r2", "R²", value, True, False, "o quê", "como")
+        result = MetricResult("r2", "R²", value, True, False, "what", "how")
         return EvaluationReport(partition, TaskType.REGRESSION, 10, (result,))
 
     reports = {Partition.TRAIN: r2(Partition.TRAIN, 0.61), Partition.TEST: r2(Partition.TEST, 0.6)}
@@ -235,7 +259,9 @@ def test_the_comparison_reads_well_for_any_primary_metric() -> None:
     (notice,) = compare_train_and_test(reports)
 
     assert notice.code == "no_overfitting"
-    assert notice.message.startswith("R²: 0,610 no treino e 0,600 no teste: valores próximos")
+    assert notice.message.startswith(
+        "R²: 0.610 on the training data and 0.600 on the test data: close values"
+    )
 
 
 def test_nothing_to_compare_gives_no_notices() -> None:

@@ -107,5 +107,5 @@ def open_source(spec: SourceSpec) -> DataSource:
         return factory(**spec.params)
     except TypeError as error:
         raise InvalidParameterError(
-            f"Parâmetros inválidos para a fonte '{spec.kind}': {error}."
+            f"Invalid parameters for the source '{spec.kind}': {error}."
         ) from error

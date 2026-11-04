@@ -12,7 +12,7 @@ pela ordem em que um analista o faria à mão (ADR 0025):
    omissão de todos os modelos e uma afinação dos finalistas, por procura aleatória. Mede
    cada candidato com validação cruzada nos folds do treino e nunca vê o teste.
 
-Tudo o que os agentes decidem fica na conversa (``search_log.py``), em português, para se
+Tudo o que os agentes decidem fica na conversa (``search_log.py``), em inglês, para se
 perceber porque é que o vencedor ganhou. São regras e medições, não um modelo de
 linguagem: com a mesma seed, a procura repete-se tal e qual.
 

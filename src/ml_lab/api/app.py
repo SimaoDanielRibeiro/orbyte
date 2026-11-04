@@ -45,7 +45,7 @@ dos agentes e os candidatos novos, e `GET /automl/{search_id}/result` o quadro f
 tarefas, as famílias, os estados) e `GET /explanations` os textos do painel «Porquê?». Pede-se
 uma vez e guarda-se.
 
-Os erros vêm sempre com um `code` estável e uma `message` em português que diz o que fazer.
+Os erros vêm sempre com um `code` estável e uma `message` em inglês que diz o que fazer.
 """
 
 TAGS = [
@@ -101,7 +101,7 @@ def create_app(lab: Lab | None = None, *, settings: Settings | None = None) -> F
         run_at_full_speed()  # o servidor corre num terminal: o Windows travava-o (ml_lab.process)
         lab = Lab.create(settings)
     app = FastAPI(
-        title="ML Lab",
+        title="Orbyte",
         version=__version__,
         description=DESCRIPTION,
         openapi_tags=TAGS,

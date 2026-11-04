@@ -46,10 +46,11 @@ class ContaminationParams(Hyperparameters):
         default=0.05,
         ge=0.001,
         le=0.5,
-        title="Proporção de anomalias esperada",
+        title="Expected share of anomalies",
         description=(
-            "Que fração do treino se espera que seja anómala: põe o limiar de forma a marcar "
-            "essa fração. Não muda a pontuação de cada ponto, só onde se corta."
+            "What fraction of the training data is expected to be anomalous: it sets the "
+            "threshold so it flags that fraction. It doesn't change each point's score, only "
+            "where the cut goes."
         ),
     )
 
@@ -61,8 +62,8 @@ class IsolationForestParams(ContaminationParams):
         default=100,
         ge=10,
         le=500,
-        title="Número de árvores",
-        description="Quantas árvores de isolamento fazem a média da pontuação.",
+        title="Number of trees",
+        description="How many isolation trees average the score.",
     )
 
 
@@ -73,26 +74,26 @@ class OneClassSVMParams(Hyperparameters):
         default=0.05,
         ge=0.001,
         le=0.5,
-        title="Nu (fração fora da fronteira)",
+        title="Nu (share outside the boundary)",
         description=(
-            "O máximo de pontos de treino que podem ficar fora da fronteira: na prática, a "
-            "proporção de anomalias esperada."
+            "The most training points that can fall outside the boundary: in practice, the "
+            "expected share of anomalies."
         ),
     )
     kernel: Literal["rbf", "linear", "poly"] = Field(
         default="rbf",
         title="Kernel",
-        description="A forma da fronteira à volta dos dados normais.",
+        description="The shape of the boundary around the normal data.",
         json_schema_extra={
-            "x-labels": {"rbf": "RBF (gaussiano)", "linear": "Linear", "poly": "Polinomial"}
+            "x-labels": {"rbf": "RBF (Gaussian)", "linear": "Linear", "poly": "Polynomial"}
         },
     )
     gamma: float = Field(
         default=0.5,
         ge=0.001,
         le=100,
-        title="Gamma (alcance de cada ponto)",
-        description="No kernel RBF: grande, a fronteira abraça cada ponto; pequeno, é suave.",
+        title="Gamma (reach of each point)",
+        description="In the RBF kernel: large, the boundary hugs each point; small, it's smooth.",
         json_schema_extra={"x-scale": "log"},
     )
 
@@ -104,11 +105,10 @@ class LOFParams(ContaminationParams):
         default=20,
         ge=2,
         le=100,
-        title="Número de vizinhos",
+        title="Number of neighbours",
         description=(
-            "Quantos vizinhos definem a "
-            "densidade local de cada ponto. Poucos: sensível ao ruído; muitos: perde as "
-            "anomalias em grupos pequenos."
+            "How many neighbours define each point's local density. Few: sensitive to noise; "
+            "many: it misses anomalies in small groups."
         ),
     )
 
@@ -121,8 +121,8 @@ class IsolationForest(SklearnModel[IsolationForestParams]):
         name="isolation_forest",
         display_name="Isolation Forest",
         summary=(
-            "Isola cada ponto com cortes ao acaso: as anomalias, por estarem sozinhas, "
-            "precisam de poucos cortes. Rápido e bom ponto de partida."
+            "Isolates each point with random cuts: anomalies, being on their own, need few "
+            "cuts. Fast, and a good starting point."
         ),
         task_types=ANOMALY,
         family=ModelFamily.ENSEMBLE,
@@ -159,8 +159,8 @@ class OneClassSVM(SklearnModel[OneClassSVMParams]):
         name="one_class_svm",
         display_name="One-Class SVM",
         summary=(
-            "Desenha a fronteira mais justa à volta da maior parte dos dados; o que fica de "
-            "fora é anómalo. Sensível à escala das features."
+            "Draws the tightest boundary around most of the data; whatever falls outside is "
+            "anomalous. Sensitive to the scale of the features."
         ),
         task_types=ANOMALY,
         family=ModelFamily.KERNEL,
@@ -202,8 +202,8 @@ class LOF(SklearnModel[LOFParams]):
         name="lof",
         display_name="Local Outlier Factor (LOF)",
         summary=(
-            "Compara a densidade à volta de cada ponto com a dos vizinhos: encontra anomalias "
-            "locais, mesmo quando os grupos têm densidades diferentes."
+            "Compares the density around each point with its neighbours': it finds local "
+            "anomalies, even when the groups have different densities."
         ),
         task_types=ANOMALY,
         family=ModelFamily.INSTANCE_BASED,

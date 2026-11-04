@@ -24,7 +24,7 @@ export function useOpenRun(): (runId: string, taskType: TaskType, title?: string
         return;
       }
       openRun(runId, title);
-      void navigate({ to: "/treinar/$runId", params: { runId } });
+      void navigate({ to: "/train/$runId", params: { runId } });
     },
     [navigate, vocabulary, openRun, openAgentRun],
   );

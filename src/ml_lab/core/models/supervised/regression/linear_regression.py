@@ -22,8 +22,8 @@ class LinearRegressionParams(Hyperparameters):
 
     fit_intercept: bool = Field(
         default=True,
-        title="Aprender a ordenada (b)",
-        description="Sem ordenada, a reta é obrigada a passar pela origem.",
+        title="Learn the intercept (b)",
+        description="Without an intercept, the line has to go through the origin.",
     )
 
 
@@ -41,10 +41,10 @@ class LinearRegression(SklearnModel[LinearRegressionParams]):
 
     info = ModelInfo(
         name="linear_regression",
-        display_name="Regressão linear",
+        display_name="Linear regression",
         summary=(
-            "A reta (ou o plano) que minimiza o erro quadrático, calculada de uma vez: o "
-            "primeiro modelo de qualquer regressão."
+            "The line (or plane) that minimises the squared error, computed in one go: the "
+            "first model of any regression."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.LINEAR,

@@ -90,7 +90,7 @@ export function MetricDrawer({
               <SheetTitle className="text-xl font-medium text-strong">
                 {metric.display_name}
               </SheetTitle>
-              <SheetDescription className="font-mono text-xs text-dim">
+              <SheetDescription className="text-sm text-dim">
                 {directionText(metric.higher_is_better)}
               </SheetDescription>
             </SheetHeader>
@@ -98,13 +98,13 @@ export function MetricDrawer({
               <Facts
                 facts={[
                   {
-                    label: `No ${label("Partition", mainPartition).toLowerCase()}`,
+                    label: `On the ${label("Partition", mainPartition).toLowerCase()}`,
                     value: <span className="text-3xl">{formatMetric(metric)}</span>,
                   },
                   ...others.map(([partition, report]) => {
                     const found = report.metrics.find((one) => one.name === metric.name);
                     return {
-                      label: `No ${label("Partition", partition).toLowerCase()}`,
+                      label: `On the ${label("Partition", partition).toLowerCase()}`,
                       value: found === undefined ? "—" : formatMetric(found),
                     };
                   }),
@@ -113,7 +113,7 @@ export function MetricDrawer({
               <Prose text={metric.what} />
               {card !== undefined && <FormulaBlock card={card} />}
               <section className="flex flex-col gap-3">
-                <h3 className="text-base">A conta neste run</h3>
+                <h3 className="text-base">The calculation in this run</h3>
                 <RunAccount
                   key={metric.name}
                   metric={metric}
@@ -122,16 +122,16 @@ export function MetricDrawer({
                 />
               </section>
               <section className="flex flex-col gap-2">
-                <h3 className="text-base">Como se lê</h3>
+                <h3 className="text-base">How to read it</h3>
                 <Prose text={metric.how_to_read} />
               </section>
               {card !== undefined && (
                 <Link
-                  to="/metricas"
+                  to="/metrics"
                   hash={metricAnchor(metric.name)}
                   className="text-sm text-soft underline-offset-4 hover:text-strong hover:underline"
                 >
-                  Ver no glossário das métricas
+                  See it in the metrics glossary
                 </Link>
               )}
             </div>
@@ -159,7 +159,7 @@ function RunAccount({ metric, classLabels, charts }: RunAccountProps) {
       <LineChart
         series={curves.map((curve, index) => ({
           key: curve.label,
-          label: `${curve.label} (área ${formatNumber(curve.area, 3)})`,
+          label: `${curve.label} (area ${formatNumber(curve.area, 3)})`,
           color: CATEGORICAL[index] ?? CATEGORICAL[0],
           points: curve.x.map((x, position) => ({ x, y: curve.y[position] ?? null })),
         }))}
@@ -168,11 +168,11 @@ function RunAccount({ metric, classLabels, charts }: RunAccountProps) {
         height={240}
         xDomain={[0, 1]}
         yDomain={[0, 1]}
-        xLabel="Taxa de falsos positivos"
-        yLabel="Taxa de verdadeiros positivos"
+        xLabel="False positive rate"
+        yLabel="True positive rate"
         formatX={(value) => formatPercent(value, 0)}
         formatY={(value) => formatPercent(value, 0)}
-        description="A curva ROC: a área por baixo dela é o valor da métrica."
+        description="The ROC curve: the area under it is the metric's value."
         caption={<TopicText topic="roc_curve" />}
       />
     );
@@ -181,7 +181,7 @@ function RunAccount({ metric, classLabels, charts }: RunAccountProps) {
     return (
       <SilhouetteChart
         silhouette={charts.silhouette}
-        description="A silhueta de cada ponto, por grupo: a média é o valor da métrica."
+        description="Each point's silhouette, by cluster: the mean is the metric's value."
       />
     );
   }
@@ -195,14 +195,14 @@ function RunAccount({ metric, classLabels, charts }: RunAccountProps) {
           color: CATEGORICAL[index] ?? CATEGORICAL[0],
         }))}
         format={formatStatistic}
-        valueLabel="pontos"
-        description="Os grupos encontrados e quantos pontos tem cada um."
+        valueLabel="points"
+        description="The clusters found and how many points each one has."
       />
     );
   }
   return (
     <p className="text-sm text-soft">
-      Esta métrica não tem termos para mostrar: o valor sai da fórmula acima, com todos os pontos.
+      This metric has no terms to show: the value comes from the formula above, with all the points.
     </p>
   );
 }
@@ -273,7 +273,7 @@ function Terms({ metric, classLabels }: { metric: MetricResult; classLabels: rea
           }}
         >
           <RotateCcw aria-hidden="true" />
-          Ver a conta outra vez
+          See the calculation again
         </Button>
       )}
     </div>

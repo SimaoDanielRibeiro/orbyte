@@ -1,51 +1,49 @@
 # Isolation Forest
 
-## Intuição
+## Intuition
 
-Para isolar um ponto, faz-se cortes ao acaso: escolhe-se uma feature e um valor qualquer entre
-o mínimo e o máximo, e divide-se. Repete-se em cada lado até o ponto ficar sozinho. Um ponto
-**anómalo**, longe dos outros, fica isolado com **poucos cortes**. Um ponto normal, no meio de
-uma nuvem, precisa de muitos. A Isolation Forest faz isto com muitas árvores e usa a média do
-número de cortes.
+To isolate a point, you make random cuts: pick a feature and any value between its minimum and
+its maximum, and split. Repeat on each side until the point is alone. An **anomalous** point, far
+from the others, is isolated with **few cuts**. A normal point, in the middle of a cloud, needs
+many. The Isolation Forest does this with many trees and uses the average number of cuts.
 
-É a ideia ao contrário da maioria dos detetores: em vez de descrever os pontos normais,
-procura os que são fáceis de separar.
+It's the opposite idea from most detectors: instead of describing the normal points, it looks for
+the ones that are easy to set apart.
 
-## Matemática essencial
+## Essential maths
 
-Cada árvore de isolamento é construída com uma amostra das linhas (256, por omissão), com
-cortes ao acaso. A **profundidade** $h(x)$ a que o ponto $x$ fica sozinho, em média nas
-árvores, dá a pontuação:
+Each isolation tree is built with a sample of the rows (256, by default), with random cuts. The
+**depth** $h(x)$ at which the point $x$ ends up alone, averaged over the trees, gives the score:
 
 $$s(x) = 2^{-\overline{h(x)} / c(n)}$$
 
-onde $c(n)$ é a profundidade média esperada numa árvore de $n$ pontos (para normalizar).
-Perto de 1 é uma anomalia; bem abaixo de 0,5, um ponto normal. O limiar escolhe-se para
-marcar a fração de anomalias esperada (`contamination`).
+where $c(n)$ is the expected average depth in a tree of $n$ points (to normalise). Close to 1 is
+an anomaly; well below 0.5, a normal point. The threshold is chosen to flag the expected share of
+anomalies (`contamination`).
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_estimators` | Quantas árvores de isolamento fazem a média | 100 |
-| `contamination` | Que fração do treino se espera que seja anómala: põe o limiar de forma a marcar essa fração | 0,05 |
+| `n_estimators` | How many isolation trees are averaged | 100 |
+| `contamination` | What share of the training data is expected to be anomalous: it sets the threshold so it flags that share | 0.05 |
 
-## Quando usar
+## When to use
 
-- Como **primeiro detetor** de anomalias: rápido, funciona com muitas features e muitos dados,
-  e não precisa de padronização (os cortes são numa feature de cada vez).
+- As the **first anomaly detector**: fast, works with many features and a lot of data, and needs
+  no standardisation (the cuts are on one feature at a time).
 
-## Armadilhas
+## Pitfalls
 
-- **A `contamination` decide quantos são marcados:** se a fração verdadeira for outra, o
-  limiar fica no sítio errado. A pontuação é a mesma; só o corte muda.
-- **Anomalias em grupo** (várias anomalias juntas) já não são tão fáceis de isolar.
-- **Anomalias que só se veem numa combinação de features** (um valor normal de cada feature,
-  mas uma combinação rara) são difíceis com cortes paralelos aos eixos.
+- **`contamination` decides how many get flagged:** if the true share is different, the threshold
+  sits in the wrong place. The score is the same; only the cut changes.
+- **Anomalies in a group** (several anomalies together) are no longer so easy to isolate.
+- **Anomalies that only show in a combination of features** (a normal value for each feature, but
+  a rare combination) are hard with cuts parallel to the axes.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar**, as cores mostram a pontuação de anomalia em
-cada ponto do plano: as zonas longe dos dados ficam mais "anómalas". Na avaliação estão a
-distribuição das pontuações com o limiar e, se escolheste a coluna de referência (por exemplo,
-no gerador "Anomalias"), a precisão, a recall e a ROC AUC.
+It trains in one go. On the **Train & evaluate** screen, the colours show the anomaly score at
+each point of the plane: the areas far from the data look more "anomalous". The evaluation shows
+the distribution of the scores with the threshold and, if you picked the reference column (for
+example, in the "Anomalies" generator), the precision, the recall and the ROC AUC.

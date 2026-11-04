@@ -39,33 +39,33 @@ class RegressionEvaluator(Evaluator):
         class_labels: tuple[str, ...] = (),
     ) -> EvaluationReport:
         if y is None:
-            raise ModelError("Para avaliar uma regressão é preciso o alvo.")
+            raise ModelError("Evaluating a regression needs the target.")
         y_true = y.astype(np.float64)
         y_pred = np.asarray(model.predict(X), dtype=np.float64)
         results, undefined = measure(task_type, MetricInputs(y_true, y_pred), order=DISPLAY_ORDER)
         notices: list[Notice] = []
         r2 = next((m.value for m in results if m.name == "r2"), None)
-        where = f"no {partition.label.lower()}"
+        where = f"on the {partition.label.lower()} data"
         baseline_error = float(np.mean(np.abs(y_true - y_true.mean())))
         if r2 is not None and r2 < 0:
             notices.append(
                 Notice.warning(
                     "below_baseline",
-                    f"O R² {where} é {format_number(r2, 3)}: o modelo é pior do que prever "
-                    "sempre a média. Revê as features e a preparação.",
+                    f"The R² {where} is {format_number(r2, 3)}: the model is worse than always "
+                    "predicting the mean. Check the features and the preparation.",
                 )
             )
         elif r2 is not None:
             notices.append(
                 Notice.info(
                     "baseline",
-                    f"Para comparar: prever sempre a média dava R² = 0 e um erro absoluto médio de "
-                    f"{format_number(baseline_error)} {where}; o modelo explica "
-                    f"{format_number(r2 * 100, 1)}% da variação do alvo.",
+                    f"For comparison: always predicting the mean would give R² = 0 and a mean "
+                    f"absolute error of {format_number(baseline_error)} {where}; the model "
+                    f"explains {format_number(r2 * 100, 1)}% of the target's variation.",
                 )
             )
         notices += undefined_notices(
-            undefined, partition, "há poucas linhas, ou o alvo é sempre igual"
+            undefined, partition, "there are too few rows, or the target never changes"
         )
         return EvaluationReport(
             partition=partition,

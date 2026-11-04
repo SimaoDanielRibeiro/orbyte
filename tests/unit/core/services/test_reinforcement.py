@@ -81,11 +81,11 @@ def test_exploring_costs_reward_on_the_cliff(lab: Lab) -> None:
 
 
 def test_problems_in_the_configuration_fail_before_training(lab: Lab) -> None:
-    with pytest.raises(ComponentNotFoundError, match="Querias dizer 'q_learning'"):
+    with pytest.raises(ComponentNotFoundError, match="Did you mean 'q_learning'"):
         lab.reinforcement.run(config(agent="q_lerning"))
-    with pytest.raises(InvalidParameterError, match="ambiente 'gridworld'"):
+    with pytest.raises(InvalidParameterError, match="environment 'gridworld'"):
         lab.reinforcement.run(config(layout="lua"))
-    with pytest.raises(HyperparameterError, match="Desconto"):
+    with pytest.raises(HyperparameterError, match="Discount"):
         lab.reinforcement.run(config(discount=2.0))
 
 
@@ -115,7 +115,7 @@ def test_the_run_is_recorded_and_opens_as_reinforcement_learning(lab: Lab) -> No
     entry = lab.history.entry(result.run_id)
 
     assert entry.task_type is TaskType.CONTROL
-    assert entry.name == "Q-learning em Grelha · simples"
+    assert entry.name == "Q-learning on Grid world · Simple"
     assert entry.primary_value == 1.0
     assert lab.history.open_reinforcement(result.run_id) is result  # desta sessão: em memória
     with pytest.raises(InvalidParameterError, match="reinforcement learning"):
@@ -145,7 +145,7 @@ def test_runs_of_agents_are_compared_and_reproduced(lab: Lab) -> None:
     comparison = lab.history.compare([near.run_id, far.run_id])
     again = lab.history.reproduce(far.run_id).wait(30)
 
-    assert [d.label for d in comparison.differences] == ["Hiperparâmetro · Desconto (γ)"]
+    assert [d.label for d in comparison.differences] == ["Hyperparameter · Discount (γ)"]
     assert again.run_id != far.run_id
     assert again.reports == far.reports
     assert again.learned == far.learned
@@ -155,6 +155,6 @@ def test_the_lesson_is_computed_once_and_is_not_a_run(lab: Lab) -> None:
     taught = lab.reinforcement.lesson()
 
     assert lab.reinforcement.lesson() is taught
-    assert taught.environment_name == "Grelha · penhasco"
+    assert taught.environment_name == "Grid world · Cliff"
     assert lab.history.runs() == ()
     json.dumps(to_json(taught), allow_nan=False)

@@ -73,7 +73,7 @@ export function Chart({
         <div className="flex min-h-6 items-start justify-between gap-3">
           <div className="min-w-0">{legend}</div>
           {hasCaption && (
-            <Explain title="Como se lê" label="Como se lê este gráfico" align="end">
+            <Explain title="How to read it" label="How to read this chart" align="end">
               {caption}
             </Explain>
           )}
@@ -129,7 +129,7 @@ interface AxisProps {
  */
 export function AxisBottom({ ticks, position, format, plot, label }: AxisProps) {
   return (
-    <g aria-hidden="true" className="font-mono text-[12px]">
+    <g aria-hidden="true" className="font-mono text-[13px]">
       <line x1={0} x2={plot.width} y1={plot.height} y2={plot.height} stroke="var(--line-strong)" />
       {ticks.map((tick) => (
         <text
@@ -154,7 +154,7 @@ export function AxisBottom({ ticks, position, format, plot, label }: AxisProps) 
 /** O eixo da esquerda, com a grelha horizontal: uma linha fina por marca. */
 export function AxisLeft({ ticks, position, format, plot, label }: AxisProps) {
   return (
-    <g aria-hidden="true" className="font-mono text-[12px]">
+    <g aria-hidden="true" className="font-mono text-[13px]">
       {ticks.map((tick) => (
         <g key={tick}>
           <line

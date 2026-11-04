@@ -70,7 +70,7 @@ def test_a_run_trains_evaluates_and_describes_the_result(service: ExperimentServ
 
     assert result.dataset_name == "Iris"
     assert result.task_type is TaskType.MULTICLASS_CLASSIFICATION
-    assert result.model_display_name == "Regressão logística"
+    assert result.model_display_name == "Logistic regression"
     assert result.class_labels == ("setosa", "versicolor", "virginica")
     assert result.feature_names == ("sepal_length", "sepal_width", "petal_length", "petal_width")
     assert list(result.reports) == [Partition.TRAIN, Partition.TEST]
@@ -139,7 +139,7 @@ def test_problems_found_before_training_publish_nothing(
 
 
 def test_a_model_that_does_not_solve_the_task_is_refused(service: ExperimentService) -> None:
-    with pytest.raises(ModelError, match="não resolve regressão"):
+    with pytest.raises(ModelError, match="doesn't solve regression"):
         service.run(config(dataset=REGRESSION, preparation=PreparationConfig(target="target")))
 
 
@@ -254,7 +254,7 @@ def test_start_refuses_a_bad_configuration_before_training(
 ) -> None:
     bad = ModelSpec(name="logistic_regression_gd", hyperparameters={"learning_rate": 0})
 
-    with pytest.raises(HyperparameterError, match="Taxa de aprendizagem"):
+    with pytest.raises(HyperparameterError, match="Learning rate"):
         service.start(config(model=bad))
 
     assert events == []
@@ -288,7 +288,7 @@ def test_a_stopped_training_is_evaluated_with_what_it_learned(
     assert result.stopped_early
     assert result.steps == 10
     assert result.training_notices[0].code == "stopped_early"
-    assert "passo 10" in result.training_notices[0].message
+    assert "step 10" in result.training_notices[0].message
     assert result.reports[Partition.TEST].metric("accuracy").value is not None
 
 
@@ -329,5 +329,5 @@ def test_recent_runs_keep_their_model_and_data(
     assert artifacts.model.is_fitted
     assert artifacts.dataset.name == "Iris"
     assert artifacts.config == third.config
-    with pytest.raises(ModelError, match="já não está em memória"):
+    with pytest.raises(ModelError, match="no longer in memory"):
         service.artifacts(first.run_id)

@@ -20,21 +20,25 @@ class TreeParams(Hyperparameters):
         default=5,
         ge=0,
         le=30,
-        title="Profundidade máxima",
+        title="Maximum depth",
         description=(
-            "Quantas perguntas seguidas a árvore pode fazer (0 = sem limite). Árvores fundas "
-            "decoram o treino (overfitting); árvores rasas podem ficar simples demais."
+            "How many questions in a row the tree can ask (0 = no limit). Deep trees memorise "
+            "the training data (overfitting); shallow trees can end up too simple."
         ),
-        json_schema_extra={"x-search": {"values": [2, 3, 4, 5, 6, 8, 10, 0]}},
+        # O 0 lê-se pelo nome: "no limit" diz mais do que "0", no formulário e na conversa.
+        json_schema_extra={
+            "x-search": {"values": [2, 3, 4, 5, 6, 8, 10, 0]},
+            "x-labels": {"0": "no limit"},
+        },
     )
     min_samples_leaf: int = Field(
         default=1,
         ge=1,
         le=100,
-        title="Mínimo de exemplos por folha",
+        title="Minimum examples per leaf",
         description=(
-            "Cada folha tem de ter pelo menos este número de exemplos: valores maiores evitam "
-            "folhas que existem só para acertar num ponto."
+            "Each leaf must hold at least this many examples: larger values avoid leaves that "
+            "exist only to get one point right."
         ),
         json_schema_extra={"x-search": {"values": [1, 2, 5, 10, 20]}},
     )

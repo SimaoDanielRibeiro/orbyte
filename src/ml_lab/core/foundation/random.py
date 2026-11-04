@@ -48,10 +48,10 @@ def validate_seed(seed: object) -> int:
         InvalidSeedError: Se não for um inteiro ou estiver fora do intervalo.
     """
     if isinstance(seed, bool) or not isinstance(seed, SupportsIndex):
-        raise InvalidSeedError(f"A seed tem de ser um número inteiro, não {type(seed).__name__}.")
+        raise InvalidSeedError(f"The seed must be an integer, not {type(seed).__name__}.")
     value = operator.index(seed)
     if not 0 <= value <= MAX_SEED:
-        raise InvalidSeedError(f"A seed tem de estar entre 0 e {MAX_SEED}; recebi {value}.")
+        raise InvalidSeedError(f"The seed must be between 0 and {MAX_SEED}; got {value}.")
     return value
 
 
@@ -84,7 +84,7 @@ def derive_seed(seed: int, name: str) -> int:
     """
     value = validate_seed(seed)
     if not name:
-        raise ValueError("O nome do componente não pode estar vazio.")
+        raise ValueError("The component's name can't be empty.")
     payload = json.dumps([value, name]).encode("utf-8")
     digest = hashlib.blake2b(payload, digest_size=4).digest()
     return int.from_bytes(digest, "big")

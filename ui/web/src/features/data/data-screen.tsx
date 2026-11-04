@@ -2,7 +2,7 @@
  * O ecrã Dados: de onde vêm os dados e o que se leu deles.
  *
  * Com um dataset aberto, ele vem primeiro (é com ele que se trabalha): os números em cartões, os
- * avisos da validação, as primeiras linhas e as colunas, e o passo seguinte da interface aberta.
+ * avisos da validação, as primeiras linhas e as colunas; o passo seguinte fica no cabeçalho.
  * As fontes ficam por baixo, para abrir outro. Ao chegar um dataset novo, a página volta ao topo
  * para o mostrar. As descrições ficam nos "?" (ADR 0032).
  */
@@ -20,7 +20,7 @@ import { useLabel } from "@/api/vocabulary";
 import { TablePreviewView } from "@/components/data/table-preview";
 import { Explain } from "@/components/explain/explain";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, NextStep, Panel, Proceed, Section, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, Panel, Proceed, Section, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import {
@@ -57,31 +57,31 @@ export function DataScreen() {
         topics={["input", "validation", "upload", "automatic_or_manual"]}
       >
         {dataset?.validation.is_usable === true && (
-          <Proceed to="/explorar">Explorar este dataset</Proceed>
+          <Proceed to="/explore">Explore this dataset</Proceed>
         )}
       </PageHeader>
       {lost && (
         <p className="mt-8 max-w-2xl text-sm text-soft">
-          O dataset que estava aberto já não está na API: ela recomeçou, e os datasets carregados
-          vivem na memória dela. Carrega-o outra vez aqui em baixo.
+          The dataset that was open is no longer in the API: it restarted, and loaded datasets live
+          in its memory. Load it again below.
         </p>
       )}
       {dataset !== undefined && <OpenDataset dataset={dataset} />}
       <Section
-        title={dataset === undefined ? "Escolhe os dados" : "Abrir outros dados"}
+        title={dataset === undefined ? "Choose the data" : "Open other data"}
         topic="input"
         className="mt-14"
       >
         {/* As fontes umas por baixo das outras, sem separadores: os exemplos e, logo a seguir, o
             ficheiro, numa zona grande; os sintéticos no fim (ADR 0037). */}
         <div className="flex flex-col gap-14">
-          <Panel title="Os exemplos">
+          <Panel title="The samples">
             <SampleSource open={dataset?.source} />
           </Panel>
-          <Panel title="Um ficheiro teu" topic="upload">
+          <Panel title="A file of yours" topic="upload">
             <FileSource />
           </Panel>
-          <Panel title="Dados sintéticos">
+          <Panel title="Synthetic data">
             <SyntheticSource />
           </Panel>
         </div>
@@ -131,26 +131,26 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
       <StatStrip
         className="mt-6"
         items={[
-          { key: "linhas", label: "Linhas", value: formatCount(dataset.n_rows) },
-          { key: "colunas", label: "Colunas", value: formatCount(dataset.n_columns) },
+          { key: "rows", label: "Rows", value: formatCount(dataset.n_rows) },
+          { key: "columns", label: "Columns", value: formatCount(dataset.n_columns) },
           {
-            key: "avisos",
-            label: "Avisos da validação",
+            key: "warnings",
+            label: "Validation warnings",
             value: formatCount(warnings),
             // Só se diz alguma coisa quando os dados não podem seguir: o número diz o resto.
-            detail: validation.is_usable ? undefined : "os dados não podem seguir",
+            detail: validation.is_usable ? undefined : "the data can't go on",
             tone: !validation.is_usable ? "negative" : warnings === 0 ? "positive" : "neutral",
           },
         ]}
       />
 
       {validation.notices.length > 0 && (
-        <Panel title="A validação" topic="validation" className="mt-10">
+        <Panel title="The validation" topic="validation" className="mt-10">
           <NoticeList notices={validation.notices} />
           {!validation.is_usable && (
             <p role="alert" className="text-sm text-destructive">
-              Estes dados não podem seguir para as próximas etapas: corrige os erros acima e carrega
-              o ficheiro outra vez.
+              This data can&apos;t go on to the next steps: fix the errors above and load the file
+              again.
             </p>
           )}
         </Panel>
@@ -159,9 +159,9 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
       {validation.is_usable && (
         <Panel className="mt-12">
           <Tabs defaultValue="preview">
-            <TabsList aria-label="O que se leu">
-              <TabsTrigger value="preview">Primeiras linhas</TabsTrigger>
-              <TabsTrigger value="columns">Colunas e tipos</TabsTrigger>
+            <TabsList aria-label="What was read">
+              <TabsTrigger value="preview">First rows</TabsTrigger>
+              <TabsTrigger value="columns">Columns and types</TabsTrigger>
             </TabsList>
             <TabsContent value="preview" className="mt-5">
               <Preview datasetId={dataset.id} />
@@ -171,12 +171,6 @@ function OpenDataset({ dataset }: { dataset: DatasetSummary }) {
             </TabsContent>
           </Tabs>
         </Panel>
-      )}
-
-      {validation.is_usable && (
-        <NextStep className="mt-16">
-          <Proceed to="/explorar">Explorar este dataset</Proceed>
-        </NextStep>
       )}
     </section>
   );
@@ -190,7 +184,7 @@ function Preview({ datasetId }: { datasetId: string }) {
   if (preview.data === undefined) {
     return <Skeleton className="h-72 w-full" />;
   }
-  return <TablePreviewView preview={preview.data} label="As primeiras linhas do dataset" />;
+  return <TablePreviewView preview={preview.data} label="The dataset's first rows" />;
 }
 
 /** As colunas: o tipo que o perfil inferiu (o porquê fica no "?" de cada uma) e o do pandas. */
@@ -201,9 +195,9 @@ function Columns({ dataset }: { dataset: DatasetSummary }) {
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="px-4">Coluna</TableHead>
-            <TableHead className="px-4">Tipo inferido</TableHead>
-            <TableHead className="px-4">Tipo no pandas</TableHead>
+            <TableHead className="px-4">Column</TableHead>
+            <TableHead className="px-4">Inferred type</TableHead>
+            <TableHead className="px-4">pandas type</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -214,8 +208,8 @@ function Columns({ dataset }: { dataset: DatasetSummary }) {
                 <span className="inline-flex items-center gap-1">
                   {label("ColumnKind", column.kind)}
                   <Explain
-                    title={`Porquê «${label("ColumnKind", column.kind)}»`}
-                    label={`Porque é que ${column.name} é ${label("ColumnKind", column.kind).toLowerCase()}`}
+                    title={`Why “${label("ColumnKind", column.kind)}”`}
+                    label={`Why ${column.name} is ${label("ColumnKind", column.kind).toLowerCase()}`}
                   >
                     {column.kind_reason}
                   </Explain>
@@ -241,8 +235,8 @@ function LoadedSwitcher({ current }: { current: DatasetSummary }) {
   }
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor="datasets-carregados" className="mono-label">
-        Datasets desta sessão
+      <label htmlFor="datasets-carregados" className="small-label">
+        Datasets in this session
       </label>
       <Select
         value={current.id}

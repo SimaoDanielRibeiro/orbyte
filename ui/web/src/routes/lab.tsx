@@ -7,7 +7,7 @@ interface LaboratorySearch {
   demo?: string;
 }
 
-export const Route = createFileRoute("/laboratorio")({
+export const Route = createFileRoute("/lab")({
   validateSearch: (search: Record<string, unknown>): LaboratorySearch =>
     typeof search.demo === "string" ? { demo: search.demo } : {},
   component: LaboratoryScreen,

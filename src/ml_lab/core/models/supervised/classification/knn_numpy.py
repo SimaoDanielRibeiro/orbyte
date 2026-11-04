@@ -39,10 +39,10 @@ class KnnNumpy(LabModel[KnnParams]):
 
     info = ModelInfo(
         name="knn_numpy",
-        display_name="K vizinhos mais próximos (NumPy)",
+        display_name="K-nearest neighbours (NumPy)",
         summary=(
-            "O mesmo KNN, escrito em NumPy: distâncias, os k mais próximos e a votação, passo a "
-            "passo, para comparares com o do scikit-learn."
+            "The same KNN, written in NumPy: the distances, the k closest and the vote, step "
+            "by step, to compare with scikit-learn's."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.INSTANCE_BASED,
@@ -75,7 +75,7 @@ class KnnNumpy(LabModel[KnnParams]):
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if y is None:
-            raise ModelError("O KNN precisa do alvo para classificar.")
+            raise ModelError("KNN needs the target to classify.")
         check_neighbors(self.hyperparameters.n_neighbors, len(X))
         self._classes = np.unique(y).astype(np.int64)
         self._codes = np.searchsorted(self._classes, y)

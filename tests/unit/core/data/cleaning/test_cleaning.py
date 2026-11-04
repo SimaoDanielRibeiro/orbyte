@@ -58,7 +58,7 @@ def test_bad_recipes_are_explained(passengers: pd.DataFrame) -> None:
         clean(passengers, "drop_columns", cols=["Age"])
     with pytest.raises(ColumnNotFoundError, match="Cabin"):
         clean(passengers, "drop_columns", columns=["Cabin"])
-    with pytest.raises(InvalidParameterError, match="pelo menos uma"):
+    with pytest.raises(InvalidParameterError, match="at least one column"):
         clean(passengers, "drop_columns", columns=[])
 
 
@@ -72,7 +72,7 @@ def test_lineage_uses_singular_and_plural() -> None:
 
     description = apply_cleaning(frame, [CleaningStep("drop_duplicates")]).lineage[0].description
 
-    assert description == "Removida 1 linha duplicada."
+    assert description == "Dropped 1 duplicate row."
 
 
 def test_rows_with_missing_values_in_every_column_only() -> None:
@@ -94,7 +94,7 @@ def test_text_with_decimal_commas_becomes_numbers_and_failures_are_counted() -> 
 
     assert result.frame["preço"].tolist()[:2] == [1.5, 2.0]
     assert result.frame["preço"].isna().sum() == 2
-    assert "1 valor não se converteu" in result.lineage[0].description
+    assert "1 value didn't convert" in result.lineage[0].description
     assert result.lineage[0].columns_changed == ("preço",)
     assert [notice.code for notice in result.notices] == ["conversion_failures"]
 
@@ -116,7 +116,7 @@ def test_dates_booleans_categories_and_text() -> None:
 
 
 def test_unknown_target_types_are_rejected() -> None:
-    with pytest.raises(InvalidParameterError, match="desconhecido"):
+    with pytest.raises(InvalidParameterError, match="Unknown type"):
         clean(pd.DataFrame({"a": [1]}), "convert_type", column="a", to="complex")
 
 
@@ -139,14 +139,14 @@ def test_outliers_are_clipped_or_removed() -> None:
     removed = clean(frame, "treat_outliers", column="x", method="remove")
 
     assert clipped.frame["x"].max() == 7.0
-    assert "1 valor extremo limitado" in clipped.lineage[0].description
+    assert "1 extreme value capped" in clipped.lineage[0].description
     assert removed["x"].tolist() == [1.0, 2.0, 3.0, 4.0]
 
 
 def test_outliers_need_a_numeric_column(passengers: pd.DataFrame) -> None:
-    with pytest.raises(DataError, match="não é numérica"):
+    with pytest.raises(DataError, match="isn't numeric"):
         clean(passengers, "treat_outliers", column="Sex")
-    with pytest.raises(InvalidParameterError, match="Método"):
+    with pytest.raises(InvalidParameterError, match="Unknown method"):
         clean(passengers, "treat_outliers", column="Fare", method="cut")
 
 
@@ -185,6 +185,34 @@ def test_the_target_is_never_suggested_for_removal() -> None:
     frame = pd.DataFrame({"x": [1.0, 2.0, 3.0], "alvo": [np.nan, np.nan, 1.0]})
 
     assert suggest_cleaning(profile_dataset(frame), target="alvo") == ()
+
+
+def test_typing_errors_in_a_numeric_target_are_suggested_for_removal() -> None:
+    rng = np.random.default_rng(0)
+    prices = rng.lognormal(12, 0.4, 2000).round(-2)
+    prices[[5, 50]] = 99_999_999  # dois erros de digitação
+    frame = pd.DataFrame({"area": rng.uniform(40, 200, 2000), "price": prices})
+
+    (suggestion,) = suggest_cleaning(profile_dataset(frame), target="price")
+
+    assert suggestion.step == CleaningStep(
+        "treat_outliers", {"column": "price", "method": "remove", "factor": 10.0}
+    )
+    assert suggestion.reason.startswith("price has 2 values far beyond the rest (up to 99,999,999")
+    assert len(apply_cleaning(frame, [suggestion.step]).frame) == 1998  # só as duas com o erro
+    # Uma cauda longa e real (os extremos da regra habitual) não é um erro: não se sugere nada.
+    assert suggest_cleaning(profile_dataset(frame.drop(index=[5, 50])), target="price") == ()
+
+
+def test_many_repeated_values_are_too_many_categories_not_free_text() -> None:
+    cities = [f"City {index % 300}" for index in range(6000)]
+    notes = [f"note number {index}" for index in range(6000)]
+    frame = pd.DataFrame({"city": cities, "note": notes, "target": [0, 1] * 3000})
+
+    reasons = {s.column: s.reason for s in suggest_cleaning(profile_dataset(frame), "target")}
+
+    assert reasons["city"] == "city has 300 categories, too many to encode."
+    assert reasons["note"] == "note is free text, which models don't use directly."
 
 
 # --- linhas novas (o pacote de um modelo, ADR 0039) ----------------------------------------

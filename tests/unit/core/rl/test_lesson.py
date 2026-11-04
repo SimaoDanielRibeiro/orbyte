@@ -1,12 +1,13 @@
-"""A lição do ecrã: um Q-learning no penhasco, passo a passo, sempre igual."""
+"""A lição do ecrã: um agente no penhasco, passo a passo, sempre igual (uma por agente)."""
 
 from itertools import pairwise
 
 import pytest
 
+from ml_lab.core.foundation.errors import ComponentNotFoundError
 from ml_lab.core.rl.environments.base import CellKind
 from ml_lab.core.rl.environments.gridworld import GOAL_REWARD, STEP_REWARD, TRAP_REWARD
-from ml_lab.core.rl.lesson import LESSON_EPISODES, ReinforcementLesson, lesson
+from ml_lab.core.rl.lesson import LESSON_AGENT, LESSON_EPISODES, ReinforcementLesson, lesson
 
 
 @pytest.fixture(scope="module")
@@ -84,5 +85,49 @@ def test_every_episode_says_what_happened(taught: ReinforcementLesson) -> None:
     first_success = next(episode for episode in taught.kept if episode.reached)
 
     assert all(episode.story for episode in taught.kept)
-    assert "armadilha" in taught.kept[0].story
-    assert "pela primeira vez" in first_success.story
+    assert "trap" in taught.kept[0].story
+    assert "for the first time" in first_success.story
+
+
+def test_the_table_is_corrected_a_fraction_of_the_surprise(taught: ReinforcementLesson) -> None:
+    assert taught.agent == LESSON_AGENT
+    assert taught.update_topic == "rl_update"
+    assert taught.update_rule == "Q moves α = 0.5 of it"
+
+
+# --- a lição do DQN (ADR 0050) ------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def network() -> ReinforcementLesson:
+    return lesson("dqn")
+
+
+def test_there_is_a_lesson_for_the_network_too(network: ReinforcementLesson) -> None:
+    first = network.kept[0]
+
+    assert network.agent == "dqn"
+    assert network.agent_display_name == "DQN (Deep Q-Network)"
+    assert network.update_topic == "rl_update_network"
+    assert "drawn from its memory" in network.update_rule
+    assert all(step.explored for step in first.steps)
+    assert "random weights" in first.story  # uma rede não começa a zeros, como a tabela
+    assert any(episode.reached for episode in network.kept)
+    assert network.kept[-1].episode == network.episodes
+
+
+def test_the_network_lesson_follows_the_same_rules_as_the_table(
+    network: ReinforcementLesson,
+) -> None:
+    layout = network.layout
+    for episode in network.kept:
+        assert layout.kind(episode.steps[0].state) is CellKind.START
+        for step, following in pairwise(episode.steps):
+            assert following.state == step.next_state
+        for kind, value in zip(layout.cells, episode.before, strict=True):
+            assert (value is None) == (kind in (CellKind.WALL, CellKind.GOAL, CellKind.TRAP))
+
+
+def test_an_agent_that_does_not_exist_has_no_lesson() -> None:
+    with pytest.raises(ComponentNotFoundError):
+        lesson("sarsa")

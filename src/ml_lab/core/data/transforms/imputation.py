@@ -30,23 +30,23 @@ class ImputationStrategy(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar na interface."""
         return _LABELS[self]
 
 
 _LABELS: Final[Mapping[ImputationStrategy, str]] = MappingProxyType(
     {
-        ImputationStrategy.MEAN: "Média",
-        ImputationStrategy.MEDIAN: "Mediana",
-        ImputationStrategy.MOST_FREQUENT: "Valor mais frequente",
+        ImputationStrategy.MEAN: "Mean",
+        ImputationStrategy.MEDIAN: "Median",
+        ImputationStrategy.MOST_FREQUENT: "Most frequent value",
     }
 )
 
 _WITH_ARTICLE: Final[Mapping[ImputationStrategy, str]] = MappingProxyType(
     {
-        ImputationStrategy.MEAN: "a média",
-        ImputationStrategy.MEDIAN: "a mediana",
-        ImputationStrategy.MOST_FREQUENT: "o valor mais frequente",
+        ImputationStrategy.MEAN: "the mean",
+        ImputationStrategy.MEDIAN: "the median",
+        ImputationStrategy.MOST_FREQUENT: "the most frequent value",
     }
 )
 
@@ -63,7 +63,7 @@ class Imputer(Transform):
     """
 
     name = "impute"
-    title = "Imputação"
+    title = "Imputation"
 
     def __init__(self, columns: Sequence[str], strategy: ImputationStrategy) -> None:
         super().__init__(columns)
@@ -79,7 +79,7 @@ class Imputer(Transform):
     def describe(self) -> str:
         how = _WITH_ARTICLE[self.strategy]
         filled = [
-            f"{column} ({format_quantity(self._missing_in_train[column], 'nulo', 'nulos')}) com "
+            f"{column} ({format_quantity(self._missing_in_train[column], 'null', 'nulls')}) with "
             f"{_show(self.fill_values[column])}"
             for column in self.columns
             if self._missing_in_train[column]
@@ -87,17 +87,17 @@ class Imputer(Transform):
         others = len(self.columns) - len(filled)
         if not filled:
             return (
-                f"Nenhuma das {format_quantity(others, 'coluna', 'colunas')} tinha nulos no "
-                f"treino; ficou guardada {how} de cada uma, para preencher nulos que apareçam "
-                "na validação, no teste ou em dados novos."
+                f"None of the {format_quantity(others, 'column', 'columns')} had nulls in the "
+                f"training data; {how} of each was kept, to fill in nulls that show up in the "
+                "validation or test data, or in new data."
             )
-        text = f"Nulos do treino preenchidos com {how} do treino: {'; '.join(filled)}."
+        text = f"Training nulls filled in with {how} of the training data: {'; '.join(filled)}."
         if others:
             text += (
-                f" {format_quantity(others, 'outra coluna não tinha', 'outras colunas não tinham')}"
-                " nulos, mas fica com o valor guardado para dados novos."
+                f" {format_quantity(others, 'other column', 'other columns')} had no nulls, "
+                "but keep the value for new data."
             )
-        return f"{text} A validação e o teste usam estes mesmos valores."
+        return f"{text} The validation and test data use these same values."
 
     @override
     def _learned(self) -> dict[str, Any]:

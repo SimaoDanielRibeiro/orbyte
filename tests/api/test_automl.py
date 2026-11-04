@@ -25,14 +25,14 @@ def test_the_options_explain_what_can_be_asked(client: TestClient) -> None:
     assert binary["objectives"][0]["name"] == "accuracy"
     assert binary["settings"]["budget"] == 24
     assert not clustering["supported"]
-    assert "modo manual" in clustering["reason"]
+    assert "manual mode" in clustering["reason"]
 
 
 def test_the_plan_shows_what_the_data_agent_decided(client: TestClient) -> None:
     plan = client.post("/automl/plan", json=REQUEST).json()
 
     assert plan["task_type"] == "multiclass_classification"
-    assert plan["decisions"][0]["title"] == "Remover linhas duplicadas"
+    assert plan["decisions"][0]["title"] == "Drop duplicate rows"
     assert plan["baseline"] == "logistic_regression"
 
 
@@ -51,7 +51,7 @@ def test_a_search_runs_in_the_background_and_ends_with_the_winners_run(
     winner = client.get(f"/experiments/{result['run_id']}/result").json()  # um run normal
     assert winner["model_name"] == result["candidates"][result["winner"] - 1]["model"]
     entry = client.get(f"/history/runs/{result['run_id']}").json()
-    assert entry["name"].startswith("Agentes · ")
+    assert entry["name"].startswith("Agents · ")
 
 
 def test_the_plan_of_a_search_is_there_while_it_runs_and_after(client: TestClient) -> None:
@@ -124,4 +124,4 @@ def test_an_unsupervised_request_is_refused_before_starting(client: TestClient) 
     response = client.post("/automl", json={**REQUEST, "task_type": "clustering"})
 
     assert response.status_code == 422
-    assert "modo manual" in response.json()["message"]
+    assert "manual mode" in response.json()["message"]

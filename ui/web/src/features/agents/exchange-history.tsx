@@ -114,7 +114,7 @@ export function ExchangeHistory({
   }, [moment, onMoment]);
 
   if (current === null) {
-    return <p className="text-sm text-soft">Os agentes ainda não trocaram nenhuma mensagem.</p>;
+    return <p className="text-sm text-soft">The agents haven't exchanged any messages yet.</p>;
   }
 
   // A procura como estava neste momento.
@@ -200,11 +200,11 @@ export function ExchangeHistory({
                 <span aria-hidden="true" className="text-dim">
                   →
                 </span>
-                <span className="sr-only">para</span>
+                <span className="sr-only">to</span>
                 <Recipients recipients={current.recipients} plan={plan} label={label} />
               </>
             )}
-            <span className="font-mono text-xs text-dim">
+            <span className="text-xs text-dim">
               {label("MessageKind", current.kind)},{" "}
               {label("SearchPhase", current.phase).toLowerCase()}
             </span>
@@ -215,7 +215,7 @@ export function ExchangeHistory({
           <Button
             variant="outline"
             size="icon-sm"
-            aria-label="A mensagem anterior"
+            aria-label="The previous message"
             disabled={position === 0}
             onClick={() => {
               go(position - 1);
@@ -225,7 +225,7 @@ export function ExchangeHistory({
           </Button>
           <Button
             size="icon-sm"
-            aria-label={running ? "Pausar o histórico" : "Reproduzir o histórico"}
+            aria-label={running ? "Pause the history" : "Play the history"}
             onClick={() => {
               if (running) {
                 setPlaying(false);
@@ -242,7 +242,7 @@ export function ExchangeHistory({
           <Button
             variant="outline"
             size="icon-sm"
-            aria-label="A mensagem seguinte"
+            aria-label="The next message"
             disabled={position >= last}
             onClick={() => {
               go(position + 1);
@@ -254,7 +254,7 @@ export function ExchangeHistory({
             type="single"
             variant="outline"
             size="sm"
-            aria-label="A velocidade"
+            aria-label="The speed"
             value={String(speed)}
             onValueChange={(value) => {
               const chosen = SPEEDS.find((one) => String(one) === value);
@@ -337,7 +337,7 @@ function Recipients({
   if (recipients.length > 3) {
     return (
       <span className="inline-flex h-6 items-center rounded-full border border-[#3a3a3a] px-2.5 text-strong">
-        {`os ${formatCount(recipients.length)} agentes`}
+        {`all ${formatCount(recipients.length)} agents`}
       </span>
     );
   }
@@ -410,14 +410,14 @@ function Timeline({
         ref={strip}
         role="slider"
         tabIndex={0}
-        aria-label="O momento da procura"
+        aria-label="The moment of the search"
         aria-valuemin={1}
         aria-valuemax={count}
         aria-valuenow={position + 1}
         aria-valuetext={
           current === undefined
             ? undefined
-            : `Mensagem ${String(position + 1)} de ${String(count)}: ${current.author}, ${label("MessageKind", current.kind).toLowerCase()}`
+            : `Message ${String(position + 1)} of ${String(count)}: ${current.author}, ${label("MessageKind", current.kind).toLowerCase()}`
         }
         onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
           const target = keys[event.key];
@@ -459,7 +459,7 @@ function Timeline({
         {phases.map(({ phase, count: size }, index) => (
           <span
             key={`${phase}-${String(index)}`}
-            className="min-w-0 truncate border-t border-[#333] pt-1.5 font-mono text-[12px] text-dim"
+            className="min-w-0 truncate border-t border-[#333] pt-1.5 text-[13px] text-dim"
             style={{ flex: size }}
           >
             {label("SearchPhase", phase)}
@@ -467,7 +467,7 @@ function Timeline({
         ))}
       </div>
       <p className="font-mono text-xs text-dim tabular-nums">
-        Mensagem {formatCount(position + 1)} de {formatCount(count)}
+        Message {formatCount(position + 1)} of {formatCount(count)}
       </p>
     </div>
   );

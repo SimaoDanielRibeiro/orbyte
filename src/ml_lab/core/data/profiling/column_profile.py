@@ -14,8 +14,12 @@ from typing import Final, cast
 import numpy as np
 import pandas as pd
 
-from ml_lab.core.data.cleaning.outliers import OutlierBounds, iqr_bounds
-from ml_lab.core.data.profiling.type_inference import TypeInference, infer_column
+from ml_lab.core.data.cleaning.outliers import GROSS_FACTOR, OutlierBounds, iqr_bounds
+from ml_lab.core.data.profiling.type_inference import (
+    TypeInference,
+    infer_column,
+    repeated_categories,
+)
 from ml_lab.core.data.schema import ColumnKind
 from ml_lab.core.foundation.notices import Notice
 from ml_lab.formatting import format_count, format_number, format_percent, format_quantity
@@ -52,6 +56,8 @@ class NumericSummary:
     maximum: float
     skewness: float | None
     outliers: OutlierBounds | None
+    gross_outliers: OutlierBounds | None = None
+    """Os valores muito para lá dos outros (a regra do IQR com o fator 10): quase sempre erros."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,8 +141,9 @@ def profile_column(
         series: Os valores da coluna (ou de uma amostra das linhas, em datasets grandes).
         inference: O tipo já inferido; se faltar, é inferido aqui.
         full: A coluna completa, quando ``series`` é uma amostra. As contagens (linhas,
-            nulos, distintos) vêm daqui, para serem exatas; as estatísticas e a
-            distribuição vêm da amostra.
+            nulos, distintos) vêm daqui, para serem exatas, e também os extremos (o mínimo, o
+            máximo e os valores muito afastados): são os raros que uma amostra deixa escapar.
+            As outras estatísticas e a distribuição vêm da amostra.
     """
     inference = inference or infer_column(full if full is not None else series)
     name = str(series.name)
@@ -152,7 +159,8 @@ def profile_column(
     date_range: tuple[str, str] | None = None
     if inference.kind is ColumnKind.NUMERIC:
         values = _numeric_values(present, inference)
-        numeric = _summarize(values)
+        every = None if full is None else _numeric_values(full.dropna(), inference)
+        numeric = _summarize(values, every)
         histogram = _histogram(values)
     elif inference.kind is ColumnKind.DATETIME:
         dates = _date_values(present, inference)
@@ -196,22 +204,25 @@ def _date_values(present: pd.Series, inference: TypeInference) -> pd.Series:
     ).dropna()
 
 
-def _summarize(values: pd.Series) -> NumericSummary | None:
+def _summarize(values: pd.Series, every: pd.Series | None = None) -> NumericSummary | None:
+    """As estatísticas de ``values``; com ``every`` (a coluna inteira), os extremos vêm dela."""
     if values.empty:
         return None
+    every = values if every is None or every.empty else every
     q1, median, q3 = (float(q) for q in values.quantile([0.25, 0.5, 0.75]))
     # Os stubs do pandas tipam skew() como um escalar qualquer; numa Series float64 é float.
     skewness = float(cast("float", values.skew())) if len(values) > 2 else None
     return NumericSummary(
         mean=float(values.mean()),
         std=float(values.std()) if len(values) > 1 else 0.0,
-        minimum=float(values.min()),
+        minimum=float(every.min()),
         q1=q1,
         median=median,
         q3=q3,
-        maximum=float(values.max()),
+        maximum=float(every.max()),
         skewness=None if skewness is None or np.isnan(skewness) else skewness,
         outliers=iqr_bounds(values),
+        gross_outliers=iqr_bounds(every, GROSS_FACTOR),
     )
 
 
@@ -241,22 +252,22 @@ def _with_notices(profile: ColumnProfile) -> ColumnProfile:
     name = profile.name
     if profile.n_present == 0:
         notices.append(
-            Notice.warning("empty_column", f"A coluna {name} não tem nenhum valor: remove-a.", name)
+            Notice.warning("empty_column", f"The column {name} has no values: drop it.", name)
         )
         return _replace_notices(profile, notices)
 
     ratio = profile.missing_ratio
     if profile.n_missing:
         amount = (
-            f"{format_percent(ratio)} de valores em falta ({format_count(profile.n_missing)} "
-            f"de {format_count(profile.n_rows)})"
+            f"{format_percent(ratio)} of its values missing ({format_count(profile.n_missing)} "
+            f"of {format_count(profile.n_rows)})"
         )
         if ratio >= MISSING_SEVERE:
             notices.append(
                 Notice.warning(
                     "missing_values",
-                    f"A coluna {name} tem {amount}: com tantos nulos, preenchê-los é inventar "
-                    "dados; considera removê-la.",
+                    f"The column {name} has {amount}: with so many nulls, filling them in is "
+                    "making up data; consider dropping it.",
                     name,
                 )
             )
@@ -264,19 +275,20 @@ def _with_notices(profile: ColumnProfile) -> ColumnProfile:
             notices.append(
                 Notice.warning(
                     "missing_values",
-                    f"A coluna {name} tem {amount}. A transformação pode preenchê-los "
-                    "(imputação) com valores aprendidos só no treino.",
+                    f"The column {name} has {amount}. The transformation can fill them in "
+                    "(imputation) with values learned from the training data only.",
                     name,
                 )
             )
         else:
-            notices.append(Notice.info("missing_values", f"A coluna {name} tem {amount}.", name))
+            notices.append(Notice.info("missing_values", f"The column {name} has {amount}.", name))
 
     if profile.n_unique == 1:
         notices.append(
             Notice.warning(
                 "constant_column",
-                f"A coluna {name} tem sempre o mesmo valor: não ajuda a distinguir nada.",
+                f"The column {name} always has the same value: it doesn't help tell anything "
+                "apart.",
                 name,
             )
         )
@@ -284,17 +296,27 @@ def _with_notices(profile: ColumnProfile) -> ColumnProfile:
         notices.append(
             Notice.warning(
                 "identifier_column",
-                f"A coluna {name} parece um identificador (um valor diferente em cada linha): "
-                "não ajuda a prever dados novos. Remove-a antes de treinar.",
+                f"The column {name} looks like an identifier (a different value in each row): it "
+                "doesn't help predict new data. Drop it before training.",
                 name,
             )
         )
-    if profile.kind is ColumnKind.TEXT:
+    if profile.kind is ColumnKind.TEXT and repeated_categories(profile.n_unique, profile.n_present):
         notices.append(
             Notice.info(
                 "free_text",
-                f"A coluna {name} é texto livre ({format_count(profile.n_unique)} valores "
-                "distintos): os modelos não a usam diretamente.",
+                f"The column {name} has {format_count(profile.n_unique)} categories, too many to "
+                "give each one its own column: models don't use it directly. A coarser column "
+                "(a region instead of a city, say) would fit.",
+                name,
+            )
+        )
+    elif profile.kind is ColumnKind.TEXT:
+        notices.append(
+            Notice.info(
+                "free_text",
+                f"The column {name} is free text ({format_count(profile.n_unique)} distinct "
+                "values): models don't use it directly.",
                 name,
             )
         )
@@ -302,8 +324,8 @@ def _with_notices(profile: ColumnProfile) -> ColumnProfile:
         notices.append(
             Notice.warning(
                 "stored_as_text",
-                f"A coluna {name} está guardada como texto, mas os valores são do tipo "
-                f"{profile.kind.label.lower()}: converte-a na limpeza.",
+                f"The column {name} is stored as text, but its values are "
+                f"{profile.kind.label.lower()}: convert it in the cleaning.",
                 name,
             )
         )
@@ -315,8 +337,9 @@ def _with_notices(profile: ColumnProfile) -> ColumnProfile:
             notices.append(
                 Notice.info(
                     "rare_categories",
-                    f"Na coluna {name}, {', '.join(rare)} aparece{'m' if len(rare) > 1 else ''} "
-                    f"menos de {RARE_CATEGORY} vezes: pode nem chegar ao treino ou ao teste.",
+                    f"In the column {name}, {', '.join(rare)} "
+                    f"appear{'s' if len(rare) == 1 else ''} fewer than {RARE_CATEGORY} times: "
+                    "it may not even reach the training or the test data.",
                     name,
                 )
             )
@@ -326,12 +349,12 @@ def _with_notices(profile: ColumnProfile) -> ColumnProfile:
 def _numeric_notices(name: str, summary: NumericSummary) -> list[Notice]:
     notices: list[Notice] = []
     if summary.skewness is not None and abs(summary.skewness) >= SKEW_WARNING:
-        side = "direita" if summary.skewness > 0 else "esquerda"
+        side = "right" if summary.skewness > 0 else "left"
         notices.append(
             Notice.info(
                 "skewed",
-                f"A distribuição de {name} é muito assimétrica, com cauda para a {side} "
-                f"(assimetria {format_number(summary.skewness)}): a média fica longe da mediana.",
+                f"The distribution of {name} is very skewed, with a tail to the {side} "
+                f"(skewness {format_number(summary.skewness)}): the mean is far from the median.",
                 name,
             )
         )
@@ -342,10 +365,11 @@ def _numeric_notices(name: str, summary: NumericSummary) -> list[Notice]:
         notices.append(
             Notice.info(
                 "outliers",
-                f"A coluna {name} tem "
-                f"{format_quantity(bounds.n_outliers, 'valor extremo', 'valores extremos')}, fora "
-                f"de [{format_number(bounds.lower)}; {format_number(bounds.upper)}] (regra do "
-                "IQR). Podem ser reais: confirma antes de os tratar.",
+                f"The column {name} has "
+                f"{format_quantity(bounds.n_outliers, 'extreme value', 'extreme values')}, "
+                f"outside the range {format_number(bounds.lower)} to "
+                f"{format_number(bounds.upper)} (IQR rule). They may be real: check before "
+                "treating them.",
                 name,
             )
         )

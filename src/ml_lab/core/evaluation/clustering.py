@@ -28,13 +28,13 @@ DISPLAY_ORDER: Final = (
     "noise_ratio",
 )
 
-NOISE_LABEL: Final = "Ruído"
+NOISE_LABEL: Final = "Noise"
 """O nome dos pontos que não ficaram em nenhum grupo."""
 
 
 def group_name(group: int) -> str:
-    """O nome de um grupo: "Grupo 1" para o grupo 0, e o ruído (-1) pelo seu nome."""
-    return NOISE_LABEL if group < 0 else f"Grupo {group + 1}"
+    """O nome de um grupo: "Group 1" para o grupo 0, e o ruído (-1) pelo seu nome."""
+    return NOISE_LABEL if group < 0 else f"Group {group + 1}"
 
 
 def group_names(labels: NDArray[np.int64]) -> tuple[str, ...]:
@@ -65,7 +65,7 @@ class ClusteringEvaluator(Evaluator):
         reference = None if y is None else y.astype(np.int64)
         inputs = MetricInputs(y_true=reference, y_pred=labels, X=X)
         results, undefined = measure(task_type, inputs, order=DISPLAY_ORDER)
-        where = f"no {partition.label.lower()}"
+        where = f"on the {partition.label.lower()} data"
         notices: list[Notice] = []
         groups = set(labels.tolist()) - {-1}
         noise = float(np.mean(labels == -1))
@@ -73,20 +73,21 @@ class ClusteringEvaluator(Evaluator):
             notices.append(
                 Notice.warning(
                     "single_cluster",
-                    f"Ficou tudo num só grupo {where} (ou em nenhum): não há estrutura para "
-                    "medir. No DBSCAN, muda o raio; nos outros, confirma o número de grupos.",
+                    f"Everything ended up in a single group {where} (or in none): there's no "
+                    "structure to measure. In DBSCAN, change the radius; in the others, check "
+                    "the number of groups.",
                 )
             )
         if noise > 0.5:
             notices.append(
                 Notice.warning(
                     "mostly_noise",
-                    f"{format_percent(noise)} dos pontos ficaram como ruído {where}: o raio "
-                    "(eps) é pequeno demais para a densidade destes dados.",
+                    f"{format_percent(noise)} of the points ended up as noise {where}: the "
+                    "radius (eps) is too small for the density of this data.",
                 )
             )
         notices += undefined_notices(
-            undefined, partition, "precisa de pelo menos dois grupos com pontos"
+            undefined, partition, "it needs at least two groups with points"
         )
         matrix = None
         if reference is not None and class_labels:

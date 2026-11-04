@@ -20,10 +20,10 @@ from ml_lab.core.training.context import RecordingTrainingContext
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "algorithms"
 TEMPLATE_SECTIONS = (
-    "## Intuição",
-    "## Matemática essencial",
-    "## Hiperparâmetros",
-    "## Armadilhas",
+    "## Intuition",
+    "## Essential maths",
+    "## Hyperparameters",
+    "## Pitfalls",
 )
 REDUCTION = TaskType.DIMENSIONALITY_REDUCTION
 

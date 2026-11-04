@@ -24,10 +24,10 @@ class SvrParams(KernelParams):
         default=0.1,
         ge=0.0,
         le=10,
-        title="Epsilon (largura do tubo)",
+        title="Epsilon (tube width)",
         description=(
-            "Erros menores do que isto não contam. Na escala do alvo: com um alvo em milhares, "
-            "um epsilon de 0,1 é praticamente zero."
+            "Errors smaller than this don't count. On the target's scale: with a target in the "
+            "thousands, an epsilon of 0.1 is practically zero."
         ),
     )
 
@@ -38,10 +38,10 @@ class Svr(SklearnModel[SvrParams]):
 
     info = ModelInfo(
         name="svr",
-        display_name="Regressão por vetores de suporte (SVR)",
+        display_name="Support vector regression (SVR)",
         summary=(
-            "Uma função tão plana quanto possível, com uma margem de tolerância aos erros; com o "
-            "kernel RBF, segue curvas."
+            "A function as flat as possible, with a margin of tolerance for errors; with the RBF "
+            "kernel, it follows curves."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.KERNEL,

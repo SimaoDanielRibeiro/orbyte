@@ -20,9 +20,9 @@ export function RequireDataset({ children }: RequireDatasetProps) {
   if (datasetId === null) {
     return (
       <NeedsStep
-        message="Ainda não há dados abertos. Escolhe um dataset de exemplo, carrega um ficheiro ou gera dados sintéticos."
-        to="/dados"
-        action="Escolher os dados"
+        message="No data is open yet. Pick a sample dataset, load a file or generate synthetic data."
+        to="/data"
+        action="Choose the data"
       />
     );
   }
@@ -42,9 +42,9 @@ export function RequireDataset({ children }: RequireDatasetProps) {
 export function LostDataset() {
   return (
     <NeedsStep
-      message="O dataset que estava aberto já não está na API: ela recomeçou, e os datasets carregados vivem na memória dela. Carrega-o outra vez."
-      to="/dados"
-      action="Carregar os dados"
+      message="The dataset that was open is no longer in the API: it restarted, and loaded datasets live in its memory. Load it again."
+      to="/data"
+      action="Load the data"
     />
   );
 }
@@ -52,12 +52,7 @@ export function LostDataset() {
 /** O lugar de um ecrã enquanto os dados não chegam. */
 export function PageSkeleton() {
   return (
-    <div
-      className="mt-10 flex flex-col gap-4"
-      role="status"
-      aria-busy="true"
-      aria-label="A carregar"
-    >
+    <div className="mt-10 flex flex-col gap-4" role="status" aria-busy="true" aria-label="Loading">
       <Skeleton className="h-6 w-64" />
       <Skeleton className="h-4 w-full max-w-xl" />
       <Skeleton className="h-48 w-full" />

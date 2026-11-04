@@ -79,15 +79,15 @@ class SampleSource(DataSource):
         problems = [notice.message for notice in check_rules(table.frame, info.rules)]
         if len(table.frame) != info.n_rows:
             problems.append(
-                f"Esperava {format_count(info.n_rows)} linhas e há "
+                f"Expected {format_count(info.n_rows)} rows and there are "
                 f"{format_count(len(table.frame))}."
             )
         if problems:
             raise DataValidationError(
                 [
-                    f"O dataset de exemplo '{info.name}' não tem o conteúdo esperado.",
+                    f"The sample dataset '{info.name}' doesn't have the expected content.",
                     *problems,
-                    "Para o repor, corre: uv run python scripts/download_samples.py --force",
+                    "To restore it, run: uv run python scripts/download_samples.py --force",
                 ]
             )
         return LoadedTable(
@@ -121,15 +121,15 @@ SAMPLES.add(
         name="iris",
         title="Iris",
         description=(
-            "Medidas das sépalas e das pétalas (em cm) de 150 flores de três espécies de íris, "
-            "recolhidas por Edgar Anderson e publicadas por Ronald Fisher em 1936. O alvo é "
-            "species. São dados limpos e equilibrados (50 flores por espécie), ideais para o "
-            "primeiro modelo de classificação."
+            "Sepal and petal measurements (in cm) of 150 flowers from three iris species, "
+            "collected by Edgar Anderson and published by Ronald Fisher in 1936. The target is "
+            "species. The data is clean and balanced (50 flowers per species), ideal for a first "
+            "classification model."
         ),
         filename="iris.csv",
         target="species",
         task_type=TaskType.MULTICLASS_CLASSIFICATION,
-        source="R. A. Fisher (1936), cópia do repositório seaborn-data",
+        source="R. A. Fisher (1936), copy from the seaborn-data repository",
         url="https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv",
         n_rows=150,
         rules=(
@@ -150,11 +150,11 @@ SAMPLES.add(
         name="wine",
         title="Wine",
         description=(
-            "Análise química de 178 vinhos de três castas (cultivares) da mesma região de "
-            "Itália: álcool, acidez, fenóis, cor e mais nove medidas. O alvo é cultivar (1, 2 "
-            "ou 3), um inteiro com poucos valores distintos, por isso a tarefa sugerida é "
-            "classificação. As medidas têm escalas muito diferentes (a prolina chega aos "
-            "milhares), o que mostra porque se escalam as features."
+            "Chemical analysis of 178 wines from three grape cultivars of the same region of "
+            "Italy: alcohol, acidity, phenols, colour and nine more measurements. The target is "
+            "cultivar (1, 2 or 3), an integer with few distinct values, so the suggested task is "
+            "classification. The measurements have very different scales (proline reaches the "
+            "thousands), which shows why features are scaled."
         ),
         filename="wine.csv",
         target="cultivar",
@@ -189,15 +189,15 @@ SAMPLES.add(
         name="titanic",
         title="Titanic",
         description=(
-            "Os 891 passageiros do conjunto de treino do Kaggle: classe, sexo, idade, família a "
-            "bordo, tarifa e porto de embarque. O alvo é Survived (1 = sobreviveu). Tem valores "
-            "em falta (Age, Cabin, Embarked), texto livre (Name, Ticket) e um identificador "
-            "(PassengerId): é o exemplo clássico para limpar e preparar dados."
+            "The 891 passengers of Kaggle's training set: class, sex, age, family on board, "
+            "fare and port of embarkation. The target is Survived (1 = survived). It has missing "
+            "values (Age, Cabin, Embarked), free text (Name, Ticket) and an identifier "
+            "(PassengerId): it's the classic example for cleaning and preparing data."
         ),
         filename="titanic.csv",
         target="Survived",
         task_type=TaskType.BINARY_CLASSIFICATION,
-        source="Kaggle, «Titanic: Machine Learning from Disaster», cópia do tutorial do pandas",
+        source="Kaggle, “Titanic: Machine Learning from Disaster”, copy from the pandas tutorial",
         url="https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/titanic.csv",
         n_rows=891,
         rules=(
@@ -223,17 +223,18 @@ SAMPLES.add(
         name="california_housing",
         title="California Housing",
         description=(
-            "Os 20 640 bairros da Califórnia no censo de 1990: localização, idade das casas, "
-            "divisões, população, rendimento mediano e proximidade ao oceano. O alvo é "
-            "median_house_value (regressão). Tem 207 valores em falta em total_bedrooms, uma "
-            "coluna categórica e o alvo limitado a 500 001 dólares. Por ser grande, o perfil "
-            "usa uma amostra."
+            "The 20,640 districts of California in the 1990 census: location, age of the "
+            "houses, rooms, population, median income and closeness to the ocean. The target is "
+            "median_house_value (regression). It has 207 missing values in total_bedrooms, a "
+            "categorical column and the target capped at 500,001 dollars. Since it's big, the "
+            "profile uses a sample."
         ),
         filename="california_housing.csv.gz",
         target="median_house_value",
         task_type=TaskType.REGRESSION,
         source=(
-            "R. K. Pace e R. Barry (1997), StatLib; versão de A. Géron, «Hands-On Machine Learning»"
+            "R. K. Pace and R. Barry (1997), StatLib; version by A. Géron, “Hands-On Machine "
+            "Learning”"
         ),
         url=(
             "https://raw.githubusercontent.com/ageron/handson-ml2/master/datasets/housing/"

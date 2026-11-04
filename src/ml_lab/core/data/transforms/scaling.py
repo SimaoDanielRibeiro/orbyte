@@ -34,14 +34,14 @@ class ScalingMethod(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar na interface."""
         return _LABELS[self]
 
 
 _LABELS: Final[Mapping[ScalingMethod, str]] = MappingProxyType(
     {
-        ScalingMethod.STANDARD: "Padronização (média 0, desvio 1)",
-        ScalingMethod.MINMAX: "Min-max (entre 0 e 1)",
+        ScalingMethod.STANDARD: "Standardisation (mean 0, deviation 1)",
+        ScalingMethod.MINMAX: "Min-max (between 0 and 1)",
     }
 )
 
@@ -57,7 +57,7 @@ class StandardScaler(Transform):
     """
 
     name = "standard_scaler"
-    title = "Padronização"
+    title = "Standardisation"
 
     def __init__(self, columns: Sequence[str]) -> None:
         super().__init__(columns)
@@ -67,13 +67,13 @@ class StandardScaler(Transform):
     @override
     def describe(self) -> str:
         examples = "; ".join(
-            f"{column}: média {format_number(self.means[column])}, desvio "
+            f"{column}: mean {format_number(self.means[column])}, deviation "
             f"{format_number(self.scales[column])}"
             for column in self.columns[:_EXAMPLES]
         )
         more = "…" if len(self.columns) > _EXAMPLES else ""
         return (
-            f"{len(self.columns)} colunas padronizadas com a média e o desvio do treino "
+            f"{len(self.columns)} columns standardised with the training mean and deviation "
             f"({examples}{more})."
         )
 
@@ -121,13 +121,13 @@ class MinMaxScaler(Transform):
     @override
     def describe(self) -> str:
         examples = "; ".join(
-            f"{column}: de {format_number(self.minimums[column])} a "
+            f"{column}: from {format_number(self.minimums[column])} to "
             f"{format_number(self.minimums[column] + self.ranges[column])}"
             for column in self.columns[:_EXAMPLES]
         )
         more = "…" if len(self.columns) > _EXAMPLES else ""
         return (
-            f"{len(self.columns)} colunas levadas para [0, 1] com o mínimo e o máximo do treino "
+            f"{len(self.columns)} columns brought to [0, 1] with the training minimum and maximum "
             f"({examples}{more})."
         )
 

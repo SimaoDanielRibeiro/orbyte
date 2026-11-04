@@ -1,4 +1,4 @@
-"""Os erros da API: cada erro do ML Lab vira um código HTTP, com a mensagem em português.
+"""Os erros da API: cada erro do ML Lab vira um código HTTP, com a mensagem em inglês.
 
 Os serviços lançam subclasses de ``MLLabError`` com mensagens que dizem o que aconteceu e o
 que fazer (regra 8 do ``CONTRIBUTING.md``). A API não reescreve as mensagens: só escolhe o código
@@ -15,7 +15,7 @@ HTTP pela categoria do erro, a primeira desta lista que servir:
 O corpo da resposta é sempre um ``ApiError``, com um ``code`` estável (o nome do erro, em
 ``snake_case``: ``run_not_found``) com que o frontend decide o que fazer. Um pedido com a
 forma errada (um campo em falta, texto onde devia vir um número) responde 422 com o código
-``invalid_request`` e uma frase em português por cada problema.
+``invalid_request`` e uma frase em inglês por cada problema.
 """
 
 import re
@@ -41,7 +41,7 @@ class ApiError:
 
     Attributes:
         code: Identificador estável do erro (``run_not_found``, ``invalid_request``...).
-        message: O que aconteceu e o que fazer, em português.
+        message: O que aconteceu e o que fazer, em inglês.
         problems: Num pedido inválido, uma frase por cada problema.
     """
 
@@ -114,7 +114,7 @@ async def _invalid_request(request: Request, error: Exception) -> JSONResponse:
     problems = describe_problems(_without_source(error.errors()))
     body = ApiError(
         code="invalid_request",
-        message="O pedido tem valores que não servem: " + " ".join(problems),
+        message="The request has values that don't work: " + " ".join(problems),
         problems=problems,
     )
     return JSONResponse(to_json(body), status_code=422)
@@ -125,8 +125,8 @@ async def _unexpected(request: Request, error: Exception) -> JSONResponse:
     body = ApiError(
         code="unexpected",
         message=(
-            f"Erro inesperado no servidor ({type(error).__name__}): {error}. Os logs do servidor "
-            "têm os detalhes."
+            f"Unexpected server error ({type(error).__name__}): {error}. The server logs have "
+            "the details."
         ),
     )
     return JSONResponse(to_json(body), status_code=500)

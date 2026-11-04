@@ -102,7 +102,7 @@ def primary_metric(task_type: TaskType) -> Metric:
     """
     name = PRIMARY_METRIC.get(task_type)
     if name is None:
-        raise ModelError(f"{task_type.label} não tem métrica principal.")
+        raise ModelError(f"{task_type.label} has no main metric.")
     return METRICS.get(name)
 
 
@@ -153,11 +153,11 @@ def cross_validate(
     task = _supervised(folds)
     metric = metric or primary_metric(task)
     if task not in metric.task_types:
-        raise ModelError(f"{metric.display_name} não é uma métrica de {task.label.lower()}.")
+        raise ModelError(f"{metric.display_name} isn't a {task.label.lower()} metric.")
     if metric.needs_proba and not model_class.info.supports_proba:
         raise CapabilityError(
-            f"{metric.display_name} precisa das probabilidades, e "
-            f"'{model_class.info.display_name}' não as dá."
+            f"{metric.display_name} needs probabilities, and "
+            f"'{model_class.info.display_name}' doesn't give them."
         )
     results = []
     for number, dataset in enumerate(folds, start=1):
@@ -234,18 +234,19 @@ def learning_curve(
 
 def _supervised(folds: Sequence[Dataset]) -> TaskType:
     if not folds:
-        raise ModelError("Não há folds para avaliar.")
+        raise ModelError("There are no folds to evaluate.")
     task = folds[0].task_type
     if not task.requires_target:
         raise ModelError(
-            f"A validação cruzada mede previsões contra um alvo: {task.label.lower()} não tem."
+            f"Cross-validation measures predictions against a target: {task.label.lower()} "
+            "has none."
         )
     return task
 
 
 def _target(y: NDArray[Any] | None) -> NDArray[Any]:
     if y is None:
-        raise ModelError("A validação cruzada precisa do alvo.")
+        raise ModelError("Cross-validation needs the target.")
     return y
 
 
@@ -281,17 +282,17 @@ def _read_cross_validation(
     notices = [
         Notice.info(
             "cross_validation",
-            f"{label} em {format_count(len(folds))} folds: {_written(metric, mean)} em média, "
-            f"variando ± {_written(metric, std)} de fold para fold. É uma estimativa mais "
-            "segura do que um só teste.",
+            f"{label} over {format_count(len(folds))} folds: {_written(metric, mean)} on "
+            f"average, varying by ± {_written(metric, std)} from fold to fold. It's a safer "
+            "estimate than a single test.",
         )
     ]
     if std > GAP / 2:
         notices.append(
             Notice.warning(
                 "unstable",
-                f"O resultado muda muito de fold para fold (± {_written(metric, std)}): com tão "
-                "poucos dados, um único teste pode enganar bastante.",
+                f"The result changes a lot from fold to fold (± {_written(metric, std)}): with "
+                "so little data, a single test can be quite misleading.",
             )
         )
     return tuple(notices)
@@ -306,20 +307,21 @@ def _read_learning_curve(metric: Metric, points: Sequence[CurvePoint]) -> tuple[
     rising = sign * (last.test_mean - before.test_mean) > 0.01
     if gap > GAP:
         message = (
-            f"Com todo o treino, o treino fica {format_number(gap * 100, 1)} pontos acima da "
-            f"avaliação ({metric.display_name}): o modelo decora parte do treino (variância). "
-            "Mais dados, mais regularização ou um modelo mais simples ajudam."
+            f"With all the training data, the training score is {format_number(gap * 100, 1)} "
+            f"points above the evaluation ({metric.display_name}): the model memorises part of "
+            "the training data (variance). More data, more regularisation or a simpler model "
+            "help."
         )
         return (Notice.warning("high_variance", message),)
     if rising:
         message = (
-            "A avaliação ainda melhora quando o treino cresce: com mais dados, o modelo "
-            "provavelmente ficaria melhor."
+            "The evaluation still improves as the training data grows: with more data, the "
+            "model would probably get better."
         )
         return (Notice.info("more_data", message),)
     message = (
-        "O treino e a avaliação estão próximos e estabilizaram: mais dados já não ajudam muito. "
-        "Se o resultado for fraco, o modelo é simples demais para os dados (viés): experimenta "
-        "um mais flexível ou outras features."
+        "The training and the evaluation are close and have levelled off: more data won't help "
+        "much any more. If the result is weak, the model is too simple for the data (bias): "
+        "try a more flexible one or other features."
     )
     return (Notice.info("plateau", message),)

@@ -35,21 +35,20 @@ def stratified_split(
     """
     if target is None:
         raise InvalidParameterError(
-            "A divisão estratificada precisa de um alvo: escolhe a coluna-alvo ou usa a "
-            "divisão aleatória."
+            "The stratified split needs a target: choose the target column or use the random split."
         )
     labels = frame[target]
     if labels.isna().any():
         raise DataError(
-            f"O alvo {target} tem valores em falta: remove essas linhas antes de estratificar."
+            f"The target {target} has missing values: drop those rows before stratifying."
         )
     codes, classes = pd.factorize(labels, sort=True)
     counts = np.bincount(codes, minlength=len(classes))
     tiny = [str(classes[int(c)]) for c in np.flatnonzero(counts < 2)]
     if tiny:
         raise DataError(
-            f"As classes {', '.join(tiny)} só têm uma linha, por isso não se podem repartir. "
-            "Remove-as ou usa a divisão aleatória."
+            f"The classes {', '.join(tiny)} only have one row, so they can't be shared out. "
+            "Drop them or use the random split."
         )
 
     _, n_validation, n_test = partition_sizes(len(frame), config)

@@ -5,11 +5,13 @@ from typing import Literal
 from ml_lab.api.errors import ERROR_RESPONSES
 from ml_lab.api.routing import LabDep, ServiceRouter
 from ml_lab.core.services import (
+    DataSizeDemo,
     DemoCard,
     KnnDemo,
     LearningRateDemo,
     OverfittingDemo,
     RegularizationDemo,
+    ThresholdDemo,
 )
 
 router = ServiceRouter(prefix="/laboratory", tags=["laboratory"], responses=ERROR_RESPONSES)
@@ -45,3 +47,15 @@ def regularization(
 ) -> RegularizationDemo:
     """Os pesos da Ridge ou do Lasso para uma gama de alphas."""
     return lab.laboratory.regularization(kind, alpha)
+
+
+@router.get("/threshold")
+def threshold(lab: LabDep, threshold: float) -> ThresholdDemo:
+    """A regressão logística em dados desequilibrados, a decidir com o limiar ``threshold``."""
+    return lab.laboratory.threshold(threshold)
+
+
+@router.get("/data-size")
+def data_size(lab: LabDep, size: int) -> DataSizeDemo:
+    """A árvore e a regressão logística treinadas com ``size`` linhas."""
+    return lab.laboratory.data_size(size)

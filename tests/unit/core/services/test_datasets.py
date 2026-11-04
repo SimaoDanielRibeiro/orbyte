@@ -78,7 +78,7 @@ def test_uploads_are_saved_with_a_content_hash(service: DatasetService, tmp_path
 
 @pytest.mark.parametrize(
     ("filename", "content", "error"),
-    [("dados.json", b"{}", DataSourceError), ("vazio.csv", b"", DataValidationError)],
+    [("dados.sav", b"$FL2", DataSourceError), ("vazio.csv", b"", DataValidationError)],
 )
 def test_bad_uploads_are_refused_before_being_saved(
     service: DatasetService, tmp_path: Path, filename: str, content: bytes, error: type[Exception]
@@ -142,7 +142,7 @@ def test_prepared_data_is_reused_for_the_same_configuration(service: DatasetServ
 
 def test_unknown_datasets_are_explained(service: DatasetService) -> None:
     # Um LookupError: a API responde 404 (não existe), e não 422 (pedido mal escrito).
-    with pytest.raises(DatasetNotFoundError, match="carrega-o primeiro"):
+    with pytest.raises(DatasetNotFoundError, match="load it first"):
         service.summary("nada")
 
 

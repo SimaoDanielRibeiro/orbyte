@@ -24,11 +24,11 @@ from ml_lab.formatting import format_percent, format_quantity
 
 @cleaning_operation(
     "drop_missing_rows",
-    title="Remover linhas com valores em falta",
+    title="Drop rows with missing values",
     description=(
-        "Remove as linhas com valores em falta nas colunas indicadas (ou em qualquer "
-        "coluna). Usa-se sobretudo para o alvo; para as features, a imputação na "
-        "transformação costuma ser melhor do que perder linhas."
+        "Drops the rows with missing values in the given columns (or in any column). It's "
+        "mostly for the target; for the features, imputation in the transformation is usually "
+        "better than losing rows."
     ),
 )
 def drop_missing_rows(
@@ -39,24 +39,23 @@ def drop_missing_rows(
 ) -> CleaningResult:
     """Remove as linhas com nulos em ``columns`` (``how="all"``: só se todas forem nulas)."""
     if how not in ("any", "all"):
-        raise InvalidParameterError(f"Valor '{how}' inválido para how: usa 'any' ou 'all'.")
+        raise InvalidParameterError(f"Invalid value '{how}' for how: use 'any' or 'all'.")
     subset = list(columns) if columns else None
     if subset:
         require_columns(frame, subset)
     result = frame.dropna(subset=subset, how=how)
     removed = len(frame) - len(result)
-    where = f"em {', '.join(subset)}" if subset else "em alguma coluna"
+    where = f"in {', '.join(subset)}" if subset else "in some column"
     if how == "all":
-        where = f"em todas as colunas{' indicadas' if subset else ''}"
+        where = f"in all the{' given' if subset else ''} columns"
     if removed:
         share = format_percent(removed / len(frame))
         description = (
-            f"{'Removida' if removed == 1 else 'Removidas'} "
-            f"{format_quantity(removed, 'linha', 'linhas')} ({share}) com valores em falta "
+            f"Dropped {format_quantity(removed, 'row', 'rows')} ({share}) with missing values "
             f"{where}."
         )
     else:
-        description = f"Não havia linhas com valores em falta {where}."
+        description = f"There were no rows with missing values {where}."
     params: dict[str, object] = {"how": how}
     if subset:
         params["columns"] = subset

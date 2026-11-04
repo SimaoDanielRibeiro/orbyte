@@ -32,10 +32,10 @@ class QLearningParams(EpisodicParams):
         default=0.5,
         gt=0.0,
         le=1.0,
-        title="Taxa de aprendizagem (α)",
+        title="Learning rate (α)",
         description=(
-            "Quanto cada passo corrige o Q: com 1, o Q passa a ser só o que se viu agora; com "
-            "0,1, muda devagar, o que ajuda quando o ambiente é aleatório (com escorregar)."
+            "How much each step corrects Q: at 1, Q becomes only what was just seen; at 0.1, it "
+            "changes slowly, which helps when the environment is random (with slipping)."
         ),
     )
 
@@ -48,8 +48,8 @@ class QLearningAgent(EpisodicAgent[QLearningParams]):
         name="q_learning",
         display_name="Q-learning",
         summary=(
-            "Aprende uma tabela com o valor de cada ação em cada estado, corrigida a cada "
-            "passo pelo que acabou de ver."
+            "Learns a table with the value of each action in each state, corrected at every "
+            "step by what it has just seen."
         ),
         implementation=Implementation.DIDACTIC,
         hyperparameters=QLearningParams,

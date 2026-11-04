@@ -75,4 +75,4 @@ def test_bad_configurations_are_explained(client: TestClient) -> None:
     assert unknown.status_code == 404
     assert unknown.json()["code"] == "component_not_found"
     assert bad_map.status_code == 422
-    assert "ambiente 'gridworld'" in bad_map.json()["message"]
+    assert "environment 'gridworld'" in bad_map.json()["message"]

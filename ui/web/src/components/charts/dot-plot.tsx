@@ -111,7 +111,7 @@ export function DotPlot({
                 y={center}
                 dy="0.32em"
                 textAnchor="end"
-                className="fill-foreground text-xs"
+                className="fill-foreground text-[14px]"
               >
                 {row.label}
               </text>
@@ -119,7 +119,7 @@ export function DotPlot({
               <text
                 x={0}
                 y={center + 15}
-                className="fill-dim font-mono text-[11px] tabular-nums"
+                className="fill-dim font-mono text-[12px] tabular-nums"
                 aria-hidden="true"
               >
                 {format(row.min)}
@@ -128,7 +128,7 @@ export function DotPlot({
                 x={plot.width}
                 y={center + 15}
                 textAnchor="end"
-                className="fill-dim font-mono text-[11px] tabular-nums"
+                className="fill-dim font-mono text-[12px] tabular-nums"
                 aria-hidden="true"
               >
                 {format(row.max)}

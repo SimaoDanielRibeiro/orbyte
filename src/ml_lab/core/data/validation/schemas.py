@@ -25,11 +25,11 @@ from ml_lab.formatting import format_count, format_number, format_quantity
 type DtypeFamily = Literal["any", "numeric", "integer", "text", "boolean", "datetime"]
 
 _FAMILY_LABELS = {
-    "numeric": "numérica",
-    "integer": "de números inteiros",
-    "text": "de texto",
-    "boolean": "booleana",
-    "datetime": "de datas",
+    "numeric": "numeric",
+    "integer": "whole numbers",
+    "text": "text",
+    "boolean": "boolean",
+    "datetime": "dates",
 }
 
 
@@ -65,7 +65,9 @@ def check_rules(frame: pd.DataFrame, rules: Sequence[ColumnRule]) -> tuple[Notic
         if rule.name not in frame.columns:
             if rule.required:
                 notices.append(
-                    Notice.error("missing_column", f"Falta a coluna '{rule.name}'.", rule.name)
+                    Notice.error(
+                        "missing_column", f"The column '{rule.name}' is missing.", rule.name
+                    )
                 )
             continue
         notices.extend(_check_column(frame[rule.name], rule))
@@ -78,7 +80,7 @@ def _check_column(column: pd.Series, rule: ColumnRule) -> list[Notice]:
         return [
             Notice.error(
                 "wrong_type",
-                f"A coluna '{name}' devia ser {_FAMILY_LABELS[rule.family]}, mas é do tipo "
+                f"The column '{name}' should be {_FAMILY_LABELS[rule.family]}, but its type is "
                 f"{column.dtype}.",
                 name,
             )
@@ -89,7 +91,7 @@ def _check_column(column: pd.Series, rule: ColumnRule) -> list[Notice]:
         notices.append(
             Notice.error(
                 "unexpected_missing",
-                f"A coluna '{name}' não devia ter valores em falta e tem "
+                f"The column '{name}' shouldn't have missing values and has "
                 f"{format_count(n_missing)}.",
                 name,
             )
@@ -98,7 +100,7 @@ def _check_column(column: pd.Series, rule: ColumnRule) -> list[Notice]:
         notices.append(
             Notice.error(
                 "below_minimum",
-                f"A coluna '{name}' tem {format_quantity(below, 'valor', 'valores')} abaixo de "
+                f"The column '{name}' has {format_quantity(below, 'value', 'values')} below "
                 f"{format_number(rule.minimum)}.",
                 name,
             )
@@ -107,7 +109,7 @@ def _check_column(column: pd.Series, rule: ColumnRule) -> list[Notice]:
         notices.append(
             Notice.error(
                 "above_maximum",
-                f"A coluna '{name}' tem {format_quantity(above, 'valor', 'valores')} acima de "
+                f"The column '{name}' has {format_quantity(above, 'value', 'values')} above "
                 f"{format_number(rule.maximum)}.",
                 name,
             )
@@ -118,7 +120,7 @@ def _check_column(column: pd.Series, rule: ColumnRule) -> list[Notice]:
             notices.append(
                 Notice.error(
                     "unexpected_values",
-                    f"A coluna '{name}' tem valores inesperados: {', '.join(unexpected[:5])}.",
+                    f"The column '{name}' has unexpected values: {', '.join(unexpected[:5])}.",
                     name,
                 )
             )

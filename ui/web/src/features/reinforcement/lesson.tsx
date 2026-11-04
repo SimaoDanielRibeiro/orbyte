@@ -18,12 +18,13 @@
  * Começa sozinha quando aparece no ecrã e pára quando sai dele. Com "reduzir movimento" não
  * começa sozinha, e o agente salta de célula em célula, sem deslizar.
  */
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 import {
   Compass,
   Dices,
   Gift,
+  LoaderCircle,
   MapPin,
   Pause,
   Play,
@@ -32,10 +33,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import type { GridLayout, LessonEpisode, LessonStep } from "@/api/generated";
-import { reinforcementLessonOptions } from "@/api/generated/@tanstack/react-query.gen";
+import {
+  reinforcementAgentsOptions,
+  reinforcementLessonOptions,
+} from "@/api/generated/@tanstack/react-query.gen";
 import { useTopic } from "@/api/topics";
 import { cellFill } from "@/components/charts/grid-fill";
 import { CellSymbol } from "@/components/charts/grid-world";
@@ -63,34 +67,89 @@ const SPEEDS: readonly Speed[] = [1, 2, 4];
 /** O lado máximo de uma célula da grelha, em px. */
 const MAX_CELL = 64;
 
+/** O agente da lição que abre: o Q-learning, o mais simples de seguir. */
+const FIRST_AGENT = "q_learning";
+
+/**
+ * A lição de cada agente (ADR 0050): o seletor por cima escolhe qual se vê aprender. A do
+ * Q-learning corrige uma tabela a cada passo; a do DQN treina uma rede com lotes da memória.
+ * A primeira vez que se pede a de um agente, o backend treina-o (a do DQN demora uns segundos):
+ * entretanto, a lição de antes fica à vista, esbatida, e uma linha diz o que se está a fazer.
+ */
 export function RlLesson() {
-  const lesson = useQuery({ ...reinforcementLessonOptions(), staleTime: "static" });
+  const [agent, setAgent] = useState(FIRST_AGENT);
+  const agents = useQuery({ ...reinforcementAgentsOptions(), staleTime: "static" });
+  const lesson = useQuery({
+    ...reinforcementLessonOptions({ query: { agent } }),
+    staleTime: "static",
+    placeholderData: keepPreviousData,
+  });
+  const training = lesson.isPlaceholderData;
+  const chosen = agents.data?.find((card) => card.name === agent);
   return (
     <section aria-labelledby="licao-titulo" className="mt-10">
-      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="flex items-center gap-1.5">
           <h2 id="licao-titulo" className="text-xl">
-            Como um agente aprende
+            How an agent learns
           </h2>
           <Explain topic="reinforcement_learning">
             {lesson.data !== undefined && (
               <p>
-                Nesta lição: {lesson.data.agent_display_name} em {lesson.data.environment_name}, ao
-                longo de {formatCount(lesson.data.episodes)} episódios.
+                In this lesson: {lesson.data.agent_display_name} in {lesson.data.environment_name},
+                over {formatCount(lesson.data.episodes)} episodes.
               </p>
             )}
           </Explain>
         </div>
+        {agents.data !== undefined && agents.data.length > 1 && (
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={agent}
+            onValueChange={(value) => {
+              if (value !== "") {
+                setAgent(value);
+              }
+            }}
+            aria-label="The agent in the lesson"
+          >
+            {agents.data.map((card) => (
+              <ToggleGroupItem key={card.name} value={card.name} className="px-3.5">
+                {card.display_name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
       </div>
       <ErrorNote error={lesson.error} />
+      {training && (
+        <p role="status" className="mb-4 flex items-center gap-2 text-sm text-soft">
+          <LoaderCircle
+            aria-hidden="true"
+            className="size-4 animate-spin motion-reduce:animate-none"
+          />
+          Training {chosen?.display_name ?? "the agent"} on the cliff for the lesson…
+        </p>
+      )}
       {lesson.data === undefined ? (
         lesson.error === null && <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
-        <Player
-          layout={lesson.data.layout}
-          kept={lesson.data.kept}
-          learningRate={lesson.data.learning_rate}
-        />
+        <div
+          className={cn(
+            "transition-opacity duration-300",
+            training && "pointer-events-none opacity-40",
+          )}
+        >
+          {/* Uma lição nova começa do princípio: o leitor nasce outra vez com ela. */}
+          <Player
+            key={lesson.data.agent}
+            layout={lesson.data.layout}
+            kept={lesson.data.kept}
+            updateRule={lesson.data.update_rule}
+            updateTopic={lesson.data.update_topic}
+          />
+        </div>
       )}
     </section>
   );
@@ -99,10 +158,13 @@ export function RlLesson() {
 interface PlayerProps {
   layout: GridLayout;
   kept: readonly LessonEpisode[];
-  learningRate: number;
+  /** O que acontece ao Q depois da surpresa ("Q moves α = 0.5 of it"), no último cartão. */
+  updateRule: string;
+  /** O tema que explica a correção do Q deste agente (o último cartão do ciclo). */
+  updateTopic: string;
 }
 
-function Player({ layout, kept, learningRate }: PlayerProps) {
+function Player({ layout, kept, updateRule, updateTopic }: PlayerProps) {
   const box = useRef<HTMLDivElement>(null);
   const inView = useInView(box, { amount: 0.35 });
   const reduced = useReducedMotion() ?? false;
@@ -124,8 +186,8 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
           onPick={clock.goToEpisode}
         />
         <Explain
-          title={`Episódio ${formatCount(episode.episode)}`}
-          label="O que se vê neste episódio"
+          title={`Episode ${formatCount(episode.episode)}`}
+          label="What you see in this episode"
         >
           {episode.story}
         </Explain>
@@ -150,10 +212,10 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
             size="icon-sm"
             aria-label={
               clock.playing
-                ? "Pausar a lição"
+                ? "Pause the lesson"
                 : clock.atEnd
-                  ? "Ver a lição outra vez"
-                  : "Reproduzir a lição"
+                  ? "Watch the lesson again"
+                  : "Play the lesson"
             }
             onClick={clock.toggle}
           >
@@ -168,7 +230,7 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
             />
           </span>
           <span className="font-mono text-xs text-dim tabular-nums">
-            passo {formatCount(Math.min(steps.length, clock.step + 1))} de{" "}
+            step {formatCount(Math.min(steps.length, clock.step + 1))} of{" "}
             {formatCount(steps.length)}
           </span>
           <ToggleGroup
@@ -181,7 +243,7 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
                 clock.setSpeed(Number(value) as Speed);
               }
             }}
-            aria-label="Velocidade da lição"
+            aria-label="The lesson's speed"
           >
             {SPEEDS.map((speed) => (
               <ToggleGroupItem key={speed} value={String(speed)} className="px-2.5 font-mono">
@@ -197,7 +259,8 @@ function Player({ layout, kept, learningRate }: PlayerProps) {
           layout={layout}
           step={step}
           phase={clock.finished ? null : clock.phase}
-          learningRate={learningRate}
+          updateRule={updateRule}
+          updateTopic={updateTopic}
         />
       )}
     </div>
@@ -218,7 +281,7 @@ function LessonLegend() {
           }}
         />
         <span className="font-mono text-dim tabular-nums">1</span>
-        <span>o valor de cada célula</span>
+        <span>the value of each cell</span>
       </li>
       <li className="flex items-center gap-2">
         <svg aria-hidden="true" width={22} height={8} className="shrink-0">
@@ -232,13 +295,13 @@ function LessonLegend() {
             strokeDasharray="4 3"
           />
         </svg>
-        ao acaso (explorar)
+        at random (explore)
       </li>
       <li className="flex items-center gap-2">
         <svg aria-hidden="true" width={22} height={8} className="shrink-0">
           <line x1={1} y1={4} x2={21} y2={4} stroke={LIGHT_INK} strokeWidth={2} />
         </svg>
-        a melhor que conhece (aproveitar)
+        the best it knows (exploit)
       </li>
     </ul>
   );
@@ -266,7 +329,7 @@ function EpisodePicker({
           onPick(Number(value));
         }
       }}
-      aria-label="Episódio da lição"
+      aria-label="The lesson's episode"
       className="flex flex-wrap justify-start gap-1.5"
     >
       {kept.map((episode, index) => {
@@ -274,14 +337,14 @@ function EpisodePicker({
         const fell = last !== undefined && layout.cells[last.next_state] === "trap";
         const tag =
           index === firstSuccess
-            ? "1.º objetivo"
+            ? "1st goal"
             : index === kept.length - 1 && episode.reached
-              ? "aprendeu"
+              ? "learned"
               : episode.reached
-                ? "objetivo"
+                ? "goal"
                 : fell
-                  ? "cai"
-                  : "às voltas";
+                  ? "falls"
+                  : "wanders";
         return (
           <ToggleGroupItem
             key={episode.episode}
@@ -293,10 +356,10 @@ function EpisodePicker({
                   ? diverging(episode.reached ? 1 : -1)
                   : withAlpha(diverging(episode.reached ? 1 : -1), 0.45),
             }}
-            className="h-8 gap-2 rounded-full border px-3 text-[0.8125rem] data-[state=on]:bg-surface-high"
+            className="h-8 gap-2 rounded-full border px-3 text-sm data-[state=on]:bg-surface-high"
           >
-            Episódio {formatCount(episode.episode)}
-            <span className="font-mono text-[0.6875rem] text-dim">{tag}</span>
+            Episode {formatCount(episode.episode)}
+            <span className="text-xs text-dim">{tag}</span>
           </ToggleGroupItem>
         );
       })}
@@ -359,7 +422,7 @@ function LessonGrid({
           width={gridWidth}
           height={gridHeight}
           role="img"
-          aria-label={`A grelha do episódio ${String(episode.episode)}: o agente, o caminho que fez até agora e o valor que dá a cada célula.`}
+          aria-label={`The grid at episode ${String(episode.episode)}: the agent, the path it has taken so far and the value it gives each cell.`}
           className="mx-auto block max-w-full"
         >
           {layout.cells.map((kind, state) => {
@@ -517,37 +580,34 @@ function Cycle({
   layout,
   step,
   phase,
-  learningRate,
+  updateRule,
+  updateTopic,
 }: {
   layout: GridLayout;
   step: LessonStep;
   /** A fase de agora (de 0 a 3), ou `null` no fim do episódio. */
   phase: number | null;
-  learningRate: number;
+  updateRule: string;
+  updateTopic: string;
 }) {
   const row = Math.floor(step.state / layout.columns) + 1;
   const column = (step.state % layout.columns) + 1;
   const arrived = layout.cells[step.next_state];
   const facts: readonly ReactNode[] = [
     <>
-      linha {formatCount(row)}, coluna {formatCount(column)}
-      {layout.cells[step.state] === "start" ? ", a partida" : ""}
+      row {formatCount(row)}, column {formatCount(column)}
+      {layout.cells[step.state] === "start" ? ", the start" : ""}
     </>,
     <>
       {layout.action_labels[step.action] ?? ""},{" "}
-      {step.explored ? "ao acaso (explorar)" : "a melhor que conhece (aproveitar)"}
+      {step.explored ? "at random (explore)" : "the best it knows (exploit)"}
     </>,
     <>
       {signed(step.reward, Math.abs(step.reward) >= 0.5 ? 0 : 2)}
-      {arrived === "goal"
-        ? ", chegou ao objetivo"
-        : arrived === "trap"
-          ? ", caiu numa armadilha"
-          : ""}
+      {arrived === "goal" ? ", reached the goal" : arrived === "trap" ? ", fell into a trap" : ""}
     </>,
     <>
-      surpresa {signed(step.surprise, 3)}; o Q anda α = {formatNumber(learningRate, 1)} dela, e a
-      célula fica com {signed(step.value, 3)}
+      surprise {signed(step.surprise, 3)}; {updateRule}, and the cell gets {signed(step.value, 3)}
     </>,
   ];
   return (
@@ -555,7 +615,8 @@ function Cycle({
       {STAGES.map((stage, index) => (
         <Stage
           key={stage.topic}
-          topic={stage.topic}
+          // A correção do Q explica-se à maneira do agente: numa tabela, ou numa rede.
+          topic={index === STAGES.length - 1 ? updateTopic : stage.topic}
           icon={index === 1 && step.explored ? Dices : stage.icon}
           now={phase === index}
           fact={facts[index]}
@@ -599,10 +660,10 @@ function Stage({
         >
           <Icon className="size-3.5" />
         </span>
-        <h3 className="text-[0.9375rem] font-medium text-strong">{explanation?.title}</h3>
+        <h3 className="text-base font-medium text-strong">{explanation?.title}</h3>
         <Explain topic={topic} />
       </div>
-      <p className="font-mono text-xs leading-relaxed text-soft">{fact}</p>
+      <p className="text-sm leading-relaxed text-soft">{fact}</p>
     </li>
   );
 }

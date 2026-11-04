@@ -52,7 +52,7 @@ export function DendrogramChart({
               position={y}
               format={formatStatistic}
               plot={plot}
-              label="Distância"
+              label="Distance"
             />
             {dendrogram.segments.map((segment, index) => (
               <path
@@ -80,7 +80,7 @@ export function DendrogramChart({
                   textAnchor="end"
                   className="fill-foreground text-[12px]"
                 >
-                  o corte
+                  the cut
                 </text>
               </g>
             )}

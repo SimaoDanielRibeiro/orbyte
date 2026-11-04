@@ -54,7 +54,7 @@ from ml_lab.core.rl.evaluation import (
     reading,
     training_outcomes,
 )
-from ml_lab.core.rl.lesson import ReinforcementLesson, lesson
+from ml_lab.core.rl.lesson import LESSON_AGENT, ReinforcementLesson, lesson
 from ml_lab.core.schemas.hyperparameters import Hyperparameters
 from ml_lab.core.schemas.reinforcement import ReinforcementConfig
 from ml_lab.core.schemas.serialization import internal, to_json
@@ -274,7 +274,7 @@ class ReinforcementService:
         self._active: dict[str, _Plan] = {}
         self._jobs: JobRegistry[ReinforcementResult] = JobRegistry(KEPT_RUNS)
         self._lock = threading.Lock()
-        self._lesson: ReinforcementLesson | None = None
+        self._lessons: dict[str, ReinforcementLesson] = {}
 
     @property
     def bus(self) -> EventBus:
@@ -316,17 +316,29 @@ class ReinforcementService:
             )
         return sorted(cards, key=lambda card: card.name != "q_learning")  # o didático primeiro
 
-    def lesson(self) -> ReinforcementLesson:
-        """A lição do ecrã: um Q-learning no penhasco, visto passo a passo.
+    def lesson(self, agent: str = LESSON_AGENT) -> ReinforcementLesson:
+        """A lição do ecrã: um agente no penhasco, visto passo a passo (ADR 0050).
 
         É o que a animação "Como um agente aprende" mostra (``core/rl/lesson.py``): alguns
         episódios inteiros, com cada passo (o estado, a ação, se explorou, a recompensa, a
-        surpresa e o valor novo) e uma frase sobre cada episódio. Não é um run: não vai para o
-        histórico. É sempre a mesma (a seed é fixa), por isso calcula-se uma vez e fica guardada.
+        surpresa e o valor novo) e uma frase sobre cada episódio. Há uma por agente (o
+        Q-learning, o DQN…). Não é um run: não vai para o histórico. É sempre a mesma (a seed é
+        fixa), por isso cada uma calcula-se uma vez e fica guardada (a do DQN demora uns
+        segundos: treina uma rede).
+
+        Args:
+            agent: O agente, pelo nome no registo (por omissão, o Q-learning).
+
+        Raises:
+            ComponentNotFoundError: Se não houver um agente com esse nome.
         """
-        if self._lesson is None:
-            self._lesson = lesson()
-        return self._lesson
+        with self._lock:
+            found = self._lessons.get(agent)
+        if found is None:
+            found = lesson(agent)
+            with self._lock:
+                self._lessons[agent] = found
+        return found
 
     def run(self, config: ReinforcementConfig) -> ReinforcementResult:
         """Treina o agente descrito por ``config`` e espera pelo resultado.
@@ -573,7 +585,7 @@ def _environment_parameters(
         return environment_class.info.parameters.parse(values, model=name)
     except HyperparameterError as error:
         raise InvalidParameterError(
-            f"Parâmetros inválidos para o ambiente '{name}': {' '.join(error.problems)}"
+            f"Invalid parameters for the environment '{name}': {' '.join(error.problems)}"
         ) from error
 
 
@@ -583,8 +595,8 @@ def _finished(result: ReinforcementResult, duration: float, stopped: bool) -> Re
         return replace(result, duration_seconds=duration)
     notice = Notice.info(
         "stopped_early",
-        f"Treino parado a pedido no episódio {format_count(result.steps)}: o agente ficou com "
-        "o que tinha aprendido até aí.",
+        f"Training stopped on request at episode {format_count(result.steps)}: the agent kept "
+        "what it had learned so far.",
     )
     return replace(
         result,

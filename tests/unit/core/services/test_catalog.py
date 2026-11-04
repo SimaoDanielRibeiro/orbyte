@@ -60,7 +60,7 @@ def test_every_task_has_a_suggested_first_model(catalog: CatalogService) -> None
 def test_a_card_has_everything_the_model_screen_shows(catalog: CatalogService) -> None:
     card = catalog.model("logistic_regression")
 
-    assert card.display_name == "Regressão logística"
+    assert card.display_name == "Logistic regression"
     assert card.family is ModelFamily.LINEAR
     assert card.implementation is Implementation.SKLEARN
     assert card.supports_proba
@@ -76,7 +76,7 @@ def test_a_card_has_everything_the_model_screen_shows(catalog: CatalogService) -
         "fit_intercept": True,
     }
     assert set(card.hyperparameters_schema["properties"]) == set(card.defaults)
-    assert card.doc.startswith("# Regressão logística")
+    assert card.doc.startswith("# Logistic regression")
 
 
 def test_hyperparameters_are_completed_and_validated(catalog: CatalogService) -> None:
@@ -86,12 +86,12 @@ def test_hyperparameters_are_completed_and_validated(catalog: CatalogService) ->
         "class_weight": "none",
         "fit_intercept": True,
     }
-    with pytest.raises(HyperparameterError, match="Máximo de iterações"):
+    with pytest.raises(HyperparameterError, match="Maximum iterations"):
         catalog.validate_hyperparameters("logistic_regression", {"max_iter": 1})
 
 
 def test_unknown_models_get_a_suggestion(catalog: CatalogService) -> None:
-    with pytest.raises(ComponentNotFoundError, match="Querias dizer 'logistic_regression'"):
+    with pytest.raises(ComponentNotFoundError, match="Did you mean 'logistic_regression'"):
         catalog.model("logistic_regresion")
 
 
@@ -110,10 +110,10 @@ def test_the_didactic_card_also_comes_split_in_its_sections(catalog: CatalogServ
     card = catalog.model("knn")
 
     first = card.sections[0]
-    assert (first.key, first.title) == ("intuicao", "Intuição")
-    assert first.text.startswith('"Diz-me com quem andas')
+    assert (first.key, first.title) == ("intuition", "Intuition")
+    assert first.text.startswith('"Tell me who your friends are')
     assert "## " not in "".join(section.text for section in card.sections)
-    assert card.sections[1].key == "matematica-essencial"
+    assert card.sections[1].key == "essential-maths"
 
 
 def test_text_before_the_first_section_is_the_intro_and_the_title_is_left_out() -> None:
@@ -201,8 +201,8 @@ def test_the_metrics_catalog_explains_each_metric_with_its_formula(
     precision = next(card for card in everything if card.name == "precision")
     assert precision.as_percent
     assert precision.higher_is_better
-    assert r"\mathrm{VP}" in precision.formula
-    assert [symbol.symbol for symbol in precision.symbols] == [r"\mathrm{VP}", r"\mathrm{FP}"]
+    assert r"\mathrm{TP}" in precision.formula
+    assert [symbol.symbol for symbol in precision.symbols] == [r"\mathrm{TP}", r"\mathrm{FP}"]
     assert next(card for card in everything if card.name == "roc_auc").needs_proba
 
 

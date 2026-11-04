@@ -35,7 +35,7 @@ class DateFeatures(Transform):
     """
 
     name = "date_features"
-    title = "Partes das datas"
+    title = "Date parts"
 
     @staticmethod
     def output_names(column: str) -> tuple[str, ...]:
@@ -45,15 +45,15 @@ class DateFeatures(Transform):
     @override
     def describe(self) -> str:
         created = ", ".join(name for column in self.columns for name in self.output_names(column))
-        return f"Datas trocadas pelas suas partes numéricas: {created}."
+        return f"Dates swapped for their numeric parts: {created}."
 
     @override
     def _fit(self, frame: pd.DataFrame) -> None:
         for column in self.columns:
             if not pd.api.types.is_datetime64_any_dtype(frame[column]):
                 raise DataError(
-                    f"A coluna {column} não é do tipo data: converte-a na limpeza "
-                    "(operação convert_type com to='datetime')."
+                    f"The column {column} isn't a date: convert it in the cleaning (the "
+                    "convert_type operation with to='datetime')."
                 )
 
     @override
@@ -87,12 +87,12 @@ class PolynomialFeatures(Transform):
     """
 
     name = "polynomial_features"
-    title = "Features polinomiais"
+    title = "Polynomial features"
 
     def __init__(self, columns: Sequence[str], degree: int = 2) -> None:
         super().__init__(columns)
         if not 2 <= degree <= MAX_DEGREE:
-            raise InvalidParameterError(f"O grau tem de estar entre 2 e {MAX_DEGREE}.")
+            raise InvalidParameterError(f"The degree must be between 2 and {MAX_DEGREE}.")
         self.degree = degree
 
     def terms(self) -> list[tuple[str, ...]]:
@@ -116,7 +116,7 @@ class PolynomialFeatures(Transform):
         names = self.output_names()
         shown = ", ".join(names[:6]) + ("…" if len(names) > 6 else "")
         return (
-            f"Criadas {len(names)} colunas polinomiais até ao grau {self.degree} a partir de "
+            f"Created {len(names)} polynomial columns up to degree {self.degree} from "
             f"{', '.join(self.columns)}: {shown}."
         )
 
@@ -146,12 +146,12 @@ class Binning(Transform):
     """
 
     name = "binning"
-    title = "Intervalos"
+    title = "Bins"
 
     def __init__(self, columns: Sequence[str], n_bins: int = 5) -> None:
         super().__init__(columns)
         if not 2 <= n_bins <= 20:
-            raise InvalidParameterError("O número de intervalos tem de estar entre 2 e 20.")
+            raise InvalidParameterError("The number of bins must be between 2 and 20.")
         self.n_bins = n_bins
         self.edges: dict[str, tuple[float, ...]] = {}
 
@@ -167,11 +167,11 @@ class Binning(Transform):
     @override
     def describe(self) -> str:
         parts = [
-            f"{column} em {len(self.edges[column]) - 1} intervalos "
+            f"{column} into {len(self.edges[column]) - 1} bins "
             f"({'; '.join(format_number(edge) for edge in self.edges[column])})"
             for column in self.columns
         ]
-        return f"Colunas divididas com os quantis do treino: {', '.join(parts)}."
+        return f"Columns split with the training quantiles: {', '.join(parts)}."
 
     @override
     def _learned(self) -> dict[str, Any]:
@@ -190,7 +190,9 @@ class Binning(Transform):
         for column in self.columns:
             values = frame[column].dropna().to_numpy(dtype=np.float64)
             if values.size == 0:
-                raise DataError(f"A coluna {column} não tem valores no treino para a dividir.")
+                raise DataError(
+                    f"The column {column} has no values in the training data to split it with."
+                )
             quantiles = np.quantile(values, np.linspace(0, 1, self.n_bins + 1))
             # Valores repetidos (por exemplo, muitos zeros) dão limites iguais: ficam só os
             # limites distintos, e por isso pode haver menos intervalos do que os pedidos.

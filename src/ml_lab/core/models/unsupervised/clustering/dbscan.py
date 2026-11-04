@@ -41,10 +41,11 @@ class DBSCANParams(Hyperparameters):
         default=0.5,
         ge=0.01,
         le=10,
-        title="Raio da vizinhança (eps)",
+        title="Neighbourhood radius (eps)",
         description=(
-            "Até que distância dois pontos são vizinhos. Pequeno: quase tudo é ruído; grande: "
-            "tudo se junta num só grupo. Depende da escala das features (padroniza-as)."
+            "Up to what distance two points are neighbours. Small: almost everything is noise; "
+            "large: everything merges into one cluster. It depends on the scale of the "
+            "features (standardise them)."
         ),
         json_schema_extra={"x-scale": "log"},
     )
@@ -52,10 +53,10 @@ class DBSCANParams(Hyperparameters):
         default=5,
         ge=1,
         le=100,
-        title="Vizinhos para ser núcleo",
+        title="Neighbours to be a core",
         description=(
-            "Quantos pontos (incluindo o próprio) tem de haver no raio para o ponto ser núcleo "
-            "de um grupo. Valores maiores exigem zonas mais densas."
+            "How many points (itself included) there must be within the radius for the point "
+            "to be the core of a cluster. Larger values demand denser areas."
         ),
     )
 
@@ -68,8 +69,8 @@ class DBSCAN(SklearnModel[DBSCANParams]):
         name="dbscan",
         display_name="DBSCAN",
         summary=(
-            "Encontra zonas densas de pontos, de qualquer forma, sem lhe dizeres quantos grupos "
-            "há; os pontos isolados ficam como ruído."
+            "Finds dense areas of points, of any shape, without you telling it how many "
+            "clusters there are; isolated points are left as noise."
         ),
         task_types=frozenset({TaskType.CLUSTERING}),
         family=ModelFamily.DENSITY,

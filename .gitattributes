@@ -1,3 +1,9 @@
-# Datasets de exemplo: guardados byte a byte, sem conversão de fins de linha (CRLF/LF),
-# para serem iguais em todos os sistemas operativos.
+# Os ficheiros de texto ficam com LF no repositório, seja qual for o sistema de quem os grava
+# (o CI corre em Linux, e o prettier e o ruff querem LF); cada um vê-os com os fins de linha
+# do seu sistema.
+* text=auto
+
+# Datasets de exemplo e ficheiros dos testes: guardados byte a byte, sem conversão de fins de
+# linha (CRLF/LF), para serem iguais em todos os sistemas operativos.
 data/samples/** -text
+tests/**/files/** -text

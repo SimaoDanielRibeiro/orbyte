@@ -20,10 +20,10 @@ from ml_lab.core.training.step_metrics import STEP_METRICS
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "algorithms"
 TEMPLATE_SECTIONS = (
-    "## Intuição",
-    "## Matemática essencial",
-    "## Hiperparâmetros",
-    "## Armadilhas",
+    "## Intuition",
+    "## Essential maths",
+    "## Hyperparameters",
+    "## Pitfalls",
 )
 EPISODES = 150
 

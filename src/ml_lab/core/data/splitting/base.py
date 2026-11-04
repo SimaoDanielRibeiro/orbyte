@@ -40,15 +40,15 @@ class SplitStrategy(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar, em português."""
+        """Nome a mostrar na interface."""
         return _STRATEGY_LABELS[self]
 
 
 _STRATEGY_LABELS: Final[Mapping[SplitStrategy, str]] = MappingProxyType(
     {
-        SplitStrategy.RANDOM: "Aleatória",
-        SplitStrategy.STRATIFIED: "Estratificada",
-        SplitStrategy.TIME: "Temporal",
+        SplitStrategy.RANDOM: "Random",
+        SplitStrategy.STRATIFIED: "Stratified",
+        SplitStrategy.TIME: "Time-based",
     }
 )
 
@@ -76,17 +76,16 @@ class SplitConfig:
         object.__setattr__(self, "strategy", SplitStrategy(self.strategy))
         if not 0 < self.test_size < 1:
             raise InvalidParameterError(
-                f"A proporção de teste tem de estar entre 0 e 1 (por exemplo 0,2); recebi "
-                f"{self.test_size}."
+                f"The test share must be between 0 and 1 (0.2, for example); got {self.test_size}."
             )
         if not 0 <= self.validation_size < 1:
             raise InvalidParameterError(
-                f"A proporção de validação tem de estar entre 0 e 1; recebi {self.validation_size}."
+                f"The validation share must be between 0 and 1; got {self.validation_size}."
             )
         if self.test_size + self.validation_size >= 1:
             raise InvalidParameterError(
-                "Teste e validação juntos têm de deixar linhas para o treino: a soma das duas "
-                "proporções tem de ser menor do que 1."
+                "Together, the test and the validation must leave rows for the training: the two "
+                "shares must add up to less than 1."
             )
 
 
@@ -143,8 +142,8 @@ def partition_sizes(n_rows: int, config: SplitConfig) -> tuple[int, int, int]:
     n_train = n_rows - n_test - n_validation
     if n_train < 1:
         raise DataError(
-            f"Com {format_quantity(n_rows, 'linha', 'linhas')} não há linhas suficientes "
-            "para treino, validação e teste: usa proporções menores ou mais dados."
+            f"With {format_quantity(n_rows, 'row', 'rows')} there aren't enough rows for "
+            "training, validation and test: use smaller shares or more data."
         )
     return n_train, n_validation, n_test
 
@@ -172,16 +171,18 @@ def split_rows(
     indices = SPLITTERS.get(config.strategy.value)(frame, config, seed, target)
     n_rows = len(frame)
     parts = ", ".join(
-        f"{partition.label.lower()} {format_quantity(size, 'linha', 'linhas')} "
+        f"{partition.label.lower()} {format_quantity(size, 'row', 'rows')} "
         f"({format_percent(size / n_rows)})"
         for partition, size in indices.sizes.items()
     )
     if config.strategy is SplitStrategy.TIME:
-        order = f"por {config.time_column}" if config.time_column else "pela ordem das linhas"
-        description = f"Divisão temporal {order}, sem baralhar: {parts}."
+        order = f"by {config.time_column}" if config.time_column else "in the order of the rows"
+        description = f"Time-based split {order}, without shuffling: {parts}."
     else:
-        origin = f", derivada da seed {root_seed} da experiência" if root_seed is not None else ""
-        description = f"Divisão {config.strategy.label.lower()} com a seed {seed}{origin}: {parts}."
+        origin = (
+            f", derived from the experiment's seed {root_seed}" if root_seed is not None else ""
+        )
+        description = f"{config.strategy.label} split with the seed {seed}{origin}: {parts}."
     params: dict[str, object] = {
         "strategy": config.strategy.value,
         "test_size": config.test_size,

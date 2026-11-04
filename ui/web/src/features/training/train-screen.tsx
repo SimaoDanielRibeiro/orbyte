@@ -16,7 +16,7 @@
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowRight, ChevronLeft, Package } from "lucide-react";
+import { ChevronLeft, Package } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -31,7 +31,7 @@ import { FieldView } from "@/components/charts/field";
 import { FieldPlayer } from "@/components/charts/field-player";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
-import { ErrorNote, NeedsStep, NextStep, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, NeedsStep, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -52,7 +52,7 @@ import { useTrainingRun, type LiveTraining } from "./use-training-run";
 const FIELD_HEIGHT = 360;
 
 export function TrainScreen() {
-  const { runId } = useParams({ from: "/treinar/$runId" });
+  const { runId } = useParams({ from: "/train/$runId" });
   return (
     <Page>
       <TrainRun key={runId} runId={runId} />
@@ -79,9 +79,9 @@ function TrainRun({ runId }: { runId: string }) {
         <PageHeader title={SCREENS.train.title} description={SCREENS.train.description} />
         {missing ? (
           <NeedsStep
-            message="Este run não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Histórico."
-            to="/experiencias"
-            action="Abrir as experiências"
+            message="This run is neither in the API's memory nor in the history: maybe it was deleted. The recorded runs are in History."
+            to="/history"
+            action="Open the history"
           />
         ) : (
           <ErrorNote error={result.error} className="mt-10" />
@@ -89,25 +89,25 @@ function TrainRun({ runId }: { runId: string }) {
       </>
     );
   }
-  const title = data?.model_display_name ?? runTitle ?? "O treino";
+  const title = data?.model_display_name ?? runTitle ?? "The training";
   const live_ = status === "pending" || status === "running" || status === "paused";
 
   return (
     <>
       <Link
-        to={data === undefined ? "/modelos" : "/modelos/$name"}
+        to={data === undefined ? "/models" : "/models/$name"}
         params={data === undefined ? undefined : { name: data.model_name }}
         className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        {data === undefined ? "Modelos" : data.model_display_name}
+        {data === undefined ? "Models" : data.model_display_name}
       </Link>
       {/* O título fica numa linha sempre que cabe: os botões só lhe ficam ao lado se houver
           espaço para os dois, e senão passam para baixo (sem o espremer em três linhas). */}
       <header className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">{title}</h1>
+            <h1 className="text-title">{title}</h1>
             <WhyButton
               title={SCREENS.train.title}
               description={SCREENS.train.description}
@@ -125,9 +125,9 @@ function TrainRun({ runId }: { runId: string }) {
         {data !== undefined && (
           <div className="flex flex-wrap items-center gap-2 @3xl/main:ml-auto">
             <Button asChild variant="outline" size="proceed">
-              <Link to="/guardar/$runId" params={{ runId }}>
+              <Link to="/save/$runId" params={{ runId }}>
                 <Package aria-hidden="true" />
-                Guardar
+                Save
               </Link>
             </Button>
             <ExplainProceed runId={runId} />
@@ -138,21 +138,13 @@ function TrainRun({ runId }: { runId: string }) {
       {status === "failed" && (
         <ErrorNote
           className="mt-10"
-          error={new Error(live.state?.error ?? "O treino falhou sem dizer porquê.")}
+          error={new Error(live.state?.error ?? "The training failed without saying why.")}
         />
       )}
       {data === undefined ? (
         (status === "finished" || detached) && <PageSkeleton />
       ) : (
-        <>
-          <Finished result={data} fromHistory={fromHistory} />
-          <NextStep className="flex-wrap gap-2">
-            <Button asChild variant="outline" size="proceed">
-              <Link to="/modelos">Experimentar outro modelo</Link>
-            </Button>
-            <ExplainProceed runId={runId} />
-          </NextStep>
-        </>
+        <Finished result={data} fromHistory={fromHistory} />
       )}
     </>
   );
@@ -162,9 +154,8 @@ function TrainRun({ runId }: { runId: string }) {
 function ExplainProceed({ runId }: { runId: string }) {
   return (
     <Button asChild variant="proceed" size="proceed">
-      <Link to="/explicar/$runId" params={{ runId }}>
-        Explicar as previsões
-        <ArrowRight aria-hidden="true" />
+      <Link to="/explain/$runId" params={{ runId }}>
+        Explain the predictions
       </Link>
     </Button>
   );
@@ -184,7 +175,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
   const paused = state?.status === "paused";
 
   return (
-    <section aria-label="O treino a decorrer" className="mt-8 flex flex-col gap-4">
+    <section aria-label="The training in progress" className="mt-8 flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4 py-1">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
@@ -200,11 +191,11 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
             />
           </span>
           <span className="font-medium text-strong">
-            {state === null ? "A ligar" : label("JobStatus", state.status)}
+            {state === null ? "Connecting" : label("JobStatus", state.status)}
           </span>
           <span className="font-mono text-xs text-dim tabular-nums">
-            Passo {formatCount(steps)}
-            {planned === null ? "" : ` de ${formatCount(planned)}, no máximo`}
+            Step {formatCount(steps)}
+            {planned === null ? "" : ` of ${formatCount(planned)} at most`}
             {loss === null ? "" : `, loss ${formatStatistic(loss)}`}
           </span>
         </div>
@@ -216,7 +207,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
               }}
               disabled={resume.isPending}
             >
-              Retomar
+              Resume
             </Button>
           ) : (
             <Button
@@ -226,7 +217,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
               }}
               disabled={pause.isPending || state === null}
             >
-              Pausar
+              Pause
             </Button>
           )}
           <Tooltip>
@@ -238,12 +229,12 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
                 }}
                 disabled={cancel.isPending || state === null}
               >
-                Parar
+                Stop
               </Button>
             </TooltipTrigger>
             <TooltipContent className="max-w-64">
-              O treino pára no fim do passo atual; o modelo fica com o que já aprendeu e é avaliado
-              na mesma.
+              The training stops at the end of the current step; the model keeps what it has learned
+              and is still evaluated.
             </TooltipContent>
           </Tooltip>
         </div>
@@ -251,7 +242,7 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
       {planned !== null && (
         <Progress
           value={Math.min(100, (steps / planned) * 100)}
-          aria-label="O progresso do treino"
+          aria-label="The training's progress"
         />
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
@@ -259,16 +250,16 @@ function Live({ live, runId }: { live: LiveTraining; runId: string }) {
         <div className="min-w-0">
           {live.preview === null ? (
             <div
-              className="flex items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim"
+              className="flex items-center justify-center rounded-xl border border-dashed text-sm text-dim"
               style={{ height: FIELD_HEIGHT }}
             >
-              À espera da primeira fotografia do treino.
+              Waiting for the first snapshot of the training.
             </div>
           ) : (
             <FieldView
               animation={live.preview}
               height={FIELD_HEIGHT}
-              description="O que o modelo responde em cada ponto do plano, no último snapshot."
+              description="What the model answers at each point of the plane, in the latest snapshot."
               caption={live.preview.how_to_read}
             />
           )}
@@ -292,20 +283,20 @@ function Finished({ result, fromHistory }: { result: ExperimentResult; fromHisto
         className="mt-8"
         items={[
           {
-            key: "dados",
-            label: "Dados",
+            key: "data",
+            label: "Data",
             value: result.dataset_name,
             // A tarefa, e de onde veio o run quando não é desta sessão.
-            detail: `${label("TaskType", result.task_type).toLowerCase()}${fromHistory ? ", do histórico" : ""}`,
+            detail: `${label("TaskType", result.task_type).toLowerCase()}${fromHistory ? ", from the history" : ""}`,
           },
           {
-            key: "treino",
-            label: "Treino",
-            value: steps > 0 ? `${formatCount(steps)} passos` : "De uma vez",
+            key: "training",
+            label: "Training",
+            value: steps > 0 ? `${formatCount(steps)} steps` : "In one go",
           },
           {
-            key: "duracao",
-            label: "Duração",
+            key: "duration",
+            label: "Duration",
             value: `${formatNumber(result.duration_seconds, 2)} s`,
           },
           {
@@ -322,7 +313,7 @@ function Finished({ result, fromHistory }: { result: ExperimentResult; fromHisto
         </div>
       )}
 
-      <Part id="treino" title="O treino">
+      <Part id="training" title="The training">
         <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <div className="min-w-0">
             {result.animation !== null ? (
@@ -331,20 +322,20 @@ function Finished({ result, fromHistory }: { result: ExperimentResult; fromHisto
                 autoPlay={result.animation.frames.length > 1}
                 height={FIELD_HEIGHT}
                 onStepChange={setStep}
-                description="O que o modelo responde em cada ponto do plano, passo a passo."
+                description="What the model answers at each point of the plane, step by step."
                 caption={result.animation.how_to_read}
               />
             ) : result.embedding !== null ? (
               <EmbeddingView
                 embedding={result.embedding}
                 height={FIELD_HEIGHT}
-                description="Os pontos de treino nas duas coordenadas novas."
+                description="The training points on the two new coordinates."
                 caption={<TopicText topic="embedding" />}
               />
             ) : (
               <p className="text-sm text-soft">
-                Não há como desenhar o modelo: os dados não têm uma projeção 2D (escolhe uma no ecrã
-                Preparar), ou o run abriu do histórico sem o treino passo a passo.
+                There&apos;s no way to draw the model: the data has no 2D projection (choose one in
+                Prepare), or the run opened from the history without the step-by-step training.
               </p>
             )}
           </div>
@@ -353,7 +344,7 @@ function Finished({ result, fromHistory }: { result: ExperimentResult; fromHisto
               <LossCharts steps={result.history} />
             ) : (
               <p className="text-sm text-soft">
-                Este modelo treina de uma vez: não há passos para rever.
+                This model trains in one go: there are no steps to review.
               </p>
             )}
           </div>
@@ -361,18 +352,18 @@ function Finished({ result, fromHistory }: { result: ExperimentResult; fromHisto
       </Part>
 
       {result.network !== null && (
-        <Part id="rede" title="As camadas da rede">
+        <Part id="network" title="The network's layers">
           <div>
             <NetworkPanel network={result.network} step={step} />
           </div>
         </Part>
       )}
 
-      <Part id="avaliacao" title="A avaliação">
+      <Part id="evaluation" title="The evaluation">
         <Evaluation result={result} />
       </Part>
 
-      <Part id="aprendeu" title="O que aprendeu">
+      <Part id="learned" title="What it learned">
         <LearnedViewPanel learned={result.learned} network={null} />
       </Part>
     </>

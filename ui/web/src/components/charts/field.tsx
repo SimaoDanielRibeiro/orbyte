@@ -505,7 +505,7 @@ function fieldLegend(
       ...animation.class_labels
         .slice(0, 2)
         .map((label, i) => ({ label, color: categoryColor(i), kind: "dot" as const })),
-      { label: "Fronteira (50%)", color: LIGHT_INK, kind: "line" as const },
+      { label: "Boundary (50%)", color: LIGHT_INK, kind: "line" as const },
     ];
   }
   if (kind === "class") {
@@ -573,7 +573,7 @@ function CurveView({
               ? animation.class_labels
                   .slice(0, 2)
                   .map((label, i) => ({ label, color: categoryColor(i), kind: "dot" as const }))
-              : [{ label: "Pontos de treino", color: sequential(0.6), kind: "dot" as const }]),
+              : [{ label: "Training points", color: sequential(0.6), kind: "dot" as const }]),
           ]}
         />
       }

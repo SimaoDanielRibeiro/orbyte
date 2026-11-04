@@ -163,7 +163,7 @@ class CatalogService:
         """Valida os hiperparâmetros e devolve-os completos (com os de omissão), em JSON.
 
         Raises:
-            HyperparameterError: Com uma frase em português por cada valor recusado.
+            HyperparameterError: Com uma frase em inglês por cada valor recusado.
         """
         info = MODELS.get(name).info
         return info.hyperparameters.parse(values, model=name).model_dump(mode="json")

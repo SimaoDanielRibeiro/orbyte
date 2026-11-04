@@ -82,7 +82,7 @@ def evaluator_for(task_type: TaskType) -> Evaluator:
     """
     found = EVALUATORS.for_task(task_type)
     if not found:
-        raise ModelError(f"Ainda não há avaliador para {task_type.label.lower()}.")
+        raise ModelError(f"There's no evaluator for {task_type.label.lower()} yet.")
     return next(iter(found.values()))()
 
 
@@ -142,5 +142,7 @@ def undefined_notices(undefined: Sequence[str], partition: Partition, reason: st
     """
     if not undefined:
         return []
-    message = f"{', '.join(undefined)}: não está definida no {partition.label.lower()} ({reason})."
+    message = (
+        f"{', '.join(undefined)}: not defined on the {partition.label.lower()} data ({reason})."
+    )
     return [Notice.info("undefined_metric", message)]

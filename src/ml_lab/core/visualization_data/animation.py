@@ -35,7 +35,7 @@ ELLIPSE_POINTS: Final = 60
 ELLIPSE_SIGMAS: Final = 2.0
 """As elipses mostram a zona a dois desvios padrão do centro (cerca de 86% da nuvem, em 2D)."""
 
-NOISE_LABEL: Final = "Ruído"
+NOISE_LABEL: Final = "Noise"
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,41 +188,39 @@ def _how_to_read(kind: ValueKind, dimensions: int, task: TaskType, noise: bool) 
     """Como se lê o campo, conforme o que os valores são."""
     if kind == "probability" and dimensions == 2:
         return (
-            "As cores são a probabilidade que o modelo dá a cada classe em cada ponto do plano; "
-            "a linha é a fronteira de decisão (50%). Os pontos são o treino."
+            "The colours are the probability the model gives each class at each point of the "
+            "plane; the line is the decision boundary (50%). The points are the training data."
         )
     if kind == "probability":
         return (
-            "A curva é a probabilidade da classe positiva ao longo da feature; a fronteira de "
-            "decisão é onde a curva corta os 50%. Os pontos são o treino."
+            "The curve is the probability of the positive class along the feature; the "
+            "decision boundary is where the curve crosses 50%. The points are the training "
+            "data."
         )
     if kind == "class" and task is TaskType.CLUSTERING:
         text = (
-            "Cada cor é o grupo que o modelo daria a um ponto nessa zona do plano; as cruzes "
-            "são os centros e as linhas pontilhadas as elipses das nuvens, se o modelo os "
-            "tiver. Os pontos são o treino, com a forma da coluna de referência (se a "
-            "escolheste)."
+            "Each colour is the group the model would give a point in that area of the plane; "
+            "the crosses are the centres and the dotted lines the ellipses of the clouds, if "
+            "the model has them. The points are the training data, shaped by the reference "
+            "column (if you picked one)."
         )
-        return (
-            f"{text} As zonas cinzentas são ruído (não pertencem a nenhum grupo)."
-            if noise
-            else text
-        )
+        return f"{text} The grey areas are noise (they belong to no group)." if noise else text
     if kind == "class":
         return (
-            "Cada cor é a classe que o modelo prevê nessa zona do plano: as fronteiras de "
-            "decisão são as mudanças de cor. Os pontos são o treino."
+            "Each colour is the class the model predicts in that area of the plane: the "
+            "decision boundaries are where the colour changes. The points are the training "
+            "data."
         )
     if kind == "score":
         return (
-            "As cores são a pontuação de anomalia em cada ponto do plano: quanto mais forte a "
-            "cor, mais estranho seria um ponto ali. Os pontos são o treino."
+            "The colours are the anomaly score at each point of the plane: the stronger the "
+            "colour, the stranger a point there would be. The points are the training data."
         )
     if dimensions == 1:
-        return "A linha é a previsão do modelo; os pontos são o treino."
+        return "The line is the model's prediction; the points are the training data."
     return (
-        "As cores são o valor que o modelo prevê em cada ponto do plano; os pontos são o "
-        "treino, pintados com o valor real na mesma escala."
+        "The colours are the value the model predicts at each point of the plane; the points "
+        "are the training data, coloured by the real value on the same scale."
     )
 
 
@@ -260,7 +258,7 @@ def _categories(
     if dataset.task_type is not TaskType.CLUSTERING:
         return dataset.class_labels, False
     largest = max(int(field.max()) for field in fields)
-    names = tuple(f"Grupo {group + 1}" for group in range(largest + 1))
+    names = tuple(f"Group {group + 1}" for group in range(largest + 1))
     noise = any(bool((field < 0).any()) for field in fields)
     return ((*names, NOISE_LABEL) if noise else names), noise
 
@@ -268,14 +266,14 @@ def _categories(
 def _value_label(kind: ValueKind, dataset: Dataset) -> str:
     task = dataset.task_type
     if kind == "probability":
-        return f"Probabilidade de «{dataset.class_labels[1]}»"
+        return f"Probability of “{dataset.class_labels[1]}”"
     if task is TaskType.CLUSTERING:
-        return "Grupo previsto"
+        return "Predicted group"
     if kind == "class":
-        return "Classe prevista"
+        return "Predicted class"
     if task is TaskType.ANOMALY_DETECTION:
-        return "Pontuação de anomalia"
-    return f"Previsão de {dataset.target_name}" if dataset.target_name else "Previsão"
+        return "Anomaly score"
+    return f"Prediction of {dataset.target_name}" if dataset.target_name else "Prediction"
 
 
 def _centers(

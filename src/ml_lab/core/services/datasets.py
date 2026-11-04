@@ -304,11 +304,11 @@ class DatasetService:
         original = Path(filename).name
         file_format(Path(original))  # recusa formatos não suportados antes de gravar
         if not content:
-            raise DataValidationError([f"O ficheiro '{original}' está vazio (0 bytes)."])
+            raise DataValidationError([f"The file '{original}' is empty (0 bytes)."])
         if len(content) > MAX_FILE_BYTES:
-            raise DataValidationError([f"O ficheiro '{original}' é grande demais."])
+            raise DataValidationError([f"The file '{original}' is too big."])
         suffixes = "".join(Path(original).suffixes).lower()
-        stem = _SAFE_NAME.sub("_", original[: len(original) - len(suffixes)]).strip("_") or "dados"
+        stem = _SAFE_NAME.sub("_", original[: len(original) - len(suffixes)]).strip("_") or "data"
         digest = hashlib.sha256(content).hexdigest()[:8]
         directory = self._settings.uploads_dir
         directory.mkdir(parents=True, exist_ok=True)

@@ -2655,3 +2655,241 @@ Decisões tomadas na etapa 13.2:
 - **Verificado sem o Ollama:** a procura com respostas guardadas passa pelo mesmo caminho (é o
   `ScriptedModel` a responder). Com o Ollama a sério, falta ver o raciocínio a crescer ao vivo
   (o teste marcado `ollama` cobre o cliente, não o ecrã).
+
+### Orbyte, o site em inglês e a revisão do desenho
+
+Entre as etapas 13.2 e 13.3 vieram dois pedidos sobre a interface:
+
+1. **O nome e a língua (ADR 0043).** O projeto passou a chamar-se Orbyte, o site passa todo para
+   inglês, a entrada ficou mais simples (com uma animação para cada interface), a barra lateral
+   ficou mais larga, com o Histórico no rodapé, e a conversa dos agentes abre-se em ecrã
+   inteiro, como um chat, com a linha do tempo das trocas ao lado.
+2. **A revisão do desenho (ADR 0044).** Um só botão de prosseguir por ecrã, à direita do título;
+   a escala de letra um degrau acima; a barra alinhada por duas verticais (e certa quando está
+   recolhida); as larguras acertadas para a barra nova e as margens de 3 cm.
+
+A análise ao código desta revisão encontrou e corrigiu:
+
+- **A barra recolhida:** os ícones ficavam encostados à direita e cortados pela borda, porque as
+  margens novas não tinham versão recolhida; o nome de cada item empurrava o ícone para a
+  esquerda do botão.
+- **A conversa em ecrã inteiro:**
+  - as setas da linha do tempo andavam para trás a partir do segundo toque: contavam da primeira
+    mensagem à vista, e o salto deixa a mensagem a um terço do topo, com outras por cima;
+  - clicar outra vez no mesmo agente em "Who spoke" voltava à mesma mensagem, pela mesma razão;
+  - ao vivo, uma mensagem que chegasse a meio do deslizar até ao fim podia desligar o seguir;
+    agora só quem lê, ao subir, deixa de seguir.
+- **O fluxograma dos agentes** ficava cortado num portátil (o nó do teste fora do ecrã).
+- **As etiquetas dos gráficos** em SVG cresciam com a escala nova, sem as margens crescerem.
+- **O salto para o lado** entre uma página curta e uma comprida (a barra de deslocamento).
+- **Dois textos esquecidos em português** (o aviso de dados carregados e a dica do mapa de
+  nulos), e o ponto da API, na entrada, verde enquanto ainda ligava.
+
+A tradução do backend ficou a meio nesta revisão, e acabou no pedido seguinte.
+
+### A tradução acabada, a identidade visual e a história do treino
+
+O pedido seguinte fechou o que faltava e trouxe uma parte nova no Explicar:
+
+1. **A tradução do backend acabou.** Tudo o que aparece no site está em inglês, venha da
+   interface ou do backend: os nomes dos modelos e dos hiperparâmetros, os temas e as
+   explicações, os avisos, a conversa dos agentes, as 25 fichas e os números do `formatting.py`
+   (ponto decimal e vírgula nos milhares, como o `format.ts`). Fica em português o que só lê quem
+   programa ou opera o laboratório: os registos, as docstrings, os comentários, a documentação,
+   as ADRs, as descrições do `/docs` da API e as mensagens do `config.py` e do `logging.py`.
+   - **Mudou com o texto o que também era chave:** as secções das fichas (`## Intuition`,
+     `## Essential maths`…), que os testes de contrato procuram pelo nome, e a coluna das
+     previsões no `examples.csv` do pacote, agora `predicted` (`docs/formato-mllab.md`).
+   - **Não mudaram os identificadores:** os ids dos mapas do reinforcement learning (`simples`,
+     `penhasco`, `labirinto`) ficam, porque os runs registados os guardam; o nome à vista vem de
+     `MAP_LABELS`.
+2. **O cliente gera-se só no `dev`, no `build` e no `npm run check` (ADR 0046).**
+3. **O código carrega-se por ecrã:** o `autoCodeSplitting` do plugin do TanStack Router dá um
+   pedaço a cada rota; as bibliotecas ficam em pedaços próprios (`react`, `tanstack`, `ui`), que
+   o browser guarda entre versões; e o "?" de cada página (com o Markdown e o KaTeX) carrega-se
+   à parte, com `lazy`. Antes, a entrada descarregava 700 kB de fórmulas antes de se mostrar.
+4. **As conversas longas:** cada mensagem dos agentes (e cada linha do quadro das trocas) leva a
+   utilidade `lazy-paint` (`content-visibility: auto`). Fora de vista não se desenha: uma
+   conversa com centenas de mensagens desenha só as que estão à vista.
+5. **O estado do Ollama** pergunta-se outra vez a cada 10 segundos: abrir o Ollama com o ecrã dos
+   agentes aberto liga o interruptor, sem recarregar a página.
+6. **A identidade visual (ADR 0045):** a Unbounded nos títulos, os rótulos em sans e sem
+   maiúsculas, os botões sem setas e a barra a 18rem.
+7. **A história do treino no Explicar (ADR 0047):** `HistoryService.story` e a rota
+   `GET /history/runs/{run_id}/story` contam o run em seis capítulos (com que dados aprendeu,
+   como aprendeu, o que aprendeu, como se saiu, onde se engana e o que fazer a seguir), cada um
+   com um texto curto e um visual: a divisão das linhas, a curva da loss, umas barras ou a
+   matriz de confusão. Conta-se só com o resultado registado, por isso aparece em qualquer run,
+   mesmo nos do histórico que já não estão em memória.
+
+A história leu-se em runs reais de cada tarefa (regressão logística, árvore de decisão, MLP, KNN,
+regressão linear, k-means, PCA, gradient boosting, Isolation Forest e LOF), e foi assim que se
+acertaram as frases que não se percebiam. A leitura das anomalias encontrou um buraco que não era
+da história: um detetor que não marcava nada no teste, e por isso falhava as anomalias
+verdadeiras, não levava aviso nenhum, e o último capítulo dizia que nada tinha corrido mal. O
+avaliador ganhou dois avisos, como os `below_baseline` das outras tarefas:
+
+- `nothing_flagged`: não marcou nada e a referência diz que havia anomalias (sem referência fica
+  uma nota, porque não se sabe se havia o que marcar; sem anomalias no teste, não marcar nada é
+  acertar);
+- `no_anomaly_caught`: marcou linhas, mas nenhuma era uma anomalia verdadeira.
+
+Sem nada marcado não há precisão, por isso o visual de "How well it did" passa a comparar a
+fração que marcou com a fração de anomalias da referência.
+
+**A varredura das resoluções.** Os 14 ecrãs abriram-se a 375, 768, 1024, 1280, 1366, 1440, 1920
+e 2560 px, cada um num iframe da mesma página, a medir três coisas: se a página desliza para o
+lado, que elementos passam da borda e que texto fica cortado sem reticências. Encontrou e
+corrigiu:
+
+- **o tablet ao alto ficava com 243 px de conteúdo** (a barra fixa e os 3 cm de cada lado, num
+  ecrã de 768): a barra passa a gaveta abaixo de 1024 px, e os 3 cm valem só a partir de 1280 px
+  (ADR 0045). A 768, o conteúdo passou a ter 694 px;
+- **o texto dos seletores cortava-se sem reticências** (o run no Guardar, a escala no Preparar):
+  o valor era um contentor `flex`, onde as reticências não funcionam; passa a bloco com
+  `truncate`, e no Guardar um espaço separa a data do nome;
+- **o último nome de coluna do mapa de nulos passava 11 px da borda** no telemóvel: a margem
+  direita mede-se agora pelo rótulo inclinado (`slantedOverhang`, em `charts/margins.ts`);
+- **o fluxograma dos agentes rolava a 1280 px**, com o teste fora do ecrã: encolhe até 0,8, com
+  24 px entre colunas.
+
+Uma lição da própria medição: num separador escondido (ou com a janela tapada), o browser não
+entrega os `ResizeObserver`. Os gráficos ficam com largura 0 e o fluxograma não encolhe, e a
+primeira volta da varredura deu tudo certo por isso. Tem de correr com a página à vista.
+
+**Verificado:** os testes do Python (com os da história, em
+`tests/unit/core/services/test_story.py`), o `npm run check` e o ponta a ponta (43 testes,
+reescritos para os textos e as rotas em inglês).
+
+### Os modelos por problema, a letra maior e o movimento
+
+O pedido seguinte foi de acabamento (ADR 0048):
+
+1. **Os modelos arrumam-se pelo problema que resolvem.** O backend ganha o enum `Problem` e o
+   `TaskInfo.problem` (as duas classificações são o mesmo problema; é uma regra do domínio, por
+   isso não fica na interface). O ecrã Modelos mostra o paradigma e, dentro dele, cada problema
+   com a sua cor e os modelos em cartões. A cor tem sentido: fria nos supervisionados, quente nos
+   não supervisionados (`lib/problems.ts`). Os agentes continuam com a cor da família.
+2. **O "suggested to start" saiu da lista**, e o **"API online" saiu da barra e da entrada**: só a
+   falha se mostra, com o que fazer.
+3. **O botão de recolher a barra** desceu para o fundo, por cima do Histórico.
+4. **A letra subiu mais um degrau** (15 a 30 px, e o título entre 36 e 44 px), também nos
+   gráficos (1 px), e a barra passou a 19,5rem.
+5. **O movimento ganhou uma curva com peso** (`--ease-out-expo`), a omissão do Tailwind e do
+   Motion; os menus entram devagar e saem depressa, e cada página entra em cascata.
+6. **O Explicar arruma-se em linhas:** cada capítulo da história é uma linha entre filetes, com o
+   visual à altura do título, e as três perguntas das previsões seguem o mesmo desenho.
+
+Uma lição dos testes: o axe mede o contraste do texto como ele está no momento. Com as páginas a
+acender, media o texto ainda meio transparente e dava falhas de contraste que ninguém vê. Os
+testes de acessibilidade esperam agora que as animações de entrada acabem
+(`animationsSettled`, em `e2e/helpers.ts`).
+
+### Os agentes com todos os modelos, a conversa por palavras e a barra com os ícones fixos
+
+O pedido seguinte voltou aos agentes (ADR 0049):
+
+1. **Entram todos os modelos da tarefa**, as implementações didáticas incluídas; ficam de fora só
+   os que não se podem medir com o objetivo (sem probabilidades, para a ROC AUC e a log-loss).
+2. **O pedido escolhe os modelos** (`AutoMLRequest.models`), e o ecrã Agentes arruma-se à volta
+   disso: o pedido à esquerda, os modelos por família à direita (com as caixas da família a meio
+   quando só alguns estão escolhidos), e por baixo o fluxograma e o plano. "Ask the agents" passou
+   para o cabeçalho.
+3. **A conversa diz por palavras o que se faz.** O pedido do coordenador diz porquê; a resposta do
+   agente diz que hiperparâmetros mudou (com o valor de omissão ao lado), o que o resultado quer
+   dizer (`Objective.reading`), se a mudança ajudou e se o modelo decora o treino
+   (`Objective.overfits`). Os empates à vista dizem-se empates, e a profundidade 0 lê-se "no
+   limit" (`x-labels`).
+4. **A barra lateral cresceu** (21rem, a letra a 19 px, os ícones a 22 px), e **os ícones ficam no
+   mesmo sítio** com a barra aberta ou recolhida: o centro a 35 px da borda e à mesma altura. O
+   trilho dos passos passa agora pelos próprios ícones.
+
+Mediu-se a posição de cada ícone com a barra aberta e recolhida: iguais ao píxel. Antes, um ícone
+centrado só na barra recolhida saltava a meio da animação, porque o `justify-content` muda de uma
+vez e a largura não.
+
+### A barra que desliza, a página de erro, a troca e uma lição por agente
+
+O pedido seguinte (ADR 0050):
+
+1. **A barra ficou simples:** sem o trilho dos passos (nem a luz que o percorria), só os itens e o
+   cartão do ecrã aberto. O trilho passou primeiro para junto da borda, e mesmo aí lia-se como um
+   defeito.
+2. **Abrir e fechar a barra reorganiza a página uma só vez.** O lugar da barra muda de uma vez, e
+   o `AppFrame` faz o conteúdo deslizar de onde estava até lá (FLIP, com a Web Animations API).
+   Mediu-se: uma reorganização em vez de uma por fotograma. Os nomes apagam-se e acendem com uma
+   pequena espera, e a troca de interface passa de uma forma à outra a desvanecer.
+3. **A página de erro é um gráfico que cai**, com o nome do que caiu, a mensagem e "Try again";
+   o mesmo desenho serve o 404.
+4. **A troca de interface leva ao passo certo** (`landingOf`): com os dados abertos, do Preparar
+   vai-se para os Agentes, e não outra vez para os Dados.
+5. **A lição do reinforcement learning tem um agente à escolha**: o Q-learning e o DQN. O backend
+   grava o treino com um gravador que se junta a qualquer agente episódico (`core/rl/lesson.py`).
+
+Uma lição dos testes: o ecrã do RL passou a ter dois botões "DQN (Deep Q-Network)", o da lição e
+o do treino, e o teste de pausar o treino falhava por não saber qual carregar. Os testes procuram
+agora o botão dentro do grupo dele.
+
+### A órbita, o Parar, o Laboratório que se explica, o Guardar em passos e os dados de verdade
+
+O pedido seguinte (ADR 0051):
+
+1. **O logótipo é só a órbita**: a elipse num traço, com um satélite e uma falha à volta dele,
+   numa só cor; o mesmo desenho no favicon.
+2. **O Stop dos agentes para tudo**: não mede mais, não treina o vencedor, não vai ao teste nem
+   ao histórico, e o ecrã volta ao pedido. A Pausa continua a interromper sem desistir.
+3. **O Models abre com todas as tarefas**; o "Choose the model" do Preparar leva-o já com a
+   tarefa preparada (`?task=…`).
+4. **O Laboratório tem um guia em cada demonstração** (`DemoGuide`: a ideia, o que experimentar
+   e o que fica), à vista, e cada gráfico tem nome. Duas demonstrações novas: **o limiar de
+   decisão** (uma regressão logística em dados desequilibrados; cada linha do teste é um ponto,
+   e a matriz de confusão e as métricas mudam com o limiar) e **a quantidade de dados** (uma
+   árvore sem limite contra uma regressão logística, de 10 a 750 linhas, cinco amostras por
+   quantidade).
+5. **O Guardar faz-se em três passos numerados** (o run e o nome, o que vai no ficheiro, o
+   ficheiro), com o resumo do pacote ao lado; a biblioteca é uma lista, com a faixa de carregar
+   por cima.
+6. **Os dados de verdade.** Dois ficheiros gerados com os problemas de sempre (151 500 linhas de
+   churn em CSV com `;`, Windows-1252, vírgula decimal, datas e duplicados; 40 000 imóveis em
+   Excel e em JSON Lines, com preços impossíveis) passaram o percurso todo pelos serviços (do
+   carregar aos agentes, a medir cada passo) e pela interface. Nada falhou; o que se corrigiu:
+   - o overfitting conta também o erro, descontado o ruído do teste (`memorised`): 100% contra
+     92,6% num teste de 30 mil linhas é decorar; 97,5% contra 90% nas 30 do Iris, não;
+   - 484 cidades repetidas são "categorias a mais", não "texto livre"; um código com 95% de
+     valores diferentes é um identificador, mesmo com linhas repetidas;
+   - os erros grosseiros do alvo (dez IQR para lá dos quartis, até 1% das linhas) sugerem-se
+     para sair: nos imóveis, o R² passou de ≈ 0 para 0,82;
+   - o mínimo, o máximo e os valores muito afastados do perfil vêm da coluna inteira, não da
+     amostra de 10 000 linhas;
+   - o JSON entra: registos, JSON Lines, os registos numa chave e as colunas, também em `.gz`.
+7. **Para o GitHub**: o workflow de CI (`.github/workflows/ci.yml`), o `* text=auto` no
+   `.gitattributes`, o README refeito e o último texto em português do site traduzido.
+
+Uma lição dos testes: a regra nova do overfitting, só com a diferença e o erro, apanhava o Iris
+(3 erros em 30 linhas de teste) como overfitting, e o teste do serviço de experiências falhou.
+Uma diferença fixa não chega com testes pequenos: a regra desconta agora o ruído do próprio
+teste, como o de uma proporção.
+
+### O Parquet, o Excel antigo e a licença
+
+O pedido seguinte (ADR 0052):
+
+1. **O Parquet entra, com o `pyarrow`.** O leitor troca os tipos que só o pandas conhece (as
+   categorias, os inteiros e os booleanos com nulos, o texto com `<NA>`, as datas com fuso)
+   pelos de um CSV, e devolve o índice com nome como coluna.
+2. **O Excel antigo (`.xls`) entra, com o `calamine`.** O motor vai sempre dito: o `calamine`
+   para o `.xls` e o `openpyxl` de sempre para o `.xlsx`.
+3. **A licença é a MIT**, no `LICENSE`, declarada no `pyproject.toml` e no `package.json`; o
+   README diz o que ela permite.
+
+Duas lições dos testes:
+
+- o plano era ler o `.xls` com o `xlrd`, mas o pandas 3.1 avisa que esse motor vai sair, e os
+  avisos contam como erros: trocou-se pelo `calamine`, o que o pandas recomenda. E com o
+  `calamine` instalado, o `.xlsx` também passou a avisar (o motor por omissão vai mudar), por
+  isso o motor do Excel ficou sempre explícito;
+- o teste das datas com fuso usava uma hora de Lisboa na noite em que os relógios adiantam, e
+  a terceira hora "saltava" de 0 para 2. O teste usa agora uma noite de inverno.
+
+O `.xls` dos testes foi gravado pelo próprio Excel, porque nenhuma biblioteca de Python o grava
+sem mais uma dependência; fica em `tests/unit/core/data/io/files/`, marcado como binário.

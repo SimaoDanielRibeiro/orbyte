@@ -92,18 +92,26 @@ export interface FlowExchange {
 type NodeState = "idle" | "active" | "done";
 
 /** A largura das colunas de um só nó: fixa, para os nomes caberem sempre. */
-const SIDES = { data: 164, coordinator: 156, winner: 156, test: 116 } as const;
+const SIDES = { data: 148, coordinator: 156, winner: 156, test: 138 } as const;
 const SIDES_WIDTH = SIDES.data + SIDES.coordinator + SIDES.winner + SIDES.test;
 /** A coluna dos agentes cresce com o espaço, até um limite; o resto vai para as ligações. */
-const AGENTS = { min: 200, max: 300 } as const;
-const MIN_GAP = 40;
+const AGENTS = { min: 188, max: 300 } as const;
+/** O espaço mínimo entre colunas: as etiquetas das ligações que não cabem nele escondem-se. */
+const MIN_GAP = 24;
 /** A largura de uma letra das etiquetas e dos pormenores (Geist Mono a 12px). */
 const MONO_CHAR = 7.2;
 /** O que a etiqueta ocupa além das letras: as margens de dentro, o contorno e uma folga. */
 const LABEL_EXTRA = 28;
 const EDGE = 4;
-/** Abaixo disto, os nomes não cabem: o fluxograma rola na horizontal. */
+/** Abaixo disto, os nomes não cabem: o fluxograma encolhe ou rola na horizontal. */
 const MIN_WIDTH = SIDES_WIDTH + AGENTS.min + 4 * MIN_GAP + 2 * EDGE;
+/**
+ * Até onde o fluxograma encolhe, por igual, para caber sem rolar: num portátil falta-lhe pouco (a
+ * 1280 px, com a barra aberta e as margens de 3 cm, tem 723 px), e cortar o teste do lado direito
+ * escondia o fim do fluxo. Mais estreito do que isto (o tablet e o telemóvel), as letras ficavam
+ * pequenas demais: rola.
+ */
+const MIN_SCALE = 0.8;
 const NODE_HEIGHT = 60;
 const ROW_GAP = 12;
 const PADDING = 28;
@@ -182,7 +190,9 @@ export function Flowchart({
 }: FlowchartProps) {
   const label = useLabel();
   const { ref, width: available } = useSize<HTMLDivElement>();
-  const width = Math.max(MIN_WIDTH, available);
+  const shortfall = available / MIN_WIDTH;
+  const scale = available > 0 && shortfall < 1 && shortfall >= MIN_SCALE ? shortfall : 1;
+  const width = Math.max(MIN_WIDTH, available / scale);
   const columns = columnsFor(width);
   const rows = Math.max(1, agents.length + (ai === null ? 0 : 1));
   const stack = rows * NODE_HEIGHT + (rows - 1) * ROW_GAP;
@@ -244,15 +254,15 @@ export function Flowchart({
       dashed: true,
       detail:
         searching && thought !== null
-          ? ["A pensar no próximo candidato", "A pensar"]
+          ? ["Thinking about the next candidate", "Thinking"]
           : searching && aiWorking !== null
-            ? [`A medir ${aiWorking.model_display_name}`, aiWorking.model_display_name]
+            ? [`Measuring ${aiWorking.model_display_name}`, aiWorking.model_display_name]
             : own.length > 0
               ? [
-                  `${formatQuantity(own.length, "proposta", "propostas")}, melhor ${objectiveValue(value, objective)}`,
-                  `Melhor ${objectiveValue(value, objective)} em ${formatCount(own.length)}`,
+                  `${formatQuantity(own.length, "proposal", "proposals")}, best ${objectiveValue(value, objective)}`,
+                  `Best ${objectiveValue(value, objective)} in ${formatCount(own.length)}`,
                 ]
-              : [`À espera · ${ai?.model ?? "modelo de linguagem"}`, "À espera"],
+              : [`Waiting · ${ai?.model ?? "language model"}`, "Waiting"],
       progress:
         searching && aiWorking !== null ? aiWorking.fold / Math.max(1, aiWorking.folds) : null,
       column: 2,
@@ -272,9 +282,9 @@ export function Flowchart({
         color: AI_AGENT_COLOR,
         label:
           searching && thought !== null
-            ? "a pensar"
+            ? "thinking"
             : searching && aiWorking !== null
-              ? `fold ${formatCount(aiWorking.fold)} de ${formatCount(aiWorking.folds)}`
+              ? `fold ${formatCount(aiWorking.fold)} of ${formatCount(aiWorking.folds)}`
               : undefined,
         column: 2,
         order: agents.length,
@@ -298,14 +308,14 @@ export function Flowchart({
       y: middle - NODE_HEIGHT / 2,
       width: columns.data.width,
       state: states.data,
-      title: "Dados",
+      title: "Data",
       icon: Database,
       detail:
         phase === "data"
-          ? ["A preparar"]
+          ? ["Preparing"]
           : trainRows === null
-            ? ["Os dados"]
-            : [`${formatCount(trainRows)} linhas de treino`, `${formatCount(trainRows)} linhas`],
+            ? ["The data"]
+            : [`${formatCount(trainRows)} training rows`, `${formatCount(trainRows)} rows`],
       progress: null,
       column: 0,
     },
@@ -319,11 +329,11 @@ export function Flowchart({
       icon: Workflow,
       detail:
         budget === null
-          ? [formatQuantity(measured, "candidato", "candidatos")]
+          ? [formatQuantity(measured, "candidate", "candidates")]
           : [
-              `${formatCount(measured)} de ${formatCount(budget)} candidatos`,
-              `${formatCount(measured)} de ${formatCount(budget)} medidos`,
-              `${formatCount(measured)} de ${formatCount(budget)}`,
+              `${formatCount(measured)} of ${formatCount(budget)} candidates`,
+              `${formatCount(measured)} of ${formatCount(budget)} measured`,
+              `${formatCount(measured)} of ${formatCount(budget)}`,
             ],
       progress: budget === null || measured === 0 ? null : measured / Math.max(1, budget),
       column: 1,
@@ -342,12 +352,12 @@ export function Flowchart({
         title: label("ModelFamily", agent.family),
         color: familyColor(agent.family),
         detail: active
-          ? [`A medir ${working.model_display_name}`, working.model_display_name]
+          ? [`Measuring ${working.model_display_name}`, working.model_display_name]
           : own.length === 0
-            ? ["À espera"]
+            ? ["Waiting"]
             : [
-                `${formatQuantity(own.length, "candidato", "candidatos")}, melhor ${objectiveValue(value, objective)}`,
-                `Melhor ${objectiveValue(value, objective)} em ${formatCount(own.length)}`,
+                `${formatQuantity(own.length, "candidate", "candidates")}, best ${objectiveValue(value, objective)}`,
+                `Best ${objectiveValue(value, objective)} in ${formatCount(own.length)}`,
               ],
         progress: active ? working.fold / Math.max(1, working.folds) : null,
         column: 2,
@@ -360,12 +370,12 @@ export function Flowchart({
       y: middle - NODE_HEIGHT / 2,
       width: columns.winner.width,
       state: states.winner,
-      title: phase === "done" || phase === "final" ? "Vencedor" : "Líder",
+      title: phase === "done" || phase === "final" ? "Winner" : "Leader",
       icon: Trophy,
       color: leaderColor,
       detail:
         leader === null
-          ? ["Ainda nenhum"]
+          ? ["None yet"]
           : [
               `${objectiveValue(leader.mean, objective)}, ${leader.model_display_name}`,
               objectiveValue(leader.mean, objective),
@@ -379,9 +389,9 @@ export function Flowchart({
       y: middle - NODE_HEIGHT / 2,
       width: columns.test.width,
       state: states.test,
-      title: "Teste",
+      title: "Test",
       icon: FlaskConical,
-      detail: test === null ? ["Só no fim", "No fim"] : [formatMetric(test)],
+      detail: test === null ? ["Only at the end", "At the end"] : [formatMetric(test)],
       progress: null,
       column: 4,
     },
@@ -393,7 +403,7 @@ export function Flowchart({
       from: center(columns.data.x + columns.data.width),
       to: center(columns.coordinator.x),
       state: states.data,
-      label: trainRows === null || phase === null ? undefined : `${formatCount(trainRows)} linhas`,
+      label: trainRows === null || phase === null ? undefined : `${formatCount(trainRows)} rows`,
       column: 1,
       order: 0,
     },
@@ -413,8 +423,8 @@ export function Flowchart({
           label: !active
             ? undefined
             : working.fold === 0
-              ? "a começar"
-              : `fold ${formatCount(working.fold)} de ${formatCount(working.folds)}`,
+              ? "starting"
+              : `fold ${formatCount(working.fold)} of ${formatCount(working.folds)}`,
           column: 2,
           order: index,
         },
@@ -452,73 +462,79 @@ export function Flowchart({
   return (
     <figure className="flex flex-col gap-3" data-phase={phase ?? "none"}>
       <div ref={ref} className="overflow-x-auto">
-        <div className="relative" style={{ width, height }}>
-          <svg
-            width={width}
-            height={height}
-            aria-hidden="true"
-            className="absolute inset-0 block overflow-visible"
+        {/* A caixa de fora tem o tamanho já encolhido; o desenho, o tamanho inteiro. */}
+        <div style={{ width: width * scale, height: height * scale }}>
+          <div
+            className="relative origin-top-left"
+            style={{ width, height, transform: scale < 1 ? `scale(${String(scale)})` : undefined }}
           >
-            {edges.map((edge) => (
-              <Edge key={edge.key} edge={edge} />
-            ))}
-            {exchange !== null &&
-              routes.map((path, index) => (
-                <Trail
-                  key={`${String(exchange.key)}-${String(index)}`}
-                  path={path}
-                  color={exchange.color}
-                  duration={exchange.duration}
-                />
-              ))}
-          </svg>
-          {edges.map(
-            (edge) =>
-              edge.label !== undefined &&
-              // Uma etiqueta que não cabe entre os dois nós ficava por cima deles: não se mostra (o
-              // que diz também está no nó, ou no painel do agente).
-              fits(edge) && (
-                <span
-                  key={`etiqueta-${edge.key}`}
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2e2e2e] bg-ground px-2 py-0.5 font-mono text-[12px] whitespace-nowrap text-soft"
-                  style={{
-                    left: (edge.from[0] + edge.to[0]) / 2,
-                    // Numa ligação reta a etiqueta fica por cima da linha, a deixá-la à vista.
-                    top: (edge.from[1] + edge.to[1]) / 2 - (edge.from[1] === edge.to[1] ? 16 : 0),
-                  }}
-                >
-                  {edge.label}
-                </span>
-              ),
-          )}
-          {nodes.map((node) => (
-            <NodeBox
-              key={node.key}
-              node={node}
-              selected={selected === node.key}
-              onSelect={onSelect}
-              lit={lit?.has(node.key) === true ? exchange?.color : undefined}
-            />
-          ))}
-          {/* A luz que viaja vai por cima dos nós (passa por dentro do agente do vencedor). */}
-          {exchange !== null && (
             <svg
               width={width}
               height={height}
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 block overflow-visible"
+              className="absolute inset-0 block overflow-visible"
             >
-              {routes.map((path, index) => (
-                <Pulse
-                  key={`${String(exchange.key)}-${String(index)}`}
-                  path={path}
-                  color={exchange.color}
-                  duration={exchange.duration}
-                />
+              {edges.map((edge) => (
+                <Edge key={edge.key} edge={edge} />
               ))}
+              {exchange !== null &&
+                routes.map((path, index) => (
+                  <Trail
+                    key={`${String(exchange.key)}-${String(index)}`}
+                    path={path}
+                    color={exchange.color}
+                    duration={exchange.duration}
+                  />
+                ))}
             </svg>
-          )}
+            {edges.map(
+              (edge) =>
+                edge.label !== undefined &&
+                // Uma etiqueta que não cabe entre os dois nós ficava por cima deles: não se mostra (o
+                // que diz também está no nó, ou no painel do agente).
+                fits(edge) && (
+                  <span
+                    key={`etiqueta-${edge.key}`}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2e2e2e] bg-ground px-2 py-0.5 font-mono text-[12px] whitespace-nowrap text-soft"
+                    style={{
+                      left: (edge.from[0] + edge.to[0]) / 2,
+                      // Numa ligação reta a etiqueta fica por cima da linha, a deixá-la à vista.
+                      top: (edge.from[1] + edge.to[1]) / 2 - (edge.from[1] === edge.to[1] ? 16 : 0),
+                    }}
+                  >
+                    {edge.label}
+                  </span>
+                ),
+            )}
+            {nodes.map((node) => (
+              <NodeBox
+                key={node.key}
+                node={node}
+                selected={selected === node.key}
+                onSelect={onSelect}
+                lit={lit?.has(node.key) === true ? exchange?.color : undefined}
+              />
+            ))}
+            {/* A luz que viaja vai por cima dos nós (passa por dentro do agente do vencedor). */}
+            {exchange !== null && (
+              <svg
+                width={width}
+                height={height}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 block overflow-visible"
+              >
+                {routes.map((path, index) => (
+                  <Pulse
+                    key={`${String(exchange.key)}-${String(index)}`}
+                    path={path}
+                    color={exchange.color}
+                    duration={exchange.duration}
+                  />
+                ))}
+              </svg>
+            )}
+          </div>
         </div>
       </div>
       <figcaption className="sr-only" aria-live="polite">
@@ -560,15 +576,15 @@ function describeNow(
   label: ReturnType<typeof useLabel>,
 ): string {
   if (phase === null) {
-    return "A procura ainda não começou.";
+    return "The search hasn't started yet.";
   }
   if (thought !== null) {
-    return `Agora: ${thought.author} a pensar no candidato ${String(thought.candidate)}.`;
+    return `Now: ${thought.author} thinking about candidate ${String(thought.candidate)}.`;
   }
   if (working !== null) {
-    return `Agora: ${working.author} a medir ${working.model_display_name}, fold ${String(working.fold)} de ${String(working.folds)}.`;
+    return `Now: ${working.author} measuring ${working.model_display_name}, fold ${String(working.fold)} of ${String(working.folds)}.`;
   }
-  return `Agora: ${label("SearchPhase", phase)}.`;
+  return `Now: ${label("SearchPhase", phase)}.`;
 }
 
 /** Um nó: um botão quando abre o painel do agente, uma caixa quando não há painel. */
@@ -690,7 +706,7 @@ function NodeBox({
       style={style}
       aria-haspopup="dialog"
       data-flow-node=""
-      aria-label={`${node.title}: ${node.detail[0] ?? ""}. Ver o que fez`}
+      aria-label={`${node.title}: ${node.detail[0] ?? ""}. See what it did`}
       onClick={() => {
         onSelect(node.key);
       }}

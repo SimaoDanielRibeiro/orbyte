@@ -55,10 +55,10 @@ export function toApiRequestError(error: unknown, status: number | undefined): A
   }
   if (status === undefined || status === 0 || status >= 500) {
     return new ApiRequestError(
-      "A API não responde. Arranca-a com `uv run python -m ml_lab.api` e tenta outra vez.",
+      "The API isn't responding. Start it with `uv run python -m ml_lab.api` and try again.",
       API_UNREACHABLE,
       status ?? 0,
     );
   }
-  return new ApiRequestError("A API respondeu de uma forma inesperada.", "unexpected", status);
+  return new ApiRequestError("The API answered in an unexpected way.", "unexpected", status);
 }

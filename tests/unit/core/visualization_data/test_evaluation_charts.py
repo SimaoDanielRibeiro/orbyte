@@ -47,7 +47,7 @@ def test_classification_charts_have_one_roc_curve_per_class() -> None:
     expected = roc_auc_score(truth, model.predict_proba(iris.test.X)[:, 1])
     assert charts.roc[1].area == pytest.approx(expected)
     assert charts.test_points is not None
-    assert set(charts.test_points.labels) <= {"Certo", "Errado"}
+    assert set(charts.test_points.labels) <= {"Right", "Wrong"}
 
 
 def test_regression_charts_show_the_residuals() -> None:
@@ -120,7 +120,7 @@ def test_anomaly_scores_are_split_by_the_reference_when_there_is_one() -> None:
     charts = evaluation_charts(model, anomalies)
 
     assert charts.scores is not None
-    assert charts.scores.series == ("Normal", "Anomalia")
+    assert charts.scores.series == ("Normal", "Anomaly")
     assert charts.scores_reference
     assert charts.threshold is not None
     assert anomalies.test.y is not None

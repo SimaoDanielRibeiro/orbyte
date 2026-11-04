@@ -3,12 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ModelsScreen } from "@/features/models/models-screen";
 
 interface ModelsSearch {
-  /** A tarefa do filtro (`todas` para ver todos); sem ela, a da preparação. */
-  tarefa?: string;
+  /** A tarefa do filtro (`all` para ver todos); sem ela, a da preparação. */
+  task?: string;
 }
 
-export const Route = createFileRoute("/modelos/")({
+export const Route = createFileRoute("/models/")({
   validateSearch: (search: Record<string, unknown>): ModelsSearch =>
-    typeof search.tarefa === "string" ? { tarefa: search.tarefa } : {},
+    typeof search.task === "string" ? { task: search.task } : {},
   component: ModelsScreen,
 });

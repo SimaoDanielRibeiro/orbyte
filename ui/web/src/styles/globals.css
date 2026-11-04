@@ -85,19 +85,59 @@
   --container-8xl: 88rem;
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Code", monospace;
+  /*
+   * A letra dos títulos (ADR 0045): a Unbounded, larga e geométrica, como uma órbita. Só nos
+   * títulos das páginas, no nome grande da entrada e na marca; o resto é Geist, e os números e
+   * os identificadores são Geist Mono.
+   */
+  --font-display: "Unbounded Variable", "Geist Variable", ui-sans-serif, sans-serif;
   /* A interface já não tem letra serifada: os nomes antigos apontam para a Geist. */
   --font-serif: var(--font-sans);
   --font-heading: var(--font-sans);
 
-  /* A escala: 13, 15, 16, 20, 24, 32, 40, 56 px (um degrau acima do habitual: lê-se melhor). */
-  --text-xs: 0.8125rem;
+  /*
+   * A escala (ADR 0048): 15, 17, 18, 20, 24, 30 px, e de 36 a 44 px no título de cada página
+   * (`text-title`, que cresce com o ecrã). Mais um degrau acima da ADR 0044: a interface lê-se de
+   * perto, como um livro, e o título grande dá à página a hierarquia de uma revista. As
+   * entrelinhas descem à medida que a letra cresce (o texto corrido respira, os títulos não).
+   */
+  --text-xs: 0.9375rem;
   --text-xs--line-height: 1.5;
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: 1.5;
-  --text-reading: 1rem;
-  --text-reading--line-height: 1.6;
-  --text-xl: 1.25rem;
-  --text-xl--line-height: 1.4;
+  --text-sm: 1.0625rem;
+  --text-sm--line-height: 1.55;
+  --text-base: 1.125rem;
+  --text-base--line-height: 1.55;
+  --text-reading: 1.125rem;
+  --text-reading--line-height: 1.7;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 1.2;
+  --text-title: clamp(2.25rem, 1.5rem + 1.75vw, 2.75rem);
+  --text-title--line-height: 1.08;
+  --text-title--letter-spacing: -0.03em;
+
+  /*
+   * O movimento (ADR 0048): curvas que partem depressa e assentam devagar, como uma coisa com
+   * peso. O que entra usa a `out-expo` (rápida no início, longa a assentar); o que só muda de
+   * cor, a `out-quart`, mais curta. Todas as transições do Tailwind passam a esta por omissão.
+   */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --default-transition-duration: 220ms;
+  --default-transition-timing-function: var(--ease-out-quart);
+  /* O que abre (menus, dicas, gavetas) entra devagar e sai depressa: a saída não faz esperar. */
+  --animate-in: enter var(--tw-animation-duration, var(--tw-duration, 0.32s))
+    var(--tw-ease, var(--ease-out-expo)) var(--tw-animation-delay, 0s)
+    var(--tw-animation-iteration-count, 1) var(--tw-animation-direction, normal)
+    var(--tw-animation-fill-mode, none);
+  --animate-out: exit var(--tw-animation-duration, var(--tw-duration, 0.18s))
+    var(--tw-ease, var(--ease-out-quart)) var(--tw-animation-delay, 0s)
+    var(--tw-animation-iteration-count, 1) var(--tw-animation-direction, normal)
+    var(--tw-animation-fill-mode, none);
 
   --color-ink: var(--ink);
   --color-ground: var(--ground);
@@ -174,6 +214,9 @@
     -moz-osx-font-smoothing: grayscale;
     scrollbar-color: var(--line-strong) transparent;
     scrollbar-width: thin;
+    /* O lugar da barra de deslocamento fica sempre guardado: ao passar de uma página comprida
+       para uma curta, os títulos e os botões não saltam para o lado. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -185,8 +228,13 @@
   h3 {
     color: var(--text-strong);
     font-weight: 500;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+
+  /* O título de cada página é o único na letra dos títulos: a ousadia fica num sítio só. */
+  h1 {
+    font-family: var(--font-display);
   }
 
   p {
@@ -198,10 +246,15 @@
   }
 }
 
-/* O rótulo pequeno em mono (o "Navigation" da referência): por cima de um grupo ou de um valor. */
-@utility mono-label {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
+/*
+ * O rótulo pequeno, por cima de um grupo, de um campo ou de um valor: em Geist, em letra normal
+ * (nem monoespaçada nem em maiúsculas). A monoespaçada fica para o que é dado: os números, os
+ * identificadores e o código (ADR 0045).
+ */
+@utility small-label {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
   line-height: 1.4;
   color: var(--text-dim);
 }
@@ -215,6 +268,16 @@
 }
 
 /*
+ * Uma linha de uma lista longa (as mensagens dos agentes): fora de vista, o browser não a
+ * desenha e guarda-lhe o lugar, com o tamanho que ela tinha da última vez (ou 5rem, antes de a
+ * ver). Uma conversa com centenas de mensagens desenha só as que estão à vista.
+ */
+@utility lazy-paint {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 5rem;
+}
+
+/*
  * O que ainda mostra o resultado anterior enquanto o novo chega (uma demonstração a treinar
  * outra vez, um perfil a recalcular): os desenhos esbatem-se, o texto não. Esbater o bloco
  * inteiro baixava o texto abaixo do contraste mínimo (4,5:1) enquanto se esperava.
@@ -222,7 +285,46 @@
 @layer components {
   .stale :is(svg, canvas) {
     opacity: 0.45;
-    transition: opacity 150ms;
+    transition: opacity 300ms var(--ease-out-quart);
+  }
+}
+
+/*
+ * A entrada de uma página (ADR 0048): o conteúdo sobe 12 px e acende, e cada bloco de cima chega
+ * um nada depois do anterior, como uma página que se vira. Só a opacidade e a posição: nada muda
+ * de tamanho, e a página não salta. O `backwards` guarda o início durante o atraso e, no fim, larga
+ * a animação: o conteúdo fica sem `transform`, e o que está fixo lá dentro não perde a referência.
+ */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+@utility page-in {
+  animation: page-in 0.7s var(--ease-out-expo) backwards;
+}
+
+/* Os filhos diretos entram em cascata: 50 ms entre cada um, até ao sexto (o resto já está fora). */
+@utility page-in-stagger {
+  & > * {
+    animation: page-in 0.7s var(--ease-out-expo) backwards;
+  }
+  & > :nth-child(2) {
+    animation-delay: 50ms;
+  }
+  & > :nth-child(3) {
+    animation-delay: 100ms;
+  }
+  & > :nth-child(4) {
+    animation-delay: 150ms;
+  }
+  & > :nth-child(5) {
+    animation-delay: 200ms;
+  }
+  & > :nth-child(n + 6) {
+    animation-delay: 250ms;
   }
 }
 
@@ -262,40 +364,6 @@
 
 .comet-slow {
   animation: comet-slow 5s ease-in-out infinite;
-}
-
-/*
- * A luz do trilho dos passos, na barra lateral: um brilho curto que desce pela linha e some no
- * fim, sem parar. O segundo troço (depois da troca de interface) parte a meio do ciclo, como se
- * a luz continuasse.
- */
-@keyframes rail-light {
-  0% {
-    top: -3rem;
-    opacity: 0;
-  }
-  15%,
-  80% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
-
-.rail-light {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -3rem;
-  height: 3rem;
-  background: linear-gradient(to bottom, transparent, rgb(250 250 250 / 0.85), transparent);
-  animation: rail-light 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.rail-light-late {
-  animation-delay: 1.6s;
 }
 
 /*
@@ -501,12 +569,100 @@
   animation: glyph-flow 2.4s linear infinite;
 }
 
-/* Com "reduzir movimento" ligado, tudo aparece já no estado final. */
+/*
+ * O desenho da página de erro (`root-error.tsx`, ADR 0050): a curva desenha-se a subir, como um
+ * treino a correr bem; no ponto mais alto, cai a pique (a acelerar, como uma queda), e no fundo
+ * fica um ponto a pulsar com o nome do que caiu. O `both` esconde cada peça até à sua vez.
+ */
+@keyframes error-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes error-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes error-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes error-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+.error-rise,
+.error-fall {
+  stroke-dasharray: 1;
+}
+
+.error-peak,
+.error-dot,
+.error-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.error-rise {
+  animation: error-draw 1.3s var(--ease-in-out-quart) both;
+}
+
+.error-peak {
+  animation: error-pop 0.35s ease-out 1.2s both;
+}
+
+.error-fall {
+  animation: error-draw 0.4s cubic-bezier(0.55, 0, 1, 0.45) 1.4s both;
+}
+
+.error-flat {
+  animation: error-appear 0.6s ease-out 1.8s both;
+}
+
+.error-dot {
+  animation: error-pop 0.4s ease-out 1.75s both;
+}
+
+.error-ping {
+  opacity: 0;
+  animation: error-ping 2.2s ease-out 2s infinite;
+}
+
+.error-label {
+  animation: error-appear 0.6s ease-out 1.95s both;
+}
+
+/* Com "reduzir movimento" ligado, tudo aparece já no estado final (e sem esperar pela vez). */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
   ::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

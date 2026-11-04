@@ -42,8 +42,8 @@ class DimensionalityEvaluator(Evaluator):
                 notices=(
                     Notice.info(
                         "train_only",
-                        f"'{model.info.display_name}' só coloca no mapa os pontos com que "
-                        f"treinou: não há relatório do {partition.label.lower()}.",
+                        f"'{model.info.display_name}' only places the points it trained on in "
+                        f"the map: there's no report for the {partition.label.lower()} data.",
                     ),
                 ),
             )
@@ -54,5 +54,5 @@ class DimensionalityEvaluator(Evaluator):
             task_type=task_type,
             n_samples=len(X),
             metrics=results,
-            notices=tuple(undefined_notices(undefined, partition, "há poucas linhas")),
+            notices=tuple(undefined_notices(undefined, partition, "there are too few rows")),
         )

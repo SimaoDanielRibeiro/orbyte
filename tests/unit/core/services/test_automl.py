@@ -40,6 +40,8 @@ REQUEST = AutoMLRequest(
     dataset=IRIS,
     target="species",
     families=FAST,
+    # Das três famílias, um modelo rápido de cada (as implementações didáticas também entram).
+    models=("logistic_regression", "knn", "decision_tree"),
     settings=SearchSettings(budget=6, folds=3, finalists=2),
     seed=3,
 )
@@ -63,7 +65,7 @@ def test_the_options_say_what_can_be_asked(lab: Lab) -> None:
         "finalists",
         "max_rows",
     }
-    assert options.doc.startswith("# Agentes de AutoML")
+    assert options.doc.startswith("# AutoML agents")
 
 
 def test_tasks_without_a_target_are_not_for_the_agents(lab: Lab) -> None:
@@ -71,7 +73,7 @@ def test_tasks_without_a_target_are_not_for_the_agents(lab: Lab) -> None:
 
     assert not options.supported
     assert options.reason is not None
-    assert "modo manual" in options.reason
+    assert "manual mode" in options.reason
     assert options.agents == ()
 
 
@@ -83,10 +85,10 @@ def test_the_plan_shows_the_decisions_before_anything_starts(lab: Lab) -> None:
     assert plan.baseline == "logistic_regression"
     # O Iris tem uma linha repetida: o agente de dados tira-a, e sobram 149 (119 + 30).
     titles = [decision.title for decision in plan.decisions]
-    assert titles[0] == "Remover linhas duplicadas"
+    assert titles[0] == "Drop duplicate rows"
     assert (plan.train_rows, plan.test_rows, plan.search_rows) == (119, 30, 119)
     assert not plan.sampled
-    assert "Tarefa: classificação multiclasse" in titles
+    assert "Task: multiclass classification" in titles
     assert [card.family for card in plan.agents] == list(FAST)
 
 
@@ -107,7 +109,7 @@ def test_a_large_training_set_is_searched_on_a_sample(lab: Lab) -> None:
 def test_an_unsupervised_task_is_refused_before_starting(lab: Lab) -> None:
     clustering = REQUEST.model_copy(update={"task_type": TaskType.CLUSTERING})
 
-    with pytest.raises(InvalidParameterError, match="modo manual"):
+    with pytest.raises(InvalidParameterError, match="manual mode"):
         lab.automl.start(clustering)
 
 
@@ -125,11 +127,11 @@ def test_a_search_runs_in_the_background_and_the_winner_lands_in_the_history(lab
     winner = result.winner_candidate
     assert winner is not None
     assert entry.model_name == winner.model
-    assert entry.name == "Agentes · " + winner.model_display_name + " · Iris (species)"
+    assert entry.name == "Agents · " + winner.model_display_name + " · Iris (species)"
     assert result.test is not None
     assert result.test.name == "accuracy"
     assert result.messages[0].role is AgentRole.DATA
-    assert result.messages[-1].text.startswith("No teste: ")
+    assert result.messages[-1].text.startswith("On the test: ")
     # A troca: o plano vai ao coordenador; no fim, o vencedor vai ao teste, e a leitura do
     # teste é para quem acompanha (sem destinatários).
     first, training, reading = result.messages[0], result.messages[-2], result.messages[-1]
@@ -159,7 +161,7 @@ def test_updates_send_only_what_is_new(lab: Lab) -> None:
     assert everything.objective.name == "accuracy"
 
 
-def test_a_stopped_search_still_names_a_winner(lab: Lab) -> None:
+def test_a_stopped_search_stops_everything(lab: Lab) -> None:
     longer = REQUEST.model_copy(update={"settings": SearchSettings(budget=200, folds=3)})
     job = lab.automl.start(longer)
     lab.automl.pause(job.run_id)
@@ -171,6 +173,10 @@ def test_a_stopped_search_still_names_a_winner(lab: Lab) -> None:
     assert result.stopped_early
     assert len(result.candidates) < 200
     assert "stopped_early" in [notice.code for notice in result.notices]
+    # Parar é parar tudo (ADR 0051): o melhor até aí não treina nem vai ao teste.
+    assert result.run_id is None
+    assert result.test is None
+    assert not any(message.kind is MessageKind.TEST for message in result.messages)
 
 
 def test_a_running_search_is_never_forgotten(lab: Lab) -> None:
@@ -210,7 +216,7 @@ def test_a_candidate_can_be_trained_by_hand(lab: Lab) -> None:
     assert experiment.model_name == last.model
     assert experiment.hyperparameters == last.hyperparameters
     assert experiment.seed == result.seed
-    with pytest.raises(CandidateNotFoundError, match="de 1 a 6"):
+    with pytest.raises(CandidateNotFoundError, match="1 to 6"):
         lab.automl.train_candidate(result.search_id, 99)
 
 
@@ -282,6 +288,6 @@ def test_without_the_ollama_the_ai_agent_is_refused_saying_how_to_start_it(
 
     with pytest.raises(LanguageModelError, match="ollama serve"):
         service.start(request)
-    with pytest.raises(LanguageModelError, match="não tem um modelo de linguagem"):
+    with pytest.raises(LanguageModelError, match="has no language model connected"):
         alone.start(request)
     assert service.plan(request).ai_agent  # o plano mostra-se na mesma, antes de pedir

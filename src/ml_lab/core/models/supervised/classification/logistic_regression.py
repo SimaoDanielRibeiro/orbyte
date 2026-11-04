@@ -27,10 +27,10 @@ class LogisticRegressionParams(Hyperparameters):
         default=1.0,
         ge=0.0001,
         le=10_000,
-        title="C (inverso da regularização)",
+        title="C (inverse of regularisation)",
         description=(
-            "Quanto menor, mais forte a regularização: os pesos ficam pequenos e a fronteira "
-            "mais simples. Valores grandes deixam o modelo seguir mais de perto o treino."
+            "The smaller, the stronger the regularisation: the weights stay small and the "
+            "boundary simpler. Large values let the model follow the training data more closely."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 100]}},
     )
@@ -38,25 +38,25 @@ class LogisticRegressionParams(Hyperparameters):
         default=100,
         ge=10,
         le=5_000,
-        title="Máximo de iterações",
-        description="Quantos passos o otimizador pode dar até encontrar os melhores pesos.",
+        title="Maximum iterations",
+        description="How many steps the optimiser can take to find the best weights.",
     )
     class_weight: Literal["none", "balanced"] = Field(
         default="none",
-        title="Peso das classes",
+        title="Class weights",
         description=(
-            "Com «equilibrado», os erros nas classes raras contam mais, o que ajuda quando as "
-            "classes estão desequilibradas."
+            "With “balanced”, the errors on rare classes count more, which helps when the "
+            "classes are imbalanced."
         ),
         json_schema_extra={
-            "x-labels": {"none": "Igual para todas", "balanced": "Equilibrado"},
+            "x-labels": {"none": "Same for all", "balanced": "Balanced"},
             "x-search": {"values": ["none", "balanced"]},
         },
     )
     fit_intercept: bool = Field(
         default=True,
-        title="Aprender a ordenada (b)",
-        description="Sem ordenada, a fronteira de decisão é obrigada a passar pela origem.",
+        title="Learn the intercept (b)",
+        description="Without an intercept, the decision boundary has to go through the origin.",
     )
 
 
@@ -66,10 +66,10 @@ class LogisticRegression(SklearnModel[LogisticRegressionParams]):
 
     info = ModelInfo(
         name="logistic_regression",
-        display_name="Regressão logística",
+        display_name="Logistic regression",
         summary=(
-            "Modelo linear que dá a probabilidade de cada classe: rápido, fácil de interpretar "
-            "e um bom primeiro modelo para comparar com os outros."
+            "A linear model that gives the probability of each class: fast, easy to interpret "
+            "and a good first model to compare the others with."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.LINEAR,

@@ -35,7 +35,8 @@ from ml_lab.core.training.control import TrainingControl
 
 IRIS = SourceSpec("sample", {"name": "iris"})
 SPECIES = PreparationConfig("species", split=SplitConfig(SplitStrategy.STRATIFIED))
-FAST = (ModelFamily.LINEAR, ModelFamily.INSTANCE_BASED, ModelFamily.TREE)
+# Um modelo rápido de cada uma de três famílias (os lineares, os vizinhos e as árvores).
+FAST = ("logistic_regression", "knn", "decision_tree")
 MULTICLASS = TaskType.MULTICLASS_CLASSIFICATION
 
 
@@ -47,7 +48,8 @@ def search(
     *,
     budget: int = 8,
     finalists: int = 2,
-    families: Sequence[ModelFamily] = FAST,
+    families: Sequence[ModelFamily] = (),
+    models: Sequence[str] = FAST,
     task_type: TaskType = MULTICLASS,
     objective: str | None = None,
     config: PreparationConfig = SPECIES,
@@ -56,7 +58,7 @@ def search(
     control: TrainingControl | None = None,
 ) -> tuple[SearchOutcome, SearchLog]:
     chosen = objective_for(task_type, objective)
-    agents, _ = model_agents(task_type, chosen, families=families)
+    agents, _ = model_agents(task_type, chosen, families=families, models=models)
     log = log or SearchLog()
     coordinator = Coordinator(
         chosen,
@@ -114,6 +116,7 @@ def test_a_lower_is_better_objective_ranks_the_other_way() -> None:
     outcome, _ = search(
         budget=6,
         families=(ModelFamily.LINEAR, ModelFamily.TREE),
+        models=(),
         task_type=TaskType.REGRESSION,
         objective="rmse",
         config=regression,
@@ -178,10 +181,10 @@ def test_a_failing_candidate_stays_on_the_board_with_its_reason(
     assert not first.failed
     assert second.failed
     assert second.error is not None
-    assert "100 vizinhos" in second.error
+    assert "100 neighbours" in second.error
     assert outcome.winner is first  # a procura continuou e o vencedor é o que funcionou
     assert outcome.ranking == (1,)
-    assert any("falhou" in message.text for message in log.messages())
+    assert any("failed" in message.text for message in log.messages())
 
 
 def test_a_stop_request_ends_the_search_and_the_best_so_far_wins() -> None:
@@ -197,7 +200,7 @@ def test_a_stop_request_ends_the_search_and_the_best_so_far_wins() -> None:
     assert outcome.stopped
     assert outcome.winner is not None
     assert outcome.winner.number in (1, 2)
-    assert any("Pediste para parar" in message.text for message in log.messages())
+    assert any("You asked to stop" in message.text for message in log.messages())
 
 
 def test_a_pause_holds_the_search_until_it_resumes() -> None:
@@ -219,14 +222,14 @@ def test_the_conversation_tells_the_story_of_the_search() -> None:
 
     messages = log.messages()
     texts = [message.text for message in messages]
-    assert texts[0].startswith("Ronda 1, triagem: 3 modelos de 3 famílias")
-    assert any(text.startswith("Passam à afinação:") for text in texts)
-    assert texts[-1].startswith("O melhor na validação cruzada é ")
+    assert texts[0].startswith("Round 1, screening: 3 models from 3 families")
+    assert any(text.startswith("Through to the tuning:") for text in texts)
+    assert texts[-1].startswith("The best in the cross-validation is ")
     agents = [m for m in messages if m.role is AgentRole.MODEL]
     assert {m.author for m in agents} == {
-        "Agente · Modelos lineares",
-        "Agente · Baseados em instâncias",
-        "Agente · Árvores de decisão",
+        "Agent · Linear models",
+        "Agent · Instance-based",
+        "Agent · Decision trees",
     }
     assert all(m.candidate is not None for m in agents)
     assert [m.number for m in messages] == list(range(1, len(messages) + 1))
@@ -290,6 +293,6 @@ def test_whoever_follows_sees_which_agent_works_and_on_which_fold() -> None:
     assert {work.folds for work in log.seen} == {3}
     first, second = outcome.candidates
     assert log.seen[0].model == first.model
-    assert log.seen[0].author == "Agente · Modelos lineares"
+    assert log.seen[0].author == "Agent · Linear models"
     assert log.seen[3].model == second.model
     assert log.working is None  # entre candidatos (e no fim) não há trabalho em curso

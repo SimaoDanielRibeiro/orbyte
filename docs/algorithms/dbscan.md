@@ -1,53 +1,52 @@
 # DBSCAN
 
-## Intuição
+## Intuition
 
-O DBSCAN (*density-based spatial clustering of applications with noise*) vê os grupos como
-**zonas densas** de pontos, separadas por zonas vazias. Não é preciso dizer quantos grupos
-há, os grupos podem ter qualquer forma (luas, anéis), e os pontos isolados ficam de fora,
-como **ruído**.
+DBSCAN (*density-based spatial clustering of applications with noise*) sees groups as **dense
+areas** of points, separated by empty areas. You don't have to say how many groups there are, the
+groups can have any shape (moons, rings), and isolated points are left out, as **noise**.
 
-## Matemática essencial
+## Essential maths
 
-Com um raio $\varepsilon$ e um número mínimo de pontos $m$:
+With a radius $\varepsilon$ and a minimum number of points $m$:
 
-- um ponto é **núcleo** se tiver pelo menos $m$ pontos (contando com ele) a menos de
+- a point is a **core** point if it has at least $m$ points (itself included) within
   $\varepsilon$;
-- dois núcleos a menos de $\varepsilon$ um do outro ficam no mesmo grupo, e os grupos
-  crescem de núcleo em núcleo;
-- um ponto que não é núcleo, mas está a menos de $\varepsilon$ de um, fica na **fronteira**
-  desse grupo;
-- os restantes são **ruído** (grupo $-1$).
+- two core points within $\varepsilon$ of each other go in the same group, and the groups grow
+  from core to core;
+- a point that isn't a core point, but is within $\varepsilon$ of one, sits on the **border** of
+  that group;
+- the rest are **noise** (group $-1$).
 
-O DBSCAN do scikit-learn não prevê pontos novos. O laboratório usa uma regra simples: um
-ponto novo fica no grupo do núcleo mais próximo, se estiver a menos de $\varepsilon$ dele;
-senão, é ruído. Os pontos de treino ficam exatamente com o grupo que o DBSCAN lhes deu.
+scikit-learn's DBSCAN doesn't predict new points. The lab uses a simple rule: a new point joins
+the group of the closest core point, if it's within $\varepsilon$ of it; otherwise, it's noise.
+The training points keep exactly the group DBSCAN gave them.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `eps` | O raio da vizinhança ($\varepsilon$). Pequeno: quase tudo é ruído; grande: tudo se junta num só grupo | 0,5 |
-| `min_samples` | Quantos pontos tem de haver no raio para um ponto ser núcleo ($m$). Maior exige zonas mais densas | 5 |
+| `eps` | The neighbourhood radius ($\varepsilon$). Small: almost everything is noise; large: everything merges into one group | 0.5 |
+| `min_samples` | How many points there must be within the radius for a point to be a core point ($m$). Larger demands denser areas | 5 |
 
-## Quando usar
+## When to use
 
-- Quando os grupos têm **formas irregulares** ou se quer separar o ruído.
-- Quando não se sabe quantos grupos há.
+- When the groups have **irregular shapes** or you want to set the noise apart.
+- When you don't know how many groups there are.
 
-## Armadilhas
+## Pitfalls
 
-- **O `eps` depende da escala:** padroniza as features. Para o escolher, ordena a distância de
-  cada ponto ao seu `min_samples`-ésimo vizinho e procura o "cotovelo" dessa curva.
-- **Densidades diferentes:** um só `eps` não serve a um grupo apertado e a outro espalhado.
-  Um raio fica bom para um e mau para o outro.
-- **Muitas dimensões:** as distâncias perdem significado, e a densidade também.
-- **As métricas de forma** (silhueta, Davies-Bouldin) ignoram o ruído. Olha também para a
-  proporção de ruído: mais de metade quer dizer um `eps` pequeno demais.
+- **`eps` depends on the scale:** standardise the features. To choose it, sort the distance from
+  each point to its `min_samples`-th neighbour and look for the "elbow" in that curve.
+- **Different densities:** a single `eps` can't suit both a tight group and a spread-out one. A
+  radius that's good for one is bad for the other.
+- **Many dimensions:** distances lose their meaning, and so does density.
+- **Shape metrics** (silhouette, Davies-Bouldin) ignore the noise. Also look at the share of
+  noise: more than half means an `eps` that's too small.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar**, as zonas coloridas são os grupos (com a regra dos
-pontos novos) e as cinzentas são o ruído. Experimenta o `eps`: vês os grupos a partirem-se
-em bocados (pequeno) ou a fundirem-se num só (grande). Na avaliação, a métrica "Ruído"
-diz que fração dos pontos ficou de fora.
+It trains in one go. On the **Train & evaluate** screen, the coloured areas are the groups (with
+the new-points rule) and the grey ones are the noise. Try `eps`: you see the groups break into
+pieces (small) or merge into one (large). In the evaluation, the "Noise" metric says what share of
+the points was left out.

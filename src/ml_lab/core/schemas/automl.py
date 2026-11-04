@@ -40,37 +40,40 @@ class SearchSettings(BaseModel):
         default=24,
         ge=1,
         le=200,
-        title="Orçamento (candidatos)",
+        title="Budget (candidates)",
         description=(
-            "Quantos candidatos medir, contando a triagem e a afinação. Cada candidato treina "
-            "uma vez por fold: é isto que decide quanto tempo a procura demora."
+            "How many candidates to measure, counting the screening and the tuning. Each "
+            "candidate trains once per fold: this is what decides how long the search takes."
         ),
     )
     folds: int = Field(
         default=5,
         ge=2,
         le=10,
-        title="Folds da validação cruzada",
+        title="Cross-validation folds",
         description=(
-            "Em quantas partes se divide o treino para medir cada candidato. Mais folds, "
-            "estimativa mais segura e procura mais lenta."
+            "How many parts the training data is split into to measure each candidate. More "
+            "folds, a safer estimate and a slower search."
         ),
     )
     finalists: int = Field(
         default=3,
         ge=1,
         le=10,
-        title="Finalistas",
-        description="Quantos modelos da triagem passam à afinação e repartem o resto do orçamento.",
+        title="Finalists",
+        description=(
+            "How many models from the screening move on to the tuning and share the rest of the "
+            "budget."
+        ),
     )
     max_rows: int = Field(
         default=2_000,
         ge=100,
         le=100_000,
-        title="Linhas na procura",
+        title="Rows in the search",
         description=(
-            "Com mais linhas de treino do que isto, a validação cruzada usa uma amostra, para a "
-            "procura ser rápida. O vencedor treina no fim com o treino todo."
+            "With more training rows than this, cross-validation uses a sample, so the search "
+            "is fast. The winner trains at the end on all the training data."
         ),
         json_schema_extra={"x-scale": "log"},
     )
@@ -100,7 +103,8 @@ class AutoMLRequest(BaseModel):
         objective: A métrica a otimizar (o nome no registo, como ``"f1"``); ``None`` deixa o
             agente de dados sugerir.
         families: As famílias de modelos que participam; vazio = todas.
-        include_didactic: Se entram também as implementações didáticas.
+        models: Os modelos que participam, pelo nome no registo; vazio = todos os que podem
+            (ADR 0049). Com as famílias, entra o que estiver nas duas escolhas.
         preparation: Uma preparação feita à mão, que o agente de dados adota; ``None`` deixa-o
             decidir.
         settings: O tamanho da procura.
@@ -117,7 +121,7 @@ class AutoMLRequest(BaseModel):
     task_type: TaskType | None = None
     objective: str | None = None
     families: tuple[ModelFamily, ...] = ()
-    include_didactic: bool = False
+    models: tuple[str, ...] = ()
     preparation: PreparationConfig | None = None
     settings: SearchSettings = Field(default_factory=SearchSettings)
     seed: int | None = Field(default=None, ge=0, le=MAX_SEED)

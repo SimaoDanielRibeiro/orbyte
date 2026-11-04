@@ -7,7 +7,7 @@ export function FormulaBlock({ card }: { card: MetricCard }) {
     // `min-w-0`: numa grelha, uma fórmula larga desliza na sua caixa em vez de alargar a página.
     <section
       className="flex min-w-0 flex-col gap-3"
-      aria-label={`A fórmula de ${card.display_name}`}
+      aria-label={`The formula of ${card.display_name}`}
     >
       <div className="relative overflow-x-auto rounded-xl border bg-ground px-4 py-5 text-strong">
         <Formula tex={card.formula} />

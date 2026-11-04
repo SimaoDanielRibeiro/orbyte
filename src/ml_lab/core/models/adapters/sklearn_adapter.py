@@ -118,8 +118,8 @@ class SklearnModel[P: Hyperparameters](LabModel[P]):
         if isinstance(message, ConvergenceWarning):
             return Notice.warning(
                 "convergence",
-                f"O otimizador de '{self.info.display_name}' parou no limite de iterações sem "
-                "convergir: os coeficientes ainda podiam melhorar. Aumenta o máximo de "
-                "iterações ou escala as features (padronização).",
+                f"The optimiser of '{self.info.display_name}' stopped at the iteration limit "
+                "without converging: the coefficients could still improve. Raise the maximum "
+                "number of iterations or scale the features (standardisation).",
             )
-        return Notice.info("library_warning", f"Aviso do scikit-learn: {message}")
+        return Notice.info("library_warning", f"scikit-learn warning: {message}")

@@ -26,6 +26,8 @@ from ml_lab.core.foundation.errors import DataError, InvalidParameterError
 from ml_lab.formatting import format_number, format_quantity
 
 DEFAULT_FACTOR = 1.5
+GROSS_FACTOR = 10.0
+"""O fator dos valores que já não são extremos, são erros: dez IQR para lá dos quartis."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,12 +88,12 @@ def _clip_new_rows(
 
 @cleaning_operation(
     "treat_outliers",
-    title="Tratar valores extremos",
+    title="Treat extreme values",
     description=(
-        "Deteta os valores extremos de uma coluna numérica com a regra do IQR e limita-os "
-        "aos limites (clip) ou remove as linhas onde aparecem (remove). Os limites são "
-        "calculados com todas as linhas, antes da divisão: usa só quando os extremos forem "
-        "erros ou quando quiseres ver o seu efeito."
+        "Detects the extreme values of a numeric column with the IQR rule and caps them at the "
+        "limits (clip) or drops the rows where they appear (remove). The limits are computed "
+        "with every row, before the split: use it only when the extremes are errors or when "
+        "you want to see their effect."
     ),
     replay=_clip_new_rows,
 )
@@ -105,39 +107,39 @@ def treat_outliers(
     """Limita (``clip``) ou remove (``remove``) os valores extremos de ``column``."""
     require_columns(frame, [column])
     if method not in ("clip", "remove"):
-        raise InvalidParameterError(f"Método '{method}' desconhecido: usa 'clip' ou 'remove'.")
+        raise InvalidParameterError(f"Unknown method '{method}': use 'clip' or 'remove'.")
     if factor <= 0:
-        raise InvalidParameterError("O fator do IQR tem de ser positivo (o habitual é 1,5).")
+        raise InvalidParameterError("The IQR factor must be positive (1.5 is the usual one).")
     if not pd.api.types.is_numeric_dtype(frame[column]) or pd.api.types.is_bool_dtype(
         frame[column]
     ):
         raise DataError(
-            f"A coluna '{column}' não é numérica: converte-a primeiro (operação convert_type)."
+            f"The column '{column}' isn't numeric: convert it first (the convert_type operation)."
         )
     bounds = iqr_bounds(frame[column], factor)
     params = {"column": column, "method": method, "factor": factor}
     # Os limites ficam guardados mesmo sem extremos: uma linha nova pode trazer um.
     learned = {} if bounds is None else {"lower": bounds.lower, "upper": bounds.upper}
     if bounds is None or bounds.n_outliers == 0:
-        description = f"A coluna {column} não tem valores extremos (regra do IQR)."
+        description = f"The column {column} has no extreme values (IQR rule)."
         return CleaningResult(
             frame,
             cleaning_step("treat_outliers", description, frame, frame, params),
             learned=learned,
         )
 
-    limits = f"[{format_number(bounds.lower)}; {format_number(bounds.upper)}]"
+    # Por extenso ("de -6.69 a 64.81"): com a vírgula dos milhares, "[1,234.5, 2,000]" lia-se mal.
+    limits = f"the range {format_number(bounds.lower)} to {format_number(bounds.upper)}"
     n_outliers = bounds.n_outliers
     if method == "clip":
         result = frame.assign(**{column: frame[column].clip(bounds.lower, bounds.upper)})
-        values = format_quantity(n_outliers, "valor extremo limitado", "valores extremos limitados")
-        description = f"{column}: {values} ao intervalo {limits}."
+        values = format_quantity(n_outliers, "extreme value capped", "extreme values capped")
+        description = f"{column}: {values} to {limits}."
         step = cleaning_step("treat_outliers", description, frame, result, params, changed=[column])
     else:
         inside = frame[column].isna() | frame[column].between(bounds.lower, bounds.upper)
         result = frame.loc[inside]
-        rows = format_quantity(n_outliers, "linha", "linhas")
-        verb = "removida" if n_outliers == 1 else "removidas"
-        description = f"{column}: {verb} {rows} com valores fora de {limits}."
+        rows = format_quantity(n_outliers, "row", "rows")
+        description = f"{column}: dropped {rows} with values outside {limits}."
         step = cleaning_step("treat_outliers", description, frame, result, params)
     return CleaningResult(result, step, learned=learned)

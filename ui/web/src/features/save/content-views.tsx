@@ -87,7 +87,7 @@ function JsonNode({ name, value, depth }: { name: string | null; value: unknown;
             <JsonNode key={key} name={key} value={item} depth={depth + 1} />
           ))}
           {entries.length > SHOWN && (
-            <p className="text-dim">… e mais {formatCount(entries.length - SHOWN)}</p>
+            <p className="text-dim">… and {formatCount(entries.length - SHOWN)} more</p>
           )}
           <span className="text-soft">{brackets[1]}</span>
         </div>
@@ -130,7 +130,7 @@ export function CsvTable({ text, label }: { text: string; label: string }) {
     <div
       className="overflow-x-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring"
       role="region"
-      aria-label={`${label} (desliza para o lado)`}
+      aria-label={`${label} (scrolls sideways)`}
       tabIndex={0}
     >
       <table aria-label={label} className="w-full caption-bottom text-sm">

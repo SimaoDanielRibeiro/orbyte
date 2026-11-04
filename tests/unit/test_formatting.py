@@ -19,15 +19,16 @@ from ml_lab.formatting import (
 @pytest.mark.parametrize(
     ("value", "decimals", "expected"),
     [
-        (3.14159, 2, "3,14"),
-        (0.5, 1, "0,5"),
-        (-2.25, 2, "-2,25"),
-        (1234.5, 1, "1234,5"),
-        (12345.678, 2, "12 345,68"),
-        (-1_000_000, 0, "-1 000 000"),
+        (3.14159, 2, "3.14"),
+        (0.5, 1, "0.5"),
+        (-2.25, 2, "-2.25"),
+        (999.5, 1, "999.5"),
+        (1234.5, 1, "1,234.5"),
+        (12345.678, 2, "12,345.68"),
+        (-1_000_000, 0, "-1,000,000"),
     ],
 )
-def test_numbers_use_a_decimal_comma_and_spaces_for_thousands(
+def test_numbers_use_a_decimal_point_and_commas_for_thousands(
     value: float, decimals: int, expected: str
 ) -> None:
     assert format_number(value, decimals) == expected
@@ -37,9 +38,9 @@ def test_numbers_use_a_decimal_comma_and_spaces_for_thousands(
     ("value", "expected"),
     [
         (0.000001, "1 × 10⁻⁶"),
-        (0.000025, "2,5 × 10⁻⁵"),
+        (0.000025, "2.5 × 10⁻⁵"),
         (1e-10, "1 × 10⁻¹⁰"),
-        (-0.00012345, "-1,23 × 10⁻⁴"),
+        (-0.00012345, "-1.23 × 10⁻⁴"),
         (5e12, "5 × 10¹²"),
         (0.0, "0"),
     ],
@@ -51,12 +52,12 @@ def test_tiny_and_huge_numbers_are_written_as_powers_of_ten(value: float, expect
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        (0.320912, "0,3209"),
-        (12.3456, "12,35"),
-        (12345.678, "12 346"),
-        (4661704537.05, "4,662 × 10⁹"),
-        (0.000123456, "1,235 × 10⁻⁴"),
-        (-0.5, "-0,5000"),
+        (0.320912, "0.3209"),
+        (12.3456, "12.35"),
+        (12345.678, "12,346"),
+        (4661704537.05, "4.662 × 10⁹"),
+        (0.000123456, "1.235 × 10⁻⁴"),
+        (-0.5, "-0.5000"),
         (0.0, "0"),
     ],
 )
@@ -71,26 +72,26 @@ def test_non_finite_numbers_have_their_own_symbols() -> None:
 
 
 def test_counts_and_percentages() -> None:
-    assert format_count(20640) == "20 640"
+    assert format_count(20640) == "20,640"
     assert format_count(891) == "891"
-    assert format_percent(0.1987) == "19,9%"
-    assert format_percent(1) == "100,0%"
+    assert format_percent(0.1987) == "19.9%"
+    assert format_percent(1) == "100.0%"
 
 
 def test_quantities_agree_in_number() -> None:
-    assert format_quantity(1, "linha", "linhas") == "1 linha"
-    assert format_quantity(0, "linha", "linhas") == "0 linhas"
-    assert format_quantity(20640, "linha", "linhas") == "20 640 linhas"
+    assert format_quantity(1, "row", "rows") == "1 row"
+    assert format_quantity(0, "row", "rows") == "0 rows"
+    assert format_quantity(20640, "row", "rows") == "20,640 rows"
 
 
-def test_values_and_lists_read_like_portuguese() -> None:
-    assert format_value(0.000714) == "0,000714"
+def test_values_and_lists_read_like_english() -> None:
+    assert format_value(0.000714) == "0.000714"
     assert format_value(3.0) == "3"
-    assert format_value(25_000) == "25 000"
-    assert format_value(False) == "não"
+    assert format_value(25_000) == "25,000"
+    assert format_value(False) == "no"
     assert format_value("rbf") == "rbf"
     assert format_list([]) == ""
-    assert format_list(["Sex", "Embarked"]) == "Sex e Embarked"
+    assert format_list(["Sex", "Embarked"]) == "Sex and Embarked"
 
 
 def test_docstring_examples_run_as_documented() -> None:

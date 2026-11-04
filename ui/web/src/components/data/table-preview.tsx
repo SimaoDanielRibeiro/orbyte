@@ -43,13 +43,14 @@ export function TablePreviewView({
                   key={column}
                   scope="col"
                   className={cn(
-                    "px-4 py-2.5 align-bottom font-mono text-xs font-normal whitespace-nowrap text-dim",
+                    "px-4 py-2.5 align-bottom text-xs font-medium whitespace-nowrap text-dim",
                     numeric[index] === true ? "text-right" : "text-left",
                   )}
                 >
                   {column}
+                  {/* O tipo é um dado (o dtype do pandas): fica em mono, por baixo do nome. */}
                   {showTypes && (
-                    <span className="block text-[0.6875rem] text-faint">
+                    <span className="block font-mono text-[0.75rem] font-normal text-faint">
                       {preview.dtypes[index]}
                     </span>
                   )}
@@ -80,10 +81,10 @@ export function TablePreviewView({
           </tbody>
         </table>
       </div>
-      <p className="mono-label">
+      <p className="text-xs text-dim">
         {preview.rows.length < preview.n_rows
-          ? `As primeiras ${formatCount(preview.rows.length)} de ${formatQuantity(preview.n_rows, "linha", "linhas")}.`
-          : formatQuantity(preview.n_rows, "linha", "linhas")}
+          ? `The first ${formatCount(preview.rows.length)} of ${formatQuantity(preview.n_rows, "row", "rows")}.`
+          : formatQuantity(preview.n_rows, "row", "rows")}
       </p>
     </div>
   );
@@ -92,7 +93,7 @@ export function TablePreviewView({
 function Cell({ value }: { value: unknown }) {
   if (value === null || value === undefined || (typeof value === "number" && Number.isNaN(value))) {
     return (
-      <span className="text-muted-foreground/60" aria-label="em falta">
+      <span className="text-muted-foreground/60" aria-label="missing">
         —
       </span>
     );

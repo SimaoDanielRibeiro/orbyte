@@ -15,17 +15,25 @@ import { withAlpha } from "@/lib/colors";
 import { familyColor } from "@/lib/families";
 import { formatCount } from "@/lib/format";
 
-export function PlanView({ plan }: { plan: AutoMlPlan }) {
-  const label = useLabel();
+interface PlanViewProps {
+  plan: AutoMlPlan;
+  /**
+   * Se mostra os agentes, os modelos de cada um e os que ficam de fora. No pedido não: a escolha
+   * dos modelos já os mostra, ao lado (ADR 0049).
+   */
+  models?: boolean;
+}
+
+export function PlanView({ plan, models = true }: PlanViewProps) {
   const sampled = plan.search_rows < plan.train_rows;
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap gap-x-10 gap-y-4">
-        <Stat label="Linhas de treino" value={formatCount(plan.train_rows)} />
+        <Stat label="Training rows" value={formatCount(plan.train_rows)} />
         <Stat
           label={
-            <Labelled title="Linhas de teste">
-              Ficam guardadas para medir só o vencedor, no fim.
+            <Labelled title="Test rows">
+              Kept aside to measure only the winner, at the end.
             </Labelled>
           }
           value={formatCount(plan.test_rows)}
@@ -33,8 +41,8 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
         {sampled && (
           <Stat
             label={
-              <Labelled title="Amostra da procura">
-                Uma parte do treino, para a validação cruzada de cada candidato ser rápida.
+              <Labelled title="Search sample">
+                Part of the training set, so each candidate's cross-validation is quick.
               </Labelled>
             }
             value={formatCount(plan.search_rows)}
@@ -43,8 +51,8 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
       </div>
 
       <section className="flex flex-col gap-3">
-        <h3 className="mono-label">
-          {plan.adopted ? "A tua preparação" : "O que o agente de dados decidiu"}
+        <h3 className="small-label">
+          {plan.adopted ? "Your preparation" : "What the data agent decided"}
         </h3>
         <ul className="flex flex-col gap-2">
           {plan.decisions.map((decision) => (
@@ -57,8 +65,18 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
         </ul>
       </section>
 
+      {models && <ModelAgents plan={plan} />}
+    </div>
+  );
+}
+
+/** Os agentes de modelo e o que cada um procura, e os modelos que ficam de fora. */
+function ModelAgents({ plan }: { plan: AutoMlPlan }) {
+  const label = useLabel();
+  return (
+    <>
       <section className="flex flex-col gap-3">
-        <h3 className="mono-label">Os agentes de modelo e o que procuram</h3>
+        <h3 className="small-label">The model agents and what they search</h3>
         <ul className="grid gap-3 @4xl/main:grid-cols-2">
           {plan.agents.map((agent) => (
             <li
@@ -73,7 +91,7 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
                     {model.display_name}
                     <Explain title={model.display_name}>
                       {model.searches.length === 0
-                        ? "Só os valores por omissão."
+                        ? "Only the default values."
                         : model.searches.join("; ")}
                     </Explain>
                   </li>
@@ -86,7 +104,7 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
 
       {plan.skipped.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h3 className="mono-label">Ficam de fora</h3>
+          <h3 className="small-label">Left out</h3>
           <ul className="flex flex-wrap gap-2">
             {plan.skipped.map((skipped) => (
               <li
@@ -100,7 +118,7 @@ export function PlanView({ plan }: { plan: AutoMlPlan }) {
           </ul>
         </section>
       )}
-    </div>
+    </>
   );
 }
 

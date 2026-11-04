@@ -1,7 +1,11 @@
 /**
- * O ecrã Explicar de um run: o que pesa nas previsões do modelo, no conjunto e numa previsão.
+ * O ecrã Explicar de um run: o que aconteceu no treino e o que pesa nas previsões do modelo.
  *
- * Três partes, pela ordem em que se pergunta:
+ * Abre com a **história do treino** (ADR 0047): em capítulos curtos, com texto e um visual,
+ * com que dados aprendeu, como aprendeu, o que aprendeu, como se saiu, onde se engana e o que
+ * fazer a seguir. Conta-se com o resultado registado, por isso aparece em qualquer run.
+ *
+ * Depois, o que pesa nas previsões, em três partes, pela ordem em que se pergunta:
  *
  * 1. **o que pesa no conjunto**: a importância por permutação (a pedido, porque volta a prever o
  *    teste muitas vezes);
@@ -10,15 +14,15 @@
  * 3. **uma previsão de perto**: o contributo de cada feature para a previsão de uma linha do
  *    teste, com o "como se lê" que vem com ela (depende do método).
  *
- * Tudo precisa do modelo na memória da API: um run aberto do histórico só o tem se tiver sido
- * guardado.
+ * Estas três precisam do modelo na memória da API: um run aberto do histórico só o tem se tiver
+ * sido guardado.
  *
  * O cabeçalho é só o título: o modelo está na ligação de volta, e os dados do run ficam no "?"
  * (ADR 0038).
  */
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowRight, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -39,7 +43,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart, type LineSeries } from "@/components/charts/line-chart";
 import { Explain } from "@/components/explain/explain";
 import { TopicText } from "@/components/markdown/topic-text";
-import { ErrorNote, NextStep, Stat } from "@/components/shell/blocks";
+import { ErrorNote, Stat } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { WhyButton } from "@/components/shell/why-button";
@@ -54,6 +58,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageSkeleton } from "@/features/data/require-dataset";
+import { TrainingStoryView } from "@/features/explain/training-story";
 import { useRunResult } from "@/features/training/use-run-result";
 import { classColors, classOrder } from "@/lib/classes";
 import { CATEGORICAL, categoryColor, OTHER } from "@/lib/colors";
@@ -64,7 +69,7 @@ import { useSession } from "@/state/session";
 const TOP_CONTRIBUTIONS = 12;
 
 export function ExplainScreen() {
-  const { runId } = useParams({ from: "/explicar/$runId" });
+  const { runId } = useParams({ from: "/explain/$runId" });
   return (
     <Page>
       <ExplainRun key={runId} runId={runId} />
@@ -111,68 +116,79 @@ function Explained({ result }: { result: ExperimentResult }) {
   return (
     <>
       <Link
-        to="/treinar/$runId"
+        to="/train/$runId"
         params={{ runId: result.run_id }}
         className="-ml-1 inline-flex items-center gap-1 text-sm text-soft hover:text-strong"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         {result.model_display_name}
       </Link>
-      <header className="mt-4">
+      {/* O passo seguinte fica no cabeçalho, à direita, como em todos os ecrãs (ADR 0036). */}
+      <header className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">{SCREENS.explain.title}</h1>
+          <h1 className="text-title">{SCREENS.explain.title}</h1>
           <WhyButton
             title={SCREENS.explain.title}
-            description={`${result.model_display_name} em ${result.dataset_name}, ${label("TaskType", result.task_type).toLowerCase()}. ${SCREENS.explain.description}`}
+            description={`${result.model_display_name} on ${result.dataset_name}, ${label("TaskType", result.task_type).toLowerCase()}. ${SCREENS.explain.description}`}
             topics={["permutation_importance", "partial_dependence", "local_explanation"]}
           />
         </div>
+        <Button asChild variant="proceed" size="proceed">
+          <Link to="/save/$runId" params={{ runId: result.run_id }}>
+            Save the model
+          </Link>
+        </Button>
       </header>
 
-      {task?.requires_target !== true ? (
-        <Blocked
-          message={`A explicabilidade mostra o que pesa nas previsões, e ${label("TaskType", result.task_type).toLowerCase()} não prevê um alvo. Para perceber o que o modelo encontrou, vê o que ele aprendeu no ecrã Treinar e avaliar.`}
-          runId={result.run_id}
-        />
-      ) : noModel ? (
-        <Blocked
-          message="O Explicar precisa do modelo, e a API já não o tem: só ficam os últimos runs, e um run do histórico só volta com o modelo se tiver sido guardado. Reproduz este run no ecrã Histórico para o explicar."
-          runId={result.run_id}
-          history
-        />
-      ) : rows.data === undefined ? (
-        rows.error === null ? (
-          <PageSkeleton />
-        ) : (
-          <ErrorNote error={rows.error} className="mt-10" />
-        )
-      ) : (
-        <>
-          <div className="mt-10 flex flex-col gap-16">
-            <Part id="importancia" title="O que pesa no conjunto" topic="permutation_importance">
-              <Importance runId={result.run_id} />
-            </Part>
-            <Part
-              id="dependencia"
-              title="Como a previsão muda com uma feature"
-              topic="partial_dependence"
-            >
-              <Dependence result={result} />
-            </Part>
-            <Part id="previsao" title="Uma previsão de perto" topic="local_explanation">
-              <OneRow result={result} rows={rows.data} />
-            </Part>
+      <div className="mt-14 flex flex-col gap-24">
+        {/* Primeiro, o que aconteceu no treino: conta-se com o resultado, mesmo sem o modelo. */}
+        <TrainingStoryView runId={result.run_id} />
+        <section aria-labelledby="previsoes-titulo" className="flex flex-col gap-10">
+          <div className="flex items-center gap-1.5">
+            <h2 id="previsoes-titulo" className="text-2xl">
+              What drives the predictions
+            </h2>
+            <Explain title="What drives the predictions">
+              The model, put to the test: which features weigh the most, how the prediction follows
+              each one, and why it decided one row the way it did.
+            </Explain>
           </div>
-          <NextStep>
-            <Button asChild variant="proceed" size="proceed">
-              <Link to="/guardar/$runId" params={{ runId: result.run_id }}>
-                Guardar o modelo
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-          </NextStep>
-        </>
-      )}
+          {task?.requires_target !== true ? (
+            <Blocked
+              message={`Explaining predictions needs a target, and ${label("TaskType", result.task_type).toLowerCase()} doesn't predict one. What the model found is in the story above, and in full in Train & evaluate.`}
+              runId={result.run_id}
+            />
+          ) : noModel ? (
+            <Blocked
+              message="This part needs the model, and the API no longer has it: it only keeps the latest runs, and a run from the history only comes back with its model if it was saved. Replay this run in History to explain its predictions."
+              runId={result.run_id}
+              history
+            />
+          ) : rows.data === undefined ? (
+            rows.error === null ? (
+              <PageSkeleton />
+            ) : (
+              <ErrorNote error={rows.error} />
+            )
+          ) : (
+            <div className="flex flex-col">
+              <Part id="importance" title="What weighs overall" topic="permutation_importance">
+                <Importance runId={result.run_id} />
+              </Part>
+              <Part
+                id="dependence"
+                title="How the prediction changes with a feature"
+                topic="partial_dependence"
+              >
+                <Dependence result={result} />
+              </Part>
+              <Part id="prediction" title="One prediction up close" topic="local_explanation">
+                <OneRow result={result} rows={rows.data} />
+              </Part>
+            </div>
+          )}
+        </section>
+      </div>
     </>
   );
 }
@@ -193,11 +209,11 @@ function Importance({ runId }: { runId: string }) {
             setAsked(true);
           }}
         >
-          Calcular a importância
+          Compute the importance
         </Button>
-        <Explain title="Quanto demora">
-          Baralha cada feature, uma de cada vez, e volta a prever o teste: com muitas features,
-          demora um pouco.
+        <Explain title="How long it takes">
+          Shuffles each feature, one at a time, and predicts the test again: with many features, it
+          takes a while.
         </Explain>
       </div>
     );
@@ -207,12 +223,12 @@ function Importance({ runId }: { runId: string }) {
   }
   if (importance.data === undefined) {
     return (
-      <div role="status" className="flex items-center gap-2 font-mono text-xs text-dim">
+      <div role="status" className="flex items-center gap-2 text-sm text-dim">
         <LoaderCircle
           aria-hidden="true"
           className="size-4 animate-spin motion-reduce:animate-none"
         />
-        A baralhar cada feature…
+        Shuffling each feature…
       </div>
     );
   }
@@ -221,11 +237,11 @@ function Importance({ runId }: { runId: string }) {
 
 function ImportanceChart({ importance }: { importance: PermutationImportance }) {
   const write = (value: number) =>
-    importance.as_percent ? `${formatNumber(value * 100, 1)} p.p.` : formatNumber(value, 3);
+    importance.as_percent ? `${formatNumber(value * 100, 1)} pp` : formatNumber(value, 3);
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <Stat
-        label={`${importance.metric_label} no teste, sem baralhar`}
+        label={`${importance.metric_label} on the test, unshuffled`}
         value={
           importance.as_percent
             ? formatPercent(importance.baseline)
@@ -242,9 +258,9 @@ function ImportanceChart({ importance }: { importance: PermutationImportance }) 
           color: item.mean > 0 ? CATEGORICAL[0] : OTHER,
         }))}
         format={(value) => write(value)}
-        valueLabel={`Quanto piora: ${importance.metric_label}${importance.as_percent ? ", em pontos percentuais" : ""}`}
+        valueLabel={`How much it worsens: ${importance.metric_label}${importance.as_percent ? ", in percentage points" : ""}`}
         labelWidth={170}
-        description={`Quanto ${importance.metric_label} piora no teste quando se baralha cada feature, da que mais pesa para a que menos pesa.`}
+        description={`How much ${importance.metric_label} worsens on the test when each feature is shuffled, from the one that weighs the most to the least.`}
         caption={<TopicText topic="importance_bars" />}
       />
     </div>
@@ -263,7 +279,7 @@ function Dependence({ result }: { result: ExperimentResult }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex max-w-sm flex-col gap-1.5">
-        <label htmlFor="explicar-feature" className="mono-label">
+        <label htmlFor="explicar-feature" className="small-label">
           Feature
         </label>
         <Select value={feature} onValueChange={setFeature}>
@@ -305,14 +321,14 @@ function DependenceChart({
   const series: LineSeries[] = [
     ...dependence.individual.map((curve, index) => ({
       key: `ice-${String(index)}`,
-      label: "Linhas individuais (ICE)",
+      label: "Individual rows (ICE)",
       color: OTHER,
       faint: true,
       points: curve.map((y, i) => ({ x: dependence.grid[i] ?? 0, y })),
     })),
     ...dependence.average.map((curve, index) => ({
       key: `media-${String(index)}`,
-      label: dependence.output_labels[index] ?? "Previsão",
+      label: dependence.output_labels[index] ?? "Prediction",
       color: categoryColor(index + offset),
       width: 3,
       points: curve.map((y, i) => ({ x: dependence.grid[i] ?? 0, y })),
@@ -324,11 +340,11 @@ function DependenceChart({
         series={series}
         height={340}
         rug={dependence.values}
-        xLabel={`${dependence.feature} (depois da preparação)`}
-        yLabel={dependence.output_labels.length === 1 ? dependence.output_labels[0] : "Previsão"}
+        xLabel={`${dependence.feature} (after the preparation)`}
+        yLabel={dependence.output_labels.length === 1 ? dependence.output_labels[0] : "Prediction"}
         formatY={classification ? (value) => formatPercent(value, 0) : formatStatistic}
         formatX={formatStatistic}
-        description={`Como a previsão média muda quando ${dependence.feature} muda, com as curvas de algumas linhas do teste.`}
+        description={`How the mean prediction changes when ${dependence.feature} changes, with the curves of some test rows.`}
         caption={<TopicText topic="dependence_curves" />}
       />
     </div>
@@ -350,14 +366,14 @@ function OneRow({ result, rows }: { result: ExperimentResult; rows: number }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="explicar-linha" className="mono-label">
-            Linha do teste (de 1 a {rows})
+          <label htmlFor="explicar-linha" className="small-label">
+            Test row (1 to {rows})
           </label>
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="icon"
-              aria-label="Linha anterior"
+              aria-label="Previous row"
               disabled={row === 0}
               onClick={() => {
                 go(row - 1);
@@ -385,7 +401,7 @@ function OneRow({ result, rows }: { result: ExperimentResult; rows: number }) {
             <Button
               variant="outline"
               size="icon"
-              aria-label="Linha seguinte"
+              aria-label="Next row"
               disabled={row >= rows - 1}
               onClick={() => {
                 go(row + 1);
@@ -425,13 +441,13 @@ function RowView({
     <div className="grid gap-8 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
       <div className="flex min-w-0 flex-col gap-6">
         <div className="flex flex-wrap gap-x-10 gap-y-4">
-          <Stat label="Previsão" value={explanation.prediction} />
-          <Stat label="Valor real" value={explanation.actual ?? "—"} />
+          <Stat label="Prediction" value={explanation.prediction} />
+          <Stat label="Actual value" value={explanation.actual ?? "—"} />
           {best !== null && (
-            <Stat label={`Probabilidade de «${best[0]}»`} value={formatPercent(best[1])} />
+            <Stat label={`Probability of “${best[0]}”`} value={formatPercent(best[1])} />
           )}
           {explanation.base !== null && (
-            <Stat label="Ordenada" value={formatStatistic(explanation.base)} />
+            <Stat label="Intercept" value={formatStatistic(explanation.base)} />
           )}
         </div>
         {explanation.probabilities.length > 0 && (
@@ -444,9 +460,9 @@ function RowView({
             }))}
             max={1}
             format={(value) => formatPercent(value)}
-            valueLabel="Probabilidade"
+            valueLabel="Probability"
             labelWidth={110}
-            description="A probabilidade que o modelo dá a cada classe nesta linha."
+            description="The probability the model gives each class on this row."
           />
         )}
       </div>
@@ -463,15 +479,16 @@ function RowView({
           valueLabel={explanation.effect_label}
           labelWidth={190}
           legend={[
-            { label: "Empurra para cima", color: CATEGORICAL[0], kind: "rect" },
-            { label: "Empurra para baixo", color: CATEGORICAL[7], kind: "rect" },
+            { label: "Pushes up", color: CATEGORICAL[0], kind: "rect" },
+            { label: "Pushes down", color: CATEGORICAL[7], kind: "rect" },
           ]}
-          description={`O contributo de cada feature para a previsão desta linha (${explanation.effect_label.toLowerCase()}).`}
+          description={`Each feature's contribution to this row's prediction (${explanation.effect_label.toLowerCase()}).`}
           caption={explanation.how_to_read}
         />
         {explanation.contributions.length > TOP_CONTRIBUTIONS && (
-          <p className="mono-label">
-            As {TOP_CONTRIBUTIONS} features que mais pesam, de {explanation.contributions.length}.
+          <p className="small-label">
+            The {TOP_CONTRIBUTIONS} features that weigh the most, out of{" "}
+            {explanation.contributions.length}.
           </p>
         )}
       </div>
@@ -490,7 +507,7 @@ function Blocked({
   history?: boolean;
 }) {
   return (
-    <div className="mt-8 flex max-w-2xl flex-col items-start gap-2 panel p-6">
+    <div className="flex max-w-2xl flex-col items-start gap-2 panel p-6">
       <p className="text-sm text-soft">{message}</p>
       <Actions runId={runId} history={history} />
     </div>
@@ -501,13 +518,13 @@ function Actions({ runId, history = true }: { runId: string; history?: boolean }
   return (
     <div className="mt-4 flex flex-wrap gap-2">
       <Button asChild variant="outline">
-        <Link to="/treinar/$runId" params={{ runId }}>
-          Abrir o treino
+        <Link to="/train/$runId" params={{ runId }}>
+          Open the training
         </Link>
       </Button>
       {history && (
         <Button asChild variant="outline">
-          <Link to="/experiencias">Abrir as experiências</Link>
+          <Link to="/history">Open the history</Link>
         </Button>
       )}
     </div>
@@ -522,14 +539,21 @@ interface PartProps {
   children: ReactNode;
 }
 
-/** Uma das três perguntas, num cartão. */
+/**
+ * Uma das três perguntas: uma linha da página entre filetes, como os capítulos da história
+ * (ADR 0048), com o título por cima e o que responde por baixo, na largura toda.
+ */
 function Part({ id, title, topic, children }: PartProps) {
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="flex scroll-mt-6 flex-col gap-5">
+    <section
+      id={id}
+      aria-labelledby={`${id}-titulo`}
+      className="flex scroll-mt-6 flex-col gap-6 border-t border-[#202020] py-10"
+    >
       <div className="flex items-center gap-1">
-        <h2 id={`${id}-titulo`} className="text-base">
+        <h3 id={`${id}-titulo`} className="text-lg font-medium text-strong">
           {title}
-        </h2>
+        </h3>
         <Explain topic={topic} />
       </div>
       {children}

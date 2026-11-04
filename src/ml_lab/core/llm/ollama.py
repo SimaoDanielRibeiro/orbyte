@@ -3,6 +3,8 @@
 Fala-se com ele em HTTP, com a biblioteca padrão (``urllib``), sem dependências novas:
 
 - ``GET /api/version`` e ``GET /api/tags``: se está a correr, e que modelos tem;
+- ``POST /api/show``: o que um modelo sabe fazer (``"thinking"`` quer dizer que pensa à parte,
+  antes de responder, e o agente de IA precisa disso);
 - ``POST /api/chat``: a conversa. Com ``"stream": true`` a resposta chega aos bocados, um
   objeto JSON por linha (NDJSON); com ``"think": true`` o raciocínio vem à parte, em
   ``message.thinking``; com ``"format"`` (um JSON Schema) a resposta tem de o cumprir; com
@@ -72,6 +74,23 @@ class OllamaServer:
         models = sorted(str(model.get("name", "")) for model in tags.get("models") or ())
         return ServerInfo(str(version), tuple(name for name in models if name))
 
+    def capabilities(self, name: str) -> tuple[str, ...] | None:
+        """O que um modelo sabe fazer, segundo o Ollama ("completion", "thinking", "tools"…).
+
+        Returns:
+            As capacidades, ou ``None`` se este Ollama não as disser (as versões antigas não
+            o faziam).
+
+        Raises:
+            LanguageModelError: Se o Ollama não responder.
+        """
+        found = _post_json(f"{self.url}/api/show", {"model": name}, self._timeout).get(
+            "capabilities"
+        )
+        if not isinstance(found, list):
+            return None
+        return tuple(str(item) for item in found)
+
     def model(self, name: str, *, timeout: float = CHAT_TIMEOUT) -> "OllamaModel":
         """Um modelo deste servidor, pronto para conversar."""
         return OllamaModel(self.url, name, timeout=timeout)
@@ -126,12 +145,12 @@ class OllamaModel:
                         yield parse_chunk(_json_line(line))
             except TimeoutError as error:
                 raise LanguageModelError(
-                    f"O modelo {self._name} esteve mais de {self._timeout:.0f} s sem dizer nada. "
-                    "Na primeira conversa o Ollama ainda o está a carregar: tenta outra vez."
+                    f"The model {self._name} said nothing for more than {self._timeout:.0f} s. "
+                    "On the first conversation Ollama is still loading it: try again."
                 ) from error
 
     def _refused(self, error: urllib.error.HTTPError) -> LanguageModelError:
-        """O erro de um pedido que o Ollama recusou, dito em português."""
+        """O erro de um pedido que o Ollama recusou, dito a quem usa o laboratório."""
         try:
             detail = str(json.loads(error.read() or b"{}").get("error", ""))
         except (ValueError, AttributeError):
@@ -140,10 +159,10 @@ class OllamaModel:
             error.close()
         if error.code == 404:
             return LanguageModelError(
-                f"O modelo {self._name} não está no Ollama: descarrega-o com "
-                f"«ollama pull {self._name}» (só da primeira vez)."
+                f"Ollama doesn't have the model {self._name}: download it with "
+                f"'ollama pull {self._name}' (only the first time)."
             )
-        return LanguageModelError(f"O Ollama recusou o pedido: {detail or error.reason}.")
+        return LanguageModelError(f"Ollama refused the request: {detail or error.reason}.")
 
 
 def chat_body(
@@ -190,7 +209,7 @@ def parse_chunk(data: Mapping[str, Any]) -> Chunk:
         LanguageModelError: Se a linha trouxer um erro (o Ollama avisa a meio, assim).
     """
     if "error" in data:
-        raise LanguageModelError(f"O Ollama parou a resposta a meio: {data['error']}.")
+        raise LanguageModelError(f"Ollama stopped the answer halfway: {data['error']}.")
     message = data.get("message") or {}
     calls = tuple(_tool_call(call) for call in message.get("tool_calls") or ())
     return Chunk(
@@ -226,29 +245,46 @@ def _json_line(line: bytes) -> dict[str, Any]:
         data = json.loads(line)
     except ValueError as error:
         raise LanguageModelError(
-            "O Ollama respondeu uma linha que não é JSON: é mesmo o Ollama que está nesse endereço?"
+            "Ollama answered a line that isn't JSON: is it really Ollama at that address?"
         ) from error
     if not isinstance(data, dict):
-        raise LanguageModelError("O Ollama respondeu um JSON inesperado (não é um objeto).")
+        raise LanguageModelError("Ollama answered unexpected JSON (it isn't an object).")
     return data
 
 
 def _get_json(url: str, timeout: float) -> dict[str, Any]:
+    return _read_json(urllib.request.Request(url), timeout)
+
+
+def _post_json(url: str, body: Mapping[str, Any], timeout: float) -> dict[str, Any]:
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    return _read_json(request, timeout)
+
+
+def _read_json(request: urllib.request.Request, timeout: float) -> dict[str, Any]:
+    url = request.full_url
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             data = json.loads(response.read() or b"{}")
     except urllib.error.HTTPError as error:
         error.close()
-        raise LanguageModelError(f"O Ollama respondeu com o erro {error.code} a {url}.") from error
+        raise LanguageModelError(f"Ollama answered {url} with error {error.code}.") from error
     except OSError as error:
         raise _not_running(url.rsplit("/api/", 1)[0]) from error
     except ValueError as error:
-        raise LanguageModelError(f"A resposta de {url} não é JSON: é mesmo o Ollama?") from error
+        raise LanguageModelError(
+            f"The answer from {url} isn't JSON: is it really Ollama?"
+        ) from error
     return data if isinstance(data, dict) else {}
 
 
 def _not_running(url: str) -> LanguageModelError:
     return LanguageModelError(
-        f"O Ollama não está a responder em {url}: abre a aplicação do Ollama, ou corre "
-        "«ollama serve» num terminal."
+        f"Ollama isn't answering at {url}: open the Ollama app, or run 'ollama serve' in a "
+        "terminal."
     )

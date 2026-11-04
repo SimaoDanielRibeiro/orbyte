@@ -131,7 +131,7 @@ export function SearchChart({
               position={x}
               format={(value) => formatCount(value)}
               plot={plot}
-              label="Candidato (pela ordem em que foi medido)"
+              label="Candidate (in the order it was measured)"
             />
             {measured.map((candidate) => {
               const cx = x(candidate.number);

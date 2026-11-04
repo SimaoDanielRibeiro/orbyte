@@ -32,14 +32,13 @@ class DecisionTreeRegressionParams(TreeParams):
 
     criterion: Literal["squared_error", "absolute_error"] = Field(
         default="squared_error",
-        title="Erro a minimizar",
+        title="Error to minimise",
         description=(
-            "Como se mede a qualidade de uma divisão: o erro quadrático (cada folha prevê a "
-            "média) ou o erro absoluto (prevê a mediana, menos sensível a extremos e mais lento)."
+            "How the quality of a split is measured: the squared error (each leaf predicts the "
+            "mean) or the absolute error (it predicts the median, less sensitive to extremes "
+            "and slower)."
         ),
-        json_schema_extra={
-            "x-labels": {"squared_error": "Quadrático", "absolute_error": "Absoluto"}
-        },
+        json_schema_extra={"x-labels": {"squared_error": "Squared", "absolute_error": "Absolute"}},
     )
 
 
@@ -49,10 +48,10 @@ class DecisionTreeRegression(GrowingSklearnModel[DecisionTreeRegressionParams]):
 
     info = ModelInfo(
         name="decision_tree_regression",
-        display_name="Árvore de decisão (regressão)",
+        display_name="Decision tree (regression)",
         summary=(
-            "Perguntas sim/não sobre as features até uma folha, que prevê a média dos exemplos "
-            "que lá caem: uma função em degraus."
+            "Yes/no questions about the features down to a leaf, which predicts the mean of the "
+            "examples that land there: a step function."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.TREE,
@@ -88,16 +87,16 @@ class RandomForestRegressionParams(ForestParams):
 
     max_features: Literal["sqrt", "log2", "all"] = Field(
         default="all",
-        title="Features por divisão",
+        title="Features per split",
         description=(
-            "Quantas features, escolhidas ao acaso, cada nó pode experimentar. Na regressão, "
-            "usar todas é o habitual; menos tornam as árvores mais diferentes entre si."
+            "How many features, picked at random, each node can try. In regression, using all "
+            "of them is the usual; fewer make the trees more different from each other."
         ),
         json_schema_extra={
             "x-labels": {
-                "sqrt": "Raiz quadrada do total",
-                "log2": "Logaritmo do total",
-                "all": "Todas",
+                "sqrt": "Square root of the total",
+                "log2": "Logarithm of the total",
+                "all": "All",
             },
             "x-search": {"values": ["sqrt", "log2", "all"]},
         },
@@ -110,10 +109,10 @@ class RandomForestRegression(GrowingSklearnModel[RandomForestRegressionParams]):
 
     info = ModelInfo(
         name="random_forest_regression",
-        display_name="Random Forest (regressão)",
+        display_name="Random forest (regression)",
         summary=(
-            "A média de muitas árvores de regressão diferentes: degraus suaves e um dos modelos "
-            "mais fiáveis para prever números a partir de tabelas."
+            "The average of many different regression trees: smooth steps and one of the most "
+            "reliable models for predicting numbers from tables."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.ENSEMBLE,

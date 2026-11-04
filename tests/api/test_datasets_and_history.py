@@ -69,9 +69,7 @@ def test_the_history_saves_compares_reproduces_and_deletes(
 
     assert (saved["saved"], saved["name"]) == (True, "Taxa alta")
     assert renamed["name"] == "Taxa baixa"
-    assert [d["label"] for d in comparison["differences"]] == [
-        "Hiperparâmetro · Taxa de aprendizagem"
-    ]
+    assert [d["label"] for d in comparison["differences"]] == ["Hyperparameter · Learning rate"]
     assert reproduced.status_code == 202
     assert finished(reproduced.json()["run_id"])["status"] == "finished"
     assert opened["run_id"] == first
@@ -117,6 +115,8 @@ def test_the_laboratory_says_what_each_control_offers(client: TestClient) -> Non
         "learning_rate",
         "knn",
         "regularization",
+        "threshold",
+        "data_size",
     ]
     assert degree["default"] in degree["values"]
     # Um valor fora do que a demonstração compara é um pedido que não serve, explicado.

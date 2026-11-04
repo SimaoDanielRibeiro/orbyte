@@ -1,60 +1,59 @@
-# Árvore de decisão
+# Decision tree
 
-## Intuição
+## Intuition
 
-Uma árvore de decisão é um fluxograma de perguntas de sim ou não sobre as features: "a
-pétala tem menos de 2,45 cm?" Se sim, é *setosa*; se não, pergunta outra coisa. Cada
-caminho acaba numa **folha**, que dá a resposta: a classe mais frequente dos exemplos de
-treino que lá caíram (classificação) ou a sua média (regressão).
+A decision tree is a flowchart of yes-or-no questions about the features: "is the petal shorter
+than 2.45 cm?" If yes, it's *setosa*; if not, it asks something else. Each path ends in a
+**leaf**, which gives the answer: the most frequent class of the training examples that landed
+there (classification) or their mean (regression).
 
-É dos modelos mais fáceis de explicar: o caminho de uma previsão lê-se como uma regra.
+It's one of the easiest models to explain: the path of a prediction reads like a rule.
 
-## Matemática essencial
+## Essential maths
 
-A árvore constrói-se de cima para baixo. Em cada nó, experimenta todas as perguntas
-"$x_j \le t$" (cada feature $j$, cada limiar $t$ entre dois valores) e escolhe a que deixa
-os dois lados mais **puros**:
+The tree is built from the top down. At each node, it tries every question "$x_j \le t$" (each
+feature $j$, each threshold $t$ between two values) and picks the one that leaves the two sides
+**purest**:
 
-- na classificação, com o índice de **Gini**, $G = 1 - \sum_k p_k^2$ (0 quando só há uma
-  classe), ou com a **entropia**, $H = -\sum_k p_k \log_2 p_k$;
-- na regressão, com o **erro quadrático** à volta da média de cada lado (ou o erro
-  absoluto à volta da mediana).
+- in classification, with the **Gini** index, $G = 1 - \sum_k p_k^2$ (0 when there's only one
+  class), or with the **entropy**, $H = -\sum_k p_k \log_2 p_k$;
+- in regression, with the **squared error** around the mean of each side (or the absolute error
+  around the median).
 
-A escolha é **gananciosa**: a melhor pergunta agora, sem olhar para as seguintes. Repete-se
-em cada lado até a folha ficar pura, até chegar à profundidade máxima ou até haver poucos
-exemplos.
+The choice is **greedy**: the best question now, without looking at the next ones. It repeats
+on each side until the leaf is pure, until it reaches the maximum depth or until there are few
+examples left.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `max_depth` | Quantas perguntas seguidas (0 = sem limite). Árvores fundas decoram o treino | 5 |
-| `min_samples_leaf` | O mínimo de exemplos em cada folha: valores maiores evitam folhas feitas para um só ponto | 1 |
-| `criterion` | A medida de impureza: `gini` ou `entropy` (classificação); `squared_error` ou `absolute_error` (regressão) | `gini` / `squared_error` |
+| `max_depth` | How many questions in a row (0 = no limit). Deep trees memorise the training data | 5 |
+| `min_samples_leaf` | The minimum examples in each leaf: larger values avoid leaves made for a single point | 1 |
+| `criterion` | The impurity measure: `gini` or `entropy` (classification); `squared_error` or `absolute_error` (regression) | `gini` / `squared_error` |
 
-## Quando usar
+## When to use
 
-- Quando é preciso **explicar** a decisão como regras.
-- Com features de tipos e escalas misturados: as perguntas são sobre uma feature de cada
-  vez, por isso a escala não importa.
-- Como peça de modelos mais fortes: a Random Forest e o boosting são feitos de árvores.
+- When the decision has to be **explained** as rules.
+- With features of mixed types and scales: the questions are about one feature at a time, so
+  the scale doesn't matter.
+- As a building block for stronger models: random forests and boosting are made of trees.
 
-## Armadilhas
+## Pitfalls
 
-- **Overfitting:** sem limite de profundidade, a árvore cresce até cada folha ter um só
-  exemplo e acerta em 100% do treino. Limita `max_depth` ou aumenta `min_samples_leaf`.
-- **Instável:** mudar umas linhas do treino pode mudar a primeira pergunta e, com ela, a
-  árvore toda. As florestas resolvem isto com a média de muitas árvores.
-- **Fronteiras em escada:** as perguntas são sempre sobre uma feature de cada vez, por isso
-  a fronteira é feita de segmentos paralelos aos eixos. Uma fronteira diagonal precisa de
-  muitos degraus.
-- **Na regressão, não extrapola:** fora dos dados de treino, prevê o valor da folha da
-  ponta, sempre o mesmo.
+- **Overfitting:** with no depth limit, the tree grows until each leaf has a single example
+  and gets 100% of the training data right. Limit `max_depth` or raise `min_samples_leaf`.
+- **Unstable:** changing a few training rows can change the first question and, with it, the
+  whole tree. Forests fix this with the average of many trees.
+- **Staircase boundaries:** the questions are always about one feature at a time, so the
+  boundary is made of segments parallel to the axes. A diagonal boundary needs many steps.
+- **In regression, it doesn't extrapolate:** outside the training data, it predicts the value
+  of the outermost leaf, always the same.
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Treinar e avaliar**, cada passo é a árvore com mais um nível de profundidade. Vês a fronteira
-a partir-se em retângulos cada vez mais pequenos, e a loss (a proporção de erros no treino,
-ou o erro quadrático médio) a descer. Repara quando a fronteira começa a fazer retângulos à
-volta de pontos isolados: é o overfitting a chegar. Em **O que aprendeu** está a árvore
-desenhada, com a pergunta de cada nó.
+On the **Train & evaluate** screen, each step is the tree with one more level of depth. You see
+the boundary break into ever smaller rectangles, and the loss (the share of errors on the
+training data, or the mean squared error) fall. Notice when the boundary starts drawing
+rectangles around isolated points: that's overfitting arriving. **What it learned** shows the
+tree drawn out, with each node's question.

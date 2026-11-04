@@ -51,7 +51,7 @@ HISTOGRAM_BINS: Final = 20
 MIN_IMPROVEMENT: Final = 1e-4
 """O early stopping só conta como melhoria uma descida da loss de validação maior do que isto."""
 
-_ACTIVATION_LABELS: Final = {nn.ReLU: "ReLU", nn.Tanh: "tanh", nn.Sigmoid: "sigmoide"}
+_ACTIVATION_LABELS: Final = {nn.ReLU: "ReLU", nn.Tanh: "tanh", nn.Sigmoid: "sigmoid"}
 _ACTIVATION_NAMES: Final[dict[type[nn.Module], DenseActivation]] = {
     nn.ReLU: "relu",
     nn.Tanh: "tanh",
@@ -64,29 +64,29 @@ class TrainingParams(Hyperparameters):
 
     optimizer: Literal["adam", "sgd"] = Field(
         default="adam",
-        title="Otimizador",
+        title="Optimiser",
         description=(
-            "Como se dá cada passo. O SGD com momento segue o gradiente com alguma inércia; o "
-            "Adam ajusta o passo de cada peso sozinho, e costuma funcionar à primeira."
+            "How each step is taken. SGD with momentum follows the gradient with some inertia; "
+            "Adam adjusts each weight's step on its own, and usually works first time."
         ),
-        json_schema_extra={"x-labels": {"adam": "Adam", "sgd": "SGD com momento"}},
+        json_schema_extra={"x-labels": {"adam": "Adam", "sgd": "SGD with momentum"}},
     )
     learning_rate: float = Field(
         default=0.01,
         ge=0.0001,
         le=1.0,
-        title="Taxa de aprendizagem",
-        description="O tamanho de cada passo. Grande demais, a loss salta ou explode.",
+        title="Learning rate",
+        description="The size of each step. Too big, and the loss jumps around or blows up.",
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.001, 0.03]}},
     )
     batch_size: int = Field(
         default=32,
         ge=1,
         le=1024,
-        title="Tamanho do lote",
+        title="Batch size",
         description=(
-            "Quantos exemplos em cada passo. Lotes pequenos dão passos ruidosos (que ajudam a "
-            "sair de mínimos maus); lotes grandes, passos certeiros mas poucos por época."
+            "How many examples in each step. Small batches give noisy steps (which help escape "
+            "bad minima); big batches, accurate steps but few per epoch."
         ),
         json_schema_extra={"x-search": {"values": [16, 32, 64]}},
     )
@@ -94,38 +94,39 @@ class TrainingParams(Hyperparameters):
         default=300,
         ge=5,
         le=5_000,
-        title="Máximo de épocas",
-        description="Quantas passagens pelos dados de treino, no máximo.",
+        title="Maximum epochs",
+        description="How many passes over the training data, at most.",
     )
     alpha: float = Field(
         default=0.0001,
         ge=0.000001,
         le=0.1,
-        title="Regularização L2 (alpha)",
-        description="Puxa os pesos para zero em cada passo: quanto maior, mais suave a fronteira.",
+        title="L2 regularisation (alpha)",
+        description="Pulls the weights towards zero at each step: the bigger, the smoother the "
+        "boundary.",
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.00001, 0.01]}},
     )
     early_stopping: bool = Field(
         default=True,
         title="Early stopping",
         description=(
-            "Põe de lado uma parte do treino (a validação) e pára quando a loss nela deixa de "
-            "melhorar; a rede fica com os pesos da melhor época."
+            "Sets aside part of the training data (the validation) and stops when the loss on it "
+            "stops improving; the network keeps the weights from the best epoch."
         ),
     )
     patience: int = Field(
         default=20,
         ge=1,
         le=500,
-        title="Paciência",
-        description="Quantas épocas sem melhorar na validação até parar.",
+        title="Patience",
+        description="How many epochs without improving on the validation before stopping.",
     )
     validation_fraction: float = Field(
         default=0.1,
         ge=0.05,
         le=0.5,
-        title="Fração para validação",
-        description="Que parte do treino fica de lado para o early stopping.",
+        title="Validation fraction",
+        description="What part of the training data is set aside for early stopping.",
     )
 
 
@@ -167,7 +168,7 @@ class TorchModel[P: TrainingParams](LabModel[P]):
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if y is None:
-            raise ModelError(f"'{self.info.display_name}' precisa do alvo para aprender.")
+            raise ModelError(f"'{self.info.display_name}' needs the target to learn.")
         params = self.hyperparameters
         generator = torch.Generator().manual_seed(self.seed)
         inputs = _float_tensor(X)
@@ -290,8 +291,8 @@ class TorchModel[P: TrainingParams](LabModel[P]):
                 continue
             if not isinstance(module, nn.Linear):
                 raise ModelError(
-                    f"A rede de '{self.info.display_name}' tem uma peça que não é uma camada "
-                    f"densa ({type(module).__name__}): não se descreve só com pesos."
+                    f"The network of '{self.info.display_name}' has a part that isn't a dense "
+                    f"layer ({type(module).__name__}): it can't be described by weights alone."
                 )
             following = modules[index + 1] if index + 1 < len(modules) else None
             layers.append(
@@ -310,32 +311,32 @@ class TorchModel[P: TrainingParams](LabModel[P]):
             self._note(
                 Notice.info(
                     "early_stopping",
-                    f"Parou na época {format_count(self._epochs)}: a loss na validação não "
-                    f"melhorava há {format_count(params.patience)} épocas. A rede ficou com os "
-                    f"pesos da época {format_count(self._best_epoch or self._epochs)}, a melhor "
-                    "na validação.",
+                    f"Stopped at epoch {format_count(self._epochs)}: the validation loss hadn't "
+                    f"improved for {format_count(params.patience)} epochs. The network kept the "
+                    f"weights from epoch {format_count(self._best_epoch or self._epochs)}, the "
+                    "best on the validation.",
                 )
             )
         elif self._epochs == params.max_epochs:
             ending = (
-                f" Ficou com os pesos da época {format_count(self._best_epoch)}, a melhor na "
-                "validação."
+                f" It kept the weights from epoch {format_count(self._best_epoch)}, the best on "
+                "the validation."
                 if validated and self._best_epoch is not None
                 else ""
             )
             self._note(
                 Notice.info(
                     "max_epochs",
-                    f"A rede treinou as {format_count(params.max_epochs)} épocas todas: se a loss "
-                    f"ainda descia, mais épocas podem ajudar.{ending}",
+                    f"The network trained for all {format_count(params.max_epochs)} epochs: if "
+                    f"the loss was still falling, more epochs may help.{ending}",
                 )
             )
         if params.early_stopping and not validated:
             self._note(
                 Notice.info(
                     "no_validation",
-                    "Com tão poucas linhas não sobra nenhuma para a validação: o early stopping "
-                    "ficou desligado.",
+                    "With so few rows, none are left for the validation: early stopping was "
+                    "turned off.",
                 )
             )
 
@@ -373,9 +374,9 @@ class TorchModel[P: TrainingParams](LabModel[P]):
                 counts, edges = np.histogram(outputs.ravel(), bins=HISTOGRAM_BINS)
                 reports.append(
                     {
-                        "name": f"Camada {number}",
+                        "name": f"Layer {number}",
                         "units": linear.out_features,
-                        "activation": _ACTIVATION_LABELS.get(type(activation), "outra"),
+                        "activation": _ACTIVATION_LABELS.get(type(activation), "other"),
                         "parameters": _parameters(linear),
                         "gradient": self._gradient(number - 1),
                         "activations": [float(value) for value in outputs.mean(axis=0)],
@@ -391,7 +392,7 @@ class TorchModel[P: TrainingParams](LabModel[P]):
 
     def _output_report(self, layer: nn.Linear) -> dict[str, Any]:
         return {
-            "name": "Saída",
+            "name": "Output",
             "units": layer.out_features,
             "activation": self.output_activation,
             "parameters": _parameters(layer),
@@ -423,7 +424,7 @@ class TorchClassifier[P: TrainingParams](TorchModel[P]):
         self._classes = np.unique(y).astype(np.int64)
         if len(self._classes) < 2:
             raise ModelError(
-                f"'{self.info.display_name}' precisa de pelo menos duas classes no treino."
+                f"'{self.info.display_name}' needs at least two classes in the training data."
             )
         codes = np.searchsorted(self._classes, y)
         return torch.as_tensor(codes, dtype=torch.long), len(self._classes)

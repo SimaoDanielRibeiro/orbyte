@@ -1,4 +1,4 @@
-/** A âncora de uma métrica no glossário (`/metricas#metrica-accuracy`). */
+/** A âncora de uma métrica no glossário (`/metrics#metric-accuracy`). */
 export function metricAnchor(name: string): string {
-  return `metrica-${name}`;
+  return `metric-${name}`;
 }

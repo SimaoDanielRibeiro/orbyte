@@ -38,5 +38,5 @@ def test_it_remembers_what_it_was_asked() -> None:
 def test_asking_more_than_was_written_is_an_error() -> None:
     model = ScriptedModel([])
 
-    with pytest.raises(LanguageModelError, match="já não tem respostas"):
+    with pytest.raises(LanguageModelError, match="has no replies left"):
         model.chat([Message("user", "Olá")])

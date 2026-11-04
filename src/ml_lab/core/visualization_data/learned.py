@@ -5,7 +5,7 @@ combinados entre os modelos (``coefficients``, ``intercept``, ``classes``, ``cen
 ``components``, ``tree``, ``feature_importances``…). Este módulo é o único que o lê
 para o mostrar. Dá aos pesos o nome da saída que explicam (a previsão, ou uma classe), às
 tabelas os nomes das linhas e das colunas, à árvore as suas regras e aos números simples
-o seu nome em português. A interface só desenha, e a explicação de uma previsão
+o seu nome em inglês. A interface só desenha, e a explicação de uma previsão
 (``services/analysis.py``) usa os mesmos pesos.
 
 Os valores estão na escala depois da preparação (padronizados, se a preparação os
@@ -28,31 +28,31 @@ TREE_RULES_DEPTH: Final = 4
 
 PROPERTY_LABELS: Final[Mapping[str, str]] = MappingProxyType(
     {
-        "iterations": "Iterações (ou épocas) do treino",
-        "converged": "Convergiu",
-        "inertia": "Inércia (soma das distâncias ao quadrado)",
-        "n_support": "Vetores de suporte",
-        "n_clusters": "Grupos",
-        "n_noise": "Pontos de ruído",
-        "n_core": "Pontos núcleo",
-        "depth": "Profundidade da árvore",
-        "n_leaves": "Folhas",
-        "n_trees": "Árvores",
-        "n_stages": "Etapas",
-        "oob_score": "Pontuação fora do saco (OOB)",
-        "threshold": "Limiar de anomalia",
-        "kl_divergence": "Divergência KL final",
-        "log_likelihood": "Log-verosimilhança média",
-        "n_terms": "Termos do polinómio",
-        "degree": "Grau",
-        "n_train": "Exemplos guardados",
-        "architecture": "Arquitetura (neurónios por camada)",
-        "activation": "Ativação das camadas escondidas",
-        "n_parameters": "Parâmetros (pesos e ordenadas)",
-        "best_epoch": "Melhor época (na validação)",
-        "early_stopped": "Parou cedo (early stopping)",
-        "target_mean": "Média do alvo (para o padronizar)",
-        "target_std": "Desvio padrão do alvo",
+        "iterations": "Training iterations (or epochs)",
+        "converged": "Converged",
+        "inertia": "Inertia (sum of squared distances)",
+        "n_support": "Support vectors",
+        "n_clusters": "Clusters",
+        "n_noise": "Noise points",
+        "n_core": "Core points",
+        "depth": "Tree depth",
+        "n_leaves": "Leaves",
+        "n_trees": "Trees",
+        "n_stages": "Stages",
+        "oob_score": "Out-of-bag score (OOB)",
+        "threshold": "Anomaly threshold",
+        "kl_divergence": "Final KL divergence",
+        "log_likelihood": "Mean log-likelihood",
+        "n_terms": "Polynomial terms",
+        "degree": "Degree",
+        "n_train": "Stored examples",
+        "architecture": "Architecture (neurons per layer)",
+        "activation": "Hidden-layer activation",
+        "n_parameters": "Parameters (weights and intercepts)",
+        "best_epoch": "Best epoch (on the validation)",
+        "early_stopped": "Stopped early (early stopping)",
+        "target_mean": "Target mean (to standardise it)",
+        "target_std": "Target standard deviation",
     }
 )
 """O nome a mostrar dos números simples do estado (os outros aparecem pelo nome técnico)."""
@@ -104,7 +104,7 @@ class Matrix:
 
 @dataclass(frozen=True, slots=True)
 class Property:
-    """Um número simples do estado (as iterações, a inércia…), com o nome em português."""
+    """Um número simples do estado (as iterações, a inércia…), com o nome em inglês."""
 
     name: str
     label: str
@@ -205,8 +205,8 @@ def learned_view(
     if coefficients and weights is None:
         count = np.atleast_2d(np.asarray(coefficients)).shape[1]
         notes = (
-            f"O modelo tem {count} pesos, um por termo (não por feature): por exemplo, as "
-            "potências da regressão polinomial.",
+            f"The model has {count} weights, one per term (not per feature): for example, the "
+            "powers of polynomial regression.",
         )
     return LearnedView(
         weights=weights,
@@ -245,11 +245,11 @@ def linear_weights(
         if len(codes) != len(matrix):
             return None
         outputs = tuple(class_labels[code] for code in codes)
-        meaning = "Um peso positivo empurra para a classe, um negativo afasta."
+        meaning = "A positive weight pushes towards the class, a negative one away from it."
     else:
         codes = ()
-        outputs = (f"Previsão de {target_name}" if target_name else "Previsão",)
-        meaning = "Cada peso é quanto a previsão muda quando a feature sobe uma unidade."
+        outputs = (f"Prediction of {target_name}" if target_name else "Prediction",)
+        meaning = "Each weight is how much the prediction changes when the feature goes up by one."
     intercepts = np.atleast_1d(np.asarray(state.get("intercept", 0.0), dtype=np.float64))
     return LinearWeights(
         features=tuple(feature_names),
@@ -258,8 +258,9 @@ def linear_weights(
         weights=tuple(tuple(float(weight) for weight in row) for row in matrix),
         intercepts=tuple(float(value) for value in intercepts),
         how_to_read=(
-            f"{meaning} Com as features padronizadas, os pesos comparam-se entre si: os "
-            "maiores (em valor absoluto) são as features que mais pesam na previsão."
+            f"{meaning} With standardised features, the weights can be compared with each "
+            "other: the largest (in absolute value) are the features that weigh most in the "
+            "prediction."
         ),
     )
 
@@ -288,8 +289,8 @@ def tree_rules(
             classes = state.get("classes", list(range(len(values))))
             best = int(np.argmax(values))
             label = class_labels[int(classes[best])]
-            return f"→ {label} ({format_percent(float(values[best]))} de {samples} exemplos)"
-        return f"→ {format_number(float(values[0]), 3)} (média de {samples} exemplos)"
+            return f"→ {label} ({format_percent(float(values[best]))} of {samples} examples)"
+        return f"→ {format_number(float(values[0]), 3)} (mean of {samples} examples)"
 
     def visit(node: int, depth: int) -> None:
         indent = "    " * depth
@@ -298,13 +299,13 @@ def tree_rules(
             lines.append(f"{indent}{outcome(node)}")
             return
         if depth >= max_depth:
-            lines.append(f"{indent}… (mais {_count_leaves(tree, node)} folhas)")
+            lines.append(f"{indent}… ({_count_leaves(tree, node)} more leaves)")
             return
         name = feature_names[tree["feature"][node]]
         threshold = format_number(float(tree["threshold"][node]), 3)
-        lines.append(f"{indent}se {name} ≤ {threshold}:")
+        lines.append(f"{indent}if {name} ≤ {threshold}:")
         visit(left, depth + 1)
-        lines.append(f"{indent}senão ({name} > {threshold}):")
+        lines.append(f"{indent}else ({name} > {threshold}):")
         visit(right, depth + 1)
 
     visit(0, 0)
@@ -398,14 +399,17 @@ def _tables(
     if centers:
         if task_type.is_classification:
             codes = state.get("classes", range(len(centers)))
-            title, rows = "Médias de cada classe", tuple(class_labels[int(c)] for c in codes)
+            title, rows = "Means of each class", tuple(class_labels[int(c)] for c in codes)
         else:
-            title, rows = "Centros de cada grupo", tuple(group_name(g) for g in range(len(centers)))
+            title, rows = (
+                "Centres of each cluster",
+                tuple(group_name(g) for g in range(len(centers))),
+            )
         tables.append(Matrix(title, rows, columns, centers))
     components = _per_feature(state, "components", feature_names)
     if components:
-        rows = tuple(f"Componente {number}" for number in range(1, len(components) + 1))
-        tables.append(Matrix("Peso de cada feature em cada componente", rows, columns, components))
+        rows = tuple(f"Component {number}" for number in range(1, len(components) + 1))
+        tables.append(Matrix("Weight of each feature in each component", rows, columns, components))
     return tuple(tables)
 
 

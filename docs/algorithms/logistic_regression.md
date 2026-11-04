@@ -1,128 +1,130 @@
-# Regressão logística
+# Logistic regression
 
-## Intuição
+## Intuition
 
-Apesar do nome, a regressão logística **classifica**. Para cada exemplo, soma as features
-multiplicadas por pesos (uma reta, ou um plano, a separar as classes) e transforma essa soma
-numa probabilidade entre 0 e 1. Se a probabilidade de "sobreviveu" passar de 50%, a previsão é
-"sobreviveu".
+Despite its name, logistic regression **classifies**. For each example, it adds up the
+features multiplied by weights (a line, or a plane, separating the classes) and turns that sum
+into a probability between 0 and 1. If the probability of "survived" goes over 50%, the
+prediction is "survived".
 
-Aprender é escolher os pesos que dão probabilidades altas aos exemplos da classe certa e baixas
-aos da classe errada. Cada peso diz quanto uma feature empurra para uma classe: no Titanic, o
-peso de `Sex_female` é positivo (ser mulher aumentava a probabilidade de sobreviver) e o de
-`Pclass` é negativo (classes mais baixas, 3.ª em vez de 1.ª, diminuíam-na).
+Learning is choosing the weights that give high probabilities to the examples of the right
+class and low ones to those of the wrong class. Each weight says how much a feature pushes
+towards a class: on the Titanic, the weight of `Sex_female` is positive (being a woman raised
+the chance of surviving) and the weight of `Pclass` is negative (lower classes, 3rd instead of
+1st, lowered it).
 
-## Matemática essencial
+## Essential maths
 
-Com duas classes, para um exemplo com features $x$:
+With two classes, for an example with features $x$:
 
-$$z = w \cdot x + b \qquad p(\text{classe } 1 \mid x) = \sigma(z) = \frac{1}{1 + e^{-z}}$$
+$$z = w \cdot x + b \qquad p(\text{class } 1 \mid x) = \sigma(z) = \frac{1}{1 + e^{-z}}$$
 
-A função logística $\sigma$ (ou sigmoide) transforma qualquer número numa probabilidade:
-$\sigma(0) = 0{,}5$, valores grandes dão quase 1, valores muito negativos dão quase 0. A
-**fronteira de decisão** é onde $p = 0{,}5$, isto é, onde $w \cdot x + b = 0$: uma reta (ou um
-plano), por isso o modelo é **linear**.
+The logistic function $\sigma$ (or sigmoid) turns any number into a probability:
+$\sigma(0) = 0.5$, large values give almost 1, very negative values give almost 0. The
+**decision boundary** is where $p = 0.5$, that is, where $w \cdot x + b = 0$: a line (or a
+plane), which is why the model is **linear**.
 
-Os pesos escolhem-se a minimizar a **log-loss** (entropia cruzada) no treino, mais uma
-penalização dos pesos grandes (regularização L2):
+The weights are chosen by minimising the **log-loss** (cross-entropy) on the training data,
+plus a penalty on large weights (L2 regularisation):
 
-$$\text{custo}(w, b) = \sum_i -\big[y_i \log p_i + (1 - y_i)\log(1 - p_i)\big] + \frac{1}{2C}\lVert w \rVert^2$$
+$$\text{cost}(w, b) = \sum_i -\big[y_i \log p_i + (1 - y_i)\log(1 - p_i)\big] + \frac{1}{2C}\lVert w \rVert^2$$
 
-A log-loss castiga muito uma previsão errada feita com confiança (dizer 99% e falhar). O termo
-com $C$ impede os pesos de crescerem sem limite: com $C$ pequeno a penalização é forte e a
-fronteira fica mais "cautelosa".
+The log-loss punishes a confident wrong prediction hard (saying 99% and missing). The term with
+$C$ stops the weights from growing without limit: with a small $C$ the penalty is strong and
+the boundary is more "cautious".
 
-Com mais de duas classes, há um vetor de pesos por classe, e a função **softmax** transforma as
-somas em probabilidades que somam 1: $p_k = e^{z_k} / \sum_j e^{z_j}$.
+With more than two classes, there's one weight vector per class, and the **softmax** function
+turns the sums into probabilities that add up to 1: $p_k = e^{z_k} / \sum_j e^{z_j}$.
 
-Não há uma fórmula fechada para os melhores pesos: é preciso ir melhorando-os passo a passo até
-o custo deixar de descer. O laboratório tem duas versões que minimizam **o mesmo custo** (e por
-isso chegam aos mesmos pesos) por caminhos diferentes:
+There's no closed formula for the best weights: they have to be improved step by step until
+the cost stops falling. The lab has two versions that minimise **the same cost** (and so reach
+the same weights) by different paths:
 
-- `logistic_regression` (scikit-learn) usa o otimizador L-BFGS, que aproveita a curvatura do
-  custo e chega lá em poucas dezenas de passos;
-- `logistic_regression_gd` (didática, em NumPy) usa **gradiente descendente**: começa com os
-  pesos a zero e, em cada **época** (uma passagem por todos os exemplos de treino), dá um passo
-  pequeno contra o gradiente do custo.
+- `logistic_regression` (scikit-learn) uses the L-BFGS optimiser, which takes advantage of the
+  cost's curvature and gets there in a few dozen steps;
+- `logistic_regression_gd` (teaching version, in NumPy) uses **gradient descent**: it starts
+  with the weights at zero and, in each **epoch** (one pass over all the training examples),
+  takes a small step against the gradient of the cost.
 
-O gradiente tem uma forma surpreendentemente simples: o erro de cada previsão, $p_i - y_i$,
-multiplicado pelas features do exemplo, em média, mais a parte da regularização. Dividindo o
-custo por $n$ (o que não muda o mínimo):
+The gradient has a surprisingly simple form: the error of each prediction, $p_i - y_i$,
+multiplied by the example's features, on average, plus the regularisation part. Dividing the
+cost by $n$ (which doesn't move the minimum):
 
 $$\nabla_w = \frac{1}{n}\sum_i (p_i - y_i)\, x_i + \frac{w}{C\,n} \qquad \nabla_b = \frac{1}{n}\sum_i (p_i - y_i)$$
 
 $$w \leftarrow w - \eta\, \nabla_w \qquad b \leftarrow b - \eta\, \nabla_b$$
 
-onde $\eta$ é a **taxa de aprendizagem**. Os exemplos bem classificados com confiança quase não
-contribuem ($p_i \approx y_i$); são os mal classificados que empurram a fronteira. O treino pára
-quando o gradiente fica praticamente nulo (abaixo de `tol`): está no fundo do custo.
+where $\eta$ is the **learning rate**. Examples classified right and with confidence barely
+contribute ($p_i \approx y_i$); it's the misclassified ones that push the boundary. Training
+stops when the gradient is practically zero (below `tol`): it's at the bottom of the cost.
 
-## Hiperparâmetros
+## Hyperparameters
 
-Nas duas versões:
+In both versions:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `C` | Inverso da força da regularização: menor = pesos mais pequenos e fronteira mais simples | 1,0 |
-| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a fronteira passa pela origem) | sim |
+| `C` | Inverse of the regularisation strength: smaller = smaller weights and a simpler boundary | 1.0 |
+| `fit_intercept` | Whether it learns the intercept $b$ (without it, the boundary goes through the origin) | yes |
 
-Só no scikit-learn:
+Only in scikit-learn:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `max_iter` | Máximo de passos do otimizador até convergir | 100 |
-| `class_weight` | Com `balanced`, os erros nas classes raras contam mais | `none` |
+| `max_iter` | The most steps the optimiser can take to converge | 100 |
+| `class_weight` | With `balanced`, the errors on rare classes count more | `none` |
 
-Só no gradiente descendente:
+Only in gradient descent:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `learning_rate` | Tamanho de cada passo: pequeno demais arrasta-se, grande demais salta de um lado para o outro | 1,0 |
-| `max_epochs` | Máximo de passagens pelos dados de treino | 2000 |
-| `tol` | Pára quando o gradiente fica abaixo disto: chegou ao mínimo | 1e-6 |
+| `learning_rate` | The size of each step: too small drags on, too large jumps from side to side | 1.0 |
+| `max_epochs` | The most passes over the training data | 2000 |
+| `tol` | Stops when the gradient falls below this: it reached the minimum | 1e-6 |
 
-## Quando usar
+## When to use
 
-- Como **primeiro modelo** de qualquer problema de classificação: é rápido, raramente decora o
-  treino e dá a referência que os modelos mais complexos têm de bater.
-- Quando é preciso **explicar** a decisão: cada peso lê-se diretamente.
-- Quando são precisas **probabilidades** razoáveis (para decidir com um limiar próprio, por
-  exemplo).
+- As the **first model** for any classification problem: it's fast, rarely memorises the
+  training data and gives the baseline that more complex models have to beat.
+- When the decision has to be **explained**: each weight reads directly.
+- When you need reasonable **probabilities** (to decide with your own threshold, for example).
 
-## Armadilhas
+## Pitfalls
 
-- **É linear.** Não separa classes que precisam de uma fronteira curva (os dados sintéticos
-  "luas" ou "círculos"). Features polinomiais ajudam, mas aumentam o risco de overfitting.
-- **Escala das features.** Sem padronização, o otimizador demora muito mais a convergir (pode
-  aparecer o aviso de convergência) e a regularização castiga mais as features com números
-  pequenos. Padroniza na preparação.
-- **Features muito correlacionadas** dividem o peso entre si de forma instável: os pesos deixam
-  de se poder ler um a um, mesmo que as previsões continuem boas.
-- **Classes desequilibradas:** com 95% de uma classe, o modelo pode quase nunca prever a outra.
-  Vê a exatidão equilibrada e a recall, e experimenta `class_weight = balanced`.
-- **"Os pesos não batem certo com o scikit-learn."** Por omissão, o scikit-learn pára cedo (passos
-  que melhoram menos de 1e-4, no máximo 100 iterações), por isso os pesos das duas versões
-  diferem lá para a terceira casa decimal. Com tolerâncias apertadas nas duas, coincidem até à
-  quinta casa: o custo é o mesmo, só o caminho muda.
-- **Taxa de aprendizagem grande demais** (só no gradiente descendente): a loss oscila em vez de
-  descer, ou explode (o treino pára com o aviso "a loss explodiu"). Com features padronizadas, 1
-  costuma servir; sem padronização, pode ser preciso 100 vezes menos.
+- **It's linear.** It can't separate classes that need a curved boundary (the synthetic
+  "moons" or "circles" data). Polynomial features help, but raise the risk of overfitting.
+- **Feature scale.** Without standardisation, the optimiser takes much longer to converge (the
+  convergence warning may appear) and the regularisation punishes features with small numbers
+  more. Standardise in the preparation.
+- **Strongly correlated features** split the weight between them in an unstable way: the
+  weights can no longer be read one by one, even if the predictions stay good.
+- **Imbalanced classes:** with 95% of one class, the model may almost never predict the other.
+  Look at the balanced accuracy and the recall, and try `class_weight = balanced`.
+- **"The weights don't match scikit-learn's."** By default, scikit-learn stops early (steps that
+  improve less than 1e-4, at most 100 iterations), so the weights of the two versions differ
+  around the third decimal place. With tight tolerances on both, they match to the fifth: the
+  cost is the same, only the path changes.
+- **Too large a learning rate** (gradient descent only): the loss oscillates instead of falling,
+  or blows up (the training stops with the "loss blew up" warning). With standardised features,
+  1 usually works; without standardisation, you may need 100 times less.
 
-## O que observar no treino
+## What to watch in training
 
-A versão **scikit-learn** treina de uma vez: no ecrã **Treinar e avaliar** vês só a fronteira
-final e, mais abaixo, os pesos aprendidos, as métricas no treino e no teste e a matriz de confusão.
-Experimenta baixar o `C` e ver os pesos a encolher e a diferença entre treino e teste a mudar.
+The **scikit-learn** version trains in one go: on the **Train & evaluate** screen you only see
+the final boundary and, further down, the learned weights, the metrics on the training and test
+data and the confusion matrix. Try lowering `C` and watch the weights shrink and the gap between
+training and test change.
 
-A versão **didática** treina época a época, e o ecrã **Treinar e avaliar** fotografa-a pelo caminho:
+The **teaching** version trains epoch by epoch, and the **Train & evaluate** screen takes
+snapshots along the way:
 
-- a **curva da loss** desce depressa nas primeiras épocas e depois devagar, e a exatidão no
-  treino sobe aos saltos (cada salto é um exemplo que passou para o lado certo da fronteira);
-- a **fronteira de decisão** (onde a probabilidade é 50%) começa no sítio errado, roda e
-  desloca-se até separar as classes; as cores mostram a probabilidade, mais nítidas longe da
-  fronteira à medida que os pesos crescem.
+- the **loss curve** falls fast in the first epochs and then slowly, and the training accuracy
+  rises in jumps (each jump is an example that crossed to the right side of the boundary);
+- the **decision boundary** (where the probability is 50%) starts in the wrong place, turns and
+  shifts until it separates the classes; the colours show the probability, sharper away from
+  the boundary as the weights grow.
 
-No fim, compara com a versão scikit-learn nos mesmos dados: a fronteira final e as métricas
-ficam praticamente iguais. Experimenta a taxa de aprendizagem nas luas: com 0,05 o treino
-arrasta-se e não chega ao mínimo nas 2000 épocas; com 20, a loss sobe e desce sem assentar;
-com 50, a fronteira salta de um lado para o outro entre fotografias.
+At the end, compare with the scikit-learn version on the same data: the final boundary and the
+metrics come out practically the same. Try the learning rate on the moons: at 0.05 the training
+drags on and doesn't reach the minimum in 2000 epochs; at 20, the loss goes up and down without
+settling; at 50, the boundary jumps from side to side between snapshots.

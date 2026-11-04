@@ -32,31 +32,31 @@ class KnnParams(Hyperparameters):
         default=5,
         ge=1,
         le=100,
-        title="Número de vizinhos (k)",
+        title="Number of neighbours (k)",
         description=(
-            "Quantos vizinhos votam. Poucos: a fronteira segue cada ponto, incluindo o ruído "
-            "(overfitting); muitos: fica suave e pode apagar detalhes."
+            "How many neighbours vote. Few: the boundary follows every point, noise included "
+            "(overfitting); many: it gets smooth and can wipe out details."
         ),
         json_schema_extra={"x-search": {"range": [1, 30]}},
     )
     weights: Literal["uniform", "distance"] = Field(
         default="uniform",
-        title="Peso dos votos",
-        description="Com «por distância», os vizinhos mais próximos contam mais.",
+        title="Vote weights",
+        description="With “by distance”, the closest neighbours count more.",
         json_schema_extra={
-            "x-labels": {"uniform": "Iguais", "distance": "Por distância"},
+            "x-labels": {"uniform": "Equal", "distance": "By distance"},
             "x-search": {"values": ["uniform", "distance"]},
         },
     )
     metric: Literal["euclidean", "manhattan"] = Field(
         default="euclidean",
-        title="Distância",
+        title="Distance",
         description=(
-            "Euclidiana é a linha reta; Manhattan soma as diferenças de cada feature, como "
-            "andar por quarteirões."
+            "Euclidean is the straight line; Manhattan adds up the differences in each "
+            "feature, like walking around city blocks."
         ),
         json_schema_extra={
-            "x-labels": {"euclidean": "Euclidiana", "manhattan": "Manhattan"},
+            "x-labels": {"euclidean": "Euclidean", "manhattan": "Manhattan"},
             "x-search": {"values": ["euclidean", "manhattan"]},
         },
     )
@@ -70,8 +70,8 @@ def check_neighbors(n_neighbors: int, n_samples: int) -> None:
     """
     if n_neighbors > n_samples:
         raise ModelError(
-            f"Pediste {n_neighbors} vizinhos, mas o treino só tem {n_samples} linhas: escolhe um "
-            "k menor."
+            f"You asked for {n_neighbors} neighbours, but the training data has only "
+            f"{n_samples} rows: pick a smaller k."
         )
 
 
@@ -81,10 +81,10 @@ class Knn(SklearnModel[KnnParams]):
 
     info = ModelInfo(
         name="knn",
-        display_name="K vizinhos mais próximos (KNN)",
+        display_name="K-nearest neighbours (KNN)",
         summary=(
-            "Classifica cada ponto pela classe dos k exemplos de treino mais parecidos. Não "
-            "aprende pesos: guarda os exemplos e compara."
+            "Classifies each point by the class of the k most similar training examples. It "
+            "learns no weights: it keeps the examples and compares."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.INSTANCE_BASED,

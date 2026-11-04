@@ -14,10 +14,11 @@ class KernelParams(Hyperparameters):
         default=1.0,
         ge=0.001,
         le=1_000,
-        title="C (custo dos erros)",
+        title="C (cost of errors)",
         description=(
-            "Quanto custa cada ponto do lado errado da margem. C grande: margem estreita, que "
-            "tenta acertar em tudo (overfitting); C pequeno: margem larga e tolerante."
+            "How much each point on the wrong side of the margin costs. Large C: a narrow "
+            "margin that tries to get everything right (overfitting); small C: a wide, "
+            "tolerant margin."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.1, 100]}},
     )
@@ -25,12 +26,12 @@ class KernelParams(Hyperparameters):
         default="rbf",
         title="Kernel",
         description=(
-            "A forma da fronteira: linear (uma reta), RBF (curvas, à volta de cada ponto) ou "
-            "polinomial (de grau 3)."
+            "The shape of the boundary: linear (a straight line), RBF (curves, around each "
+            "point) or polynomial (of degree 3)."
         ),
         # O polinomial fica fora da procura: raramente ganha ao RBF, e com C grande demora muito.
         json_schema_extra={
-            "x-labels": {"rbf": "RBF (gaussiano)", "linear": "Linear", "poly": "Polinomial"},
+            "x-labels": {"rbf": "RBF (Gaussian)", "linear": "Linear", "poly": "Polynomial"},
             "x-search": {"values": ["rbf", "linear"]},
         },
     )
@@ -38,10 +39,10 @@ class KernelParams(Hyperparameters):
         default=0.5,
         ge=0.001,
         le=100,
-        title="Gamma (alcance de cada ponto)",
+        title="Gamma (reach of each point)",
         description=(
-            "Nos kernels RBF e polinomial, até onde chega a influência de cada ponto. Gamma "
-            "grande: cada ponto cria a sua ilha (overfitting); pequeno: fronteira suave."
+            "In the RBF and polynomial kernels, how far each point's influence reaches. Large "
+            "gamma: each point makes its own island (overfitting); small: a smooth boundary."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 2]}},
     )

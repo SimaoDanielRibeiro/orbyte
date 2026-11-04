@@ -1,53 +1,55 @@
 # AdaBoost
 
-## Intuição
+## Intuition
 
-O AdaBoost (*adaptive boosting*) foi o primeiro algoritmo de boosting a funcionar bem na
-prática (Freund e Schapire, 1997). Treina modelos muito fracos, quase sempre árvores de uma
-só pergunta (os *stumps*), um de cada vez. Depois de cada um, **aumenta o peso** dos exemplos
-que ele falhou, para o seguinte se concentrar neles. No fim, cada modelo vota, com mais peso
-para os que acertaram mais.
+AdaBoost (*adaptive boosting*) was the first boosting algorithm to work well in practice (Freund
+and Schapire, 1997). It trains very weak models, almost always trees with a single question (the
+*stumps*), one at a time. After each one, it **raises the weight** of the examples that model
+got wrong, so the next one focuses on them. At the end, each model votes, with more weight for
+those that got more right.
 
-## Matemática essencial
+## Essential maths
 
-Na classificação (algoritmo SAMME), todos os exemplos começam com o mesmo peso $w_i$. Em cada
-etapa $m$:
+In classification (the SAMME algorithm), every example starts with the same weight $w_i$. At
+each stage $m$:
 
-1. treina o modelo fraco $h_m$ com os pesos atuais;
-2. calcula o erro pesado $\varepsilon_m$ (a soma dos pesos dos exemplos falhados);
-3. dá-lhe o peso de voto $\alpha_m = \nu \left(\log\frac{1 - \varepsilon_m}{\varepsilon_m} + \log(K - 1)\right)$,
-   com $K$ classes: quanto menor o erro, mais conta;
-4. multiplica o peso de cada exemplo falhado por $e^{\alpha_m}$ e normaliza.
+1. train the weak model $h_m$ with the current weights;
+2. compute the weighted error $\varepsilon_m$ (the sum of the weights of the misclassified
+   examples);
+3. give it the voting weight $\alpha_m = \nu \left(\log\frac{1 - \varepsilon_m}{\varepsilon_m} + \log(K - 1)\right)$,
+   with $K$ classes: the smaller the error, the more it counts;
+4. multiply the weight of each misclassified example by $e^{\alpha_m}$ and normalise.
 
-A previsão é a classe com mais votos pesados, $\arg\max_k \sum_m \alpha_m\, [h_m(x) = k]$.
+The prediction is the class with the most weighted votes, $\arg\max_k \sum_m \alpha_m\, [h_m(x) = k]$.
 
-Na regressão (AdaBoost.R2), o erro de cada exemplo (proporcional, ao quadrado ou exponencial,
-segundo `loss`) decide o seu peso na etapa seguinte, e a previsão é a **mediana pesada** das
-previsões das árvores.
+In regression (AdaBoost.R2), each example's error (proportional, squared or exponential,
+according to `loss`) decides its weight in the next stage, and the prediction is the **weighted
+median** of the trees' predictions.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_estimators` | Quantos modelos fracos, no máximo. Pára antes se um deles acertar em tudo | 50 |
-| `learning_rate` | Quanto conta cada modelo novo ($\nu$): menor exige mais modelos, mas é mais estável | 1,0 |
-| `loss` | Na regressão, como o erro de cada exemplo vira o seu peso: `linear`, `square` ou `exponential` | `linear` |
+| `n_estimators` | How many weak models, at most. It stops earlier if one of them gets everything right | 50 |
+| `learning_rate` | How much each new model counts ($\nu$): smaller needs more models, but is steadier | 1.0 |
+| `loss` | In regression, how each example's error becomes its weight: `linear`, `square` or `exponential` | `linear` |
 
-## Quando usar
+## When to use
 
-- Para **perceber o boosting**: os pesos dos exemplos tornam a ideia muito visível.
-- Com dados limpos, onde as classes se separam com várias regras simples.
+- To **understand boosting**: the example weights make the idea very visible.
+- With clean data, where the classes separate with several simple rules.
 
-## Armadilhas
+## Pitfalls
 
-- **Sensível ao ruído e aos outliers:** um exemplo com o rótulo errado é falhado vezes sem
-  conta e o seu peso cresce sem parar, a puxar os modelos seguintes.
-- **Modelos fracos fortes demais** (árvores fundas) decoram o treino logo na primeira etapa,
-  e o boosting não tem nada para corrigir.
-- O gradient boosting costuma ser mais preciso e mais flexível (escolhe a loss).
+- **Sensitive to noise and outliers:** an example with the wrong label is missed again and again
+  and its weight grows without end, pulling the next models towards it.
+- **Weak models that are too strong** (deep trees) memorise the training data in the very first
+  stage, and boosting has nothing left to correct.
+- Gradient boosting is usually more accurate and more flexible (it lets you choose the loss).
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Treinar e avaliar**, cada passo é uma etapa. Com *stumps*, a primeira fronteira é uma só reta
-paralela a um eixo. A cada etapa junta-se mais um corte, e a fronteira constrói-se aos
-bocadinhos, como uma escada. A loss é a proporção de erros (ou o erro quadrático) no treino.
+On the **Train & evaluate** screen, each step is a stage. With *stumps*, the first boundary is a
+single line parallel to an axis. Each stage adds one more cut, and the boundary is built bit by
+bit, like a staircase. The loss is the share of errors (or the squared error) on the training
+data.

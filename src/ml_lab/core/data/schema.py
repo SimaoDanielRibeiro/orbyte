@@ -40,7 +40,7 @@ class ColumnKind(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface."""
         return _KIND_LABELS[self]
 
     @property
@@ -62,23 +62,23 @@ class ColumnRole(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface."""
         return _ROLE_LABELS[self]
 
 
 _KIND_LABELS: Final[Mapping[ColumnKind, str]] = MappingProxyType(
     {
-        ColumnKind.NUMERIC: "Numérica",
-        ColumnKind.CATEGORICAL: "Categórica",
-        ColumnKind.BOOLEAN: "Booleana",
-        ColumnKind.DATETIME: "Data",
-        ColumnKind.TEXT: "Texto",
-        ColumnKind.IDENTIFIER: "Identificador",
+        ColumnKind.NUMERIC: "Numeric",
+        ColumnKind.CATEGORICAL: "Categorical",
+        ColumnKind.BOOLEAN: "Boolean",
+        ColumnKind.DATETIME: "Date",
+        ColumnKind.TEXT: "Text",
+        ColumnKind.IDENTIFIER: "Identifier",
     }
 )
 
 _ROLE_LABELS: Final[Mapping[ColumnRole, str]] = MappingProxyType(
-    {ColumnRole.FEATURE: "Feature", ColumnRole.TARGET: "Alvo", ColumnRole.IGNORED: "Ignorada"}
+    {ColumnRole.FEATURE: "Feature", ColumnRole.TARGET: "Target", ColumnRole.IGNORED: "Ignored"}
 )
 
 
@@ -113,11 +113,11 @@ class TableSchema:
         names = [column.name for column in self.columns]
         repeated = sorted({name for name in names if names.count(name) > 1})
         if repeated:
-            raise InvalidParameterError(f"Colunas repetidas no esquema: {', '.join(repeated)}.")
+            raise InvalidParameterError(f"Repeated columns in the schema: {', '.join(repeated)}.")
         targets = [column.name for column in self.columns if column.role is ColumnRole.TARGET]
         if len(targets) > 1:
             raise InvalidParameterError(
-                f"Um esquema só pode ter um alvo; tem {len(targets)}: {', '.join(targets)}."
+                f"A schema can only have one target; it has {len(targets)}: {', '.join(targets)}."
             )
 
     @classmethod

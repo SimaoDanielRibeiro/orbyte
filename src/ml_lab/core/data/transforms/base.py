@@ -41,7 +41,7 @@ class Transform(ABC):
 
     Attributes:
         name: Nome estável da operação, usado na linhagem.
-        title: Nome a mostrar, em português.
+        title: Nome a mostrar, em inglês.
     """
 
     name: ClassVar[str]
@@ -84,8 +84,8 @@ class Transform(ABC):
         """
         if not self._fitted:
             raise NotFittedError(
-                f"A transformação '{self.title}' ainda não aprendeu com o treino: chama fit "
-                "com os dados de treino antes de transform."
+                f"The transformation '{self.title}' hasn't learned from the training data yet: "
+                "call fit with the training data before transform."
             )
         self._require(frame)
         return self._transform(frame)
@@ -109,7 +109,7 @@ class Transform(ABC):
             NotFittedError: Se ainda não tiver aprendido.
         """
         if not self._fitted:
-            raise NotFittedError(f"A transformação '{self.title}' ainda não aprendeu.")
+            raise NotFittedError(f"The transformation '{self.title}' hasn't learned yet.")
         return {
             **self._learned(),
             "rows_fitted": self._rows_fitted,
@@ -136,14 +136,14 @@ class Transform(ABC):
             transform._columns_after = tuple(str(name) for name in learned["columns_after"])
         except (KeyError, TypeError, ValueError) as error:
             raise InvalidParameterError(
-                f"Não foi possível restaurar a transformação '{cls.title}': {error}."
+                f"Couldn't restore the transformation '{cls.title}': {error}."
             ) from error
         transform._fitted = True
         return transform
 
     @abstractmethod
     def describe(self) -> str:
-        """O que a transformação faz e o que aprendeu com o treino, em português."""
+        """O que a transformação faz e o que aprendeu com o treino (para a linhagem)."""
 
     def lineage_step(self) -> LineageStep:
         """O passo de linhagem, com as colunas antes e depois (só depois do ``fit``).
@@ -152,7 +152,7 @@ class Transform(ABC):
             NotFittedError: Se ainda não tiver aprendido.
         """
         if not self._fitted:
-            raise NotFittedError(f"A transformação '{self.title}' ainda não aprendeu.")
+            raise NotFittedError(f"The transformation '{self.title}' hasn't learned yet.")
         before, after = self._columns_before, self._columns_after
         unchanged = set(before) & set(after)
         return LineageStep(
@@ -198,7 +198,7 @@ class DropColumns(Transform):
     """
 
     name = "drop_columns"
-    title = "Retirar colunas"
+    title = "Drop columns"
 
     def __init__(self, columns: Sequence[str], reason: str) -> None:
         super().__init__(columns)
@@ -210,7 +210,7 @@ class DropColumns(Transform):
 
     @override
     def describe(self) -> str:
-        return f"Retiradas {', '.join(self.columns)}: {self.reason}"
+        return f"Dropped {', '.join(self.columns)}: {self.reason}"
 
     @override
     def _fit(self, frame: pd.DataFrame) -> None:
@@ -232,7 +232,7 @@ def transform_class(name: str) -> type[Transform]:
     except KeyError:
         known = ", ".join(sorted(_BY_NAME))
         raise InvalidParameterError(
-            f"Transformação desconhecida: '{name}'. As que existem: {known}."
+            f"Unknown transformation: '{name}'. The ones there are: {known}."
         ) from None
 
 

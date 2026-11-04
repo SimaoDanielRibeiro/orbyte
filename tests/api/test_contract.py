@@ -70,7 +70,7 @@ def test_the_documentation_and_the_health_check_answer(client: TestClient) -> No
 
     assert docs.status_code == 200
     assert "swagger" in docs.text.lower()
-    assert client.get("/openapi.json").json()["info"]["title"] == "ML Lab"
+    assert client.get("/openapi.json").json()["info"]["title"] == "Orbyte"
     assert health.json()["status"] == "ok"
 
 

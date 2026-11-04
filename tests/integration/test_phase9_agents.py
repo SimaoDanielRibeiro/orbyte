@@ -21,6 +21,7 @@ from ml_lab.core.services import (
     SearchPhase,
     SearchSettings,
     SourceSpec,
+    TaskType,
 )
 
 TITANIC = SourceSpec("sample", {"name": "titanic"})
@@ -51,17 +52,21 @@ def test_the_agents_find_a_model_for_the_titanic_without_touching_the_test(
 
     # 1. O agente de dados preparou o Titanic, com a razão de cada decisão.
     titles = [decision.title for decision in result.plan.decisions]
-    assert titles[:4] == ["Remover PassengerId", "Remover Name", "Remover Ticket", "Remover Cabin"]
+    assert titles[:4] == ["Drop PassengerId", "Drop Name", "Drop Ticket", "Drop Cabin"]
     assert result.plan.objective.name == "accuracy"
-    # 2. A triagem passou por todos os modelos de todas as famílias, com os valores por omissão.
+    # 2. A triagem passou por todos os modelos de todas as famílias (também os didáticos, desde a
+    #    ADR 0049), com os valores por omissão.
+    options = lab.automl.options(TaskType.BINARY_CLASSIFICATION)
+    available = {model.name for card in options.agents for model in card.models}
     screening = [c for c in result.candidates if c.phase is SearchPhase.SCREENING]
-    assert len(screening) == 9
+    assert sorted(c.model for c in screening) == sorted(available)
     assert len({c.family for c in screening}) == 7
     assert all(not c.changes for c in screening)
-    # 3. Só os três finalistas da triagem foram afinados.
+    # 3. O orçamento que sobrou da triagem foi todo para a afinação dos três finalistas.
     tuning = [c for c in result.candidates if c.phase is SearchPhase.TUNING]
     finalists = sorted(screening, key=lambda c: (-(c.mean or 0.0), c.std or 0.0, c.number))[:3]
-    assert len(tuning) == 6
+    assert tuning
+    assert len(screening) + len(tuning) == request.settings.budget
     assert {c.model for c in tuning} <= {c.model for c in finalists}
     # 4. O teste usou-se uma só vez: o registo tem um único run, o do vencedor.
     winner, run_id = result.winner_candidate, result.run_id
@@ -82,6 +87,6 @@ def test_the_agents_find_a_model_for_the_titanic_without_touching_the_test(
     after = Lab.create(fresh)
     entry = after.history.entry(run_id)
     assert entry.model_name == winner.model
-    assert entry.name.startswith("Agentes · ")
+    assert entry.name.startswith("Agents · ")
     reopened = after.history.open(run_id)
     assert reopened.main_report.metric("accuracy").value == result.test.value

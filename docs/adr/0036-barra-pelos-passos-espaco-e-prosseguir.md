@@ -2,6 +2,8 @@
 
 - **Estado:** Proposta
 - **Data:** 2026-10-28
+- **Mudada por:** a [0044](0044-um-botao-de-prosseguir-letra-maior-barra-alinhada.md): o botão
+  de prosseguir fica só no topo, à direita do título (o `NextStep` saiu)
 
 ## Contexto
 

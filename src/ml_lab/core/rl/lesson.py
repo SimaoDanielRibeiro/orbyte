@@ -1,15 +1,20 @@
-"""A lição do ecrã Reinforcement learning: um Q-learning pequeno, visto passo a passo.
+"""A lição do ecrã Reinforcement learning: um agente a aprender, visto passo a passo.
 
 Antes de se treinar um agente, o ecrã mostra como um agente aprende, numa animação: o ciclo de
 cada passo (o estado, a ação, a recompensa e a correção do Q) e o que muda de episódio para
-episódio. Para isso, treina-se um Q-learning no penhasco, sempre com a mesma seed, e guardam-se
+episódio. Para isso, treina-se o agente no penhasco, sempre com a mesma seed, e guardam-se
 alguns episódios inteiros:
 
 1. o primeiro: o agente ainda não sabe nada e escolhe ao acaso;
 2. uma queda dos primeiros episódios: cada armadilha deixa um Q negativo;
-3. o primeiro que chega ao objetivo, quase por acaso: é aí que o +1 entra na tabela;
+3. o primeiro que chega ao objetivo, quase por acaso: é aí que o +1 entra no que aprende;
 4. um do meio, com o valor já a espalhar-se a partir do objetivo;
 5. o último, com o caminho aprendido.
+
+Há uma lição para cada agente (ADR 0050): o Q-learning corrige uma tabela a cada passo; o DQN
+treina uma rede com lotes da memória de repetição, e vê-se o valor espalhar-se mais devagar. A
+lição grava o treino de verdade: junta ao agente um gravador (`_Recording`), por herança, que
+toma nota de cada passo e de cada episódio sem mudar o que o agente faz.
 
 Cada passo diz onde estava o agente, a ação, se a escolheu ao acaso (explorar) ou por ser a
 melhor que conhecia (aproveitar), a recompensa, a surpresa (o erro de diferença temporal) e o
@@ -18,23 +23,34 @@ frase sobre o que nele se vê. A interface só anima o que aqui se calcula.
 """
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Final, override
+from types import MappingProxyType
+from typing import Any, Final, cast, override
 
 import numpy as np
 from numpy.typing import NDArray
 
-from ml_lab.core.rl.agents.q_learning import QLearningAgent, QLearningParams
+from ml_lab.core.foundation.errors import InvalidParameterError
+from ml_lab.core.rl.agents.base import AGENTS, EpisodicAgent, EpisodicParams
+from ml_lab.core.rl.agents.q_learning import QLearningAgent
 from ml_lab.core.rl.environments.base import CellKind, Environment, GridLayout, Transition
 from ml_lab.core.rl.environments.gridworld import GridWorld, GridWorldParams
 from ml_lab.core.visualization_data.policy import policy_frame
-from ml_lab.formatting import format_number, format_percent, format_quantity
+from ml_lab.formatting import format_count, format_number, format_percent, format_quantity
 
 LESSON_LAYOUT: Final = "penhasco"
 """O mapa da lição: o penhasco tem as três recompensas (o passo, a armadilha e o objetivo)."""
 
+LESSON_AGENT: Final = "q_learning"
+"""O agente da lição por omissão: o Q-learning, o mais simples de seguir."""
+
 LESSON_EPISODES: Final = 160
 """Episódios que chegam para o Q-learning aprender o caminho, com os valores por omissão."""
+
+EPISODES: Final[Mapping[str, int]] = MappingProxyType({LESSON_AGENT: LESSON_EPISODES})
+"""Os episódios de cada lição, quando não são os do agente (o DQN fica com os seus, 300: uma
+rede aprende mais devagar do que uma tabela)."""
 
 LESSON_SEED: Final = 7
 
@@ -100,16 +116,23 @@ class ReinforcementLesson:
     """A lição: o ambiente, o agente e os episódios escolhidos, passo a passo.
 
     Attributes:
+        agent: O agente, pelo nome no registo ``AGENTS``.
         environment_name: O ambiente ("Grelha · penhasco").
         agent_display_name: O agente ("Q-learning").
         layout: A grelha.
-        learning_rate: A taxa de aprendizagem (α): a fração da surpresa que corrige o Q.
+        learning_rate: A taxa de aprendizagem: a fração da surpresa que corrige o Q (α), no
+            Q-learning; o passo do otimizador da rede, no DQN.
         discount: O desconto (γ) de uma recompensa futura.
         episodes: Quantos episódios teve o treino.
         rewards: A recompensa de cada episódio do treino, por ordem.
         kept: Os episódios guardados, por ordem.
+        update_topic: O tema que explica a correção do Q deste agente (o último cartão do
+            ciclo): numa tabela não é o mesmo que numa rede.
+        update_rule: O que acontece ao Q depois da surpresa, numa frase curta, sem ponto final
+            ("Q moves α = 0.5 of it").
     """
 
+    agent: str
     environment_name: str
     agent_display_name: str
     layout: GridLayout
@@ -118,6 +141,8 @@ class ReinforcementLesson:
     episodes: int
     rewards: tuple[float, ...]
     kept: tuple[LessonEpisode, ...]
+    update_topic: str
+    update_rule: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,10 +156,19 @@ class _Played:
     reached: bool
 
 
-class _Recorder(QLearningAgent):
-    """O Q-learning de sempre, a tomar nota de cada passo e de cada episódio."""
+class _Recording(EpisodicAgent[Any]):
+    """Toma nota de cada passo e de cada episódio, por cima de um agente episódico qualquer.
 
-    def __init__(self, hyperparameters: QLearningParams, *, seed: int) -> None:
+    Junta-se ao agente por herança (``_recorder``): ``_choose``, ``_learn`` e ``_episode``
+    passam por aqui e seguem para os do agente, que treina como sempre.
+
+    A surpresa de cada passo calcula-se como o agente a vê antes de aprender: a recompensa, mais
+    o melhor Q da célula seguinte descontado, menos o Q da ação. No Q-learning é o erro que
+    corrige a tabela; no DQN, a rede aprende com um lote da memória, e esta é a surpresa do
+    passo que acabou de lá entrar.
+    """
+
+    def __init__(self, hyperparameters: Any = None, *, seed: int = 0) -> None:
         super().__init__(hyperparameters, seed=seed)
         self.played: list[_Played] = []
         self._steps: list[LessonStep] = []
@@ -146,10 +180,16 @@ class _Recorder(QLearningAgent):
         return action
 
     @override
-    def _learn(self, state: int, action: int, transition: Transition) -> float:
-        expected = float(self._table[state, action])
-        error = super()._learn(state, action, transition)
-        learned = float(self._table[state, action])
+    def _learn(self, state: int, action: int, transition: Transition) -> float | None:
+        expected = float(self._q(state)[action])
+        future = (
+            0.0
+            if transition.done
+            else self.hyperparameters.discount * float(self._q(transition.state).max())
+        )
+        # O gravador nunca existe sozinho (`_recorder` junta-o a um agente): o `super()` chega
+        # sempre ao `_learn` do agente, que o mypy não consegue ver daqui.
+        error = super()._learn(state, action, transition)  # type: ignore[safe-super]
         self._steps.append(
             LessonStep(
                 state=state,
@@ -157,9 +197,8 @@ class _Recorder(QLearningAgent):
                 explored=self._explored,
                 reward=transition.reward,
                 next_state=transition.state,
-                # O Q andou na direção da surpresa: o sinal dela é o da mudança.
-                surprise=math.copysign(error, learned - expected),
-                value=float(self._table[state].max()),
+                surprise=transition.reward + future - expected,
+                value=float(self._q(state).max()),
             )
         )
         return error
@@ -167,20 +206,43 @@ class _Recorder(QLearningAgent):
     @override
     def _episode(self, environment: Environment[Any]) -> tuple[float, int, bool, list[float]]:
         self._steps = []
-        table = self._table.copy()
+        table = self._q_table()
         reward, length, reached, errors = super()._episode(environment)
         self.played.append(_Played(self._epsilon, table, tuple(self._steps), reward, reached))
         return reward, length, reached, errors
 
 
-def lesson() -> ReinforcementLesson:
-    """Treina o Q-learning da lição e escolhe os episódios a mostrar (ver o módulo)."""
+def _recorder(agent_class: type[EpisodicAgent[Any]]) -> type[_Recording]:
+    """O agente com o gravador por cima: uma classe nova, que herda dos dois."""
+    return cast(
+        "type[_Recording]", type(f"{agent_class.__name__}Lesson", (_Recording, agent_class), {})
+    )
+
+
+def lesson(agent: str = LESSON_AGENT) -> ReinforcementLesson:
+    """Treina o agente da lição e escolhe os episódios a mostrar (ver o módulo).
+
+    Args:
+        agent: O agente, pelo nome no registo ``AGENTS``.
+
+    Raises:
+        ComponentNotFoundError: Se não houver um agente com esse nome.
+        InvalidParameterError: Se o agente não aprender episódio a episódio.
+    """
+    agent_class = AGENTS.get(agent)
+    if not issubclass(agent_class, EpisodicAgent):
+        raise InvalidParameterError(
+            f"{agent_class.info.display_name} doesn't learn episode by episode: there's no "
+            "lesson to watch."
+        )
+    defaults: EpisodicParams = agent_class.info.hyperparameters()
+    params = defaults.model_copy(update={"episodes": EPISODES.get(agent, defaults.episodes)})
     environment = GridWorld(GridWorldParams(layout=LESSON_LAYOUT))
-    params = QLearningParams(episodes=LESSON_EPISODES)
-    agent = _Recorder(params, seed=LESSON_SEED)
-    agent.train(environment)
+    recorder = _recorder(agent_class)(params, seed=LESSON_SEED)
+    recorder.train(environment)
+    tabular = isinstance(recorder, QLearningAgent)
     layout = environment.layout()
-    played = agent.played
+    played = recorder.played
     first_success = next(
         (number for number, episode in enumerate(played, start=1) if episode.reached), None
     )
@@ -189,23 +251,37 @@ def lesson() -> ReinforcementLesson:
         (
             number
             for number in range(1, len(played) + 1)
-            if math.isclose(agent.epsilon(number), params.epsilon_end)
+            if math.isclose(recorder.epsilon(number), params.epsilon_end)
         ),
         len(played),
     )
     kept = sorted(set(_chosen(played, layout, first_success, explored_until)))
+    learning_rate = float(getattr(params, "learning_rate", 0.0))
     return ReinforcementLesson(
+        agent=agent,
         environment_name=environment.title(),
-        agent_display_name=agent.info.display_name,
+        agent_display_name=agent_class.info.display_name,
         layout=layout,
-        learning_rate=params.learning_rate,
+        learning_rate=learning_rate,
         discount=params.discount,
         episodes=len(played),
         rewards=tuple(episode.reward for episode in played),
         kept=tuple(
-            _kept(number, played[number - 1], layout, first_success, len(played)) for number in kept
+            _kept(number, played[number - 1], layout, first_success, len(played), tabular=tabular)
+            for number in kept
         ),
+        update_topic="rl_update" if tabular else "rl_update_network",
+        update_rule=_update_rule(params, learning_rate, tabular=tabular),
     )
+
+
+def _update_rule(params: EpisodicParams, learning_rate: float, *, tabular: bool) -> str:
+    """O que acontece ao Q depois da surpresa, numa frase (o último cartão do ciclo)."""
+    if tabular:
+        return f"Q moves α = {format_number(learning_rate, 1)} of it"
+    batch = getattr(params, "batch_size", None)
+    drawn = "a batch of steps" if batch is None else f"{format_count(int(batch))} steps"
+    return f"the network takes a training step on {drawn} drawn from its memory"
 
 
 def _chosen(
@@ -241,6 +317,8 @@ def _kept(
     layout: GridLayout,
     first_success: int | None,
     last: int,
+    *,
+    tabular: bool,
 ) -> LessonEpisode:
     """Um episódio guardado, pronto a mostrar."""
     return LessonEpisode(
@@ -250,7 +328,7 @@ def _kept(
         steps=played.steps,
         reward=played.reward,
         reached=played.reached,
-        story=_story(number, played, layout, first_success, last),
+        story=_story(number, played, layout, first_success, last, tabular=tabular),
     )
 
 
@@ -265,43 +343,66 @@ def _story(
     layout: GridLayout,
     first_success: int | None,
     last: int,
+    *,
+    tabular: bool,
 ) -> str:
-    """O que se vê num episódio: como escolhe as ações, e como acaba."""
+    """O que se vê num episódio: como escolhe as ações, e como acaba.
+
+    Uma tabela e uma rede aprendem o mesmo de maneiras diferentes, e a frase di-lo: o Q-learning
+    começa com tudo a zero e corrige uma célula de cada vez; o DQN começa com uma rede ao acaso
+    e aprende com lotes da memória.
+    """
     steps = len(played.steps)
     explored = sum(step.explored for step in played.steps)
-    walked = format_quantity(steps, "passo", "passos")
+    walked = format_quantity(steps, "step", "steps")
     if number == 1:
-        opening = "Ainda não sabe nada: todos os Q são zero, e por isso escolhe ao acaso."
+        opening = (
+            "It knows nothing yet: every Q is zero, so it picks at random."
+            if tabular
+            else "It knows nothing yet: the network starts with random weights, so its Q values "
+            "mean nothing, and it picks at random."
+        )
     elif explored == 0:
         opening = (
-            f"Já quase não explora (ε = {format_number(played.epsilon, 2)}): neste episódio, "
-            "escolheu sempre a ação de maior Q."
+            f"It barely explores any more (ε = {format_number(played.epsilon, 2)}): in this "
+            "episode, it always picked the action with the highest Q."
         )
     else:
         opening = (
-            f"Escolhe ao acaso em {format_percent(explored / steps, 0)} dos passos "
+            f"It picks at random in {format_percent(explored / steps, 0)} of the steps "
             f"(ε = {format_number(played.epsilon, 2)})."
         )
     if played.reached and number == first_success:
-        ending = (
-            f"Chega ao objetivo pela primeira vez, ao fim de {walked}: o +1 entra na tabela, "
-            "no Q da última ação, e começa a espalhar-se para trás."
+        learns = (
+            "the +1 goes into the table, in the Q of the last action, and starts spreading "
+            "backwards"
+            if tabular
+            else "the step with the +1 goes into the replay memory, and the network starts to "
+            "learn it from the batches it draws"
         )
+        ending = f"It reaches the goal for the first time, after {walked}: {learns}."
     elif played.reached and number == last:
+        # O Q-learning aprende o caminho mais curto, colado às armadilhas (é off-policy); a rede
+        # do DQN chega lá, mas nem sempre pelo mais curto.
         ending = (
-            f"Aprendeu o caminho: chega ao objetivo em {walked}, pelo mais curto, colado às "
-            "armadilhas."
+            f"It has learned the path: it reaches the goal in {walked}, by the shortest one, "
+            "right along the traps."
+            if tabular
+            else f"It has learned a way to the goal: it gets there in {walked}."
         )
     elif played.reached:
         ending = (
-            f"Chega ao objetivo em {walked}: o valor já se espalhou do objetivo para trás, "
-            "pelas células do caminho."
+            f"It reaches the goal in {walked}: the value has already spread backwards from the "
+            "goal, through the cells of the path."
         )
     elif _fell(played, layout):
-        ending = (
-            f"Cai numa armadilha ao fim de {walked} e recebe −1: o Q da ação que o levou lá "
-            "fica negativo."
+        learns = (
+            "the Q of the action that took it there turns negative"
+            if tabular
+            else "batch after batch, the network learns that the action that took it there is "
+            "worth less"
         )
+        ending = f"It falls into a trap after {walked} and gets −1: {learns}."
     else:
-        ending = f"Anda {walked} às voltas, e o episódio acaba no limite de passos."
+        ending = f"It wanders around for {walked}, and the episode ends at the step limit."
     return f"{opening} {ending}"

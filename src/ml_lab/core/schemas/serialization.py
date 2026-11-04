@@ -82,4 +82,4 @@ def _plain(value: Any) -> Any:
     """Os valores do NumPy que aparecem em campos livres (por exemplo, o estado de um modelo)."""
     if isinstance(value, np.ndarray | np.generic):
         return value.tolist()
-    raise TypeError(f"Um valor do tipo {type(value).__name__} não passa a JSON.")
+    raise TypeError(f"A value of type {type(value).__name__} can't become JSON.")

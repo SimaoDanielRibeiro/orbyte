@@ -37,7 +37,7 @@ def _grouped(inputs: MetricInputs) -> tuple[NDArray[np.float64], NDArray[np.int6
 
 @metric(
     "silhouette",
-    display_name="Silhueta",
+    display_name="Silhouette",
     task_types=CLUSTERING,
     higher_is_better=True,
     needs=("X", "y_pred"),
@@ -80,7 +80,7 @@ def calinski_harabasz(inputs: MetricInputs) -> float:
 
 @metric(
     "n_clusters",
-    display_name="Grupos",
+    display_name="Groups",
     task_types=CLUSTERING,
     higher_is_better=None,
     needs=("y_pred",),
@@ -93,14 +93,14 @@ def n_clusters(inputs: MetricInputs) -> float:
 def _noise_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     labels = np.asarray(inputs.predicted)
     return (
-        MetricTerm(r"n_{\text{ruído}}", "Pontos sem grupo", float(np.sum(labels == -1))),
-        MetricTerm("n", "Pontos avaliados", float(len(labels))),
+        MetricTerm(r"n_{\text{noise}}", "Points without a group", float(np.sum(labels == -1))),
+        MetricTerm("n", "Points evaluated", float(len(labels))),
     )
 
 
 @metric(
     "noise_ratio",
-    display_name="Ruído",
+    display_name="Noise",
     task_types=CLUSTERING,
     higher_is_better=None,
     needs=("y_pred",),
@@ -115,7 +115,7 @@ def noise_ratio(inputs: MetricInputs) -> float:
 
 @metric(
     "adjusted_rand",
-    display_name="Rand ajustado",
+    display_name="Adjusted Rand",
     task_types=CLUSTERING,
     higher_is_better=True,
 )

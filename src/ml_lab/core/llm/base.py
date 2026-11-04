@@ -59,7 +59,7 @@ class Tool:
 
     Attributes:
         name: O nome, como o de uma função (``list_candidates``).
-        description: O que faz, em português: é o que o modelo lê para decidir usá-la.
+        description: O que faz, em inglês: é o que o modelo lê para decidir usá-la.
         parameters: Os argumentos, em JSON Schema.
     """
 

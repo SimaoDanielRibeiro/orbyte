@@ -1,22 +1,37 @@
-import type { ComponentProps } from "react";
+import { useId, type ComponentProps } from "react";
 
 /**
- * A marca do ML Lab: uma fronteira de decisão entre dois pontos, um de cada classe, nas duas
- * primeiras cores dos dados. É o mesmo desenho do ícone do separador (`public/favicon.svg`),
- * sem o fundo: a barra lateral já é escura.
+ * A marca do Orbyte (ADR 0051): uma órbita, e só isso. Uma elipse inclinada, numa cor só, com um
+ * satélite pequeno no anel; o anel abre-se à volta dele (uma máscara), como nas marcas desenhadas
+ * a traço. Sem o núcleo a cores do desenho anterior, lê-se como uma marca, e não como um ícone.
+ *
+ * É o mesmo desenho do ícone do separador (`public/favicon.svg`), sem o fundo: a barra lateral já
+ * é escura. A cor é a do texto forte, por isso serve em qualquer fundo escuro.
  */
 export function Logo(props: ComponentProps<"svg">) {
+  // Cada logótipo na página precisa da sua máscara (os ids do SVG são da página toda).
+  const mask = `orbita-${useId().replace(/:/g, "")}`;
   return (
-    <svg viewBox="2 6 28 21" aria-hidden="true" {...props}>
-      <path
-        d="M5 21.5 C11 21.5 12.5 10 17 11.5 S22.5 22 27 10.5"
+    <svg viewBox="2 5 28 22" aria-hidden="true" {...props}>
+      <defs>
+        <mask id={mask} maskUnits="userSpaceOnUse">
+          <rect x="0" y="0" width="32" height="32" fill="white" />
+          {/* O satélite está no anel, a −40° (um ponto da elipse, já rodado). */}
+          <circle cx="22.92" cy="7.81" r="3.9" fill="black" />
+        </mask>
+      </defs>
+      <ellipse
+        cx="16"
+        cy="16"
+        rx="13"
+        ry="6.2"
+        transform="rotate(-28 16 16)"
         fill="none"
         stroke="var(--text-strong)"
-        strokeWidth="2.6"
-        strokeLinecap="round"
+        strokeWidth="2.3"
+        mask={`url(#${mask})`}
       />
-      <circle cx="9.5" cy="11" r="2.8" fill="var(--data-1)" />
-      <circle cx="21.5" cy="23.5" r="2.8" fill="var(--data-2)" />
+      <circle cx="22.92" cy="7.81" r="2.35" fill="var(--text-strong)" />
     </svg>
   );
 }

@@ -27,7 +27,7 @@ export function useDatasetLoaded(): (dataset: DatasetSummary) => void {
       void queryClient.invalidateQueries({ queryKey: datasetsLoadedQueryKey() });
       openDataset(dataset.id);
       toast.success(
-        `${dataset.name} aberto: ${formatQuantity(dataset.n_rows, "linha", "linhas")} e ${formatQuantity(dataset.n_columns, "coluna", "colunas")}.`,
+        `${dataset.name} loaded: ${formatQuantity(dataset.n_rows, "row", "rows")} and ${formatQuantity(dataset.n_columns, "column", "columns")}.`,
       );
     },
     [queryClient, openDataset],

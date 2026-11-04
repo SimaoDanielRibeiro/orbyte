@@ -41,10 +41,10 @@ class Svm(SklearnModel[KernelParams]):
 
     info = ModelInfo(
         name="svm",
-        display_name="Máquina de vetores de suporte (SVM)",
+        display_name="Support vector machine (SVM)",
         summary=(
-            "A fronteira com a maior margem entre as classes; com o kernel RBF, curva-se à volta "
-            "dos dados. Só os pontos perto da fronteira contam."
+            "The boundary with the widest margin between the classes; with the RBF kernel, it "
+            "curves around the data. Only the points near the boundary count."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.KERNEL,
@@ -69,12 +69,11 @@ class Svm(SklearnModel[KernelParams]):
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if y is None:
-            raise ModelError("O SVM precisa do alvo para classificar.")
+            raise ModelError("The SVM needs the target to classify.")
         rarest = int(np.unique(y, return_counts=True)[1].min())
         if rarest < 2:
             raise ModelError(
-                "Para calibrar as probabilidades, cada classe precisa de pelo menos dois exemplos "
-                "de treino."
+                "To calibrate the probabilities, each class needs at least two training examples."
             )
         self._folds = min(CALIBRATION_FOLDS, rarest)
         super()._fit(X, y, context)

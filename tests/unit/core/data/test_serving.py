@@ -129,9 +129,9 @@ def test_a_missing_column_or_value_is_explained(passengers: pd.DataFrame) -> Non
     preparation = preparation_of(data)
     rows = raw_test(data)
 
-    with pytest.raises(DataError, match="Faltam colunas para o modelo: Fare"):
+    with pytest.raises(DataError, match="Columns are missing for the model: Fare"):
         preparation.transform(rows.drop(columns=["Fare"]))
-    with pytest.raises(DataError, match="Ficaram valores em falta em Age"):
+    with pytest.raises(DataError, match="Values were left missing in Age"):
         preparation.transform(rows.assign(Age=np.nan))
     assert not next(c for c in preparation.columns if c.name == "Age").can_be_missing
     assert [step["on_new_rows"] for step in preparation.preparation_document()["cleaning"]] == [
@@ -149,7 +149,7 @@ def test_the_example_rows_are_the_first_test_rows_with_the_prediction(
     text = preparation.examples_csv(["1", "0", "1"], n_rows=3)
 
     lines = text.strip().split("\n")
-    assert lines[0] == "Pclass,Sex,Age,Embarked,Fare,Survived,previsto"
+    assert lines[0] == "Pclass,Sex,Age,Embarked,Fare,Survived,predicted"
     assert len(lines) == 4
     assert lines[1].endswith(",1")
     assert len(preparation.examples) == min(MAX_EXAMPLES, len(data.dataset.test))

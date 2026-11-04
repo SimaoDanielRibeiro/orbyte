@@ -78,8 +78,8 @@ def test_the_options_suggest_a_name_and_the_parts(lab: Lab) -> None:
 
     options = lab.packages.options(result.run_id)
 
-    assert options.name == "Titanic — Regressão logística"
-    assert options.file_name == "titanic-regressao-logistica.mllab"
+    assert options.name == "Titanic — Logistic regression"
+    assert options.file_name == "titanic-logistic-regression.mllab"
     choices = {choice.key: choice for choice in options.choices}
     assert list(choices) == ["include_model", "include_examples", "include_training"]
     assert choices["include_model"].included
@@ -146,13 +146,13 @@ def test_the_preview_shows_what_each_part_is(lab: Lab) -> None:
     assert parts[files.README].kind is PackageFileKind.MARKDOWN
     assert parts[files.MODEL].kind is PackageFileKind.BINARY
     assert parts[files.MODEL].content is None
-    assert parts[files.README].title == "A ficha do modelo"
+    assert parts[files.README].title == "The model card"
     readme = parts[files.README].content or ""
-    assert readme.startswith("# Titanic — Regressão logística\n")
-    assert "Este modelo — Regressão logística — prevê **Survived**" in readme
-    assert "- **Dados:** Titanic: 712 linhas no treino e 179 no teste (seed 42)." in readme
-    assert "## Os limites" in readme
-    assert "| Exatidão |" in readme
+    assert readme.startswith("# Titanic — Logistic regression\n")
+    assert "This model — Logistic regression — predicts **Survived**" in readme
+    assert "- **Data:** Titanic: 712 rows for training and 179 for test (seed 42)." in readme
+    assert "## Its limits" in readme
+    assert "| Accuracy |" in readme
     assert 'session = ort.InferenceSession("model.onnx")' in readme
     assert '"Sex": np.array([["male"]], dtype=object),' in readme
     codes = {notice.code for notice in preview.notices}
@@ -224,7 +224,7 @@ def test_saving_also_saves_the_run_and_fills_the_library(lab: Lab) -> None:
     assert saved.origin is PackageOrigin.MADE_HERE
     assert (saved.made_here, saved.intact, saved.trusted) == (True, True, True)
     assert saved.run_id == result.run_id
-    assert saved.primary_label == "Exatidão"
+    assert saved.primary_label == "Accuracy"
     assert lab.packages.saved() == (saved,)
     view = lab.packages.contents(saved.package_id)
     assert view.package == saved
@@ -264,7 +264,7 @@ def test_a_package_from_elsewhere_waits_for_trust(lab: Lab, tmp_path: Path) -> N
     assert trusted.run_id is not None
     entry = other.history.entry(trusted.run_id)
     assert entry.saved
-    assert entry.name == "Titanic — Árvore de decisão (carregado)"
+    assert entry.name == "Titanic — Decision tree (loaded)"
     opened = other.history.open(trusted.run_id)
     assert opened.notices[0].code == "loaded_from_package"
     # O run volta com o modelo: o Titanic é um exemplo, os dados preparam-se outra vez.
@@ -315,7 +315,7 @@ def test_a_changed_package_never_opens_its_model(lab: Lab, tmp_path: Path) -> No
 
     assert not loaded.intact
     assert [notice.code for notice in loaded.notices] == ["package_damaged"]
-    with pytest.raises(PackageError, match="estragado ou foi alterado"):
+    with pytest.raises(PackageError, match="damaged or was changed"):
         other.packages.trust(loaded.package_id)
 
 
@@ -328,7 +328,7 @@ def test_a_run_only_recorded_is_not_a_candidate(lab: Lab, tmp_path: Path) -> Non
     assert [candidate.run_id for candidate in candidates] == [result.run_id]
     assert not candidates[0].available
     assert candidates[0].reason is not None
-    assert "reproduz" in candidates[0].reason
+    assert "replay it" in candidates[0].reason
     with pytest.raises(RunNotInMemoryError):
         later.packages.options(result.run_id)
 
@@ -345,7 +345,7 @@ def test_a_run_still_training_says_so_and_saves_when_it_ends(lab: Lab) -> None:
     job = lab.experiments.start(titanic_config(lab, "logistic_regression_gd", max_epochs=20))
     assert reached.wait(10)
 
-    with pytest.raises(TrainingInProgressError, match="ainda está a treinar"):
+    with pytest.raises(TrainingInProgressError, match="is still training"):
         lab.packages.options(job.run_id)
     release.set()
     job.wait(60)
@@ -373,11 +373,11 @@ def test_memorizing_models_and_projections_are_flagged(lab: Lab) -> None:
     assert "package_memorized_rows" in knn_codes
     tsne_notices = {notice.code: notice.message for notice in tsne_preview.notices}
     assert "package_cannot_predict" in tsne_notices
-    assert "não sabe colocar pontos novos" in tsne_notices["package_without_onnx"]
+    assert "can't place new points" in tsne_notices["package_without_onnx"]
     assert files.EXAMPLES not in {part.path for part in tsne_preview.parts}
     examples = lab.packages.options(tsne.run_id).choices[1]
     assert examples.key == "include_examples"
     assert not examples.available
     assert not examples.included
     assert examples.reason is not None
-    assert "não prevê linhas novas" in examples.reason
+    assert "doesn't predict new rows" in examples.reason

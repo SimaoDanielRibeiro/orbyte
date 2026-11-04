@@ -40,7 +40,7 @@ from ml_lab.formatting import format_list, format_percent
 TEST_SIZE: Final = 0.2
 """A parte das linhas que fica para o teste."""
 
-_CONVERSIONS: Final = {"numeric": "número", "datetime": "data", "boolean": "booleano"}
+_CONVERSIONS: Final = {"numeric": "a number", "datetime": "a date", "boolean": "a boolean"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,8 +48,8 @@ class DataDecision:
     """Uma decisão do agente de dados.
 
     Attributes:
-        title: O que decidiu ("Remover PassengerId").
-        reason: Porquê, em português.
+        title: O que decidiu ("Drop PassengerId").
+        reason: Porquê (a mostrar na interface).
     """
 
     title: str
@@ -114,7 +114,7 @@ class DataAgent:
         if chosen not in task.allowed:
             allowed = ", ".join(option.label.lower() for option in task.allowed)
             raise InvalidParameterError(
-                f"{chosen.label} não serve para o alvo {target}. Escolhe uma destas: {allowed}."
+                f"{chosen.label} doesn't suit the target {target}. Choose one of these: {allowed}."
             )
         decisions: list[DataDecision] = []
         cleaning = []
@@ -127,7 +127,7 @@ class DataAgent:
         features = _features(profile, target, cleaning)
         decisions.extend(_transform_decisions(features))
         suggested, reason = _objective(profile, chosen, objective)
-        decisions.append(DataDecision(f"Otimizar: {METRICS.get(suggested).display_name}", reason))
+        decisions.append(DataDecision(f"Optimise: {METRICS.get(suggested).display_name}", reason))
         config = PreparationConfig(
             target=target,
             task_type=chosen,
@@ -147,8 +147,8 @@ class DataAgent:
     ) -> DataPlan:
         if preparation.target != target:
             raise InvalidParameterError(
-                f"A preparação feita à mão é para o alvo {preparation.target}, e pediste "
-                f"{target}: prepara outra vez no ecrã Preparar, ou deixa o agente decidir."
+                f"The hand-made preparation is for the target {preparation.target}, and you "
+                f"asked for {target}: prepare again in Prepare, or let the agent decide."
             )
         chosen = preparation.task_type or task.task_type
         assert chosen is not None  # confirmado em plan
@@ -156,13 +156,13 @@ class DataAgent:
         steps = len(preparation.cleaning)
         decisions = (
             DataDecision(
-                "Usar a preparação do ecrã Preparar",
-                f"Já preparaste estes dados à mão ({steps} passo{'s' if steps != 1 else ''} de "
-                "limpeza, a divisão e as transformações que escolheste): o agente de dados "
-                "respeita as tuas escolhas e não decide nada por cima.",
+                "Use the preparation from Prepare",
+                f"You've already prepared this data by hand ({steps} cleaning "
+                f"step{'s' if steps != 1 else ''}, the split and the transformations you chose): "
+                "the data agent respects your choices and decides nothing on top of them.",
             ),
             _task_decision(task, chosen),
-            DataDecision(f"Otimizar: {METRICS.get(suggested).display_name}", reason),
+            DataDecision(f"Optimise: {METRICS.get(suggested).display_name}", reason),
         )
         config = PreparationConfig(
             target=target,
@@ -178,21 +178,22 @@ class DataAgent:
 def _cleaning_title(step: CleaningStep) -> str:
     params = step.params
     if step.operation == "drop_columns":
-        return f"Remover {', '.join(str(column) for column in params.get('columns', ()))}"
+        return f"Drop {', '.join(str(column) for column in params.get('columns', ()))}"
     if step.operation == "convert_type":
         to = _CONVERSIONS.get(str(params.get("to")), str(params.get("to")))
-        return f"Converter {params.get('column')} em {to}"
+        return f"Convert {params.get('column')} to {to}"
     return CLEANING.get(step.operation).title
 
 
 def _task_decision(task: TaskSuggestion, chosen: TaskType) -> DataDecision:
-    title = f"Tarefa: {chosen.label.lower()}"
+    title = f"Task: {chosen.label.lower()}"
     if chosen is task.task_type:
         return DataDecision(title, task.reason)
     assert task.task_type is not None
     return DataDecision(
         title,
-        f"Foi a tarefa pedida. A deteção sugeria {task.task_type.label.lower()}: {task.reason}",
+        f"It was the task asked for. The detection suggested {task.task_type.label.lower()}: "
+        f"{task.reason}",
     )
 
 
@@ -204,17 +205,17 @@ def _split(task_type: TaskType, target: str) -> SplitConfig:
 def _split_decision(split: SplitConfig) -> DataDecision:
     train = format_percent(1 - split.test_size, 0)
     test = format_percent(split.test_size, 0)
-    title = f"Divisão {split.strategy.label.lower()}: {train} para treino, {test} para teste"
+    title = f"{split.strategy.label} split: {train} for training, {test} for test"
     if split.strategy is SplitStrategy.STRATIFIED:
         how = (
-            "Com classes, o teste fica com a mesma proporção de cada uma: ao acaso, uma "
-            "classe rara podia quase faltar no teste."
+            "With classes, the test keeps the same share of each one: at random, a rare class "
+            "could almost go missing from the test."
         )
     else:
-        how = "Sem classes no alvo, as linhas vão ao acaso para o treino ou para o teste."
+        how = "Without classes in the target, the rows go to the training or the test at random."
     keep = (
-        " O teste fica guardado até ao fim: os agentes escolhem o modelo só com o treino, e "
-        "só o vencedor é avaliado no teste."
+        " The test stays put away until the end: the agents choose the model with the training "
+        "data only, and only the winner is evaluated on the test."
     )
     return DataDecision(title, how + keep)
 
@@ -250,43 +251,43 @@ def _transform_decisions(features: Sequence[ColumnProfile]) -> list[DataDecision
     if dates:
         decisions.append(
             DataDecision(
-                f"Partir as datas de {format_list(dates)}",
-                "Um modelo não lê uma data: passa a ano, mês, dia e dia da semana, que são "
-                "números com que pode aprender (as vendas de dezembro, os fins de semana).",
+                f"Split the dates of {format_list(dates)}",
+                "A model can't read a date: it becomes the year, month, day and day of the week, "
+                "which are numbers it can learn from (December sales, weekends).",
             )
         )
     if numeric_gaps:
         decisions.append(
             DataDecision(
-                f"Preencher os nulos de {format_list(numeric_gaps)} com a mediana",
-                "Os modelos não aceitam valores em falta. A mediana aprende-se só com o treino e "
-                "não se deixa puxar pelos valores extremos, como a média.",
+                f"Fill in the nulls of {format_list(numeric_gaps)} with the median",
+                "Models don't accept missing values. The median is learned from the training "
+                "data only and isn't pulled by extreme values, as the mean is.",
             )
         )
     if other_gaps:
         decisions.append(
             DataDecision(
-                f"Preencher os nulos de {format_list(other_gaps)} com o valor mais frequente",
-                "Numa coluna de categorias não há média: o valor mais frequente no treino é a "
-                "aposta mais segura.",
+                f"Fill in the nulls of {format_list(other_gaps)} with the most frequent value",
+                "A column of categories has no mean: the most frequent value in the training "
+                "data is the safest bet.",
             )
         )
     if categorical:
         decisions.append(
             DataDecision(
-                f"One-hot em {format_list(categorical)}",
-                "Os modelos só recebem números: cada categoria passa a uma coluna de 0 e 1, sem "
-                "inventar uma ordem entre elas (dar 1, 2 e 3 a três portos diria que o 3 é o "
-                "triplo do 1).",
+                f"One-hot encode {format_list(categorical)}",
+                "Models only take numbers: each category becomes a column of 0s and 1s, without "
+                "making up an order between them (giving 1, 2 and 3 to three ports would say "
+                "that 3 is three times 1).",
             )
         )
     if numeric:
         decisions.append(
             DataDecision(
-                "Padronizar as numéricas (média 0, desvio padrão 1)",
-                "As árvores não precisam, mas o KNN, o SVM, a regressão logística e as redes sim: "
-                "sem escala, a feature com os números maiores manda nas distâncias e nos "
-                "gradientes. Como a mesma preparação serve todos os modelos, escala-se.",
+                "Standardise the numeric columns (mean 0, standard deviation 1)",
+                "Trees don't need it, but KNN, SVM, logistic regression and networks do: without "
+                "scaling, the feature with the biggest numbers rules the distances and the "
+                "gradients. As the same preparation serves every model, everything is scaled.",
             )
         )
     return decisions
@@ -304,7 +305,7 @@ def _objective(
     if requested is None or requested == suggested:
         return suggested, reason
     label = METRICS.get(suggested).display_name
-    return requested, f"Foi a métrica pedida (o agente de dados sugeria {label}). {reason}"
+    return requested, f"It was the metric asked for (the data agent suggested {label}). {reason}"
 
 
 def _suggested_objective(profile: DatasetProfile, task_type: TaskType) -> tuple[str, str]:
@@ -314,20 +315,20 @@ def _suggested_objective(profile: DatasetProfile, task_type: TaskType) -> tuple[
     if task_type.is_classification and balance is not None and balance.is_imbalanced:
         rarest = balance.classes[-1]
         return "balanced_accuracy", (
-            f"As classes estão desequilibradas: a classe «{rarest.value}» só tem "
-            f"{format_percent(rarest.ratio)} das linhas. Um modelo que nunca a prevê teria uma "
-            "exatidão alta e não serviria para nada; a exatidão equilibrada dá o mesmo peso a "
-            "cada classe."
+            f"The classes are imbalanced: the class “{rarest.value}” only has "
+            f"{format_percent(rarest.ratio)} of the rows. A model that never predicts it would "
+            "have a high accuracy and be no use at all; the balanced accuracy gives each class "
+            "the same weight."
         )
     if task_type.is_classification and balance is not None:
         rarest = balance.classes[-1]
         return primary, (
-            f"As classes estão razoavelmente equilibradas (a mais rara, «{rarest.value}», tem "
-            f"{format_percent(rarest.ratio)} das linhas): a exatidão, a métrica principal, serve."
+            f"The classes are reasonably balanced (the rarest, “{rarest.value}”, has "
+            f"{format_percent(rarest.ratio)} of the rows): the accuracy, the main metric, will do."
         )
     return primary, (
-        f"É a métrica principal de {task_type.label.lower()}: diz que parte da variação do "
-        "alvo o modelo explica (1 é perfeito; 0 é tão bom como prever sempre a média)."
+        f"It's the main metric of {task_type.label.lower()}: it says how much of the target's "
+        "variation the model explains (1 is perfect; 0 is as good as always predicting the mean)."
         if primary == "r2"
-        else f"É a métrica principal de {task_type.label.lower()}."
+        else f"It's the main metric of {task_type.label.lower()}."
     )

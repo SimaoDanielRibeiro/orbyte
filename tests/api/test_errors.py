@@ -49,12 +49,12 @@ def test_unknown_identifiers_answer_404(client: TestClient) -> None:
 
     assert [r.status_code for r in (dataset, model, run, job, topic)] == [404] * 5
     assert dataset.json()["code"] == "dataset_not_found"
-    assert "Querias dizer 'logistic_regression'?" in model.json()["message"]
+    assert "Did you mean 'logistic_regression'?" in model.json()["message"]
     assert run.json()["code"] == "run_not_found"
     assert job.json()["code"] == "job_not_found"
 
 
-def test_values_that_do_not_serve_answer_422_in_portuguese(
+def test_values_that_do_not_serve_answer_422_with_the_reason(
     client: TestClient, config: Callable[..., dict[str, Any]]
 ) -> None:
     hyperparameter = client.post("/experiments", json=config(learning_rate=-1))
@@ -63,10 +63,10 @@ def test_values_that_do_not_serve_answer_422_in_portuguese(
 
     assert hyperparameter.status_code == 422
     assert hyperparameter.json()["code"] == "hyperparameter"
-    assert "Taxa de aprendizagem tem de ser pelo menos" in hyperparameter.json()["message"]
+    assert "Learning rate must be at least" in hyperparameter.json()["message"]
     assert shape.status_code == 422
     assert shape.json()["code"] == "invalid_request"
-    assert "Falta o valor de model." in shape.json()["problems"]
+    assert "model is missing a value." in shape.json()["problems"]
     assert column.status_code == 422
     assert column.json()["code"] == "column_not_found"
 
@@ -85,4 +85,4 @@ def test_a_question_that_does_not_fit_the_task_answers_400(
 
     assert response.status_code == 400
     assert response.json()["code"] == "model"
-    assert "mede previsões contra um alvo" in response.json()["message"]
+    assert "measures predictions against a target" in response.json()["message"]

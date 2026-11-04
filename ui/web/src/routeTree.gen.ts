@@ -10,98 +10,88 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DadosRouteImport } from './routes/dados'
-import { Route as ExperienciasRouteImport } from './routes/experiencias'
-import { Route as ExplorarRouteImport } from './routes/explorar'
-import { Route as LaboratorioRouteImport } from './routes/laboratorio'
-import { Route as MetricasRouteImport } from './routes/metricas'
-import { Route as PrepararRouteImport } from './routes/preparar'
-import { Route as AgentesIndexRouteImport } from './routes/agentes/index'
-import { Route as AgentesSearchIdRouteImport } from './routes/agentes/$searchId'
-import { Route as ExplicarIndexRouteImport } from './routes/explicar/index'
-import { Route as ExplicarRunIdRouteImport } from './routes/explicar/$runId'
-import { Route as GuardarIndexRouteImport } from './routes/guardar/index'
-import { Route as GuardarRunIdRouteImport } from './routes/guardar/$runId'
-import { Route as ModelosIndexRouteImport } from './routes/modelos/index'
-import { Route as ModelosNameRouteImport } from './routes/modelos/$name'
+import { Route as DataRouteImport } from './routes/data'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as LabRouteImport } from './routes/lab'
+import { Route as MetricsRouteImport } from './routes/metrics'
+import { Route as PrepareRouteImport } from './routes/prepare'
+import { Route as AgentsIndexRouteImport } from './routes/agents/index'
+import { Route as AgentsSearchIdRouteImport } from './routes/agents/$searchId'
+import { Route as ExplainIndexRouteImport } from './routes/explain/index'
+import { Route as ExplainRunIdRouteImport } from './routes/explain/$runId'
+import { Route as ModelsIndexRouteImport } from './routes/models/index'
+import { Route as ModelsNameRouteImport } from './routes/models/$name'
 import { Route as RlIndexRouteImport } from './routes/rl/index'
 import { Route as RlRunIdRouteImport } from './routes/rl/$runId'
-import { Route as TreinarIndexRouteImport } from './routes/treinar/index'
-import { Route as TreinarRunIdRouteImport } from './routes/treinar/$runId'
+import { Route as SaveIndexRouteImport } from './routes/save/index'
+import { Route as SaveRunIdRouteImport } from './routes/save/$runId'
+import { Route as TrainIndexRouteImport } from './routes/train/index'
+import { Route as TrainRunIdRouteImport } from './routes/train/$runId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DadosRoute = DadosRouteImport.update({
-  id: '/dados',
-  path: '/dados',
+const DataRoute = DataRouteImport.update({
+  id: '/data',
+  path: '/data',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExperienciasRoute = ExperienciasRouteImport.update({
-  id: '/experiencias',
-  path: '/experiencias',
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExplorarRoute = ExplorarRouteImport.update({
-  id: '/explorar',
-  path: '/explorar',
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LaboratorioRoute = LaboratorioRouteImport.update({
-  id: '/laboratorio',
-  path: '/laboratorio',
+const LabRoute = LabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MetricasRoute = MetricasRouteImport.update({
-  id: '/metricas',
-  path: '/metricas',
+const MetricsRoute = MetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrepararRoute = PrepararRouteImport.update({
-  id: '/preparar',
-  path: '/preparar',
+const PrepareRoute = PrepareRouteImport.update({
+  id: '/prepare',
+  path: '/prepare',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentesIndexRoute = AgentesIndexRouteImport.update({
-  id: '/agentes/',
-  path: '/agentes/',
+const AgentsIndexRoute = AgentsIndexRouteImport.update({
+  id: '/agents/',
+  path: '/agents/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentesSearchIdRoute = AgentesSearchIdRouteImport.update({
-  id: '/agentes/$searchId',
-  path: '/agentes/$searchId',
+const AgentsSearchIdRoute = AgentsSearchIdRouteImport.update({
+  id: '/agents/$searchId',
+  path: '/agents/$searchId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExplicarIndexRoute = ExplicarIndexRouteImport.update({
-  id: '/explicar/',
-  path: '/explicar/',
+const ExplainIndexRoute = ExplainIndexRouteImport.update({
+  id: '/explain/',
+  path: '/explain/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExplicarRunIdRoute = ExplicarRunIdRouteImport.update({
-  id: '/explicar/$runId',
-  path: '/explicar/$runId',
+const ExplainRunIdRoute = ExplainRunIdRouteImport.update({
+  id: '/explain/$runId',
+  path: '/explain/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuardarIndexRoute = GuardarIndexRouteImport.update({
-  id: '/guardar/',
-  path: '/guardar/',
+const ModelsIndexRoute = ModelsIndexRouteImport.update({
+  id: '/models/',
+  path: '/models/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuardarRunIdRoute = GuardarRunIdRouteImport.update({
-  id: '/guardar/$runId',
-  path: '/guardar/$runId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModelosIndexRoute = ModelosIndexRouteImport.update({
-  id: '/modelos/',
-  path: '/modelos/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModelosNameRoute = ModelosNameRouteImport.update({
-  id: '/modelos/$name',
-  path: '/modelos/$name',
+const ModelsNameRoute = ModelsNameRouteImport.update({
+  id: '/models/$name',
+  path: '/models/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RlIndexRoute = RlIndexRouteImport.update({
@@ -114,167 +104,177 @@ const RlRunIdRoute = RlRunIdRouteImport.update({
   path: '/rl/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TreinarIndexRoute = TreinarIndexRouteImport.update({
-  id: '/treinar/',
-  path: '/treinar/',
+const SaveIndexRoute = SaveIndexRouteImport.update({
+  id: '/save/',
+  path: '/save/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TreinarRunIdRoute = TreinarRunIdRouteImport.update({
-  id: '/treinar/$runId',
-  path: '/treinar/$runId',
+const SaveRunIdRoute = SaveRunIdRouteImport.update({
+  id: '/save/$runId',
+  path: '/save/$runId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrainIndexRoute = TrainIndexRouteImport.update({
+  id: '/train/',
+  path: '/train/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrainRunIdRoute = TrainRunIdRouteImport.update({
+  id: '/train/$runId',
+  path: '/train/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dados': typeof DadosRoute
-  '/experiencias': typeof ExperienciasRoute
-  '/explorar': typeof ExplorarRoute
-  '/laboratorio': typeof LaboratorioRoute
-  '/metricas': typeof MetricasRoute
-  '/preparar': typeof PrepararRoute
-  '/agentes/$searchId': typeof AgentesSearchIdRoute
-  '/explicar/$runId': typeof ExplicarRunIdRoute
-  '/guardar/$runId': typeof GuardarRunIdRoute
-  '/modelos/$name': typeof ModelosNameRoute
+  '/data': typeof DataRoute
+  '/explore': typeof ExploreRoute
+  '/history': typeof HistoryRoute
+  '/lab': typeof LabRoute
+  '/metrics': typeof MetricsRoute
+  '/prepare': typeof PrepareRoute
+  '/agents/$searchId': typeof AgentsSearchIdRoute
+  '/explain/$runId': typeof ExplainRunIdRoute
+  '/models/$name': typeof ModelsNameRoute
   '/rl/$runId': typeof RlRunIdRoute
-  '/treinar/$runId': typeof TreinarRunIdRoute
-  '/agentes/': typeof AgentesIndexRoute
-  '/explicar/': typeof ExplicarIndexRoute
-  '/guardar/': typeof GuardarIndexRoute
-  '/modelos/': typeof ModelosIndexRoute
+  '/save/$runId': typeof SaveRunIdRoute
+  '/train/$runId': typeof TrainRunIdRoute
+  '/agents/': typeof AgentsIndexRoute
+  '/explain/': typeof ExplainIndexRoute
+  '/models/': typeof ModelsIndexRoute
   '/rl/': typeof RlIndexRoute
-  '/treinar/': typeof TreinarIndexRoute
+  '/save/': typeof SaveIndexRoute
+  '/train/': typeof TrainIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dados': typeof DadosRoute
-  '/experiencias': typeof ExperienciasRoute
-  '/explorar': typeof ExplorarRoute
-  '/laboratorio': typeof LaboratorioRoute
-  '/metricas': typeof MetricasRoute
-  '/preparar': typeof PrepararRoute
-  '/agentes/$searchId': typeof AgentesSearchIdRoute
-  '/explicar/$runId': typeof ExplicarRunIdRoute
-  '/guardar/$runId': typeof GuardarRunIdRoute
-  '/modelos/$name': typeof ModelosNameRoute
+  '/data': typeof DataRoute
+  '/explore': typeof ExploreRoute
+  '/history': typeof HistoryRoute
+  '/lab': typeof LabRoute
+  '/metrics': typeof MetricsRoute
+  '/prepare': typeof PrepareRoute
+  '/agents/$searchId': typeof AgentsSearchIdRoute
+  '/explain/$runId': typeof ExplainRunIdRoute
+  '/models/$name': typeof ModelsNameRoute
   '/rl/$runId': typeof RlRunIdRoute
-  '/treinar/$runId': typeof TreinarRunIdRoute
-  '/agentes': typeof AgentesIndexRoute
-  '/explicar': typeof ExplicarIndexRoute
-  '/guardar': typeof GuardarIndexRoute
-  '/modelos': typeof ModelosIndexRoute
+  '/save/$runId': typeof SaveRunIdRoute
+  '/train/$runId': typeof TrainRunIdRoute
+  '/agents': typeof AgentsIndexRoute
+  '/explain': typeof ExplainIndexRoute
+  '/models': typeof ModelsIndexRoute
   '/rl': typeof RlIndexRoute
-  '/treinar': typeof TreinarIndexRoute
+  '/save': typeof SaveIndexRoute
+  '/train': typeof TrainIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dados': typeof DadosRoute
-  '/experiencias': typeof ExperienciasRoute
-  '/explorar': typeof ExplorarRoute
-  '/laboratorio': typeof LaboratorioRoute
-  '/metricas': typeof MetricasRoute
-  '/preparar': typeof PrepararRoute
-  '/agentes/$searchId': typeof AgentesSearchIdRoute
-  '/explicar/$runId': typeof ExplicarRunIdRoute
-  '/guardar/$runId': typeof GuardarRunIdRoute
-  '/modelos/$name': typeof ModelosNameRoute
+  '/data': typeof DataRoute
+  '/explore': typeof ExploreRoute
+  '/history': typeof HistoryRoute
+  '/lab': typeof LabRoute
+  '/metrics': typeof MetricsRoute
+  '/prepare': typeof PrepareRoute
+  '/agents/$searchId': typeof AgentsSearchIdRoute
+  '/explain/$runId': typeof ExplainRunIdRoute
+  '/models/$name': typeof ModelsNameRoute
   '/rl/$runId': typeof RlRunIdRoute
-  '/treinar/$runId': typeof TreinarRunIdRoute
-  '/agentes/': typeof AgentesIndexRoute
-  '/explicar/': typeof ExplicarIndexRoute
-  '/guardar/': typeof GuardarIndexRoute
-  '/modelos/': typeof ModelosIndexRoute
+  '/save/$runId': typeof SaveRunIdRoute
+  '/train/$runId': typeof TrainRunIdRoute
+  '/agents/': typeof AgentsIndexRoute
+  '/explain/': typeof ExplainIndexRoute
+  '/models/': typeof ModelsIndexRoute
   '/rl/': typeof RlIndexRoute
-  '/treinar/': typeof TreinarIndexRoute
+  '/save/': typeof SaveIndexRoute
+  '/train/': typeof TrainIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dados'
-    | '/experiencias'
-    | '/explorar'
-    | '/laboratorio'
-    | '/metricas'
-    | '/preparar'
-    | '/agentes/$searchId'
-    | '/explicar/$runId'
-    | '/guardar/$runId'
-    | '/modelos/$name'
+    | '/data'
+    | '/explore'
+    | '/history'
+    | '/lab'
+    | '/metrics'
+    | '/prepare'
+    | '/agents/$searchId'
+    | '/explain/$runId'
+    | '/models/$name'
     | '/rl/$runId'
-    | '/treinar/$runId'
-    | '/agentes/'
-    | '/explicar/'
-    | '/guardar/'
-    | '/modelos/'
+    | '/save/$runId'
+    | '/train/$runId'
+    | '/agents/'
+    | '/explain/'
+    | '/models/'
     | '/rl/'
-    | '/treinar/'
+    | '/save/'
+    | '/train/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dados'
-    | '/experiencias'
-    | '/explorar'
-    | '/laboratorio'
-    | '/metricas'
-    | '/preparar'
-    | '/agentes/$searchId'
-    | '/explicar/$runId'
-    | '/guardar/$runId'
-    | '/modelos/$name'
+    | '/data'
+    | '/explore'
+    | '/history'
+    | '/lab'
+    | '/metrics'
+    | '/prepare'
+    | '/agents/$searchId'
+    | '/explain/$runId'
+    | '/models/$name'
     | '/rl/$runId'
-    | '/treinar/$runId'
-    | '/agentes'
-    | '/explicar'
-    | '/guardar'
-    | '/modelos'
+    | '/save/$runId'
+    | '/train/$runId'
+    | '/agents'
+    | '/explain'
+    | '/models'
     | '/rl'
-    | '/treinar'
+    | '/save'
+    | '/train'
   id:
     | '__root__'
     | '/'
-    | '/dados'
-    | '/experiencias'
-    | '/explorar'
-    | '/laboratorio'
-    | '/metricas'
-    | '/preparar'
-    | '/agentes/$searchId'
-    | '/explicar/$runId'
-    | '/guardar/$runId'
-    | '/modelos/$name'
+    | '/data'
+    | '/explore'
+    | '/history'
+    | '/lab'
+    | '/metrics'
+    | '/prepare'
+    | '/agents/$searchId'
+    | '/explain/$runId'
+    | '/models/$name'
     | '/rl/$runId'
-    | '/treinar/$runId'
-    | '/agentes/'
-    | '/explicar/'
-    | '/guardar/'
-    | '/modelos/'
+    | '/save/$runId'
+    | '/train/$runId'
+    | '/agents/'
+    | '/explain/'
+    | '/models/'
     | '/rl/'
-    | '/treinar/'
+    | '/save/'
+    | '/train/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DadosRoute: typeof DadosRoute
-  ExperienciasRoute: typeof ExperienciasRoute
-  ExplorarRoute: typeof ExplorarRoute
-  LaboratorioRoute: typeof LaboratorioRoute
-  MetricasRoute: typeof MetricasRoute
-  PrepararRoute: typeof PrepararRoute
-  AgentesSearchIdRoute: typeof AgentesSearchIdRoute
-  ExplicarRunIdRoute: typeof ExplicarRunIdRoute
-  GuardarRunIdRoute: typeof GuardarRunIdRoute
-  ModelosNameRoute: typeof ModelosNameRoute
+  DataRoute: typeof DataRoute
+  ExploreRoute: typeof ExploreRoute
+  HistoryRoute: typeof HistoryRoute
+  LabRoute: typeof LabRoute
+  MetricsRoute: typeof MetricsRoute
+  PrepareRoute: typeof PrepareRoute
+  AgentsSearchIdRoute: typeof AgentsSearchIdRoute
+  ExplainRunIdRoute: typeof ExplainRunIdRoute
+  ModelsNameRoute: typeof ModelsNameRoute
   RlRunIdRoute: typeof RlRunIdRoute
-  TreinarRunIdRoute: typeof TreinarRunIdRoute
-  AgentesIndexRoute: typeof AgentesIndexRoute
-  ExplicarIndexRoute: typeof ExplicarIndexRoute
-  GuardarIndexRoute: typeof GuardarIndexRoute
-  ModelosIndexRoute: typeof ModelosIndexRoute
+  SaveRunIdRoute: typeof SaveRunIdRoute
+  TrainRunIdRoute: typeof TrainRunIdRoute
+  AgentsIndexRoute: typeof AgentsIndexRoute
+  ExplainIndexRoute: typeof ExplainIndexRoute
+  ModelsIndexRoute: typeof ModelsIndexRoute
   RlIndexRoute: typeof RlIndexRoute
-  TreinarIndexRoute: typeof TreinarIndexRoute
+  SaveIndexRoute: typeof SaveIndexRoute
+  TrainIndexRoute: typeof TrainIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -286,102 +286,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dados': {
-      id: '/dados'
-      path: '/dados'
-      fullPath: '/dados'
-      preLoaderRoute: typeof DadosRouteImport
+    '/data': {
+      id: '/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof DataRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/experiencias': {
-      id: '/experiencias'
-      path: '/experiencias'
-      fullPath: '/experiencias'
-      preLoaderRoute: typeof ExperienciasRouteImport
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/explorar': {
-      id: '/explorar'
-      path: '/explorar'
-      fullPath: '/explorar'
-      preLoaderRoute: typeof ExplorarRouteImport
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/laboratorio': {
-      id: '/laboratorio'
-      path: '/laboratorio'
-      fullPath: '/laboratorio'
-      preLoaderRoute: typeof LaboratorioRouteImport
+    '/lab': {
+      id: '/lab'
+      path: '/lab'
+      fullPath: '/lab'
+      preLoaderRoute: typeof LabRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/metricas': {
-      id: '/metricas'
-      path: '/metricas'
-      fullPath: '/metricas'
-      preLoaderRoute: typeof MetricasRouteImport
+    '/metrics': {
+      id: '/metrics'
+      path: '/metrics'
+      fullPath: '/metrics'
+      preLoaderRoute: typeof MetricsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/preparar': {
-      id: '/preparar'
-      path: '/preparar'
-      fullPath: '/preparar'
-      preLoaderRoute: typeof PrepararRouteImport
+    '/prepare': {
+      id: '/prepare'
+      path: '/prepare'
+      fullPath: '/prepare'
+      preLoaderRoute: typeof PrepareRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agentes/': {
-      id: '/agentes/'
-      path: '/agentes'
-      fullPath: '/agentes/'
-      preLoaderRoute: typeof AgentesIndexRouteImport
+    '/agents/': {
+      id: '/agents/'
+      path: '/agents'
+      fullPath: '/agents/'
+      preLoaderRoute: typeof AgentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agentes/$searchId': {
-      id: '/agentes/$searchId'
-      path: '/agentes/$searchId'
-      fullPath: '/agentes/$searchId'
-      preLoaderRoute: typeof AgentesSearchIdRouteImport
+    '/agents/$searchId': {
+      id: '/agents/$searchId'
+      path: '/agents/$searchId'
+      fullPath: '/agents/$searchId'
+      preLoaderRoute: typeof AgentsSearchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/explicar/': {
-      id: '/explicar/'
-      path: '/explicar'
-      fullPath: '/explicar/'
-      preLoaderRoute: typeof ExplicarIndexRouteImport
+    '/explain/': {
+      id: '/explain/'
+      path: '/explain'
+      fullPath: '/explain/'
+      preLoaderRoute: typeof ExplainIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/explicar/$runId': {
-      id: '/explicar/$runId'
-      path: '/explicar/$runId'
-      fullPath: '/explicar/$runId'
-      preLoaderRoute: typeof ExplicarRunIdRouteImport
+    '/explain/$runId': {
+      id: '/explain/$runId'
+      path: '/explain/$runId'
+      fullPath: '/explain/$runId'
+      preLoaderRoute: typeof ExplainRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guardar/': {
-      id: '/guardar/'
-      path: '/guardar'
-      fullPath: '/guardar/'
-      preLoaderRoute: typeof GuardarIndexRouteImport
+    '/models/': {
+      id: '/models/'
+      path: '/models'
+      fullPath: '/models/'
+      preLoaderRoute: typeof ModelsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guardar/$runId': {
-      id: '/guardar/$runId'
-      path: '/guardar/$runId'
-      fullPath: '/guardar/$runId'
-      preLoaderRoute: typeof GuardarRunIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/modelos/': {
-      id: '/modelos/'
-      path: '/modelos'
-      fullPath: '/modelos/'
-      preLoaderRoute: typeof ModelosIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/modelos/$name': {
-      id: '/modelos/$name'
-      path: '/modelos/$name'
-      fullPath: '/modelos/$name'
-      preLoaderRoute: typeof ModelosNameRouteImport
+    '/models/$name': {
+      id: '/models/$name'
+      path: '/models/$name'
+      fullPath: '/models/$name'
+      preLoaderRoute: typeof ModelsNameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rl/': {
@@ -398,18 +384,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RlRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/treinar/': {
-      id: '/treinar/'
-      path: '/treinar'
-      fullPath: '/treinar/'
-      preLoaderRoute: typeof TreinarIndexRouteImport
+    '/save/': {
+      id: '/save/'
+      path: '/save'
+      fullPath: '/save/'
+      preLoaderRoute: typeof SaveIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/treinar/$runId': {
-      id: '/treinar/$runId'
-      path: '/treinar/$runId'
-      fullPath: '/treinar/$runId'
-      preLoaderRoute: typeof TreinarRunIdRouteImport
+    '/save/$runId': {
+      id: '/save/$runId'
+      path: '/save/$runId'
+      fullPath: '/save/$runId'
+      preLoaderRoute: typeof SaveRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/train/': {
+      id: '/train/'
+      path: '/train'
+      fullPath: '/train/'
+      preLoaderRoute: typeof TrainIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/train/$runId': {
+      id: '/train/$runId'
+      path: '/train/$runId'
+      fullPath: '/train/$runId'
+      preLoaderRoute: typeof TrainRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -417,24 +417,24 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DadosRoute: DadosRoute,
-  ExperienciasRoute: ExperienciasRoute,
-  ExplorarRoute: ExplorarRoute,
-  LaboratorioRoute: LaboratorioRoute,
-  MetricasRoute: MetricasRoute,
-  PrepararRoute: PrepararRoute,
-  AgentesSearchIdRoute: AgentesSearchIdRoute,
-  ExplicarRunIdRoute: ExplicarRunIdRoute,
-  GuardarRunIdRoute: GuardarRunIdRoute,
-  ModelosNameRoute: ModelosNameRoute,
+  DataRoute: DataRoute,
+  ExploreRoute: ExploreRoute,
+  HistoryRoute: HistoryRoute,
+  LabRoute: LabRoute,
+  MetricsRoute: MetricsRoute,
+  PrepareRoute: PrepareRoute,
+  AgentsSearchIdRoute: AgentsSearchIdRoute,
+  ExplainRunIdRoute: ExplainRunIdRoute,
+  ModelsNameRoute: ModelsNameRoute,
   RlRunIdRoute: RlRunIdRoute,
-  TreinarRunIdRoute: TreinarRunIdRoute,
-  AgentesIndexRoute: AgentesIndexRoute,
-  ExplicarIndexRoute: ExplicarIndexRoute,
-  GuardarIndexRoute: GuardarIndexRoute,
-  ModelosIndexRoute: ModelosIndexRoute,
+  SaveRunIdRoute: SaveRunIdRoute,
+  TrainRunIdRoute: TrainRunIdRoute,
+  AgentsIndexRoute: AgentsIndexRoute,
+  ExplainIndexRoute: ExplainIndexRoute,
+  ModelsIndexRoute: ModelsIndexRoute,
   RlIndexRoute: RlIndexRoute,
-  TreinarIndexRoute: TreinarIndexRoute,
+  SaveIndexRoute: SaveIndexRoute,
+  TrainIndexRoute: TrainIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

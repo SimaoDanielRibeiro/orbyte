@@ -190,14 +190,14 @@ class SqliteStore:
         try:
             connection = sqlite3.connect(self.path, timeout=10)
         except sqlite3.Error as error:
-            raise TrackingError(f"Não foi possível abrir {self.path}: {error}") from error
+            raise TrackingError(f"Couldn't open {self.path}: {error}") from error
         connection.row_factory = sqlite3.Row
         try:
             connection.execute("PRAGMA foreign_keys = ON")  # o SQLite só as cumpre se se pedir
             with connection:
                 yield connection
         except sqlite3.Error as error:
-            raise TrackingError(f"A base de dados de experiências falhou: {error}") from error
+            raise TrackingError(f"The experiment database failed: {error}") from error
         finally:
             connection.close()
 
@@ -207,8 +207,8 @@ def _migrate(connection: sqlite3.Connection) -> None:
     version: int = connection.execute("PRAGMA user_version").fetchone()[0]
     if version > len(MIGRATIONS):
         raise TrackingError(
-            f"A base de dados está na versão {version} do esquema, e este ML Lab só conhece até "
-            f"à {len(MIGRATIONS)}: atualiza o ML Lab ou usa outra base de dados."
+            f"The database is at version {version} of the schema, and this Orbyte only knows up "
+            f"to {len(MIGRATIONS)}: update Orbyte or use another database."
         )
     for number, script in enumerate(MIGRATIONS[version:], start=version + 1):
         connection.executescript(script)

@@ -49,10 +49,10 @@ class LogisticRegressionGDParams(Hyperparameters):
         default=1.0,
         ge=0.0001,
         le=50,
-        title="Taxa de aprendizagem",
+        title="Learning rate",
         description=(
-            "Tamanho de cada passo. Pequena demais, o treino arrasta-se; grande demais, a loss "
-            "salta de um lado para o outro ou explode."
+            "The size of each step. Too small, training drags on; too large, the loss jumps "
+            "from side to side or blows up."
         ),
         json_schema_extra={"x-scale": "log"},
     )
@@ -60,29 +60,29 @@ class LogisticRegressionGDParams(Hyperparameters):
         default=2_000,
         ge=10,
         le=20_000,
-        title="Máximo de épocas",
-        description="Quantas passagens pelos dados de treino, no máximo.",
+        title="Maximum epochs",
+        description="How many passes over the training data, at most.",
     )
     C: float = Field(
         default=1.0,
         ge=0.0001,
         le=10_000,
-        title="C (inverso da regularização)",
-        description="O mesmo C do scikit-learn: quanto menor, mais pequenos ficam os pesos.",
+        title="C (inverse of regularisation)",
+        description="The same C as scikit-learn's: the smaller it is, the smaller the weights.",
         json_schema_extra={"x-scale": "log", "x-search": {"range": [0.01, 100]}},
     )
     tol: float = Field(
         default=1e-6,
         ge=1e-10,
         le=0.01,
-        title="Tolerância de paragem",
-        description="Pára quando o gradiente fica mais pequeno do que isto: chegou ao mínimo.",
+        title="Stopping tolerance",
+        description="Stops when the gradient gets smaller than this: it reached the minimum.",
         json_schema_extra={"x-scale": "log"},
     )
     fit_intercept: bool = Field(
         default=True,
-        title="Aprender a ordenada (b)",
-        description="Sem ordenada, a fronteira de decisão é obrigada a passar pela origem.",
+        title="Learn the intercept (b)",
+        description="Without an intercept, the decision boundary has to go through the origin.",
     )
 
 
@@ -92,10 +92,10 @@ class LogisticRegressionGD(LabModel[LogisticRegressionGDParams]):
 
     info = ModelInfo(
         name="logistic_regression_gd",
-        display_name="Regressão logística (gradiente descendente)",
+        display_name="Logistic regression (gradient descent)",
         summary=(
-            "A mesma regressão logística, escrita em NumPy e treinada passo a passo: vês a loss "
-            "a descer e a fronteira a mover-se até chegar à do scikit-learn."
+            "The same logistic regression, written in NumPy and trained step by step: you see "
+            "the loss fall and the boundary move until it reaches scikit-learn's."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.LINEAR,
@@ -134,13 +134,13 @@ class LogisticRegressionGD(LabModel[LogisticRegressionGDParams]):
     @override
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if y is None:
-            raise ModelError("A regressão logística precisa do alvo para aprender.")
+            raise ModelError("Logistic regression needs the target to learn.")
         params = self.hyperparameters
         self._classes = np.unique(y).astype(np.int64)
         n_samples, n_features = X.shape
         n_classes = len(self._classes)
         if n_classes < 2:
-            raise ModelError("A regressão logística precisa de pelo menos duas classes no treino.")
+            raise ModelError("Logistic regression needs at least two classes in the training data.")
         # Duas classes: um só vetor de pesos (o da classe positiva), como no scikit-learn.
         n_outputs = 1 if n_classes == 2 else n_classes
         targets = _one_hot(np.searchsorted(self._classes, y), n_classes)
@@ -183,8 +183,8 @@ class LogisticRegressionGD(LabModel[LogisticRegressionGDParams]):
         self._note(
             Notice.warning(
                 "not_converged",
-                f"O gradiente descendente fez as {format_count(params.max_epochs)} épocas sem "
-                "chegar ao mínimo: aumenta o máximo de épocas ou a taxa de aprendizagem.",
+                f"Gradient descent ran all {format_count(params.max_epochs)} epochs without "
+                "reaching the minimum: raise the maximum epochs or the learning rate.",
             )
         )
 

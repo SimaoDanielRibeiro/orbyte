@@ -128,5 +128,5 @@ def test_dates_do_not_pass_to_onnx_yet() -> None:
     )
     assert data.dataset.preparation is not None
 
-    with pytest.raises(CapabilityError, match="As datas ainda não passam para ONNX"):
+    with pytest.raises(CapabilityError, match="Dates can't go to ONNX yet"):
         preparation_onnx(data.dataset.preparation)

@@ -1,7 +1,14 @@
 import { cn } from "cn";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 
-import { PageExplain } from "@/components/explain/explain";
+/**
+ * O "?" da página traz o Markdown e o KaTeX (os textos do "Porquê?"): carrega-se à parte. O
+ * cabeçalho também serve os ecrãs de erro da raiz, e com a importação direta a entrada
+ * descarregava 700 kB de fórmulas antes de mostrar a primeira página.
+ */
+const PageExplain = lazy(() =>
+  import("@/components/explain/explain").then((module) => ({ default: module.PageExplain })),
+);
 
 interface PageProps {
   children: ReactNode;
@@ -11,14 +18,17 @@ interface PageProps {
 }
 
 /**
- * A área de uma página. As largas ocupam o ecrã todo, com 2 cm de margem de cada lado (só 16 px
- * no telemóvel); as de leitura ficam numa coluna centrada.
+ * A área de uma página. As largas ocupam o ecrã todo, com 3 cm de margem de cada lado num
+ * computador (a partir de 1280 px), 32 px no tablet e 16 px no telemóvel, como a entrada; as de
+ * leitura ficam numa coluna centrada. Abaixo de 1280 px, os 3 cm e a barra comiam metade do ecrã.
+ *
+ * Ao abrir, os blocos de cima entram em cascata (`page-in-stagger`, ADR 0048).
  */
 export function Page({ children, width = "wide", className }: PageProps) {
   return (
     <div
       className={cn(
-        "w-full px-4 py-8 md:px-[2cm] md:py-10",
+        "w-full page-in-stagger px-4 py-8 md:px-8 md:pt-14 md:pb-20 xl:px-[3cm]",
         width === "reading" && "mx-auto max-w-3xl",
         className,
       )}
@@ -47,10 +57,15 @@ export function PageHeader({ title, subtitle, description, topics, children }: P
     <header className="flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-end @3xl/main:justify-between">
       <div className="max-w-[68ch] min-w-0">
         <div className="flex items-center gap-2">
-          <h1 className="text-[2rem] leading-tight tracking-[-0.025em] text-balance">{title}</h1>
-          {explained && <PageExplain title={title} description={description} topics={topics} />}
+          <h1 className="text-title text-balance">{title}</h1>
+          {explained && (
+            // Enquanto chega, guarda o lugar do botão: o título não salta.
+            <Suspense fallback={<span aria-hidden="true" className="size-7 shrink-0" />}>
+              <PageExplain title={title} description={description} topics={topics} />
+            </Suspense>
+          )}
         </div>
-        {subtitle !== undefined && <p className="mt-2 text-sm text-soft">{subtitle}</p>}
+        {subtitle !== undefined && <p className="mt-3 text-base text-soft">{subtitle}</p>}
       </div>
       {children !== undefined && <div className="flex shrink-0 flex-wrap gap-2">{children}</div>}
     </header>

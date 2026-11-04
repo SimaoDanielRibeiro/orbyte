@@ -55,7 +55,7 @@ def test_a_good_model_is_compared_with_predicting_the_mean() -> None:
     assert r2 > 0.9
     (notice,) = report.notices
     assert notice.code == "baseline"
-    assert "prever sempre a média dava R² = 0" in notice.message
+    assert "always predicting the mean would give R² = 0" in notice.message
 
 
 def test_a_model_worse_than_the_mean_gets_a_warning() -> None:
@@ -66,7 +66,7 @@ def test_a_model_worse_than_the_mean_gets_a_warning() -> None:
     )
 
     assert [notice.code for notice in report.notices] == ["below_baseline"]
-    assert "pior do que prever sempre a média" in report.notices[0].message
+    assert "worse than always predicting the mean" in report.notices[0].message
 
 
 def test_a_single_row_leaves_r2_undefined_and_explains_why() -> None:
@@ -84,7 +84,7 @@ def test_a_single_row_leaves_r2_undefined_and_explains_why() -> None:
 def test_a_regression_needs_the_target_to_be_evaluated() -> None:
     model, X, _ = fitted()
 
-    with pytest.raises(ModelError, match="alvo"):
+    with pytest.raises(ModelError, match="needs the target"):
         RegressionEvaluator().evaluate(
             model, X, None, partition=Partition.TEST, task_type=TaskType.REGRESSION
         )

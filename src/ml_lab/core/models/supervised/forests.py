@@ -14,10 +14,10 @@ class ForestParams(Hyperparameters):
         default=100,
         ge=10,
         le=500,
-        title="Número de árvores",
+        title="Number of trees",
         description=(
-            "Quantas árvores votam. Mais árvores nunca causam overfitting; só tornam o treino "
-            "mais lento, e a partir de certo ponto deixam de ajudar."
+            "How many trees vote. More trees never cause overfitting; they only make training "
+            "slower, and past a certain point they stop helping."
         ),
         json_schema_extra={"x-search": {"values": [50, 100, 200]}},
     )
@@ -25,25 +25,26 @@ class ForestParams(Hyperparameters):
         default=0,
         ge=0,
         le=30,
-        title="Profundidade máxima",
+        title="Maximum depth",
         description=(
-            "Profundidade de cada árvore (0 = sem limite). Numa floresta, árvores fundas "
-            "são normais: a média de muitas árvores diferentes corrige os excessos de cada uma."
+            "The depth of each tree (0 = no limit). In a forest, deep trees are normal: the "
+            "average of many different trees corrects the excesses of each one."
         ),
-        json_schema_extra={"x-search": {"values": [0, 5, 10, 20]}},
+        # O 0 lê-se pelo nome: "no limit" diz mais do que "0", no formulário e na conversa.
+        json_schema_extra={"x-search": {"values": [0, 5, 10, 20]}, "x-labels": {"0": "no limit"}},
     )
     max_features: Literal["sqrt", "log2", "all"] = Field(
         default="sqrt",
-        title="Features por divisão",
+        title="Features per split",
         description=(
-            "Quantas features, escolhidas ao acaso, cada nó pode experimentar. Menos features "
-            "tornam as árvores mais diferentes entre si, e a média melhor."
+            "How many features, picked at random, each node can try. Fewer features make the "
+            "trees more different from each other, and the average better."
         ),
         json_schema_extra={
             "x-labels": {
-                "sqrt": "Raiz quadrada do total",
-                "log2": "Logaritmo do total",
-                "all": "Todas",
+                "sqrt": "Square root of the total",
+                "log2": "Logarithm of the total",
+                "all": "All",
             },
             "x-search": {"values": ["sqrt", "log2", "all"]},
         },

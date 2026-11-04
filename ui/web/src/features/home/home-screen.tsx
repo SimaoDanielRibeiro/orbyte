@@ -1,32 +1,25 @@
 /**
- * A landing: o nome da app e as duas interfaces, cada uma num cartão com o seu desenho, o nome, o
- * que se faz nela numa frase e o botão para começar.
+ * A entrada: o nome, uma frase, e as duas maneiras de trabalhar, cada uma num cartão com o seu
+ * desenho animado, o nome, o que se faz nela e o botão para começar.
  *
- * O cartão do Manual mostra um modelo a aprender (o campo de decisão de uma rede neuronal, da
- * demonstração do catálogo), que se reproduz uma vez e fica no fim; com "reduzir movimento",
- * mostra-se logo o fim. O dos Agentes mostra o coordenador a distribuir o trabalho pelos agentes
- * das famílias de modelos, cada um na sua cor. Não há barra lateral: ela é de cada interface.
+ * Simples de propósito: o título grande, um fundo discreto de órbitas (a marca), e os dois
+ * cartões. O desenho do Manual mostra os passos que se fazem à mão e um modelo a aprender; o dos
+ * Agentes, o coordenador a dar a vez aos agentes de cada família, numa órbita. Os dois andam em
+ * ciclo e são gerais (não dependem da API); com "reduzir movimento", mostram o fim, parados.
+ * Não há barra lateral: ela é de cada interface.
  */
-import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Hand, Workflow, type LucideIcon } from "lucide-react";
-import { useId, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { demoQuery } from "@/api/demo";
-import type { ModelFamily } from "@/api/generated";
-import { metaHealthOptions } from "@/api/generated/@tanstack/react-query.gen";
-import { FieldPlayer } from "@/components/charts/field-player";
-import { GlowFilter } from "@/components/charts/chart";
 import { Logo } from "@/components/shell/logo";
 import { INTERFACE_NAMES } from "@/components/shell/screens";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { familyColor } from "@/lib/families";
+import { useApiDown } from "@/hooks/use-api-down";
 import { useSession, type WorkPath } from "@/state/session";
 
-/** O modelo do cartão Manual: o que melhor mostra uma fronteira a formar-se. */
-const HERO_MODEL = "mlp";
-const VISUAL_HEIGHT = 248;
+import { AgentsVisual } from "./agents-visual";
+import { ManualVisual } from "./manual-visual";
 
 export function HomeScreen() {
   const navigate = useNavigate();
@@ -34,38 +27,49 @@ export function HomeScreen() {
 
   function start(path: WorkPath) {
     choosePath(path);
-    void navigate({ to: "/dados" });
+    void navigate({ to: "/data" });
   }
 
   return (
-    <div className="min-h-svh bg-ink">
-      <div className="mx-auto flex max-w-6xl flex-col px-4 pb-16 md:px-8">
+    <div className="relative min-h-svh overflow-hidden bg-ink">
+      <Backdrop />
+      {/* A largura toda, com as margens das outras páginas (3 cm num computador). */}
+      <div className="relative flex w-full flex-col px-4 pb-20 md:px-8 xl:px-[3cm]">
         <header className="flex h-16 items-center justify-between">
           <span className="flex items-center gap-2.5">
             <Logo className="h-5 w-6" />
-            <span translate="no" className="text-[1.0625rem] font-semibold text-strong">
-              ML Lab
+            <span
+              translate="no"
+              className="font-display text-lg font-medium tracking-[-0.02em] text-strong"
+            >
+              Orbyte
             </span>
           </span>
-          <ApiPill />
+          <ApiDown />
         </header>
 
         <main>
-          <div className="pt-14 pb-12 md:pt-24 md:pb-16">
+          {/* O nome é o desenho: a Unbounded, larga como uma órbita, num degradê de luz. O que é
+              o Orbyte diz-se na frase, não num rótulo por cima. */}
+          <div className="pt-16 pb-14 md:pt-28 md:pb-20">
             <h1
               translate="no"
-              className="text-[clamp(3.25rem,9vw,6rem)] leading-[0.95] font-semibold tracking-[-0.045em]"
+              className="bg-linear-to-b from-white via-[#e8e8e8] to-[#8f8f8f] bg-clip-text pb-2 font-display text-[clamp(3.25rem,10vw,7rem)] leading-[0.95] font-medium tracking-[-0.045em] text-transparent"
             >
-              ML Lab
+              Orbyte
             </h1>
+            <p className="mt-6 max-w-[52ch] text-lg text-soft">
+              A machine learning lab. Train models by hand, or let a team of agents search for you,
+              and see how every one of them learns.
+            </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <InterfaceCard
               path="manual"
               icon={Hand}
-              text="Escolhes os dados, a preparação e o modelo, e vês cada passo do treino."
-              action="Começar à mão"
+              text="You choose the data, the preparation and the model, and watch every step of the training."
+              action="Start by hand"
               onStart={() => {
                 start("manual");
               }}
@@ -75,8 +79,8 @@ export function HomeScreen() {
             <InterfaceCard
               path="agents"
               icon={Workflow}
-              text="Dizes o que queres prever, e os agentes experimentam os modelos por ti."
-              action="Começar com os agentes"
+              text="Tell the agents what to predict: they try the models, tune the best ones and explain why one wins."
+              action="Start with the agents"
               onStart={() => {
                 start("agents");
               }}
@@ -88,6 +92,45 @@ export function HomeScreen() {
           <Continue />
         </main>
       </div>
+    </div>
+  );
+}
+
+/**
+ * O fundo: um brilho azul muito ténue por cima e três órbitas finas que rodam devagar (paradas,
+ * com "reduzir movimento"). É só decoração: os leitores de ecrã não o veem.
+ */
+function Backdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[44rem]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgb(105_150_212/0.14),transparent_70%)]" />
+      <svg
+        viewBox="0 0 1200 700"
+        className="absolute top-[-6rem] left-1/2 h-[52rem] w-[90rem] max-w-none -translate-x-1/2 opacity-70"
+      >
+        <g
+          className="origin-center motion-safe:animate-[spin_160s_linear_infinite]"
+          style={{ transformBox: "fill-box" }}
+        >
+          {[
+            [520, 170],
+            [400, 128],
+            [280, 88],
+          ].map(([rx, ry]) => (
+            <ellipse
+              key={rx}
+              cx={600}
+              cy={330}
+              rx={rx}
+              ry={ry}
+              transform="rotate(-14 600 330)"
+              fill="none"
+              stroke="rgb(255 255 255 / 0.055)"
+            />
+          ))}
+        </g>
+      </svg>
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-linear-to-b from-transparent to-ink" />
     </div>
   );
 }
@@ -105,25 +148,22 @@ interface InterfaceCardProps {
 /** Uma interface: o desenho, o nome e o que se faz nela (os passos estão na barra de cada uma). */
 function InterfaceCard({ path, icon: Icon, text, action, onStart, children }: InterfaceCardProps) {
   return (
-    <article className="group relative flex min-w-0 flex-col overflow-hidden panel transition-colors hover:border-[#333]">
-      <div
-        className="relative flex items-center border-b bg-ground px-5 pt-5 pb-4"
-        style={{ minHeight: VISUAL_HEIGHT + 36 }}
-      >
-        <div className="w-full">{children}</div>
+    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#262626] bg-[#141414]/90 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur transition-colors hover:border-[#3a3a3a]">
+      <div className="relative border-b border-[#222] bg-[radial-gradient(circle,#222_1px,transparent_1.2px)] bg-size-[20px_20px] px-5 py-6">
+        {children}
       </div>
-      <div className="flex flex-1 flex-col gap-5 p-6">
+      <div className="flex flex-1 flex-col gap-4 p-6">
         <div className="flex items-center gap-2.5">
           <Icon aria-hidden="true" className="size-5 text-soft" />
           <h2 className="text-2xl">{INTERFACE_NAMES[path]}</h2>
         </div>
-        <p className="max-w-[46ch] text-[0.9375rem] text-soft">{text}</p>
-        <div className="mt-auto pt-1">
+        <p className="max-w-[46ch] text-base text-soft">{text}</p>
+        <div className="mt-auto pt-2">
           {/* O botão cobre o cartão todo (o "after"), mas o nome dele é só a ação. */}
           <Button
             size="lg"
             onClick={onStart}
-            className="px-4 after:absolute after:inset-0 after:content-['']"
+            className="px-5 after:absolute after:inset-0 after:content-['']"
           >
             {action}
           </Button>
@@ -133,174 +173,43 @@ function InterfaceCard({ path, icon: Icon, text, action, onStart, children }: In
   );
 }
 
-/** O Manual: uma rede neuronal a aprender as luas, ao vivo. */
-function ManualVisual() {
-  const demo = useQuery(demoQuery(HERO_MODEL));
-  if (demo.data?.animation) {
-    return (
-      <FieldPlayer
-        animation={demo.data.animation}
-        autoPlay
-        controls={false}
-        // A legenda por cima ocupa 36 px: o campo fica com o resto, e os dois cartões alinham.
-        height={VISUAL_HEIGHT - 36}
-        description={`O campo de decisão de ${demo.data.model_display_name} em ${demo.data.example.title}, passo a passo.`}
-      />
-    );
+/** A API caiu: só então aparece, no canto (ligada, é o normal e não precisa de texto). */
+function ApiDown() {
+  const down = useApiDown();
+  if (!down) {
+    return null;
   }
   return (
-    <div style={{ height: VISUAL_HEIGHT }} className="flex flex-col justify-end gap-3">
-      <Skeleton className="w-full flex-1" />
-      <p role="status" className="mono-label">
-        {demo.error === null ? "A treinar a rede neuronal…" : "A demonstração não abriu."}
-      </p>
-    </div>
-  );
-}
-
-/**
- * Os agentes de cada família, como no fluxograma do ecrã Agentes (os nomes curtos), cada um com a
- * cor da sua família (a mesma em toda a interface).
- */
-const FAMILIES = [
-  ["linear", "Lineares"],
-  ["tree", "Árvores"],
-  ["ensemble", "Ensembles"],
-  ["kernel", "Kernel"],
-  ["neural", "Redes neuronais"],
-] as const satisfies readonly (readonly [ModelFamily, string])[];
-
-/** Os Agentes: o coordenador distribui o trabalho, e o melhor candidato é o vencedor. */
-function AgentsVisual() {
-  const id = useId();
-  const glow = `${id}-brilho`;
-  const top = 26;
-  const gap = (VISUAL_HEIGHT - 2 * top) / (FAMILIES.length - 1);
-  const middle = VISUAL_HEIGHT / 2;
-  return (
-    <svg
-      viewBox={`0 0 520 ${String(VISUAL_HEIGHT)}`}
-      role="img"
-      aria-label="O coordenador distribui o trabalho pelos agentes de cada família de modelos, e o melhor candidato é o vencedor."
-      className="block h-auto w-full font-mono"
-      style={{ maxHeight: VISUAL_HEIGHT }}
-    >
-      <defs>
-        <GlowFilter id={glow} blur={4} />
-      </defs>
-      {FAMILIES.map(([family, name], index) => {
-        const y = top + index * gap;
-        const color = familyColor(family);
-        const toFamily = `M150 ${String(middle)} C 200 ${String(middle)}, 200 ${String(y)}, 250 ${String(y)}`;
-        const toWinner = `M376 ${String(y)} C 410 ${String(y)}, 410 ${String(middle)}, 440 ${String(middle)}`;
-        return (
-          <g key={family}>
-            <path
-              d={toFamily}
-              fill="none"
-              stroke={color}
-              strokeWidth={5}
-              strokeOpacity={0.35}
-              filter={`url(#${glow})`}
-            />
-            <path d={toFamily} fill="none" stroke={color} strokeWidth={1.75} />
-            <path d={toWinner} fill="none" stroke="#3a3a3a" strokeWidth={1.25} />
-            {/* O agente de cada família: o contorno na cor dela, como no fluxograma. */}
-            <rect
-              x={250.5}
-              y={y - 13.5}
-              width={125}
-              height={27}
-              rx={8}
-              fill="#191919"
-              stroke={color}
-              strokeOpacity={0.8}
-            />
-            <text x={263} y={y} dy="0.34em" fontSize={11.5} fill="#d4d4d4">
-              {name}
-            </text>
-          </g>
-        );
-      })}
-      <Node x={4} label="Dados" middle={middle} />
-      <Node x={66} label="Coordenador" middle={middle} width={84} />
-      <path d={`M60 ${String(middle)} H66`} stroke="#3a3a3a" />
-      <Node x={440} label="Vencedor" middle={middle} width={76} strong />
-    </svg>
-  );
-}
-
-interface NodeProps {
-  x: number;
-  label: string;
-  middle: number;
-  width?: number;
-  strong?: boolean;
-}
-
-function Node({ x, label, middle, width = 56, strong = false }: NodeProps) {
-  return (
-    <g>
-      <rect
-        x={x + 0.5}
-        y={middle - 15.5}
-        width={width}
-        height={31}
-        rx={9}
-        fill={strong ? "#232323" : "#191919"}
-        stroke={strong ? "#4a4a4a" : "#2a2a2a"}
-      />
-      <text
-        x={x + width / 2}
-        y={middle}
-        dy="0.34em"
-        textAnchor="middle"
-        fontSize={11.5}
-        fill={strong ? "#fafafa" : "#d4d4d4"}
-      >
-        {label}
-      </text>
-    </g>
-  );
-}
-
-/** Se a API está ligada, num ponto pequeno no canto (como na barra lateral). */
-function ApiPill() {
-  const health = useQuery({ ...metaHealthOptions(), refetchInterval: 15_000, retry: false });
-  const down = health.isError;
-  return (
-    <span role="status" className="flex items-center gap-2 text-sm text-soft">
-      <span
-        aria-hidden="true"
-        className={down ? "size-2 rounded-full bg-negative" : "size-2 rounded-full bg-positive"}
-      />
-      {health.isPending ? "A ligar à API…" : down ? "API desligada" : "API ligada"}
+    <span role="alert" className="flex items-center gap-2 text-sm text-negative">
+      <span aria-hidden="true" className="size-2 rounded-full bg-negative" />
+      API offline
     </span>
   );
 }
 
 /** O que ficou aberto da última vez: o último treino e a última procura dos agentes. */
 function Continue() {
-  const { runId, searchId } = useSession();
+  const runId = useSession((state) => state.runId);
+  const searchId = useSession((state) => state.searchId);
   if (runId === null && searchId === null) {
     return null;
   }
   return (
-    <section aria-labelledby="continuar" className="mt-10 flex flex-wrap items-center gap-3">
-      <h2 id="continuar" className="mr-2 text-sm font-normal text-soft">
-        Continuar onde ficaste
+    <section aria-labelledby="continue" className="mt-10 flex flex-wrap items-center gap-3">
+      <h2 id="continue" className="mr-2 text-sm font-normal text-soft">
+        Pick up where you left off
       </h2>
       {runId !== null && (
         <Button asChild variant="outline" size="sm">
-          <Link to="/treinar/$runId" params={{ runId }}>
-            Abrir o último treino
+          <Link to="/train/$runId" params={{ runId }}>
+            Open the last training
           </Link>
         </Button>
       )}
       {searchId !== null && (
         <Button asChild variant="outline" size="sm">
-          <Link to="/agentes/$searchId" params={{ searchId }}>
-            Abrir a última procura
+          <Link to="/agents/$searchId" params={{ searchId }}>
+            Open the last search
           </Link>
         </Button>
       )}

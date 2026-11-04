@@ -82,5 +82,5 @@ def test_the_onnx_model_predicts_what_the_lab_predicts(name: str, task_type: Tas
 def test_a_model_that_cannot_place_new_points_says_so() -> None:
     model, new = fitted("tsne", TaskType.DIMENSIONALITY_REDUCTION)
 
-    with pytest.raises(CapabilityError, match="não sabe colocar pontos novos"):
+    with pytest.raises(CapabilityError, match="can't place new points"):
         model_onnx(model, new.shape[1])

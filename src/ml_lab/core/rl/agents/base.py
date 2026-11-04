@@ -47,39 +47,39 @@ class EpisodicParams(Hyperparameters):
         default=500,
         ge=10,
         le=5_000,
-        title="Episódios",
-        description="Quantas vezes o agente atravessa o ambiente, do início ao fim.",
+        title="Episodes",
+        description="How many times the agent crosses the environment, from start to finish.",
     )
     discount: float = Field(
         default=0.95,
         ge=0.0,
         le=0.999,
-        title="Desconto (γ)",
+        title="Discount (γ)",
         description=(
-            "Quanto vale uma recompensa futura comparada com uma já: com 0,9, uma recompensa "
-            "daqui a 10 passos vale 0,9¹⁰ ≈ 0,35. Perto de 1, o agente pensa a longo prazo."
+            "How much a future reward is worth compared with one now: at 0.9, a reward 10 "
+            "steps away is worth 0.9¹⁰ ≈ 0.35. Close to 1, the agent thinks long term."
         ),
     )
     epsilon_start: float = Field(
         default=1.0,
         ge=0.0,
         le=1.0,
-        title="Exploração no início (ε)",
-        description="A probabilidade de escolher uma ação ao acaso no primeiro episódio.",
+        title="Exploration at the start (ε)",
+        description="The probability of picking a random action in the first episode.",
     )
     epsilon_end: float = Field(
         default=0.05,
         ge=0.0,
         le=1.0,
-        title="Exploração no fim (ε)",
-        description="A probabilidade de escolher ao acaso depois de a exploração descer.",
+        title="Exploration at the end (ε)",
+        description="The probability of picking at random once the exploration has come down.",
     )
     exploration_fraction: float = Field(
         default=0.5,
         ge=0.05,
         le=1.0,
-        title="Fração a explorar",
-        description="Em que parte dos episódios o ε desce do início até ao fim.",
+        title="Share spent exploring",
+        description="Over what part of the episodes ε falls from the start value to the end one.",
     )
 
 
@@ -123,8 +123,8 @@ class Agent[P: EpisodicParams](ABC):
         chosen = hyperparameters if hyperparameters is not None else expected()
         if not isinstance(chosen, expected):
             raise ModelError(
-                f"'{self.info.name}' recebe hiperparâmetros do tipo {expected.__name__}, "
-                f"não {type(chosen).__name__}."
+                f"'{self.info.name}' takes hyperparameters of type {expected.__name__}, "
+                f"not {type(chosen).__name__}."
             )
         self.hyperparameters = cast("P", chosen)
         self.seed = validate_seed(seed)
@@ -192,9 +192,7 @@ class Agent[P: EpisodicParams](ABC):
 
     def _check_trained(self) -> None:
         if self._trained_on is None:
-            raise NotFittedError(
-                f"'{self.info.display_name}' ainda não treinou: treina-o primeiro."
-            )
+            raise NotFittedError(f"'{self.info.display_name}' hasn't trained yet: train it first.")
 
     @abstractmethod
     def _train(self, environment: Environment[Any], context: TrainingContext) -> None:
@@ -259,9 +257,8 @@ class EpisodicAgent[P: EpisodicParams](Agent[P]):
             self._note(
                 Notice.warning(
                     "never_reached",
-                    f"Em {format_count(episode)} episódios, o agente nunca chegou ao objetivo: "
-                    "não teve nada de bom para aprender. Experimenta mais episódios ou mais "
-                    "exploração.",
+                    f"In {format_count(episode)} episodes, the agent never reached the goal: it "
+                    "had nothing good to learn from. Try more episodes or more exploration.",
                 )
             )
 

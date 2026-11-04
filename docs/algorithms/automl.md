@@ -1,148 +1,154 @@
-# Agentes de AutoML (triagem e procura aleatória)
+# AutoML agents (screening and random search)
 
-## Intuição
+## Intuition
 
-Escolher um modelo à mão é sempre o mesmo ciclo: preparar os dados, experimentar um modelo,
-medir, mudar um hiperparâmetro, medir outra vez. O **AutoML** (machine learning automático)
-faz esse ciclo sozinho, com um orçamento. No ML Lab, o trabalho está dividido como numa
-equipa:
+Choosing a model by hand is always the same loop: prepare the data, try a model, measure, change a
+hyperparameter, measure again. **AutoML** (automated machine learning) runs that loop on its own,
+with a budget. In Orbyte, the work is split as in a team:
 
-- o **agente de dados** prepara a tabela a partir do perfil: remove identificadores e texto
-  livre, confirma a tarefa, divide (20% para o teste), preenche os nulos, passa as
-  categorias a one-hot e padroniza os números. Cada decisão vem com a razão;
-- um **agente por família de modelos** (os lineares, as árvores, os ensembles, as redes…)
-  conhece os modelos da sua família e sabe o que vale a pena experimentar em cada um;
-- o **coordenador** gere o orçamento e escolhe o vencedor.
+- the **data agent** prepares the table from the profile: it removes identifiers and free text,
+  confirms the task, splits (20% for the test), fills in the nulls, one-hot encodes the categories
+  and standardises the numbers. Each decision comes with its reason;
+- an **agent per model family** (the linear models, the trees, the ensembles, the networks…)
+  knows its family's models and what's worth trying in each one;
+- the **coordinator** manages the budget and picks the winner.
 
-A procura tem duas rondas. Na **triagem**, cada modelo é experimentado uma vez, com os
-valores por omissão: é uma primeira impressão barata, que mostra que famílias se dão bem
-com estes dados. Na **afinação**, só os melhores (os **finalistas**) recebem o resto do
-orçamento, e os seus agentes sorteiam outras combinações de hiperparâmetros.
+The search has two rounds. In the **screening**, each model is tried once, with its default
+values: a cheap first impression that shows which families get on well with this data. In the
+**tuning**, only the best ones (the **finalists**) get the rest of the budget, and their agents
+draw other combinations of hyperparameters.
 
-Não há magia nem um modelo de linguagem: são regras e medições. Com a mesma seed, a procura
-repete-se tal e qual, e a conversa dos agentes diz porque é que o vencedor ganhou.
+There's no magic and no language model: it's rules and measurements. With the same seed, the
+search repeats exactly, and the agents' conversation says why the winner won.
 
-## Matemática essencial
+## Essential maths
 
-Cada candidato (um modelo com uns hiperparâmetros) é medido com **validação cruzada em
-$k$ folds**, só no treino: o treino parte-se em $k$ partes, e o candidato treina $k$
-vezes, de cada vez com $k - 1$ partes, e é avaliado na que ficou de fora. A nota é a média,
-e o desvio padrão diz quanto ela varia de fold para fold:
+Each candidate (a model with some hyperparameters) is measured with **$k$-fold cross-validation**,
+on the training data only: the training data is split into $k$ parts, and the candidate trains $k$
+times, each time on $k - 1$ parts, and is evaluated on the part left out. The score is the mean,
+and the standard deviation says how much it varies from fold to fold:
 
 $$\bar{m} = \frac{1}{k} \sum_{i=1}^{k} m_i \qquad s = \sqrt{\frac{1}{k} \sum_{i=1}^{k} (m_i - \bar{m})^2}$$
 
-O vencedor é o candidato com a melhor média (a maior, na exatidão; a menor, na RMSE). Num
-empate, ganha o de menor desvio, o mais estável.
+The winner is the candidate with the best mean (the highest, for accuracy; the lowest, for RMSE).
+In a tie, the one with the smallest deviation wins, the most stable.
 
-Na afinação, os hiperparâmetros sorteiam-se no **espaço de procura** que cada modelo declara
-(o `x-search` dos seus hiperparâmetros). Um número em escala logarítmica, como o $C$ do SVM
-entre $0{,}1$ e $100$, sorteia-se nos expoentes:
+In the tuning, the hyperparameters are drawn from the **search space** each model declares (the
+`x-search` of its hyperparameters). A number on a logarithmic scale, like the SVM's $C$ between
+$0.1$ and $100$, is drawn in the exponents:
 
-$$C = 10^{u}, \qquad u \sim \text{Uniforme}(\log_{10} 0{,}1,\ \log_{10} 100)$$
+$$C = 10^{u}, \qquad u \sim \text{Uniform}(\log_{10} 0.1,\ \log_{10} 100)$$
 
-Assim, sair entre $0{,}1$ e $1$ é tão provável como sair entre $10$ e $100$. É a **procura
-aleatória** (random search): com o mesmo número de tentativas que uma grelha, experimenta
-mais valores diferentes de cada hiperparâmetro, e isso conta porque, em cada problema, só
-alguns deles importam a sério.
+That way, landing between $0.1$ and $1$ is as likely as landing between $10$ and $100$. That's
+**random search**: with the same number of tries as a grid, it tries more different values of
+each hyperparameter, and that matters because, in each problem, only a few of them really count.
 
-O **teste** só se usa no fim, uma vez, para o vencedor. Se se escolhesse pelo teste, o
-teste passava a ser mais um treino: o vencedor seria o que teve mais sorte nele.
+The **test** is only used at the end, once, for the winner. If the choice were made on the test,
+the test would become just more training: the winner would be the one that got luckiest on it.
 
-## Hiperparâmetros
+## Hyperparameters
 
-Os "hiperparâmetros" da própria procura, no ecrã Agentes:
+The "hyperparameters" of the search itself, on the Agents screen:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `budget` | Quantos candidatos medir, contando a triagem e a afinação. Cada um treina uma vez por fold | 24 |
-| `folds` | Em quantas partes se divide o treino para medir cada candidato | 5 |
-| `finalists` | Quantos modelos da triagem passam à afinação | 3 |
-| `max_rows` | Com mais linhas de treino do que isto, a validação cruzada usa uma amostra (o vencedor treina no fim com todas) | 2000 |
+| `budget` | How many candidates to measure, counting the screening and the tuning. Each one trains once per fold | 24 |
+| `folds` | How many parts the training data is split into to measure each candidate | 5 |
+| `finalists` | How many models from the screening move on to the tuning | 3 |
+| `max_rows` | With more training rows than this, cross-validation uses a sample (the winner trains on all of them at the end) | 2000 |
 
-E o pedido: o **alvo**, a **métrica a otimizar** (a exatidão, a exatidão equilibrada, a F1,
-a ROC AUC ou a log-loss na classificação; o R², a RMSE ou o MAE na regressão) e os
-**agentes chamados**. Com classes desequilibradas, o agente de dados sugere a exatidão
-equilibrada: a exatidão ganha-se com um modelo que diz sempre a classe mais frequente.
+And the request: the **target**, the **metric to optimise** (accuracy, balanced accuracy, F1, ROC
+AUC or log-loss in classification; R², RMSE or MAE in regression) and the **models** that take
+part. Every model of the task joins to begin with, the teaching implementations included; untick
+the ones to leave out, and each family's agent only tries the ticked models of its family. A model
+that can't be measured with the chosen metric stays out, with the reason (ROC AUC and log-loss
+need probabilities, and the perceptron gives none). With imbalanced classes, the data agent
+suggests balanced accuracy: plain accuracy can be won by a model that always says the most
+frequent class.
 
-## Quando usar
+## When to use
 
-- Para responder depressa a «que modelo serve melhor para isto?», com um ponto de partida
-  honesto e explicado.
-- Para comparar famílias de modelos nos mesmos dados, com a mesma preparação e os mesmos
-  folds: a comparação é justa.
-- Como primeiro passo: o vencedor abre-se no Treinar e avaliar e no Explicar, e qualquer candidato se
-  pode treinar à mão, para se ver por dentro.
-- O modo manual continua a ser onde se aprende cada escolha. Os agentes só trabalham com um
-  alvo (classificação e regressão): no clustering não há previsões certas para comparar.
+- To quickly answer "which model works best for this?", with an honest, explained starting point.
+- To compare model families on the same data, with the same preparation and the same folds: the
+  comparison is fair.
+- As a first step: the winner opens in Train & evaluate and in Explain, and any candidate can be
+  trained by hand, to see it from the inside.
+- The manual mode is still where each choice is learned. The agents only work with a target
+  (classification and regression): in clustering there are no right predictions to compare.
 
-## Armadilhas
+## Pitfalls
 
-- **O vencedor é um pouco otimista.** Entre muitos candidatos parecidos, o que ganha a
-  validação cruzada também teve alguma sorte nos folds. A nota do teste costuma ficar um
-  pouco abaixo, e quanto mais candidatos, mais.
-- **Diferenças dentro do ruído.** Se o segundo fica a menos de um desvio padrão do primeiro,
-  na prática empatam. Nesses casos, o modelo mais simples é uma escolha tão boa como o
-  vencedor (a referência, como a regressão logística, está no quadro para isso).
-- **Orçamento curto.** Com poucos candidatos, a afinação quase não acontece: a triagem
-  gasta tudo. Com muitos, a procura demora mais e o otimismo do vencedor cresce.
-- **Poucos dados.** Com poucas linhas, os folds são pequenos e o desvio grande: a escolha
-  muda com a seed. Experimenta duas seeds e compara.
-- **A preparação é uma só.** Todos os candidatos usam a mesma preparação (é o que torna a
-  comparação justa). Se os dados precisam de outra coisa, prepara-os à mão e pede aos
-  agentes que usem a tua preparação.
+- **The winner is a bit optimistic.** Among many similar candidates, the one that wins the
+  cross-validation also had some luck with the folds. The test score usually comes out a little
+  lower, and the more candidates, the more so.
+- **Differences within the noise.** If the runner-up is less than one standard deviation behind
+  the leader, in practice they're tied. In those cases, the simpler model is as good a choice as
+  the winner (the baseline, like logistic regression, is on the board for that).
+- **A short budget.** With few candidates, the tuning barely happens: the screening spends it all.
+  With many, the search takes longer and the winner's optimism grows.
+- **Little data.** With few rows, the folds are small and the deviation large: the choice changes
+  with the seed. Try two seeds and compare.
+- **There's only one preparation.** Every candidate uses the same preparation (that's what makes
+  the comparison fair). If the data needs something else, prepare it by hand and ask the agents to
+  use your preparation.
 
-## O que observar na procura
+## What to watch in the search
 
-No ecrã **Agentes**:
+On the **Agents** screen:
 
-- a **conversa**: o que o agente de dados decidiu e porquê, o que cada agente de modelo
-  experimentou e o que o coordenador escolheu;
-- o gráfico **A procura**: cada candidato pela ordem em que foi medido, com o desvio entre
-  folds, e a linha do melhor até aí. A linha sobe aos degraus: na triagem, quando aparece
-  uma família melhor; na afinação, quando um sorteio acerta;
-- **O melhor de cada agente**: que família se deu melhor com estes dados, comparada com a
-  referência;
-- o **quadro**: a média no treino ao lado da média na validação mostra quanto cada
-  candidato decora; um candidato que falhou fica lá, com a razão;
-- no fim, o **teste** do vencedor, comparado com o que a validação cruzada previa.
+- the **conversation**: what the data agent decided and why, what each model agent tried and what
+  the coordinator chose. It's written in words, not just numbers: each request says why (the
+  reference, a first impression, how far behind the leader), and each reply says which settings
+  changed (with the default next to the new value), what the score means ("it gets about 78 in
+  every 100 rows right"), whether the change helped and whether the model memorises the training
+  data;
+- the **search** chart: each candidate in the order it was measured, with the spread between
+  folds, and the line of the best so far. The line rises in steps: in the screening, when a better
+  family shows up; in the tuning, when a draw hits the mark;
+- **Each agent's best**: which family did best with this data, compared with the baseline;
+- the **board**: the training mean next to the validation mean shows how much each candidate
+  memorises; a candidate that failed stays there, with its reason;
+- at the end, the winner's **test**, compared with what the cross-validation predicted.
 
-## O agente de IA (fase 13)
+## The AI agent (phase 13)
 
-Os agentes acima são regras: com a mesma seed, decidem sempre o mesmo. Com o Ollama aberto,
-pode juntar-se-lhes um **agente de IA** (ADR 0042), que entra na afinação ao lado dos agentes de
-família.
+The agents above are rules: with the same seed, they always decide the same. With Ollama open, an
+**AI agent** can join them (ADR 0042), taking part in the tuning alongside the family agents.
 
-**A intuição.** A procura aleatória não aprende: o décimo sorteio não sabe o que os nove
-anteriores mediram. O agente de IA sabe. Na sua vez, recebe os finalistas, o espaço de procura de
-cada um e os resultados de todos os candidatos (a média, o desvio e a nota no treino), **pensa** e
-propõe o próximo: um dos finalistas e os valores a mudar, com a razão. Por exemplo: "a árvore tem
-100% no treino e 78% na validação, está a decorar; vou baixar a profundidade". É a ideia da
-otimização bayesiana (usar o que já se mediu para escolher o próximo ponto), feita por um modelo de
-linguagem em vez de um modelo estatístico.
+**The intuition.** Random search doesn't learn: the tenth draw doesn't know what the previous nine
+measured. The AI agent does. On its turn, it gets the finalists, each one's search space and the
+results of every candidate (the mean, the deviation and the training score), **thinks** and
+proposes the next one: one of the finalists and the values to change, with the reason. For
+example: "the tree has 100% on the training data and 78% on the validation, it's memorising; I'll
+lower the depth". It's the idea behind Bayesian optimisation (using what's already been measured
+to choose the next point), done by a language model instead of a statistical model.
 
-**Como se monta** (`core/automl/ai_agent.py`):
+**How it's put together** (`core/automl/ai_agent.py`):
 
-1. `briefing` escreve o que a procura sabe até ali, em texto, com os números como em JSON;
-2. `answer_schema` diz o formato da resposta (o modelo, os valores e a razão). O Ollama obriga o
-   modelo a responder nesse formato (saída estruturada);
-3. o modelo responde aos bocados, com o raciocínio à parte (`think`). O raciocínio vai para a
-   conversa à medida que chega: é o que se vê a crescer no ecrã;
-4. `read_answer` valida a proposta: o modelo tem de ser um finalista, os valores têm de estar no
-   espaço de procura dele e a combinação não pode ter sido medida.
+1. `briefing` writes what the search knows so far, as text, with the numbers as in JSON;
+2. `answer_schema` gives the answer's format (the model, the values and the reason). Ollama forces
+   the model to answer in that format (structured output);
+3. the model answers in chunks, with its reasoning apart (`think`). The reasoning goes into the
+   conversation as it arrives: that's what you see growing on the screen;
+4. `read_answer` validates the proposal: the model must be a finalist, the values must be within
+   its search space and the combination can't have been measured already.
 
-**O que o mantém honesto.** Quem mede é o coordenador, com validação cruzada só no treino, como
-para os outros: o agente de IA nunca vê o teste nem escolhe o vencedor. Uma proposta que não serve
-é recusada, diz-se porquê, e não gasta orçamento; à terceira recusa seguida, ele sai da afinação.
+**What keeps it honest.** The coordinator does the measuring, with cross-validation on the training
+data only, as for the others: the AI agent never sees the test or picks the winner. A proposal that
+doesn't fit is turned down, with the reason, and spends no budget; after three refusals in a row,
+it leaves the tuning.
 
-**Armadilhas.**
+**Pitfalls.**
 
-- **Um modelo de linguagem não é determinista**, mesmo com a temperatura a 0 e a mesma seed:
-  noutro computador pode responder outra coisa. Por isso as respostas ficam guardadas no pedido do
-  resultado (`ai_replies`), e repetir a procura com esse pedido dá o mesmo, sem o Ollama.
-- **Pensar não é medir.** O raciocínio pode soar bem e estar errado; só a validação cruzada diz se
-  a proposta é boa. Lê o pensamento como uma hipótese, e o resultado como o teste dela.
-- **Uma procura com IA é mais lenta**: cada proposta espera pelo modelo (segundos, numa gráfica).
+- **A language model isn't deterministic**, even with the temperature at 0 and the same seed: on
+  another computer it may answer something else. That's why the replies are kept in the result's
+  request (`ai_replies`), and repeating the search with that request gives the same result,
+  without Ollama.
+- **Thinking isn't measuring.** The reasoning may sound right and be wrong; only the
+  cross-validation says whether the proposal is good. Read the thought as a hypothesis, and the
+  result as its test.
+- **A search with AI is slower**: each proposal waits for the model (seconds, on a graphics card).
 
-**O que observar.** O nó tracejado "Agente de IA" no fluxograma acende-se enquanto pensa; na
-conversa, o "Pensamento" abre-se para ler o raciocínio inteiro; no quadro, as propostas dele têm a
-marca **IA**; e a leitura do fim compara a melhor proposta dele com o melhor sorteio da afinação.
+**What to watch.** The dashed "AI agent" node in the flowchart lights up while it thinks; in the
+conversation, the "Thought" opens to read the whole reasoning; on the board, its proposals carry the
+**AI** mark; and the closing reading compares its best proposal with the tuning's best draw.

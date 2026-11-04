@@ -1,63 +1,63 @@
 # K-means
 
-## Intuição
+## Intuition
 
-O k-means divide os dados em k grupos, cada um representado pelo seu **centróide** (o ponto
-médio do grupo). Cada ponto pertence ao grupo do centróide mais próximo. O algoritmo começa
-com k centróides em sítios escolhidos e repete dois passos simples até deixarem de mexer:
-atribuir cada ponto ao centróide mais próximo e mover cada centróide para o meio do seu grupo.
+K-means splits the data into k groups, each represented by its **centroid** (the group's middle
+point). Each point belongs to the group of the closest centroid. The algorithm starts with k
+centroids in chosen places and repeats two simple steps until they stop moving: assign each
+point to the closest centroid, and move each centroid to the middle of its group.
 
-## Matemática essencial
+## Essential maths
 
-O k-means procura os centróides $\mu_1, \dots, \mu_k$ que minimizam a **inércia**, a soma das
-distâncias ao quadrado de cada ponto ao centróide do seu grupo:
+K-means looks for the centroids $\mu_1, \dots, \mu_k$ that minimise the **inertia**, the sum of
+the squared distances from each point to the centroid of its group:
 
 $$J = \sum_i \lVert x_i - \mu_{c(i)} \rVert^2$$
 
-O algoritmo de Lloyd alterna:
+Lloyd's algorithm alternates:
 
-1. **atribuir**: $c(i) = \arg\min_j \lVert x_i - \mu_j \rVert^2$;
-2. **atualizar**: $\mu_j = $ média dos pontos com $c(i) = j$.
+1. **assign**: $c(i) = \arg\min_j \lVert x_i - \mu_j \rVert^2$;
+2. **update**: $\mu_j = $ the mean of the points with $c(i) = j$.
 
-Cada passo nunca aumenta $J$, por isso o algoritmo pára sempre. Mas pára num **mínimo local**,
-que depende de onde os centróides começaram. O **k-means++** escolhe os pontos de partida
-afastados uns dos outros: o primeiro ao acaso, e cada um dos seguintes com probabilidade
-proporcional ao quadrado da distância ao centróide mais próximo já escolhido.
+No step ever raises $J$, so the algorithm always stops. But it stops at a **local minimum**,
+which depends on where the centroids started. **k-means++** picks starting points far from each
+other: the first at random, and each of the next with a probability proportional to the square
+of the distance to the closest centroid already chosen.
 
-A versão do scikit-learn repete tudo `n_init` vezes, com partidas diferentes, e fica com a de
-menor inércia. A versão didática (`kmeans_numpy`) corre uma só vez, para se ver o caminho.
+The scikit-learn version repeats everything `n_init` times, from different starts, and keeps the
+one with the lowest inertia. The teaching version (`kmeans_numpy`) runs just once, so you can see
+the path.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_clusters` | Quantos grupos (o $k$). O k-means encontra sempre k grupos, mesmo que os dados não os tenham | 3 |
-| `init` | Onde começam os centróides: `k-means++` (espalhados) ou `random` (pontos ao acaso) | `k-means++` |
-| `max_iter` | Máximo de repetições de atribuir e atualizar | 300 |
-| `tol` | Pára quando os centróides quase não mexem (uma fração da variância dos dados) | $10^{-4}$ |
-| `n_init` | No scikit-learn, quantas partidas diferentes experimentar | 10 |
+| `n_clusters` | How many groups (the $k$). K-means always finds k groups, even if the data doesn't have them | 3 |
+| `init` | Where the centroids start: `k-means++` (spread out) or `random` (random points) | `k-means++` |
+| `max_iter` | The most repetitions of assign and update | 300 |
+| `tol` | Stops when the centroids barely move (a fraction of the data's variance) | $10^{-4}$ |
+| `n_init` | In scikit-learn, how many different starts to try | 10 |
 
-## Quando usar
+## When to use
 
-- Para grupos **redondos e de tamanhos parecidos**, como as nuvens (blobs).
-- Como primeiro clustering a experimentar: é rápido e fácil de explicar.
+- For **round groups of similar sizes**, like the blobs.
+- As the first clustering to try: it's fast and easy to explain.
 
-## Armadilhas
+## Pitfalls
 
-- **É preciso escolher o k.** Compara a silhueta de vários valores, ou procura o "cotovelo"
-  na curva da inércia (que desce sempre com mais grupos).
-- **Grupos alongados ou encaixados** (as luas, os círculos) ficam mal divididos: o k-means
-  corta tudo em regiões convexas à volta dos centróides. O DBSCAN ou a mistura de gaussianas
-  lidam melhor.
-- **Escala das features:** as distâncias misturam todas as features. Padroniza.
-- **Más partidas:** com `random`, dois centróides podem começar no mesmo grupo. A versão
-  didática fica com o resultado dessa partida (por isso a do scikit-learn repete várias vezes).
-- **Grupos vazios:** se um centróide ficar sem pontos, a versão didática mantém-no onde
-  estava e avisa. O scikit-learn muda-o para longe.
+- **You have to choose k.** Compare the silhouette of several values, or look for the "elbow" in
+  the inertia curve (which always falls with more groups).
+- **Elongated or nested groups** (the moons, the circles) are split badly: k-means cuts
+  everything into convex regions around the centroids. DBSCAN or the Gaussian mixture cope better.
+- **Feature scale:** the distances mix all the features. Standardise.
+- **Bad starts:** with `random`, two centroids can start in the same group. The teaching version
+  keeps the result of that start (which is why scikit-learn's repeats several times).
+- **Empty groups:** if a centroid is left with no points, the teaching version keeps it where it
+  was and warns you. scikit-learn moves it far away.
 
-## O que observar no treino
+## What to watch in training
 
-Na versão didática, o ecrã **Treinar e avaliar** mostra cada iteração: as cruzes (os centróides) andam
-até ao meio dos seus grupos, e as zonas coloridas (o grupo que cada ponto do plano receberia)
-mudam com elas. A loss é a inércia, que só desce, e em poucas iterações estabiliza. Com
-`random`, outra seed pode acabar noutra divisão.
+In the teaching version, the **Train & evaluate** screen shows each iteration: the crosses (the
+centroids) walk to the middle of their groups, and the coloured areas (the group each point of
+the plane would get) change with them. The loss is the inertia, which only falls, and levels off
+in a few iterations. With `random`, another seed may end in another split.

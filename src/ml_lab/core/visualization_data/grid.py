@@ -60,7 +60,7 @@ def probe_grid(dataset: Dataset, resolution: int = GRID_RESOLUTION) -> ProbeGrid
     train = dataset.train.X
     if dataset.n_features == 1:
         xs = _axis(train[:, 0], LINE_RESOLUTION)
-        target = dataset.target_name or "valor"
+        target = dataset.target_name or "value"
         return ProbeGrid(1, xs, np.zeros(0), xs.reshape(-1, 1), (dataset.feature_names[0], target))
     projection = dataset.projection
     if projection is None or projection.center is None:

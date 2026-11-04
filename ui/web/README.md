@@ -1,14 +1,16 @@
-# A interface do ML Lab (React + TypeScript)
+# A interface do Orbyte (React + TypeScript)
 
-Feita na fase 10, é a interface do ML Lab: a interface simples, em Streamlit, saiu depois dela
-(ADR 0031). Tem design próprio, animações suaves e o treino em tempo real. Fala com o backend
-só através da API (HTTP para os pedidos, WebSocket para o treino) e nunca importa código
-Python.
+Feita na fase 10, é a interface do Orbyte (antes ML Lab; o pacote Python continua `ml_lab`): a
+interface simples, em Streamlit, saiu depois dela (ADR 0031). Tem design próprio, animações
+suaves e o treino em tempo real. Fala com o backend só através da API (HTTP para os pedidos,
+WebSocket para o treino) e nunca importa código Python. Tudo o que mostra está em inglês, venha
+dela ou do backend (ADR 0043); os comentários e esta documentação ficam em português.
 
 Tecnologias: React 19, TypeScript 6, Vite 8, Tailwind CSS 4, shadcn/ui (com o Radix) e
 Motion; TanStack Router e TanStack Query; o cliente gerado pelo `@hey-api/openapi-ts`; D3 para
 os gráficos e KaTeX para as fórmulas. As razões estão na ADR 0027; o sistema visual, na
-ADR 0032; as duas interfaces (Manual e Agentes) e a entrada, na ADR 0033.
+ADR 0032 (com a letra dos títulos e os rótulos da ADR 0045); as duas interfaces (Manual e
+Agentes) e a entrada, na ADR 0033.
 
 Este ficheiro tem três partes: como correr a interface, **como mexer nela** (que ficheiro muda
 o quê) e o **guia do contrato com o backend**, tudo o que o frontend precisa de saber para
@@ -37,17 +39,21 @@ Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço 
 
 | Comando | O que faz |
 |---|---|
-| `npm run api` | Gera o cliente (`src/api/generated/`) a partir do `openapi.json`. Corre sozinho antes dos outros |
+| `npm run api` | Gera o cliente (`src/api/generated/`) a partir do `openapi.json`. Corre sozinho antes do `dev`, do `build` e do `check` |
 | `npm run dev` | O servidor de desenvolvimento, que recarrega ao gravar |
-| `npm run typecheck` | Os tipos (o "mypy" do frontend) |
+| `npm run check` | A verificação toda: gera o cliente e corre o lint, os tipos e os testes |
+| `npm run typecheck` | Os tipos (o "mypy" do frontend), com o cliente já gerado |
 | `npm run lint` | O ESLint, sem avisos (o "ruff") |
 | `npm run format` | O Prettier, que também ordena as classes do Tailwind |
 | `npm test` | Os testes do Vitest (o "pytest") |
 | `npm run e2e` | Os testes de ponta a ponta, no Chromium, com a API numa pasta temporária |
 | `npm run build` | O build final, em `dist/` |
 
-Depois de mudar um serviço do backend: `uv run python scripts/export_openapi.py` na raiz e
-`npm run api` aqui. Os tipos que deixarem de bater certo aparecem no `npm run typecheck`.
+O lint, os tipos e os testes não geram o cliente: usam o que lá está. Gerar enquanto o `dev`
+corre reescrevia os ficheiros que ele vigia, e o Vite chegou a ir abaixo com isso (ADR 0046).
+Por isso, depois do `npm install` de um clone novo, ou de mudar um serviço do backend
+(`uv run python scripts/export_openapi.py` na raiz), corre `npm run api` aqui, ou o
+`npm run check`. Os tipos que deixarem de bater certo aparecem no `npm run typecheck`.
 
 ## Organização
 
@@ -60,9 +66,9 @@ src/
 │                markdown/ (o texto com fórmulas), data/ (a tabela de dados), notices/ (os
 │                avisos)
 ├── features/    um ecrã por pasta: home, data, explore, prepare, models, training, explain,
-│                agents, history (Experiências), laboratory, metrics, reinforcement
+│                save, agents, history, laboratory, metrics, reinforcement
 ├── hooks/       hooks partilhados (o tamanho de um elemento, um valor com atraso)
-├── lib/         format.ts (os números à portuguesa), colors.ts e classes.ts (as cores dos
+├── lib/         format.ts (os números, como o site os escreve), colors.ts e classes.ts (as cores dos
 │                dados), seed.ts (a seed de um pedido), keys.ts (os atalhos), utils.ts
 ├── routes/      um ficheiro por rota, que só aponta para o ecrã (o TanStack Router gera
 │                routeTree.gen.ts)
@@ -119,7 +125,7 @@ O sistema visual tem algumas regras que dão coerência ao todo (ADR 0032):
 - as páginas reorganizam-se pela largura que têm (`@container/main`), não pela do ecrã.
 
 Enquanto se mexe, o `uv run python scripts/dev.py` recarrega a página ao gravar. Antes de dar
-uma mudança por pronta: `npm run lint && npm run typecheck && npm test`, e `npm run e2e`. Os
+uma mudança por pronta: `npm run check`, e `npm run e2e`. Os
 testes de ponta a ponta procuram os elementos pelo papel e pelo nome visível
 (`getByRole("button", { name: "Treinar o agente" })`): ao mudar o texto de um botão ou de um
 título, muda-se também no teste que o usa (procura-se o texto em `e2e/`).
@@ -225,7 +231,7 @@ maneira:
 
 O corpo de um erro é sempre um `ApiError`: `{code, message, problems}`.
 
-- `message` está em português e diz o que fazer: mostra-se como está.
+- `message` está em inglês, como o resto do site, e diz o que fazer: mostra-se como está.
 - `code` é estável (o nome do erro, em `snake_case`) e serve para o frontend decidir.
 - `problems` só vem num pedido inválido, com uma frase por problema.
 
@@ -299,13 +305,13 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 | Preparar | `datasets_suggest_task`, `datasets_task_options`, `datasets_suggest_cleaning`, `datasets_cleaning_operations`, `datasets_prepare` |
 | Modelos (a lista e a página de cada modelo) | `catalog_models`, `catalog_model`, `catalog_suggested_model`, `catalog_validate_hyperparameters`, `catalog_demo`, `experiments_start` |
 | Treinar e avaliar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` (ou `history_open`), `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics` |
-| Explicar | `experiments_result` (ou `history_open`), `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
+| Explicar | `history_story` (a história do treino, em capítulos com texto e visual, para qualquer run; ADR 0047), `experiments_result` (ou `history_open`), `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
 | Guardar | `packages_candidates`, `packages_options`, `packages_preview`, `packages_save`, `packages_saved`, `packages_contents`, `packages_load`, `packages_trust`, `packages_delete`, e o ficheiro (`GET /packages/{package_id}/file`, uma ligação normal) |
 | Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar) |
 | Métricas | `catalog_metrics` |
-| Laboratório | `laboratory_demos` (o que cada demonstração mostra, os valores do seu controlo e o de partida), `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization` |
+| Laboratório | `laboratory_demos` (o que cada demonstração mostra, o seu guia, os valores do seu controlo e o de partida), `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization`, `laboratory_threshold`, `laboratory_data_size` |
 | Reinforcement learning | `reinforcement_environments`, `reinforcement_agents`, `reinforcement_start`, `reinforcement_updates` (e o WebSocket), `reinforcement_pause`, `reinforcement_resume`, `reinforcement_cancel`, `reinforcement_job`, `reinforcement_result` (ou `history_open_reinforcement`), `history_entry`, `history_save` |
-| Experiências | `history_runs`, `history_entry`, `history_open`, `history_open_reinforcement`, `history_save`, `history_rename`, `history_delete`, `history_compare`, `history_reproduce` |
+| History | `history_runs`, `history_entry`, `history_open`, `history_open_reinforcement`, `history_save`, `history_rename`, `history_delete`, `history_compare`, `history_reproduce` |
 | Todos | `explanations_vocabulary`, `explanations_topics`, `explanations_explain`, `meta_health` |
 
 O Treinar e avaliar é o treino ao vivo e, quando acaba, a avaliação, com uma gaveta por
@@ -336,7 +342,7 @@ preparação, o run e, se se quiser, o modelo e algumas linhas de exemplo:
 - `packages_save` grava na biblioteca, guarda o run no histórico e devolve o `package_id`; o
   ficheiro descarrega-se pela ligação `GET /packages/{package_id}/file` (a única rota que não
   devolve JSON);
-- `packages_load` recebe o ficheiro (`multipart/form-data`). Feito neste ML Lab, o run entra
+- `packages_load` recebe o ficheiro (`multipart/form-data`). Feito neste Orbyte, o run entra
   logo no histórico (`trusted`); de outra instalação, `trusted` vem falso e o aviso (os
   `notices`) mostra-se antes de `packages_trust`, porque abrir o modelo corre o código de quem
   o fez. Um pacote estragado (`intact` falso) só se lê;
@@ -346,7 +352,9 @@ preparação, o run e, se se quiser, o modelo e algumas linhas de exemplo:
 **Os controlos do Laboratório** desenham-se do `laboratory_demos`: os valores que cada um
 oferece (de onde a taxa de aprendizagem se arrasta até onde explode, os alphas de cada modelo)
 são uma escolha didática, e decidem-se no backend. Um valor que a demonstração não pode usar
-(um grau fora dos que compara, um alpha que não é positivo) responde 422, com a razão.
+(um grau fora dos que compara, um alpha que não é positivo, um limiar fora de 0 a 1) responde
+422, com a razão. O guia de cada demonstração (`guide`: a ideia, os passos a experimentar e o
+que fica) também vem daí, e a interface mostra-o à vista (ADR 0051).
 
 A página de cada modelo usa o cartão (`catalog_model`: a ficha já dividida em `sections`,
 as demonstrações do Laboratório que se aplicam em `laboratory` e os conjuntos de exemplo em

@@ -1,59 +1,59 @@
 # Gradient boosting
 
-## Intuição
+## Intuition
 
-O boosting junta modelos fracos (árvores pequenas) **em sequência**, cada um a corrigir os
-erros dos anteriores. Começa com uma previsão simples (a média, na regressão). A primeira
-árvore aprende o que essa previsão falhou, a segunda o que ficou por acertar, e assim por
-diante. É como um aluno que, a cada teste, estuda só a matéria em que errou.
+Boosting combines weak models (small trees) **in sequence**, each correcting the errors of the
+previous ones. It starts with a simple prediction (the mean, in regression). The first tree
+learns what that prediction got wrong, the second what was still left to get right, and so on.
+It's like a student who, after each test, studies only the topics they got wrong.
 
-Ao contrário da Random Forest (árvores independentes, em paralelo, a votar), aqui cada árvore
-depende das anteriores.
+Unlike the random forest (independent trees, in parallel, voting), here each tree depends on
+the previous ones.
 
-## Matemática essencial
+## Essential maths
 
-O modelo é uma soma de árvores:
+The model is a sum of trees:
 
 $$F_M(x) = F_0 + \nu \sum_{m=1}^{M} h_m(x)$$
 
-Em cada etapa $m$, calcula-se o **gradiente negativo** da loss em relação à previsão atual,
-para cada exemplo: o "resíduo" generalizado. Com o erro quadrático, é o resíduo de verdade,
-$r_i = y_i - F_{m-1}(x_i)$. A árvore $h_m$ ajusta-se a esses resíduos e junta-se ao
-modelo, multiplicada pela taxa de aprendizagem $\nu$. É o gradiente descendente feito
-no espaço das funções: cada árvore é um passo na direção que mais faz descer a loss.
+At each stage $m$, it computes the **negative gradient** of the loss with respect to the current
+prediction, for each example: the generalised "residual". With the squared error, it's the
+actual residual, $r_i = y_i - F_{m-1}(x_i)$. The tree $h_m$ fits those residuals and joins the
+model, multiplied by the learning rate $\nu$. It's gradient descent done in the space of
+functions: each tree is a step in the direction that brings the loss down the most.
 
-Na classificação, $F$ dá o *log-odds* (passado pela sigmoide, ou pela softmax), e a loss é a
-log-loss.
+In classification, $F$ gives the *log-odds* (passed through the sigmoid, or the softmax), and
+the loss is the log-loss.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_estimators` | Quantas árvores (etapas). Ao contrário da floresta, árvores a mais acabam por decorar o treino | 100 |
-| `learning_rate` | Quanto conta cada árvore ($\nu$). Pequena: precisa de mais árvores, mas generaliza melhor | 0,1 |
-| `max_depth` | A profundidade de cada árvore. Árvores pequenas (2 a 5 níveis) bastam: o poder vem de as somar | 3 |
-| `subsample` | A fração das linhas que cada árvore vê. Abaixo de 1, é o *stochastic gradient boosting*: menos overfitting | 1,0 |
+| `n_estimators` | How many trees (stages). Unlike the forest, too many trees end up memorising the training data | 100 |
+| `learning_rate` | How much each tree counts ($\nu$). Small: it needs more trees, but generalises better | 0.1 |
+| `max_depth` | The depth of each tree. Small trees (2 to 5 levels) are enough: the power comes from adding them up | 3 |
+| `subsample` | The share of the rows each tree sees. Below 1, it's *stochastic gradient boosting*: less overfitting | 1.0 |
 
-## Quando usar
+## When to use
 
-- Quando se quer a **melhor precisão** em dados em tabela: com boa afinação, o gradient
-  boosting (e as suas versões rápidas, como XGBoost e LightGBM) ganha a maioria das
-  competições.
-- Em classificação e em regressão, com features de escalas diferentes (são árvores).
+- When you want the **best accuracy** on tabular data: well tuned, gradient boosting (and its
+  fast versions, like XGBoost and LightGBM) wins most competitions.
+- In classification and in regression, with features on different scales (they're trees).
 
-## Armadilhas
+## Pitfalls
 
-- **Overfitting com etapas a mais:** acompanha o erro de validação, ou baixa a
-  `learning_rate` e aumenta as etapas.
-- **`learning_rate` e `n_estimators` andam juntos:** metade da taxa pede mais ou menos o
-  dobro das árvores.
-- **Sequencial:** cada árvore espera pela anterior, por isso treina mais devagar do que uma
-  floresta do mesmo tamanho.
-- **Sensível ao ruído do alvo:** continua a perseguir resíduos que são só ruído.
+- **Overfitting with too many stages:** keep an eye on the validation error, or lower the
+  `learning_rate` and add stages.
+- **`learning_rate` and `n_estimators` go together:** half the rate asks for roughly twice the
+  trees.
+- **Sequential:** each tree waits for the previous one, so it trains more slowly than a forest
+  of the same size.
+- **Sensitive to noise in the target:** it keeps chasing residuals that are just noise.
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Treinar e avaliar**, cada passo é uma etapa (uma árvore a mais). A loss é a do treino. Desce
-sempre, porque cada árvore corrige o treino, e é por isso que o teste é que diz quando parar.
-A fronteira (ou a previsão) começa grosseira e vai ganhando pormenor etapa a etapa. Na
-regressão com uma feature, vês a função em degraus a aproximar-se dos pontos.
+On the **Train & evaluate** screen, each step is a stage (one more tree). The loss is the
+training one. It always falls, because each tree corrects the training data, which is why it's
+the test that tells you when to stop. The boundary (or the prediction) starts coarse and gains
+detail stage by stage. In regression with one feature, you see the step function getting
+closer to the points.

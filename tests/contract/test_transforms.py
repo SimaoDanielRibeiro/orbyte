@@ -104,12 +104,12 @@ def test_an_imputer_keeps_the_fill_values_as_plain_json_values() -> None:
 
 
 def test_an_unfitted_transform_has_nothing_learned_yet() -> None:
-    with pytest.raises(Exception, match="ainda não aprendeu"):
+    with pytest.raises(Exception, match="hasn't learned yet"):
         StandardScaler(["fare"]).learned()
 
 
 def test_an_unknown_or_incomplete_transform_is_explained() -> None:
-    with pytest.raises(InvalidParameterError, match="desconhecida: 'magia'"):
+    with pytest.raises(InvalidParameterError, match="Unknown transformation: 'magia'"):
         transform_class("magia")
-    with pytest.raises(InvalidParameterError, match="Não foi possível restaurar"):
+    with pytest.raises(InvalidParameterError, match="Couldn't restore"):
         StandardScaler.restore({"columns": ["fare"]}, {"means": {"fare": 1.0}})

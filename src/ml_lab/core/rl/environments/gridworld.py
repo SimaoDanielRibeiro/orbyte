@@ -35,7 +35,7 @@ GOAL_REWARD: Final = 1.0
 TRAP_REWARD: Final = -1.0
 STEP_REWARD: Final = -0.01
 
-ACTION_LABELS: Final = ("cima", "direita", "baixo", "esquerda")
+ACTION_LABELS: Final = ("up", "right", "down", "left")
 ACTION_MOVES: Final = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
 MAPS: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType(
@@ -68,9 +68,9 @@ MAPS: Final[Mapping[str, tuple[str, ...]]] = MappingProxyType(
 """Os mapas, linha a linha."""
 
 MAP_LABELS: Final[Mapping[str, str]] = MappingProxyType(
-    {"simples": "Simples", "penhasco": "Penhasco", "labirinto": "Labirinto"}
+    {"simples": "Simple", "penhasco": "Cliff", "labirinto": "Maze"}
 )
-"""O nome de cada mapa no formulário."""
+"""O nome de cada mapa no formulário (os identificadores ficam: os runs guardados usam-nos)."""
 
 _KINDS: Final[Mapping[str, CellKind]] = MappingProxyType(
     {
@@ -88,10 +88,10 @@ class GridWorldParams(Hyperparameters):
 
     layout: Literal["simples", "penhasco", "labirinto"] = Field(
         default="simples",
-        title="Mapa",
+        title="Map",
         description=(
-            "O simples tem paredes; o penhasco tem uma fila de armadilhas entre a partida e o "
-            "objetivo; o labirinto tem becos e armadilhas."
+            "The simple one has walls; the cliff has a row of traps between the start and the "
+            "goal; the maze has dead ends and traps."
         ),
         json_schema_extra={"x-labels": dict(MAP_LABELS)},
     )
@@ -99,10 +99,10 @@ class GridWorldParams(Hyperparameters):
         default=0.0,
         ge=0.0,
         le=0.5,
-        title="Escorregar",
+        title="Slip",
         description=(
-            "A probabilidade de o agente escorregar para um dos lados em vez de ir para onde "
-            "quer. Com 0, o ambiente é determinista."
+            "The probability that the agent slips to one side instead of going where it wants. "
+            "At 0, the environment is deterministic."
         ),
     )
 
@@ -113,10 +113,10 @@ class GridWorld(Environment[GridWorldParams]):
 
     info = EnvironmentInfo(
         name="gridworld",
-        display_name="Grelha",
+        display_name="Grid world",
         summary=(
-            "Um agente atravessa uma grelha até ao objetivo, a evitar as paredes e as "
-            "armadilhas: cada célula é um estado, e há quatro ações."
+            "An agent crosses a grid to the goal, avoiding the walls and the traps: each cell "
+            "is a state, and there are four actions."
         ),
         parameters=GridWorldParams,
     )
@@ -151,7 +151,7 @@ class GridWorld(Environment[GridWorldParams]):
 
     @override
     def title(self) -> str:
-        return f"{self.info.display_name} · {self.parameters.layout}"
+        return f"{self.info.display_name} · {MAP_LABELS[self.parameters.layout]}"
 
     @override
     def reset(self, rng: np.random.Generator) -> int:

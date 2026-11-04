@@ -43,8 +43,8 @@ class GradientBoosting(GrowingSklearnModel[GradientBoostingParams]):
         name="gradient_boosting",
         display_name="Gradient boosting",
         summary=(
-            "Árvores pequenas em sequência, cada uma a corrigir os erros das anteriores: "
-            "dos modelos mais precisos para dados em tabela."
+            "Small trees in sequence, each correcting the errors of the previous ones: one "
+            "of the most accurate models for tabular data."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.ENSEMBLE,
@@ -75,10 +75,10 @@ class GradientBoostingRegression(GrowingSklearnModel[GradientBoostingParams]):
 
     info = ModelInfo(
         name="gradient_boosting_regression",
-        display_name="Gradient boosting (regressão)",
+        display_name="Gradient boosting (regression)",
         summary=(
-            "Árvores pequenas em sequência, cada uma ajustada aos resíduos das anteriores: a "
-            "previsão vai-se aproximando dos valores reais etapa a etapa."
+            "Small trees in sequence, each fitted to the residuals of the previous ones: the "
+            "prediction gets closer to the real values stage by stage."
         ),
         task_types=frozenset({TaskType.REGRESSION}),
         family=ModelFamily.ENSEMBLE,

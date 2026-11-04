@@ -26,7 +26,7 @@ from ml_lab.core.data.transforms.imputation import ImputationStrategy
 from ml_lab.core.data.transforms.scaling import ScalingMethod
 from ml_lab.core.evaluation.base import PRIMARY_METRIC
 from ml_lab.core.foundation.notices import NoticeLevel
-from ml_lab.core.foundation.types import Paradigm, Partition, TaskType
+from ml_lab.core.foundation.types import Paradigm, Partition, Problem, TaskType
 from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.rl.environments.base import CellKind
 from ml_lab.core.services.catalog import SUGGESTED_MODELS
@@ -57,6 +57,7 @@ class TaskInfo:
         task_type: A tarefa.
         label: O nome a mostrar.
         paradigm: O paradigma (supervisionada, não supervisionada, reinforcement learning).
+        problem: O problema que resolve (as duas classificações são o mesmo problema).
         requires_target: Se precisa de uma coluna-alvo.
         learns_from_data: Se aprende com um dataset (o controlo aprende num ambiente).
         primary_metric: A métrica que resume um run desta tarefa, no "último resultado" e no
@@ -68,6 +69,7 @@ class TaskInfo:
     task_type: TaskType
     label: str
     paradigm: Paradigm
+    problem: Problem
     requires_target: bool
     learns_from_data: bool
     primary_metric: str | None
@@ -111,6 +113,7 @@ def vocabulary() -> Vocabulary:
         "Paradigm": _labels(Paradigm),
         "ParticipantKind": _labels(ParticipantKind),
         "Partition": _labels(Partition),
+        "Problem": _labels(Problem),
         "ScalingMethod": _labels(ScalingMethod),
         "SearchPhase": _labels(SearchPhase),
         "SplitStrategy": _labels(SplitStrategy),
@@ -133,6 +136,7 @@ def _task(task_type: TaskType) -> TaskInfo:
         task_type=task_type,
         label=task_type.label,
         paradigm=task_type.paradigm,
+        problem=task_type.problem,
         requires_target=task_type.requires_target,
         learns_from_data=task_type.learns_from_data,
         primary_metric=PRIMARY_METRIC.get(task_type),

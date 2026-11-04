@@ -50,9 +50,9 @@ def test_deleting_removes_the_folder(tmp_path: Path) -> None:
 def test_names_cannot_reach_outside_the_folder(tmp_path: Path) -> None:
     files = ArtifactStore(tmp_path / "runs")
 
-    with pytest.raises(TrackingError, match="inválido"):
+    with pytest.raises(TrackingError, match="Invalid"):
         files.save("../fora", [1])
-    with pytest.raises(TrackingError, match="inválido"):
+    with pytest.raises(TrackingError, match="Invalid"):
         files.delete("..")
-    with pytest.raises(TrackingError, match="inválido"):
+    with pytest.raises(TrackingError, match="Invalid"):
         files.save("run-a", [1], {"../fora": {}})

@@ -23,7 +23,7 @@ from ml_lab.core.foundation.errors import DataSourceError, DataValidationError
 from ml_lab.core.foundation.notices import Notice, NoticeLevel, has_errors, sort_notices
 from ml_lab.formatting import format_count, format_quantity
 
-type FileFormat = Literal["delimited", "excel"]
+type FileFormat = Literal["delimited", "excel", "json", "parquet"]
 
 MAX_FILE_BYTES: Final = 200 * 1024 * 1024
 """Tamanho máximo de um ficheiro (200 MB): o que se lê de uma vez, em memória, sem demorar."""
@@ -32,7 +32,12 @@ MIN_ROWS: Final = 10
 """Abaixo deste número de linhas não há dados suficientes para treinar e testar."""
 
 DELIMITED_SUFFIXES: Final = (".csv", ".tsv", ".txt")
-EXCEL_SUFFIXES: Final = (".xlsx", ".xlsm")
+EXCEL_SUFFIXES: Final = (".xlsx", ".xlsm", ".xls")
+"""O ``.xls`` é o Excel antigo (97 a 2003), que o pandas lê com o ``calamine`` (ADR 0052)."""
+JSON_SUFFIXES: Final = (".json", ".jsonl", ".ndjson")
+"""Uma lista de registos (``[{"a": 1}, …]``), ou um registo por linha (JSON Lines)."""
+PARQUET_SUFFIXES: Final = (".parquet", ".pq")
+"""O formato em colunas das ferramentas de dados: já comprimido por dentro (ADR 0052)."""
 COMPRESSED_SUFFIX: Final = ".gz"
 
 # Codificações tentadas por ordem. A cp1252 é a do Excel em Windows (em Portugal); a
@@ -77,18 +82,23 @@ def file_format(path: Path) -> FileFormat:
         DataSourceError: Se a extensão não for suportada.
     """
     suffixes = [suffix.lower() for suffix in path.suffixes]
-    if suffixes and suffixes[-1] == COMPRESSED_SUFFIX:
+    compressed = bool(suffixes) and suffixes[-1] == COMPRESSED_SUFFIX
+    if compressed:
         suffixes.pop()
-        if suffixes and suffixes[-1] in DELIMITED_SUFFIXES:
-            return "delimited"
-    elif suffixes and suffixes[-1] in DELIMITED_SUFFIXES:
+    last = suffixes[-1] if suffixes else ""
+    if last in DELIMITED_SUFFIXES:
         return "delimited"
-    elif suffixes and suffixes[-1] in EXCEL_SUFFIXES:
+    if last in JSON_SUFFIXES:
+        return "json"
+    # O Excel e o Parquet já vêm comprimidos por dentro: um .gz por cima não se lê.
+    if last in EXCEL_SUFFIXES and not compressed:
         return "excel"
-    supported = ", ".join((*DELIMITED_SUFFIXES, *EXCEL_SUFFIXES))
+    if last in PARQUET_SUFFIXES and not compressed:
+        return "parquet"
+    supported = ", ".join((*DELIMITED_SUFFIXES, *EXCEL_SUFFIXES, *JSON_SUFFIXES, *PARQUET_SUFFIXES))
     raise DataSourceError(
-        f"O formato de '{path.name}' não é suportado. Usa um destes: {supported} "
-        f"(os CSV também podem vir comprimidos em {COMPRESSED_SUFFIX})."
+        f"The format of '{path.name}' isn't supported. Use one of these: {supported} (CSV and "
+        f"JSON files can also come compressed as {COMPRESSED_SUFFIX})."
     )
 
 
@@ -107,16 +117,16 @@ def check_file(path: Path, *, max_bytes: int = MAX_FILE_BYTES) -> FileFormat:
         DataValidationError: Se estiver vazio ou for grande demais.
     """
     if not path.is_file():
-        raise DataSourceError(f"O ficheiro '{path}' não existe ou não é um ficheiro.")
+        raise DataSourceError(f"The file '{path}' doesn't exist or isn't a file.")
     kind = file_format(path)
     size = path.stat().st_size
     if size == 0:
-        raise DataValidationError([f"O ficheiro '{path.name}' está vazio (0 bytes)."])
+        raise DataValidationError([f"The file '{path.name}' is empty (0 bytes)."])
     if size > max_bytes:
         raise DataValidationError(
             [
-                f"O ficheiro '{path.name}' tem {_megabytes(size)} MB e o máximo é "
-                f"{_megabytes(max_bytes)} MB. Usa uma amostra dos dados."
+                f"The file '{path.name}' is {_megabytes(size)} MB and the maximum is "
+                f"{_megabytes(max_bytes)} MB. Use a sample of the data."
             ]
         )
     return kind
@@ -141,8 +151,8 @@ def decode_text(content: bytes) -> tuple[str, tuple[Notice, ...]]:
         return text, (
             Notice.warning(
                 "encoding",
-                f"O ficheiro não está em UTF-8: foi lido como {encoding}. Confirma se os "
-                "acentos aparecem bem; se não, grava-o de novo em UTF-8.",
+                f"The file isn't in UTF-8: it was read as {encoding}. Check that accented "
+                "letters look right; if not, save it again in UTF-8.",
             ),
         )
     raise AssertionError("latin-1 aceita qualquer sequência de bytes")  # pragma: no cover
@@ -171,8 +181,8 @@ def check_header(raw_names: Sequence[object]) -> tuple[list[str], tuple[Notice, 
             notices.append(
                 Notice.warning(
                     "unnamed_column",
-                    f"A coluna {position + 1} não tem nome no cabeçalho; ficou '{name}'. Se for "
-                    "um índice gravado sem querer, remove-a na limpeza.",
+                    f"Column {position + 1} has no name in the header; it became '{name}'. If "
+                    "it's an index saved by mistake, drop it in the cleaning.",
                     name,
                 )
             )
@@ -194,8 +204,8 @@ def check_header(raw_names: Sequence[object]) -> tuple[list[str], tuple[Notice, 
             notices.append(
                 Notice.warning(
                     "duplicate_columns",
-                    f"A coluna '{name}' aparece {count} vezes no cabeçalho; as cópias passaram "
-                    f"a {', '.join(repr(c) for c in copies)}. Confirma qual é a certa.",
+                    f"The column '{name}' appears {count} times in the header; the copies became "
+                    f"{', '.join(repr(c) for c in copies)}. Check which one is right.",
                     name,
                 )
             )
@@ -214,10 +224,10 @@ def validate_table(frame: pd.DataFrame) -> ValidationReport:
     n_rows, n_columns = frame.shape
     notices: list[Notice] = []
     if n_columns == 0:
-        notices.append(Notice.error("no_columns", "A tabela não tem colunas."))
+        notices.append(Notice.error("no_columns", "The table has no columns."))
     if n_rows == 0:
         notices.append(
-            Notice.error("no_rows", "A tabela não tem linhas de dados, só o cabeçalho (ou nada).")
+            Notice.error("no_rows", "The table has no data rows, only the header (or nothing).")
         )
     if notices:
         return ValidationReport(tuple(notices))
@@ -226,23 +236,24 @@ def validate_table(frame: pd.DataFrame) -> ValidationReport:
         notices.append(
             Notice.warning(
                 "few_rows",
-                f"Só há {n_rows} linhas: poucas para treinar um modelo e ainda sobrar teste.",
+                f"There are only {n_rows} rows: too few to train a model and still have a test "
+                "left.",
             )
         )
     if n_columns == 1:
         notices.append(
             Notice.warning(
                 "single_column",
-                "Só há uma coluna. Para aprendizagem supervisionada precisas de pelo menos "
-                "uma feature e um alvo.",
+                "There's only one column. For supervised learning you need at least one feature "
+                "and a target.",
             )
         )
     if n_columns > n_rows:
         notices.append(
             Notice.warning(
                 "wide_table",
-                f"Há mais colunas ({n_columns}) do que linhas ({n_rows}): os modelos "
-                "decoram facilmente dados assim (overfitting).",
+                f"There are more columns ({n_columns}) than rows ({n_rows}): models easily "
+                "memorise data like this (overfitting).",
             )
         )
 
@@ -250,7 +261,7 @@ def validate_table(frame: pd.DataFrame) -> ValidationReport:
     for name in frame.columns[missing.all(axis=0).to_numpy()]:
         notices.append(
             Notice.warning(
-                "empty_column", f"A coluna '{name}' não tem nenhum valor.", subject=str(name)
+                "empty_column", f"The column '{name}' has no values at all.", subject=str(name)
             )
         )
     empty_rows = int(missing.all(axis=1).sum())
@@ -258,8 +269,8 @@ def validate_table(frame: pd.DataFrame) -> ValidationReport:
         notices.append(
             Notice.warning(
                 "empty_rows",
-                f"Há {format_quantity(empty_rows, 'linha', 'linhas')} sem nenhum valor: a "
-                "limpeza pode removê-las (operação drop_missing_rows com how='all').",
+                f"There are {format_quantity(empty_rows, 'row', 'rows')} with no values at all: "
+                "the cleaning can drop them (the drop_missing_rows operation with how='all').",
             )
         )
     for name in frame.columns:
@@ -267,8 +278,8 @@ def validate_table(frame: pd.DataFrame) -> ValidationReport:
             notices.append(
                 Notice.warning(
                     "index_column",
-                    f"A coluna '{name}' é 0, 1, 2…: parece o índice de um DataFrame gravado "
-                    "com o pandas. Remove-a na limpeza.",
+                    f"The column '{name}' is 0, 1, 2…: it looks like the index of a DataFrame "
+                    "saved with pandas. Drop it in the cleaning.",
                     str(name),
                 )
             )

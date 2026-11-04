@@ -33,7 +33,7 @@ import { isValidSeed, MAX_SEED } from "@/lib/seed";
 import { useDatasetLoaded } from "./use-dataset-loaded";
 
 /** Os ficheiros que a leitura do backend aceita (`core/data/io/file_source.py`). */
-const ACCEPTED = ".csv,.tsv,.txt,.gz,.xlsx,.xlsm";
+const ACCEPTED = ".csv,.tsv,.txt,.gz,.xlsx,.xlsm,.xls,.json,.jsonl,.ndjson,.parquet,.pq";
 
 /** Os datasets de exemplo, cada um com o que tem e de onde vem. */
 export function SampleSource({ open }: { open: SourceSpec | undefined }) {
@@ -68,7 +68,7 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
                   <h4 className="text-base font-medium text-strong">{sample.title}</h4>
                   <Explain title={sample.title}>
                     <p>{sample.description}</p>
-                    <p className="mt-2 font-mono text-xs text-dim">Fonte: {sample.source}</p>
+                    <p className="mt-2 text-xs text-dim">Source: {sample.source}</p>
                   </Explain>
                 </div>
                 <Button
@@ -78,19 +78,19 @@ export function SampleSource({ open }: { open: SourceSpec | undefined }) {
                   onClick={() => {
                     load.mutate({ path: { name: sample.name } });
                   }}
-                  aria-label={`Carregar ${sample.title}`}
+                  aria-label={`Load ${sample.title}`}
                 >
                   {pending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-                  {isOpen ? "Carregar outra vez" : "Carregar"}
+                  {isOpen ? "Load again" : "Load"}
                 </Button>
               </div>
               <Facts
                 size="sm"
                 facts={[
-                  { label: "Linhas", value: formatCount(sample.n_rows) },
-                  { label: "Colunas", value: formatCount(sample.n_columns) },
-                  { label: "Alvo habitual", value: sample.target },
-                  { label: "Tarefa", value: label("TaskType", sample.task_type) },
+                  { label: "Rows", value: formatCount(sample.n_rows) },
+                  { label: "Columns", value: formatCount(sample.n_columns) },
+                  { label: "Usual target", value: sample.target },
+                  { label: "Task", value: label("TaskType", sample.task_type) },
                 ]}
               />
             </li>
@@ -149,7 +149,7 @@ export function FileSource() {
       >
         {/* A zona toda escolhe o ficheiro; só o botão de carregar fica por cima dela. */}
         <label htmlFor="dados-ficheiro" className="absolute inset-0 cursor-pointer rounded-2xl">
-          <span className="sr-only">Escolher um ficheiro do computador</span>
+          <span className="sr-only">Choose a file from your computer</span>
         </label>
         <span
           aria-hidden="true"
@@ -168,14 +168,14 @@ export function FileSource() {
           <p className="text-lg text-strong">
             {file === null
               ? dragging
-                ? "Larga o ficheiro aqui"
-                : "Arrasta um ficheiro para aqui, ou clica para o escolher"
+                ? "Drop the file here"
+                : "Drag a file here, or click to choose one"
               : file.name}
           </p>
           <p className="font-mono text-xs text-dim tabular-nums">
             {file === null
-              ? "CSV, TSV, TXT, GZ, XLSX ou XLSM"
-              : `${fileSize(file.size)}, pronto a carregar`}
+              ? "CSV, TSV, TXT, GZ, Excel (XLSX, XLS), JSON or Parquet"
+              : `${fileSize(file.size)}, ready to load`}
           </p>
         </div>
         {file !== null && (
@@ -188,7 +188,7 @@ export function FileSource() {
             }}
           >
             {upload.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-            Carregar ficheiro
+            Load file
           </Button>
         )}
         <input
@@ -245,7 +245,7 @@ export function SyntheticSource() {
             generate.reset();
           }
         }}
-        aria-label="Gerador"
+        aria-label="Generator"
         className="w-full gap-0.5 panel p-2"
       >
         {generators.data.map((item) => (
@@ -255,7 +255,7 @@ export function SyntheticSource() {
             className="h-auto w-full flex-col items-start gap-0.5 border border-transparent px-3 py-2 text-left data-[state=on]:border-[#333]"
           >
             <span className="text-sm">{item.title}</span>
-            <span className="font-mono text-[0.6875rem] font-normal text-dim">
+            <span className="text-xs font-normal text-dim">
               {label("TaskType", item.task_type)}
             </span>
           </ToggleGroupItem>
@@ -280,7 +280,7 @@ export function SyntheticSource() {
             <Label htmlFor="gerador-seed" className="text-sm">
               Seed
             </Label>
-            <Explain title="Seed">A mesma seed dá sempre os mesmos pontos.</Explain>
+            <Explain title="Seed">The same seed always gives the same points.</Explain>
           </div>
           <Input
             id="gerador-seed"
@@ -313,7 +313,7 @@ export function SyntheticSource() {
             }}
           >
             {generate.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-            Gerar dados
+            Generate data
           </Button>
         </div>
         <ErrorNote error={generate.error} />
@@ -328,7 +328,7 @@ function ListSkeleton() {
       className="grid gap-x-12 gap-y-10 @3xl/main:grid-cols-2"
       role="status"
       aria-busy="true"
-      aria-label="A carregar"
+      aria-label="Loading"
     >
       {[0, 1].map((index) => (
         <div key={index} className="flex flex-col gap-3">

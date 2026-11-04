@@ -96,7 +96,7 @@ def test_binary_frames_show_the_probability_of_the_positive_class(moons: Dataset
     assert animation is not None
     assert animation.animated
     assert animation.value_kind == "probability"
-    assert animation.value_label == "Probabilidade de «1»"
+    assert animation.value_label == "Probability of “1”"
     assert [frame.step for frame in animation.frames] == [1, 2, 3]
     assert [frame.loss for frame in animation.frames] == [0.6, 0.5, 0.4]
     assert animation.frames[0].values[0][0] == pytest.approx(0.25)
@@ -126,7 +126,7 @@ def test_regression_frames_show_the_predicted_value(line: Dataset) -> None:
 
     assert animation is not None
     assert animation.value_kind == "value"
-    assert animation.value_label == "Previsão de target"
+    assert animation.value_label == "Prediction of target"
     assert animation.dimensions == 1
     assert len(animation.frames[0].values) == 1
     assert animation.points.values  # a nuvem de pontos traz o alvo verdadeiro

@@ -34,14 +34,14 @@ STEP_METRICS: Final[Mapping[str, StepMetric]] = MappingProxyType(
     {
         metric.name: metric
         for metric in (
-            StepMetric("accuracy", "Exatidão no treino", as_percent=True, is_loss=False),
-            StepMetric("val_loss", "Loss na validação", as_percent=False, is_loss=True),
-            StepMetric("oob_score", "Pontuação fora do saco (OOB)", as_percent=True, is_loss=False),
+            StepMetric("accuracy", "Training accuracy", as_percent=True, is_loss=False),
+            StepMetric("val_loss", "Validation loss", as_percent=False, is_loss=True),
+            StepMetric("oob_score", "Out-of-bag score (OOB)", as_percent=True, is_loss=False),
             # As de cada episódio de um agente de reinforcement learning.
-            StepMetric("reward", "Recompensa do episódio", as_percent=False, is_loss=False),
-            StepMetric("length", "Passos do episódio", as_percent=False, is_loss=False),
-            StepMetric("success", "Chegou ao objetivo", as_percent=True, is_loss=False),
-            StepMetric("epsilon", "Exploração (ε)", as_percent=False, is_loss=False),
+            StepMetric("reward", "Episode reward", as_percent=False, is_loss=False),
+            StepMetric("length", "Episode steps", as_percent=False, is_loss=False),
+            StepMetric("success", "Reached the goal", as_percent=True, is_loss=False),
+            StepMetric("epsilon", "Exploration (ε)", as_percent=False, is_loss=False),
         )
     }
 )

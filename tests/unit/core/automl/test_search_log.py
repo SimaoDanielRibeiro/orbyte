@@ -115,4 +115,4 @@ def test_a_fold_without_work_in_progress_changes_nothing() -> None:
 
 
 def test_a_model_agent_is_named_after_its_family() -> None:
-    assert model_agent_name(ModelFamily.NEURAL) == "Agente · Redes neuronais"
+    assert model_agent_name(ModelFamily.NEURAL) == "Agent · Neural networks"

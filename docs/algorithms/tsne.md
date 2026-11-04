@@ -1,52 +1,49 @@
 # t-SNE
 
-## Intuição
+## Intuition
 
-O t-SNE (*t-distributed stochastic neighbor embedding*) desenha um **mapa 2D** em que pontos
-parecidos ficam juntos. Não procura direções, como a PCA: procura posições no plano que
-respeitem quem é vizinho de quem. É ótimo para ver grupos em dados com muitas features. Mas
-o mapa engana em tudo o que não seja "estes estão perto": as distâncias entre grupos e o
-tamanho de cada grupo não querem dizer nada.
+t-SNE (*t-distributed stochastic neighbor embedding*) draws a **2D map** where similar points stay
+together. It doesn't look for directions, like PCA: it looks for positions on the plane that
+respect who's a neighbour of whom. It's great for seeing groups in data with many features. But
+the map misleads in everything other than "these are close": the distances between groups and the
+size of each group mean nothing.
 
-## Matemática essencial
+## Essential maths
 
-1. Para cada par de pontos nos dados originais, a probabilidade de serem vizinhos, $p_{ij}$:
-   uma gaussiana à volta de cada ponto, com a largura escolhida para que o "número efetivo de
-   vizinhos" seja a **perplexidade**.
-2. No mapa, a mesma ideia com uma distribuição t de Student (de caudas longas), $q_{ij}$.
-3. Procura posições no mapa que minimizam a divergência de Kullback-Leibler,
-   $\mathrm{KL}(P \,\|\, Q) = \sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}}$, por gradiente
-   descendente.
+1. For each pair of points in the original data, the probability that they're neighbours,
+   $p_{ij}$: a Gaussian around each point, with its width chosen so that the "effective number of
+   neighbours" is the **perplexity**.
+2. On the map, the same idea with a Student's t distribution (with long tails), $q_{ij}$.
+3. Look for positions on the map that minimise the Kullback-Leibler divergence,
+   $\mathrm{KL}(P \,\|\, Q) = \sum_{ij} p_{ij} \log \frac{p_{ij}}{q_{ij}}$, by gradient descent.
 
-As caudas longas da distribuição t empurram os grupos diferentes para longe uns dos outros
-no mapa. É por isso que os grupos aparecem tão bem separados, e também por isso que as
-distâncias entre eles não são de confiança.
+The long tails of the t distribution push different groups far from each other on the map. That's
+why the groups look so well separated, and also why the distances between them can't be trusted.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `perplexity` | Mais ou menos quantos vizinhos cada ponto tenta manter perto. Pequena: muitos grupinhos; grande: a estrutura global, mais esborratada. Tem de ser menor do que o número de linhas | 30 |
-| `max_iter` | Máximo de passos de gradiente para arrumar o mapa | 1000 |
+| `perplexity` | Roughly how many neighbours each point tries to keep close. Small: many tiny groups; large: the global structure, more smudged. It must be smaller than the number of rows | 30 |
+| `max_iter` | The most gradient steps to lay out the map | 1000 |
 
-## Quando usar
+## When to use
 
-- Para **explorar visualmente** dados com muitas features e ver se há grupos.
-- Depois de uma PCA para umas dezenas de componentes, em dados muito grandes.
+- To **explore visually** data with many features and see whether there are groups.
+- After a PCA down to a few dozen components, on very large data.
 
-## Armadilhas
+## Pitfalls
 
-- **Não serve para pontos novos:** não aprende uma função, só coloca no mapa os pontos com
-  que treinou. Por isso a avaliação só tem o relatório do treino.
-- **Não leias distâncias nem tamanhos:** só a vizinhança é fiável.
-- **Lento com muitos dados** (dezenas de milhares de linhas levam minutos).
-- **A perplexidade muda o mapa todo:** experimenta vários valores antes de tirar conclusões.
-- **Seeds diferentes dão mapas diferentes** (rodados, espelhados, com os grupos noutros
-  sítios).
+- **It doesn't work for new points:** it doesn't learn a function, it only places on the map the
+  points it trained on. That's why the evaluation only has the training report.
+- **Don't read distances or sizes:** only the neighbourhood is reliable.
+- **Slow with a lot of data** (tens of thousands of rows take minutes).
+- **The perplexity changes the whole map:** try several values before drawing conclusions.
+- **Different seeds give different maps** (rotated, mirrored, with the groups in other places).
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez (o scikit-learn não mostra as iterações). No ecrã **Treinar e avaliar** vês o mapa,
-pintado com a coluna de referência, se a escolheste. Compara com o mapa da PCA dos mesmos
-dados: no t-SNE os grupos ficam muito mais separados, e a avaliação mostra se os vizinhos
-no mapa eram vizinhos nos dados (a "confiança dos vizinhos").
+It trains in one go (scikit-learn doesn't show the iterations). On the **Train & evaluate** screen
+you see the map, coloured by the reference column, if you picked one. Compare it with the PCA map
+of the same data: in t-SNE the groups are much more separated, and the evaluation shows whether
+the neighbours on the map were neighbours in the data (the "neighbour trust").

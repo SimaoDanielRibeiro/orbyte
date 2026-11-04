@@ -1,53 +1,51 @@
 # Local Outlier Factor (LOF)
 
-## Intuição
+## Intuition
 
-O LOF compara a **densidade à volta de cada ponto** com a densidade à volta dos seus vizinhos.
-Um ponto numa zona muito mais vazia do que a dos vizinhos é anómalo. Por ser **local**,
-encontra anomalias mesmo quando os grupos têm densidades muito diferentes. Um ponto um
-bocadinho afastado de um grupo apertado é suspeito; o mesmo afastamento num grupo espalhado
-é normal.
+LOF compares the **density around each point** with the density around its neighbours. A point in
+an area much emptier than its neighbours' is anomalous. Because it's **local**, it finds anomalies
+even when the groups have very different densities. A point a little away from a tight group is
+suspicious; the same distance in a spread-out group is normal.
 
-## Matemática essencial
+## Essential maths
 
-Para cada ponto $x$, com os seus $k$ vizinhos mais próximos $N_k(x)$:
+For each point $x$, with its $k$ nearest neighbours $N_k(x)$:
 
-1. a **densidade de alcançabilidade local** é o inverso da distância média aos vizinhos
-   (usando a "distância de alcançabilidade", que suaviza as distâncias muito pequenas):
+1. the **local reachability density** is the inverse of the mean distance to the neighbours
+   (using the "reachability distance", which smooths out very small distances):
    $\mathrm{lrd}(x) = 1 / \overline{d_{\mathrm{reach}}(x, N_k(x))}$;
-2. o **LOF** é a razão entre a densidade dos vizinhos e a do próprio ponto:
+2. the **LOF** is the ratio between the neighbours' density and the point's own:
    $$\mathrm{LOF}(x) = \frac{1}{k}\sum_{o \in N_k(x)} \frac{\mathrm{lrd}(o)}{\mathrm{lrd}(x)}$$
 
-Perto de 1, o ponto é tão denso como os vizinhos; bem acima de 1, está numa zona mais vazia,
-e é anómalo. O laboratório usa o modo de "deteção de novidades" do scikit-learn
-(`novelty=True`), que sabe pontuar pontos novos. Os pontos de treino ficam com a pontuação
-calculada no treino, porque pontuá-los de novo contaria cada ponto como vizinho de si próprio.
+Close to 1, the point is as dense as its neighbours; well above 1, it's in an emptier area, and
+it's anomalous. The lab uses scikit-learn's "novelty detection" mode (`novelty=True`), which can
+score new points. The training points keep the score computed in training, because scoring them
+again would count each point as its own neighbour.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_neighbors` | Quantos vizinhos definem a densidade local. Poucos: sensível ao ruído; muitos: perde as anomalias em grupos pequenos | 20 |
-| `contamination` | Que fração do treino se espera que seja anómala: põe o limiar de forma a marcar essa fração | 0,05 |
+| `n_neighbors` | How many neighbours define the local density. Few: sensitive to noise; many: it misses anomalies in small groups | 20 |
+| `contamination` | What share of the training data is expected to be anomalous: it sets the threshold so it flags that share | 0.05 |
 
-## Quando usar
+## When to use
 
-- Quando os dados têm **grupos de densidades diferentes** e um limiar global (como o da
-  Isolation Forest) não serve a todos.
-- Com dados de tamanho médio e poucas features.
+- When the data has **groups of different densities** and a global threshold (like the Isolation
+  Forest's) can't suit them all.
+- With medium-sized data and few features.
 
-## Armadilhas
+## Pitfalls
 
-- **Escala das features:** usa distâncias. Padroniza.
-- **O `n_neighbors` muda tudo:** tem de ser maior do que o tamanho dos pequenos grupos de
-  anomalias que se querem encontrar (senão, elas são vizinhas umas das outras e parecem
-  densas).
-- **Lento com muitos dados:** cada pontuação procura os vizinhos de um ponto.
-- **Muitas dimensões:** as distâncias, e a densidade com elas, perdem significado.
+- **Feature scale:** it uses distances. Standardise.
+- **`n_neighbors` changes everything:** it must be larger than the small groups of anomalies you
+  want to find (otherwise, they're each other's neighbours and look dense).
+- **Slow with a lot of data:** each score searches for a point's neighbours.
+- **Many dimensions:** the distances, and the density with them, lose their meaning.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar**, as cores mostram a pontuação de anomalia no plano. Ao
-contrário da Isolation Forest, a pontuação sobe logo à volta dos grupos apertados e mais
-devagar à volta dos espalhados. Na avaliação, compara a distribuição das pontuações e o
-limiar com os dos outros detetores.
+It trains in one go. On the **Train & evaluate** screen, the colours show the anomaly score on the
+plane. Unlike the Isolation Forest, the score rises right around the tight groups and more slowly
+around the spread-out ones. In the evaluation, compare the distribution of the scores and the
+threshold with those of the other detectors.

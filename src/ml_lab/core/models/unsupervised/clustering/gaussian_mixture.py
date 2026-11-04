@@ -47,22 +47,22 @@ class GaussianMixtureParams(Hyperparameters):
         default=3,
         ge=1,
         le=20,
-        title="Número de nuvens (grupos)",
-        description="Quantas gaussianas compõem a mistura.",
+        title="Number of clouds (clusters)",
+        description="How many Gaussians make up the mixture.",
     )
     covariance_type: CovarianceType = Field(
         default="full",
-        title="Forma das nuvens",
+        title="Shape of the clouds",
         description=(
-            "Completa: cada nuvem com a sua elipse, inclinada à vontade; partilhada: a mesma "
-            "elipse para todas; diagonal: elipses alinhadas com os eixos; esférica: círculos."
+            "Full: each cloud with its own ellipse, tilted freely; tied: the same ellipse for "
+            "all; diagonal: ellipses aligned with the axes; spherical: circles."
         ),
         json_schema_extra={
             "x-labels": {
-                "full": "Completa",
-                "tied": "Partilhada",
+                "full": "Full",
+                "tied": "Tied",
                 "diag": "Diagonal",
-                "spherical": "Esférica",
+                "spherical": "Spherical",
             }
         },
     )
@@ -70,17 +70,15 @@ class GaussianMixtureParams(Hyperparameters):
         default=100,
         ge=1,
         le=1_000,
-        title="Máximo de iterações do EM",
-        description="Quantas vezes, no máximo, repete os passos E e M.",
+        title="Maximum EM iterations",
+        description="How many times, at most, it repeats the E and M steps.",
     )
     tol: float = Field(
         default=0.001,
         ge=1e-6,
         le=0.1,
-        title="Tolerância de paragem",
-        description=(
-            "Pára quando a log-verosimilhança média quase deixa de subir entre iterações."
-        ),
+        title="Stopping tolerance",
+        description=("Stops when the mean log-likelihood almost stops rising between iterations."),
         json_schema_extra={"x-scale": "log"},
     )
 
@@ -104,10 +102,10 @@ class GaussianMixture(SklearnModel[GaussianMixtureParams]):
 
     info = ModelInfo(
         name="gaussian_mixture",
-        display_name="Mistura de gaussianas",
+        display_name="Gaussian mixture",
         summary=(
-            "Explica os dados como uma soma de nuvens em forma de elipse: cada ponto pertence a "
-            "cada grupo com uma probabilidade. Vês as elipses a ajustarem-se."
+            "Explains the data as a sum of ellipse-shaped clouds: each point belongs to each "
+            "cluster with a probability. You see the ellipses fit themselves."
         ),
         task_types=frozenset({TaskType.CLUSTERING}),
         family=ModelFamily.PROBABILISTIC,
@@ -136,7 +134,8 @@ class GaussianMixture(SklearnModel[GaussianMixtureParams]):
         params = self.hyperparameters
         if params.n_components > len(X):
             raise ModelError(
-                f"Pediste {params.n_components} nuvens, mas o treino só tem {len(X)} linhas."
+                f"You asked for {params.n_components} clouds, but the training data has only "
+                f"{len(X)} rows."
             )
         if not context.observed:
             self.estimator_ = self._fit_estimator(self.build_estimator(), X, None)

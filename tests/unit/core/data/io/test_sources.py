@@ -34,9 +34,9 @@ def test_spec_keys_are_stable_and_ignore_parameter_order() -> None:
 
 
 def test_opening_unknown_sources_or_parameters_is_explained() -> None:
-    with pytest.raises(ComponentNotFoundError, match="Querias dizer 'sample'"):
+    with pytest.raises(ComponentNotFoundError, match="Did you mean 'sample'"):
         open_source(SourceSpec("samples", {"name": "iris"}))
-    with pytest.raises(InvalidParameterError, match="Parâmetros inválidos"):
+    with pytest.raises(InvalidParameterError, match="Invalid parameters"):
         open_source(SourceSpec("sample", {"nome": "iris"}))
 
 
@@ -67,7 +67,7 @@ def test_a_changed_sample_file_is_detected(tmp_path: Path, monkeypatch: pytest.M
     settings = Settings.from_env({}, home=tmp_path)
     monkeypatch.setattr(builtin_source, "get_settings", lambda: settings)
 
-    with pytest.raises(DataValidationError, match="valores inesperados: rosa"):
+    with pytest.raises(DataValidationError, match="unexpected values: rosa"):
         SampleSource("iris").load()
 
 
@@ -114,9 +114,9 @@ def test_regression_documents_the_rule_it_used() -> None:
     x = np.column_stack([table.frame["x1"], np.ones(len(table.frame))])
     slope, intercept = np.linalg.lstsq(x, table.frame[TARGET], rcond=None)[0]
 
-    # Sem ruído, a reta reencontra exatamente a regra (escrita com vírgula decimal).
-    assert f"{slope:.1f}".replace(".", ",") in table.description
-    assert f"{intercept:.1f}".replace(".", ",") in table.description
+    # Sem ruído, a reta reencontra exatamente a regra (escrita com ponto decimal).
+    assert f"{slope:.1f}" in table.description
+    assert f"{intercept:.1f}" in table.description
 
 
 def test_the_spec_stores_every_parameter_including_defaults() -> None:
@@ -132,10 +132,10 @@ def test_the_spec_stores_every_parameter_including_defaults() -> None:
 @pytest.mark.parametrize(
     ("parameters", "message"),
     [
-        ({"n_points": 10}, "não tem os parâmetros n_points"),
-        ({"n_samples": 10}, "entre 20 e 5000"),
-        ({"n_samples": 50.5}, "inteiro"),
-        ({"noise": "muito"}, "número"),
+        ({"n_points": 10}, "has no parameters n_points"),
+        ({"n_samples": 10}, "between 20 and 5,000"),
+        ({"n_samples": 50.5}, "whole number"),
+        ({"noise": "muito"}, "must be a number"),
     ],
 )
 def test_generator_parameters_are_validated(parameters: dict[str, object], message: str) -> None:
@@ -149,8 +149,8 @@ def test_parameters_are_described_in_json_schema() -> None:
     assert schema["required"] == ["n_samples", "noise", "factor"]
     assert schema["properties"]["n_samples"] == {
         "type": "integer",
-        "title": "Número de pontos",
-        "description": "Quantas linhas gerar.",
+        "title": "Number of points",
+        "description": "How many rows to generate.",
         "default": 200,
         "minimum": 20,
         "maximum": 5000,

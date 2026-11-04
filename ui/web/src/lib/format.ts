@@ -1,15 +1,15 @@
 /**
- * Números escritos à portuguesa, com as mesmas regras de `ml_lab/formatting.py`: vírgula
- * decimal e espaço a separar os milhares, só a partir de cinco algarismos (1234, mas 12 345).
+ * Números escritos em inglês, com as mesmas regras de `ml_lab/formatting.py`: ponto decimal e
+ * vírgula a separar os milhares (1,234 e 20,640), como todo o site (ADR 0043).
  *
  * As regras são as mesmas nos dois lados para que um número escrito pelo backend num aviso e o
  * mesmo número numa tabela da interface apareçam iguais. Por isso o arredondamento também é o
  * do Python: metade para o par (`halfEven`), sobre o valor exato do número. O `toFixed` do
- * JavaScript arredonda metade para cima, e 0,8125 daria 81,3% em vez de 81,2%.
+ * JavaScript arredonda metade para cima, e 0.8125 daria 81.3% em vez de 81.2%.
  */
 import type { MetricResult } from "@/api/generated";
 
-const GROUPING_THRESHOLD = 10_000;
+const GROUPING_THRESHOLD = 1_000;
 const SCIENTIFIC_FROM = 6;
 const SUPERSCRIPTS: Readonly<Record<string, string>> = {
   "-": "⁻",
@@ -32,17 +32,10 @@ function numberFormat(options: Intl.NumberFormatOptions): Intl.NumberFormat {
   const key = JSON.stringify(options);
   let format = formats.get(key);
   if (format === undefined) {
-    // O formato americano tem o ponto decimal e a vírgula dos milhares, que depois se trocam,
-    // como no Python: assim os dois lados escrevem exatamente os mesmos caracteres.
     format = new Intl.NumberFormat("en-US", { roundingMode: "halfEven", ...options });
     formats.set(key, format);
   }
   return format;
-}
-
-/** Troca a pontuação americana pela portuguesa, em dois passos para não se confundirem. */
-function toPortuguese(text: string): string {
-  return text.replaceAll(",", " ").replaceAll(".", ",");
 }
 
 function superscript(exponent: number): string {
@@ -62,17 +55,34 @@ export function formatNumber(value: number, decimals = 2): string {
     maximumFractionDigits: decimals,
     useGrouping: Math.abs(value) >= GROUPING_THRESHOLD,
   });
-  return toPortuguese(format.format(value));
+  return format.format(value);
 }
 
-/** Escreve um número inteiro (`20 640`). */
+/** Escreve um número inteiro (`20,640`). */
 export function formatCount(value: number): string {
   return formatNumber(value, 0);
 }
 
-/** Escreve uma proporção como percentagem: `0.1987` dá `19,9%`. */
+/** Escreve uma proporção como percentagem: `0.1987` dá `19.9%`. */
 export function formatPercent(ratio: number, decimals = 1): string {
   return `${formatNumber(ratio * 100, decimals)}%`;
+}
+
+/** Escreve uma posição em inglês: `1st`, `2nd`, `3rd`, `4th`, `11th`, `22nd`. */
+export function formatOrdinal(place: number): string {
+  const tens = place % 100;
+  const units = place % 10;
+  const suffix =
+    tens >= 11 && tens <= 13
+      ? "th"
+      : units === 1
+        ? "st"
+        : units === 2
+          ? "nd"
+          : units === 3
+            ? "rd"
+            : "th";
+  return `${formatCount(place)}${suffix}`;
 }
 
 /** A mantissa e o expoente de `value` em notação científica, já arredondados. */
@@ -86,7 +96,7 @@ function scientificParts(value: number, fractionDigits: number): [string, number
   return [mantissa, Number(exponent)];
 }
 
-/** Escreve `value` como potência de 10 (`2,5 × 10⁻⁵`), para números muito pequenos ou grandes. */
+/** Escreve `value` como potência de 10 (`2.5 × 10⁻⁵`), para números muito pequenos ou grandes. */
 export function formatScientific(value: number, digits = 3): string {
   if (value === 0 || !Number.isFinite(value)) {
     return formatNumber(value, 0);
@@ -95,7 +105,7 @@ export function formatScientific(value: number, digits = 3): string {
   const trimmed = mantissa.includes(".")
     ? mantissa.replace(/0+$/, "").replace(/\.$/, "")
     : mantissa;
-  return `${trimmed.replace(".", ",")} × 10${superscript(exponent)}`;
+  return `${trimmed} × 10${superscript(exponent)}`;
 }
 
 /**
@@ -115,8 +125,8 @@ export function formatSignificant(value: number, digits = 4): string {
 
 /**
  * Escreve uma estatística (uma média, um quartil) só com os algarismos que dizem alguma coisa:
- * até quatro significativos e sem zeros à direita (`0,42`, `29,7`, `80`). Os números a partir de
- * mil escrevem-se por inteiro (`206 856`), e os muito pequenos em potência de 10.
+ * até quatro significativos e sem zeros à direita (`0.42`, `29.7`, `80`). Os números a partir de
+ * mil escrevem-se por inteiro (`206,856`), e os muito pequenos em potência de 10.
  */
 export function formatStatistic(value: number): string {
   if (value === 0 || !Number.isFinite(value)) {
@@ -130,10 +140,10 @@ export function formatStatistic(value: number): string {
     return formatScientific(value, 3);
   }
   const text = formatNumber(value, Math.max(0, 3 - magnitude));
-  return text.includes(",") ? text.replace(/0+$/, "").replace(/,$/, "") : text;
+  return text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
 }
 
-/** Escreve o tamanho de um ficheiro: em bytes até 1 KB, em KB até 1 MB, depois em MB (`3,6 MB`). */
+/** Escreve o tamanho de um ficheiro: em bytes até 1 KB, em KB até 1 MB, depois em MB (`3.6 MB`). */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) {
     return `${formatCount(bytes)} B`;
@@ -144,13 +154,13 @@ export function formatBytes(bytes: number): string {
   return `${formatNumber(bytes / 1024 ** 2, 1)} MB`;
 }
 
-/** Escreve uma quantidade com o nome no singular ou no plural (`12 linhas duplicadas`). */
+/** Escreve uma quantidade com o nome no singular ou no plural (`12 duplicate rows`). */
 export function formatQuantity(count: number, singular: string, plural: string): string {
   return `${formatCount(count)} ${count === 1 ? singular : plural}`;
 }
 
 /**
- * Escreve um valor qualquer (o de um hiperparâmetro, por exemplo) à portuguesa.
+ * Escreve um valor qualquer (o de um hiperparâmetro, por exemplo).
  *
  * Os decimais ficam com `digits` algarismos significativos, sem zeros à direita, e os muito
  * pequenos em potência de 10, como o formato `g` do Python. Uma diferença inevitável: o JSON
@@ -161,7 +171,7 @@ export function formatValue(value: unknown, digits = 3): string {
     return "—";
   }
   if (typeof value === "boolean") {
-    return value ? "sim" : "não";
+    return value ? "yes" : "no";
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
@@ -174,10 +184,7 @@ export function formatValue(value: unknown, digits = 3): string {
     if (exponent < -4 || exponent >= digits) {
       return formatScientific(value, digits);
     }
-    const text = numberFormat({ maximumSignificantDigits: digits, useGrouping: false }).format(
-      value,
-    );
-    return text.replace(".", ",");
+    return numberFormat({ maximumSignificantDigits: digits, useGrouping: false }).format(value);
   }
   if (typeof value === "string") {
     return value;
@@ -189,25 +196,33 @@ export function formatValue(value: unknown, digits = 3): string {
   return JSON.stringify(value);
 }
 
+const MOMENT = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 /**
  * Escreve um momento (em ISO 8601, como a API os manda) na hora local, por extenso curto:
- * `24/10/2026 15:30`.
+ * `24 Oct 2026, 15:30`.
  */
 export function formatMoment(iso: string): string {
   const moment = new Date(iso);
   if (Number.isNaN(moment.getTime())) {
     return "—";
   }
-  const two = (value: number) => String(value).padStart(2, "0");
-  return `${two(moment.getDate())}/${two(moment.getMonth() + 1)}/${String(moment.getFullYear())} ${two(moment.getHours())}:${two(moment.getMinutes())}`;
+  return MOMENT.format(moment);
 }
 
-/** Escreve uma lista como se diz em português, com "e" antes do último. */
+/** Escreve uma lista como se diz em inglês, com "and" antes do último. */
 export function formatList(items: readonly string[]): string {
   if (items.length <= 1) {
     return items.join("");
   }
-  return `${items.slice(0, -1).join(", ")} e ${items.at(-1) ?? ""}`;
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1) ?? ""}`;
 }
 
 /**

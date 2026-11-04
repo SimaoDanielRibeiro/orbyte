@@ -116,7 +116,7 @@ class FittedPreparation:
         absent = [name for name in self.input_names if name not in frame.columns]
         if absent:
             raise DataError(
-                f"Faltam colunas para o modelo: {format_list(absent)}. Ele espera "
+                f"Columns are missing for the model: {format_list(absent)}. It expects "
                 f"{format_list(list(self.input_names))}."
             )
         matrix = self._features(frame[list(self.input_names)])
@@ -124,8 +124,8 @@ class FittedPreparation:
         if missing.any():
             columns = [self.feature_names[int(i)] for i in np.flatnonzero(missing)]
             raise DataError(
-                f"Ficaram valores em falta em {format_list(columns)}: esta preparação não "
-                "preenche nulos nessas colunas, por isso cada linha tem de os trazer."
+                f"Values were left missing in {format_list(columns)}: this preparation doesn't "
+                "fill in nulls in those columns, so each row has to bring them."
             )
         return matrix
 
@@ -245,7 +245,7 @@ class FittedPreparation:
             )
         except (KeyError, TypeError, ValueError) as error:
             raise InvalidParameterError(
-                f"A preparação guardada está incompleta e não volta a abrir: falta {error}."
+                f"The saved preparation is incomplete and won't open again: {error} is missing."
             ) from error
 
     def examples_csv(self, predicted: Sequence[object], n_rows: int) -> str:
@@ -256,7 +256,7 @@ class FittedPreparation:
             n_rows: Quantas linhas (no máximo, as guardadas).
         """
         rows = self.examples.head(n_rows).copy()
-        rows["previsto"] = pd.Series(list(predicted)[: len(rows)], index=rows.index, dtype=object)
+        rows["predicted"] = pd.Series(list(predicted)[: len(rows)], index=rows.index, dtype=object)
         text: str = rows.to_csv(index=False, lineterminator="\n")
         return text
 

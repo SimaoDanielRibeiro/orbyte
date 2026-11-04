@@ -372,8 +372,8 @@ class ExperimentService:
         dataset = self._datasets.prepared(config.dataset, config.preparation, seeds.seed).dataset
         if dataset.task_type not in info.task_types:
             raise ModelError(
-                f"'{info.display_name}' não resolve {dataset.task_type.label.lower()}. Escolhe um "
-                "modelo do catálogo filtrado por esta tarefa."
+                f"'{info.display_name}' doesn't solve {dataset.task_type.label.lower()}. Choose a "
+                "model from the catalogue filtered by this task."
             )
         run_id = f"run-{uuid.uuid4().hex[:8]}"
         sampler = SnapshotSampler()
@@ -491,7 +491,7 @@ class ExperimentService:
         embedding = None
         if dataset.task_type is TaskType.DIMENSIONALITY_REDUCTION:
             # Na PCA, os eixos são as componentes que aprendeu; no t-SNE, não têm significado.
-            axis = "Componente" if "components" in state else "Dimensão"
+            axis = "Component" if "components" in state else "Dimension"
             embedding = embedding_map(dataset, model.transform(dataset.train.X), axis)
         training = list(model.notices)
         if outcome.stopped_early:
@@ -499,8 +499,8 @@ class ExperimentService:
                 0,
                 Notice.info(
                     "stopped_early",
-                    f"Treino parado a pedido no passo {format_count(outcome.steps)}: o modelo "
-                    "ficou com o que tinha aprendido até aí.",
+                    f"Training stopped on request at step {format_count(outcome.steps)}: the model "
+                    "kept what it had learned so far.",
                 ),
             )
         return ExperimentResult(

@@ -16,7 +16,7 @@ test.use({ reducedMotion: "reduce" });
 
 /** Abre a gaveta de cada métrica da tabela e devolve os nomes das que abriu. */
 async function openEveryMetric(page: Page): Promise<string[]> {
-  const table = page.getByRole("table", { name: "As métricas" });
+  const table = page.getByRole("table", { name: "The metrics" });
   await expect(table).toBeVisible({ timeout: 60_000 });
   // Os nomes leem-se antes de abrir a primeira gaveta: com uma aberta, o resto da página fica
   // escondido dos leitores de ecrã (e das procuras por papel).
@@ -26,8 +26,10 @@ async function openEveryMetric(page: Page): Promise<string[]> {
     const drawer = page.getByRole("dialog", { name });
     await expect(drawer).toBeVisible();
     await expect(drawer.locator(".katex").first()).toBeVisible();
-    await expect(drawer.getByRole("heading", { name: "A conta neste run" })).toBeVisible();
-    await expect(drawer.getByRole("heading", { name: "Como se lê" })).toBeVisible();
+    await expect(
+      drawer.getByRole("heading", { name: "The calculation in this run" }),
+    ).toBeVisible();
+    await expect(drawer.getByRole("heading", { name: "How to read it" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(drawer).toBeHidden();
   }
@@ -38,18 +40,18 @@ test("treina um modelo à mão e abre a explicação de cada métrica", async ({
   test.setTimeout(180_000);
   await loadSample(page, "Titanic");
   await prepareWithSuggestions(page);
-  await page.goto("/modelos/logistic_regression");
-  await page.getByRole("button", { name: "Treinar com estes valores" }).click();
+  await page.goto("/models/logistic_regression");
+  await page.getByRole("button", { name: "Train with these values" }).click();
 
-  await expect(page).toHaveURL(/\/treinar\/run-/);
-  await expect(page.getByRole("heading", { level: 1, name: "Regressão logística" })).toBeVisible();
+  await expect(page).toHaveURL(/\/train\/run-/);
+  await expect(page.getByRole("heading", { level: 1, name: "Logistic regression" })).toBeVisible();
   const opened = await openEveryMetric(page);
 
   expect(opened).toEqual(
-    expect.arrayContaining(["Exatidão", "Precisão", "Recall (sensibilidade)", "F1", "ROC AUC"]),
+    expect.arrayContaining(["Accuracy", "Precision", "Recall (sensitivity)", "F1", "ROC AUC"]),
   );
-  await expect(page.getByRole("heading", { level: 3, name: "Matriz de confusão" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "O que aprendeu" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Confusion matrix" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "What it learned" })).toBeVisible();
 });
 
 test("as 22 métricas abrem com a fórmula e a conta de um run", async ({ page, request }) => {
@@ -105,7 +107,7 @@ test("as 22 métricas abrem com a fórmula e a conta de um run", async ({ page, 
   const opened = new Set<string>();
   for (const body of requests) {
     const runId = await trainThroughApi(request, body);
-    await page.goto(`/treinar/${runId}`);
+    await page.goto(`/train/${runId}`);
     for (const name of await openEveryMetric(page)) {
       opened.add(name);
     }

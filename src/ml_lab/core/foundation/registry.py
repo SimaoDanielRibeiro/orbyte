@@ -108,8 +108,8 @@ class Registry[T]:
         """
         if not _NAME_PATTERN.fullmatch(name):
             raise RegistryError(
-                f"Nome inválido '{name}' no registo '{self._name}': usa só minúsculas, "
-                "dígitos e '_', a começar por uma letra (por exemplo 'extra_trees')."
+                f"Invalid name '{name}' in the '{self._name}' registry: use only lowercase "
+                "letters, digits and '_', starting with a letter (for example 'extra_trees')."
             )
         task_types = self._extract_task_types(name, component)
         with self._lock:
@@ -143,8 +143,8 @@ class Registry[T]:
         """
         if self._read_task_types is None:
             raise RegistryError(
-                f"O registo '{self._name}' não está organizado por tipo de tarefa: "
-                "cria-o com o argumento task_types para poder filtrar."
+                f"The '{self._name}' registry isn't organized by task type: "
+                "create it with the task_types argument to be able to filter."
             )
         self._ensure_discovered()
         return {
@@ -184,13 +184,12 @@ class Registry[T]:
             task_types = frozenset(self._read_task_types(component))
         except Exception as error:
             raise RegistryError(
-                f"Não foi possível ler os tipos de tarefa de '{name}' no registo "
-                f"'{self._name}': {error}"
+                f"Couldn't read the task types of '{name}' in the '{self._name}' registry: {error}"
             ) from error
         if not task_types:
             raise RegistryError(
-                f"'{name}' não declara nenhum tipo de tarefa, por isso nunca apareceria "
-                f"no catálogo do registo '{self._name}'."
+                f"'{name}' declares no task type, so it would never appear in the catalog of "
+                f"the '{self._name}' registry."
             )
         return task_types
 

@@ -100,7 +100,7 @@ export function StackedBars({
                 y={top + THICKNESS / 2}
                 dy="0.32em"
                 textAnchor="end"
-                className="fill-foreground text-xs"
+                className="fill-foreground text-[14px]"
               >
                 {row.label}
               </text>
@@ -130,7 +130,7 @@ export function StackedBars({
                         y={top + THICKNESS / 2}
                         dy="0.32em"
                         textAnchor="middle"
-                        className="pointer-events-none text-[12px] tabular-nums"
+                        className="pointer-events-none text-[13px] tabular-nums"
                         fill={inkOn(part.segment.color)}
                       >
                         {format(part.share)}

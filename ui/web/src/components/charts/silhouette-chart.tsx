@@ -60,12 +60,12 @@ export function SilhouetteChart({ silhouette, description, caption }: Silhouette
           >
             <TooltipRow
               value={formatNumber(mean, 2)}
-              label="silhueta média"
+              label="mean silhouette"
               color={group.color}
               kind="rect"
             />
             <div className="text-muted-foreground">
-              {group.label}, {formatCount(group.values.length)} pontos
+              {group.label}, {formatCount(group.values.length)} points
             </div>
           </ChartTooltip>
         );
@@ -81,7 +81,7 @@ export function SilhouetteChart({ silhouette, description, caption }: Silhouette
               position={x}
               format={(value) => formatNumber(value, 1)}
               plot={plot}
-              label="Silhueta de cada ponto"
+              label="Each point's silhouette"
             />
             <line x1={x(0)} x2={x(0)} y1={0} y2={plot.height} stroke="var(--input)" />
             {groups.map((group, index) => (
@@ -107,7 +107,7 @@ export function SilhouetteChart({ silhouette, description, caption }: Silhouette
                   y={(offsets[index] ?? 0) + (group.sorted.length * BAR) / 2}
                   dy="0.32em"
                   textAnchor="end"
-                  className="fill-foreground text-xs"
+                  className="fill-foreground text-[14px]"
                 >
                   {group.label}
                 </text>
@@ -134,9 +134,9 @@ export function SilhouetteChart({ silhouette, description, caption }: Silhouette
             <text
               x={x(silhouette.average) + 4}
               y={10}
-              className="fill-foreground text-[12px] tabular-nums"
+              className="fill-foreground text-[13px] tabular-nums"
             >
-              média {formatNumber(silhouette.average, 2)}
+              mean {formatNumber(silhouette.average, 2)}
             </text>
           </>
         );

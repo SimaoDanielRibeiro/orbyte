@@ -60,7 +60,7 @@ export function TreeDiagram({ nodes, description, caption }: TreeDiagramProps) {
     <figure className="flex min-w-0 flex-col gap-3">
       {caption !== undefined && caption !== null && caption !== false && (
         <div className="flex min-h-6 justify-end">
-          <Explain title="Como se lê" label="Como se lê este gráfico" align="end">
+          <Explain title="How to read it" label="How to read this chart" align="end">
             {caption}
           </Explain>
         </div>
@@ -88,7 +88,7 @@ export function TreeDiagram({ nodes, description, caption }: TreeDiagramProps) {
                   textAnchor={yes ? "end" : "start"}
                   className="fill-muted-foreground text-[11px]"
                 >
-                  {yes ? "sim" : "não"}
+                  {yes ? "yes" : "no"}
                 </text>
               </g>
             );
@@ -135,10 +135,10 @@ function NodeBox({ x, y, node }: { x: number; y: number; node: TreeNode }) {
         className="fill-muted-foreground text-[11px] tabular-nums"
       >
         {node.hidden_leaves > 0
-          ? `mais ${formatCount(node.hidden_leaves)} folhas por baixo`
+          ? `${formatCount(node.hidden_leaves)} more leaves below`
           : leaf && node.share !== null
-            ? `${formatPercent(node.share, 0)} de ${formatCount(node.samples)}`
-            : `${formatCount(node.samples)} pontos`}
+            ? `${formatPercent(node.share, 0)} of ${formatCount(node.samples)}`
+            : `${formatCount(node.samples)} points`}
       </text>
     </g>
   );

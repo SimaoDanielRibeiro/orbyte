@@ -35,7 +35,7 @@ def test_derived_seeds_spread_over_the_whole_range() -> None:
 
 
 def test_derive_seed_rejects_an_empty_name() -> None:
-    with pytest.raises(ValueError, match="vazio"):
+    with pytest.raises(ValueError, match="can't be empty"):
         derive_seed(42, "")
 
 

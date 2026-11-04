@@ -13,88 +13,91 @@ from ml_lab.core.data.explanations import Explanation
 TRACKING_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
     {
         "experiment_tracking": Explanation(
-            "Registo de experiências",
-            "Cada treino que termina fica registado sozinho: a configuração, a seed, as "
-            "métricas, a curva da loss e o que o modelo aprendeu. Chega para comparar runs e "
-            "para os repetir. **Guardar** um run junta-lhe o modelo treinado e o treino passo a "
-            "passo (a animação e, numa rede neuronal, as camadas em cada snapshot), que pesam "
-            "mais: um run guardado volta a abrir com tudo, mesmo depois de fechar a app.",
+            "Experiment tracking",
+            "Every training run that finishes is recorded on its own: the configuration, the "
+            "seed, the metrics, the loss curve and what the model learned. That's enough to "
+            "compare runs and to repeat them. **Saving** a run adds the trained model and the "
+            "step-by-step training (the animation and, for a neural network, the layers at each "
+            "snapshot), which weigh more: a saved run opens again with everything, even after "
+            "you close the app.",
         ),
         "comparing_runs": Explanation(
-            "Comparar runs",
-            "Uma comparação só ensina alguma coisa se os runs diferirem numa escolha de cada "
-            "vez: o mesmo dataset, a mesma preparação e a mesma divisão, e só um "
-            "hiperparâmetro diferente. Se mudarem duas coisas ao mesmo tempo, não se sabe qual "
-            "delas fez a diferença. Por isso, a comparação mostra só as escolhas que mudam.",
+            "Comparing runs",
+            "A comparison only teaches you something if the runs differ in one choice at a "
+            "time: the same dataset, the same preparation and the same split, and only one "
+            "hyperparameter different. If two things change at once, you can't tell which one "
+            "made the difference. That's why the comparison shows only the choices that change.",
         ),
         "run_history": Explanation(
-            "Como ler o histórico",
-            "Os runs vêm do mais recente para o mais antigo, com a métrica principal de cada um "
-            "na parte que o resume (o teste, quase sempre). Os guardados voltam a abrir com o "
-            "modelo e o treino passo a passo; os outros, com tudo menos isso: as métricas, a "
-            "configuração e o que o modelo aprendeu, mas sem os gráficos que precisam do modelo "
-            "nem o ecrã Explicar.",
+            "How to read the history",
+            "The runs go from the most recent to the oldest, each with its main metric on the "
+            "part that sums it up (the test, almost always). The saved ones open again with the "
+            "model and the step-by-step training; the others, with everything but that: the "
+            "metrics, the configuration and what the model learned, but without the charts "
+            "that need the model or the Explain screen.",
         ),
         "reproducibility": Explanation(
-            "Reprodutibilidade",
-            "Um resultado só conta se se puder repetir. No ML Lab, a seed raiz decide todas as "
-            "outras (a da divisão, a do modelo, a dos folds), por isso a mesma configuração com "
-            "a mesma seed dá exatamente o mesmo modelo e as mesmas métricas. **Reproduzir** um "
-            "run treina-o outra vez assim; se as métricas mudarem, alguma coisa não é "
-            "determinística, ou os dados mudaram.",
+            "Reproducibility",
+            "A result only counts if it can be repeated. In Orbyte, the root seed decides all "
+            "the others (the split's, the model's, the folds'), so the same configuration with "
+            "the same seed gives exactly the same model and the same metrics. **Reproducing** a "
+            "run trains it again that way; if the metrics change, something isn't "
+            "deterministic, or the data has changed.",
         ),
         "model_package": Explanation(
-            "O pacote do modelo",
-            "Um modelo sozinho não chega para prever: ele aprendeu com os dados **depois** da "
-            "preparação. Uma linha nova (uma pessoa com 22 anos, do sexo feminino) tem de "
-            "passar pelas mesmas transformações, com os valores aprendidos no treino: a mesma "
-            "mediana para preencher a idade em falta, as mesmas categorias, a mesma média e o "
-            "mesmo desvio para escalar. Por isso o pacote leva a preparação com o modelo. Se a "
-            "preparação mudasse entre o treino e o uso, o modelo recebia números que nunca viu "
-            "e enganava-se sem avisar.",
+            "The model package",
+            "A model alone isn't enough to predict: it learned from the data **after** the "
+            "preparation. A new row (a 22-year-old woman) has to go through the same "
+            "transformations, with the values learned in training: the same median to fill in "
+            "the missing age, the same categories, the same mean and standard deviation for "
+            "scaling. That's why the package carries the preparation with the model. If the "
+            "preparation changed between training and use, the model would get numbers it had "
+            "never seen and be wrong without warning.",
         ),
         "model_card": Explanation(
-            "A ficha do modelo",
-            "Quem recebe um modelo precisa de saber, antes de confiar nele: o que prevê e a "
-            "partir de quê, com que dados aprendeu, como se portou no teste (e comparado com o "
-            "palpite mais simples), e onde não se deve usar. O limite mais importante são os "
-            "intervalos que ele viu: fora deles, a previsão é uma **extrapolação**, um palpite "
-            "sem dados por trás. A ficha é o README.md do pacote, escrito para pessoas.",
+            "The model card",
+            "Whoever receives a model needs to know, before trusting it: what it predicts and "
+            "from what, what data it learned from, how it did on the test (and compared with "
+            "the simplest guess), and where it shouldn't be used. The most important limit is "
+            "the ranges it has seen: outside them, the prediction is an **extrapolation**, a "
+            "guess with no data behind it. The card is the package's README.md, written for "
+            "people.",
         ),
         "pickle_safety": Explanation(
-            "Porque é que abrir um modelo pede confirmação",
-            "O modelo vai num ficheiro joblib, que é um *pickle* do Python: abri-lo volta a "
-            "criar os objetos que lá estão, e isso pode correr código. Um pacote feito neste "
-            "ML Lab traz a assinatura dele e abre logo; um feito noutro sítio pode trazer código "
-            "de quem o fez. Por isso a ficha, a avaliação e a preparação (que são texto) "
-            "leem-se logo, e o modelo só abre depois de confirmares que confias em quem te deu "
-            "o ficheiro. Um pacote alterado depois de feito nunca abre o modelo.",
+            "Why opening a model asks for confirmation",
+            "The model goes in a joblib file, which is a Python *pickle*: opening it recreates "
+            "the objects inside, and that can run code. A package made in this Orbyte carries "
+            "its signature and opens straight away; one made elsewhere can carry its maker's "
+            "code. That's why the card, the evaluation and the preparation (which are text) can "
+            "be read at once, and the model only opens after you confirm you trust whoever gave "
+            "you the file. A package changed after it was made never opens the model.",
         ),
         "onnx_format": Explanation(
-            "O ONNX",
-            "O ONNX (Open Neural Network Exchange) é um formato aberto para trocar modelos "
-            "treinados entre programas. Descreve o modelo como um grafo de operações simples "
-            "(somar, multiplicar, comparar), que o ONNX Runtime corre em Python, C#, Java, "
-            "JavaScript e noutras linguagens, sem o ML Lab nem o scikit-learn. O `model.onnx` "
-            "do pacote junta a preparação e o modelo: recebe as colunas como chegam e devolve "
-            "a previsão. Antes de entrar no pacote, corre com as linhas de exemplo e tem de "
-            "dar as mesmas previsões do laboratório; se não der, fica de fora. Não é um "
-            "pickle, por isso não corre código de ninguém.",
+            "ONNX",
+            "ONNX (Open Neural Network Exchange) is an open format for exchanging trained models "
+            "between programs. It describes the model as a graph of simple operations (add, "
+            "multiply, compare), which ONNX Runtime runs in Python, C#, Java, JavaScript and "
+            "other languages, without Orbyte or scikit-learn. The package's `model.onnx` joins "
+            "the preparation and the model: it takes the columns as they come and returns the "
+            "prediction. Before it goes into the package, it runs on the example rows and has to "
+            "give the same predictions as the lab; if it doesn't, it's left out. It isn't a "
+            "pickle, so it runs nobody's code.",
         ),
         "memorized_rows": Explanation(
-            "Modelos que guardam os dados",
-            "Alguns modelos não resumem os dados em pesos: guardam-nos. O KNN guarda todas as "
-            "linhas do treino (é com elas que compara cada ponto novo), uma SVM guarda os "
-            "vetores de suporte (as linhas na fronteira) e o DBSCAN os pontos centrais. Quem "
-            "tiver um destes modelos consegue ver essas linhas, já transformadas. Antes de "
-            "partilhar um modelo treinado com dados pessoais, pensa em quem o vai ter.",
+            "Models that keep the data",
+            "Some models don't sum up the data in weights: they keep it. KNN keeps every "
+            "training row (it compares each new point with them), an SVM keeps the support "
+            "vectors (the rows on the boundary) and DBSCAN the core points. Whoever has one of "
+            "these models can see those rows, already transformed. Before sharing a model "
+            "trained on personal data, think about who will have it.",
         ),
         "package_versions": Explanation(
-            "Porque se registam as versões",
-            "O manifesto diz com que versões do Python, do NumPy, do scikit-learn e do PyTorch "
-            "se fez o pacote. Um pickle depende delas: noutra versão, o modelo pode não abrir, "
-            "ou prever de outra maneira sem dar erro. Com as versões à vista, sabe-se o que "
-            "instalar para o repetir; é a reprodutibilidade estendida para lá da seed.",
+            "Why the versions are recorded",
+            "The manifest says which versions of Python, NumPy, scikit-learn and PyTorch made "
+            "the package. A pickle depends on them: on another version, the model may not open, "
+            "or may predict differently without raising an error. With the versions in view, "
+            "you know what to install to repeat it; it's reproducibility extended beyond the "
+            "seed.",
         ),
     }
 )

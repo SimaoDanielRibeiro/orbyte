@@ -73,19 +73,17 @@ class TransformConfig:
         object.__setattr__(self, "scaling", _optional(ScalingMethod, self.scaling))
         object.__setattr__(self, "binned_columns", tuple(self.binned_columns))
         if numeric is not None and numeric not in NUMERIC_STRATEGIES:
-            raise InvalidParameterError(
-                "As colunas numéricas preenchem-se com a média ou a mediana."
-            )
+            raise InvalidParameterError("Numeric columns are filled with the mean or the median.")
         if categorical is not None and categorical not in CATEGORICAL_STRATEGIES:
             raise InvalidParameterError(
-                "As colunas categóricas preenchem-se com o valor mais frequente."
+                "Categorical columns are filled with the most frequent value."
             )
         if not 1 <= self.polynomial_degree <= MAX_DEGREE:
-            raise InvalidParameterError(f"O grau polinomial tem de estar entre 1 e {MAX_DEGREE}.")
-        if not 2 <= self.n_bins <= MAX_BINS:
             raise InvalidParameterError(
-                f"O número de intervalos tem de estar entre 2 e {MAX_BINS}."
+                f"The polynomial degree must be between 1 and {MAX_DEGREE}."
             )
+        if not 2 <= self.n_bins <= MAX_BINS:
+            raise InvalidParameterError(f"The number of bins must be between 2 and {MAX_BINS}.")
 
 
 class TransformPipeline:
@@ -161,7 +159,7 @@ def build_pipeline(schema: TableSchema, config: TransformConfig) -> TransformPip
     not_numeric = [column for column in binned if column not in numeric]
     if not_numeric:
         raise InvalidParameterError(
-            f"Só as features numéricas se dividem em intervalos: {', '.join(not_numeric)} não é."
+            f"Only numeric features can be split into bins: {', '.join(not_numeric)} isn't."
         )
 
     steps: list[Transform] = []
@@ -171,7 +169,7 @@ def build_pipeline(schema: TableSchema, config: TransformConfig) -> TransformPip
         steps.append(DateFeatures(dates))
         date_parts = [name for column in dates for name in DateFeatures.output_names(column)]
     elif dates:
-        steps.append(DropColumns(dates, "as datas só entram no modelo como partes numéricas."))
+        steps.append(DropColumns(dates, "dates only go into the model as numeric parts."))
 
     imputable = [*numeric, *date_parts]
     if config.numeric_imputation is not None and imputable:
@@ -193,8 +191,9 @@ def build_pipeline(schema: TableSchema, config: TransformConfig) -> TransformPip
             notices.append(
                 Notice.warning(
                     "many_polynomial_features",
-                    f"As features polinomiais criam {len(polynomials)} colunas: o treino fica "
-                    "lento e o modelo decora facilmente. Usa menos colunas ou um grau menor.",
+                    f"The polynomial features create {len(polynomials)} columns: the training "
+                    "gets slow and the model memorises easily. Use fewer columns or a lower "
+                    "degree.",
                 )
             )
 

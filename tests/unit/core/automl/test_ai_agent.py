@@ -39,13 +39,14 @@ from ml_lab.core.services.datasets import DatasetService
 
 IRIS = SourceSpec("sample", {"name": "iris"})
 SPECIES = PreparationConfig("species", split=SplitConfig(SplitStrategy.STRATIFIED))
-FAST = (ModelFamily.LINEAR, ModelFamily.INSTANCE_BASED, ModelFamily.TREE)
+# Um modelo rápido de cada uma de três famílias (os lineares, os vizinhos e as árvores).
+FAST = ("logistic_regression", "knn", "decision_tree")
 MULTICLASS = TaskType.MULTICLASS_CLASSIFICATION
 OBJECTIVE = objective_for(MULTICLASS)
 
 
 def finalists() -> list[Finalist]:
-    agents, _ = model_agents(MULTICLASS, OBJECTIVE, families=FAST)
+    agents, _ = model_agents(MULTICLASS, OBJECTIVE, models=FAST)
     return [(agent, model) for agent in agents for model in agent.models]
 
 
@@ -74,12 +75,12 @@ def test_a_good_answer_becomes_a_complete_proposal() -> None:
 @pytest.mark.parametrize(
     ("content", "problem"),
     [
-        ("isto não é JSON", "não é o JSON pedido"),
-        (answer("svm", {}), "não é um dos finalistas"),
-        (answer("decision_tree", {"max_depth": 7}), "não é um dos valores procurados"),
-        (answer("knn", {"n_neighbors": 99}), "sai do espaço procurado"),
-        (answer("knn", {"n_neighbors": 2.5}), "tem de ser um número inteiro"),
-        (answer("decision_tree", {"splitter": "random"}), "não é um hiperparâmetro procurado"),
+        ("this isn't JSON", "isn't the requested JSON"),
+        (answer("svm", {}), "isn't one of the finalists"),
+        (answer("decision_tree", {"max_depth": 7}), "isn't one of the values searched"),
+        (answer("knn", {"n_neighbors": 99}), "is outside the searched space"),
+        (answer("knn", {"n_neighbors": 2.5}), "must be a whole number"),
+        (answer("decision_tree", {"splitter": "random"}), "isn't a hyperparameter searched"),
     ],
 )
 def test_an_answer_that_does_not_fit_is_refused_with_the_reason(content: str, problem: str) -> None:
@@ -99,7 +100,7 @@ def test_a_combination_already_measured_is_refused() -> None:
 
     assert proposal is None
     assert problem is not None
-    assert "já foi medida" in problem
+    assert "was already measured" in problem
 
 
 # --- o que pergunta ------------------------------------------------------------------
@@ -121,7 +122,7 @@ def test_the_briefing_has_the_spaces_and_every_result_so_far() -> None:
         phase=SearchPhase.SCREENING,
         family=ModelFamily.TREE,
         model="decision_tree",
-        model_display_name="Árvore de decisão",
+        model_display_name="Decision tree",
         hyperparameters={},
         changes={},
         mean=0.9123,
@@ -131,9 +132,9 @@ def test_the_briefing_has_the_spaces_and_every_result_so_far() -> None:
 
     text = briefing(OBJECTIVE, MULTICLASS, finalists(), [measured])
 
-    assert "decision_tree (Árvore de decisão)" in text
-    assert "max_depth: um destes: [2, 3, 4, 5, 6, 8, 10, 0]" in text
-    assert "#1 decision_tree valores por omissão: 0.9123 ± 0.0201, no treino 1.0000" in text
+    assert "decision_tree (Decision tree)" in text
+    assert "max_depth: one of: [2, 3, 4, 5, 6, 8, 10, 0]" in text
+    assert "#1 decision_tree default values: 0.9123 ± 0.0201, training 1.0000" in text
 
 
 def test_it_thinks_out_loud_and_keeps_every_reply() -> None:
@@ -157,7 +158,7 @@ def test_it_thinks_out_loud_and_keeps_every_reply() -> None:
 
 
 def search(llm: ScriptedModel, *, budget: int) -> tuple[SearchOutcome, SearchLog]:
-    agents, _ = model_agents(MULTICLASS, OBJECTIVE, families=FAST)
+    agents, _ = model_agents(MULTICLASS, OBJECTIVE, models=FAST)
     log = SearchLog()
     coordinator = Coordinator(
         OBJECTIVE,
@@ -203,7 +204,7 @@ def test_three_refusals_in_a_row_take_it_out_of_the_tuning() -> None:
     assert len(llm.calls) == MAX_REFUSALS
     assert not any(candidate.ai for candidate in outcome.candidates)
     assert len(outcome.candidates) == 15  # as recusas não gastaram orçamento
-    assert any("sais da afinação" in message.text for message in log.messages())
+    assert any("you leave the tuning" in message.text for message in log.messages())
 
 
 def test_a_language_model_that_stops_answering_leaves_the_search_going() -> None:
@@ -213,7 +214,7 @@ def test_a_language_model_that_stops_answering_leaves_the_search_going() -> None
     assert outcome.winner is not None
     said = [m.text for m in log.messages() if m.role is AgentRole.AI]
     assert said
-    assert said[0].startswith("Não consegui responder")
+    assert said[0].startswith("I couldn't answer")
 
 
 def test_the_thought_grows_while_it_thinks() -> None:

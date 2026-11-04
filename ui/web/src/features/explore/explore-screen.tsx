@@ -34,7 +34,7 @@ import { MissingMapView } from "@/components/charts/missing-map";
 import { TopicText } from "@/components/markdown/topic-text";
 import { NoticeList } from "@/components/notices/notice-list";
 import { Explain } from "@/components/explain/explain";
-import { ErrorNote, Facts, NextStep, Panel, Proceed, StatStrip } from "@/components/shell/blocks";
+import { ErrorNote, Facts, Panel, Proceed, StatStrip } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageSkeleton, RequireDataset } from "@/features/data/require-dataset";
+import { useOpenDataset } from "@/features/data/use-open-dataset";
 import { classColors, classOrder } from "@/lib/classes";
 import { categoryColor, diverging, withAlpha } from "@/lib/colors";
 import {
@@ -61,16 +62,16 @@ import { useSession } from "@/state/session";
 import { ColumnDetail } from "./column-detail";
 
 /** O valor do "sem alvo" na lista (o Radix não aceita um valor vazio). */
-const NO_TARGET = "__sem_alvo__";
+const NO_TARGET = "__no_target__";
 
 /** As partes do perfil, pela ordem em que se leem: o índice e as secções saem daqui. */
 const PARTS = [
-  { id: "resumo", title: "Resumo", topic: "profiling" },
-  { id: "avisos", title: "Avisos" },
-  { id: "colunas", title: "Colunas" },
-  { id: "correlacoes", title: "Correlações", topic: "correlation_matrix" },
-  { id: "em-falta", title: "Valores em falta", topic: "missing_map" },
-  { id: "alvo", title: "Alvo", topic: "class_balance" },
+  { id: "summary", title: "Summary", topic: "profiling" },
+  { id: "warnings", title: "Warnings" },
+  { id: "columns", title: "Columns" },
+  { id: "correlations", title: "Correlations", topic: "correlation_matrix" },
+  { id: "missing", title: "Missing values", topic: "missing_map" },
+  { id: "target", title: "Target", topic: "class_balance" },
 ] as const;
 
 type PartId = (typeof PARTS)[number]["id"];
@@ -78,13 +79,18 @@ type PartId = (typeof PARTS)[number]["id"];
 const PART_IDS: readonly PartId[] = PARTS.map((part) => part.id);
 
 export function ExploreScreen() {
+  const { query } = useOpenDataset();
+  const next = NEXT[useSession((state) => state.path)];
   return (
     <Page>
       <PageHeader
         title={SCREENS.explore.title}
         description={SCREENS.explore.description}
         topics={["profiling", "correlation_matrix", "missing_map", "class_balance", "group_means"]}
-      />
+      >
+        {/* No mesmo sítio de todos os ecrãs: à direita do título (ADR 0036). */}
+        {query.data !== undefined && <Proceed to={next.to}>{next.action}</Proceed>}
+      </PageHeader>
       <RequireDataset>{(dataset) => <Explore key={dataset.id} dataset={dataset} />}</RequireDataset>
     </Page>
   );
@@ -96,18 +102,17 @@ export function ExploreScreen() {
  */
 const NEXT = {
   manual: {
-    to: "/preparar",
-    action: "Preparar os dados",
+    to: "/prepare",
+    action: "Prepare the data",
   },
   agents: {
-    to: "/agentes",
-    action: "Pedir aos agentes",
+    to: "/agents",
+    action: "Ask the agents",
   },
 } as const;
 
 function Explore({ dataset }: { dataset: DatasetSummary }) {
   const preparation = useSession((state) => state.preparation);
-  const next = NEXT[useSession((state) => state.path)];
   const reduced = useReducedMotion() ?? false;
   const [target, setTarget] = useState<string | null>(
     preparation?.datasetId === dataset.id
@@ -146,14 +151,11 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
 
   return (
     <>
-      <div className="mt-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-        <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-          <p className="pb-2.5 text-[0.9375rem] text-soft">
-            A explorar <span className="font-medium text-strong">{dataset.name}</span>
-          </p>
-          <TargetPicker dataset={dataset} target={target} onChange={setTarget} />
-        </div>
-        <Proceed to={next.to}>{next.action}</Proceed>
+      <div className="mt-8 flex flex-wrap items-end gap-x-8 gap-y-4">
+        <p className="pb-2.5 text-base text-soft">
+          Exploring <span className="font-medium text-strong">{dataset.name}</span>
+        </p>
+        <TargetPicker dataset={dataset} target={target} onChange={setTarget} />
       </div>
       <ErrorNote error={profile.error} className="mt-6" />
       {profile.data === undefined ? (
@@ -165,42 +167,39 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
             className={cn(profile.isPlaceholderData && "stale")}
             aria-busy={profile.isPlaceholderData}
           >
-            <Part id="resumo">
+            <Part id="summary">
               <Overview
                 profile={profile.data}
                 onColumn={(name) => {
                   setColumn(name);
-                  go("colunas");
+                  go("columns");
                 }}
               />
             </Part>
             <Part
-              id="avisos"
+              id="warnings"
               explain={
                 notices === 0
-                  ? "O perfil não encontrou nada que mereça atenção."
-                  : `${formatQuantity(notices, "aviso", "avisos")} sobre os dados, do dataset e de cada coluna.`
+                  ? "The profile found nothing worth your attention."
+                  : `${formatQuantity(notices, "warning", "warnings")} about the data, from the dataset and from each column.`
               }
             >
               <Notices profile={profile.data} />
             </Part>
-            <Part id="colunas">
+            <Part id="columns">
               <Columns profile={profile.data} selected={column} onSelect={setColumn} />
             </Part>
-            <Part id="correlacoes">
+            <Part id="correlations">
               <Correlations profile={profile.data} />
             </Part>
-            <Part id="em-falta">
+            <Part id="missing">
               <Missing profile={profile.data} />
             </Part>
             {/* A tarefa que o alvo pede, e porquê, fica no "?" da parte. */}
-            <Part id="alvo" explain={suggestion.data?.reason}>
+            <Part id="target" explain={suggestion.data?.reason}>
               <Target profile={profile.data} />
             </Part>
           </div>
-          <NextStep>
-            <Proceed to={next.to}>{next.action}</Proceed>
-          </NextStep>
         </>
       )}
     </>
@@ -212,12 +211,12 @@ function Explore({ dataset }: { dataset: DatasetSummary }) {
  * todas, no fim da página). Lê-se ao descer a página, uma vez por fotograma.
  */
 function useActivePart(): PartId {
-  const [active, setActive] = useState<PartId>("resumo");
+  const [active, setActive] = useState<PartId>("summary");
   useEffect(() => {
     let frame = 0;
     const update = () => {
       frame = 0;
-      let current: PartId = "resumo";
+      let current: PartId = "summary";
       for (const id of PART_IDS) {
         const top = document.getElementById(id)?.getBoundingClientRect().top;
         if (top !== undefined && top <= 170) {
@@ -255,8 +254,8 @@ function PartNav({ onGo }: { onGo: (id: PartId) => void }) {
   const active = useActivePart();
   return (
     <nav
-      aria-label="As partes do perfil"
-      className="sticky top-14 z-20 -mx-4 mt-8 bg-ground/90 px-4 py-3 shadow-[0_10px_18px_-14px_rgb(0_0_0/0.9)] backdrop-blur-md md:top-0 md:-mx-[2cm] md:px-[2cm]"
+      aria-label="The parts of the profile"
+      className="sticky top-14 z-20 -mx-4 mt-8 bg-ground/90 px-4 py-3 shadow-[0_10px_18px_-14px_rgb(0_0_0/0.9)] backdrop-blur-md md:-mx-8 md:px-8 lg:top-0 xl:-mx-[3cm] xl:px-[3cm]"
     >
       <ol className="flex [scrollbar-width:none] gap-1 overflow-x-auto">
         {PARTS.map((part) => {
@@ -267,7 +266,7 @@ function PartNav({ onGo }: { onGo: (id: PartId) => void }) {
                 <motion.span
                   aria-hidden="true"
                   layoutId="explorar-parte"
-                  transition={{ type: "spring", bounce: 0.2, visualDuration: 0.38 }}
+                  transition={{ type: "spring", bounce: 0.08, visualDuration: 0.45 }}
                   className="absolute inset-0 rounded-[10px] border border-[#3a3a3a] bg-[#262626] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
                 />
               )}
@@ -335,8 +334,8 @@ interface TargetPickerProps {
 function TargetPicker({ dataset, target, onChange }: TargetPickerProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor="explorar-alvo" className="mono-label">
-        Coluna-alvo
+      <label htmlFor="explorar-alvo" className="small-label">
+        Target column
       </label>
       <Select
         value={target ?? NO_TARGET}
@@ -348,7 +347,7 @@ function TargetPicker({ dataset, target, onChange }: TargetPickerProps) {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NO_TARGET}>Sem alvo</SelectItem>
+          <SelectItem value={NO_TARGET}>No target</SelectItem>
           {dataset.columns.map((column) => (
             <SelectItem key={column.name} value={column.name}>
               {column.name}
@@ -370,14 +369,14 @@ function Overview({
 }) {
   const cells = profile.n_rows * profile.n_columns;
   const stats = [
-    { label: "Linhas", value: formatCount(profile.n_rows) },
-    { label: "Colunas", value: formatCount(profile.n_columns) },
+    { label: "Rows", value: formatCount(profile.n_rows) },
+    { label: "Columns", value: formatCount(profile.n_columns) },
     {
-      label: "Células em falta",
+      label: "Missing cells",
       value: formatPercent(cells === 0 ? 0 : profile.n_missing_cells / cells),
     },
-    { label: "Linhas duplicadas", value: formatCount(profile.n_duplicate_rows) },
-    { label: "Memória", value: `${formatNumber(profile.memory_bytes / 1024 ** 2, 1)} MB` },
+    { label: "Duplicate rows", value: formatCount(profile.n_duplicate_rows) },
+    { label: "Memory", value: `${formatNumber(profile.memory_bytes / 1024 ** 2, 1)} MB` },
   ];
   return (
     <>
@@ -408,8 +407,8 @@ function KindStrip({
     .filter((entry) => entry.count > 0);
 
   return (
-    <Panel title="As colunas pelo tipo inferido" className="mt-12">
-      <div className="flex h-7 gap-1" role="list" aria-label="As colunas pelo tipo inferido">
+    <Panel title="The columns by inferred type" className="mt-12">
+      <div className="flex h-7 gap-1" role="list" aria-label="The columns by inferred type">
         {profile.columns.map((column) => (
           <Tooltip key={column.name}>
             <TooltipTrigger asChild>
@@ -457,7 +456,7 @@ function Notices({ profile }: { profile: DatasetProfile }) {
   return (
     <div className="flex flex-col gap-4">
       {notices.length === 0 ? (
-        <p className="text-sm text-soft">Nada que mereça atenção.</p>
+        <p className="text-sm text-soft">Nothing worth your attention.</p>
       ) : (
         <NoticeList
           notices={all || hidden <= 1 ? notices : notices.slice(0, FIRST_NOTICES)}
@@ -474,7 +473,7 @@ function Notices({ profile }: { profile: DatasetProfile }) {
             setAll(!all);
           }}
         >
-          {all ? "Mostrar só os primeiros" : `Mostrar os outros ${formatCount(hidden)} avisos`}
+          {all ? "Show only the first ones" : `Show the other ${formatCount(hidden)} warnings`}
         </Button>
       )}
     </div>
@@ -497,23 +496,17 @@ function Columns({ profile, selected, onSelect }: ColumnsProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left">
-              <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-                Coluna
+              <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+                Column
               </th>
-              <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-                Tipo
+              <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+                Type
               </th>
-              <th
-                scope="col"
-                className="px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
-              >
-                Em falta
+              <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-dim">
+                Missing
               </th>
-              <th
-                scope="col"
-                className="px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
-              >
-                Distintos
+              <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-dim">
+                Distinct
               </th>
             </tr>
           </thead>
@@ -574,7 +567,7 @@ function Correlations({ profile }: { profile: DatasetProfile }) {
   if (matrix === null) {
     return (
       <p className="text-sm text-soft">
-        São precisas pelo menos duas colunas numéricas para medir correlações.
+        Measuring correlations takes at least two numeric columns.
       </p>
     );
   }
@@ -587,7 +580,7 @@ function Correlations({ profile }: { profile: DatasetProfile }) {
         values={matrix.values}
         color={diverging}
         format={(value) => formatNumber(value, 2)}
-        description="A correlação de Pearson entre cada par de colunas numéricas."
+        description="The Pearson correlation between each pair of numeric columns."
         caption={<TopicText topic="correlation_matrix" />}
         labelWidth={labelWidth}
         cellHeight={Math.min(40, Math.max(28, 360 / matrix.columns.length))}
@@ -598,7 +591,7 @@ function Correlations({ profile }: { profile: DatasetProfile }) {
 
 function Missing({ profile }: { profile: DatasetProfile }) {
   if (profile.n_missing_cells === 0) {
-    return <p className="text-sm text-soft">Não há valores em falta.</p>;
+    return <p className="text-sm text-soft">There are no missing values.</p>;
   }
   const withMissing = profile.columns
     .filter((column) => column.n_missing > 0)
@@ -606,7 +599,7 @@ function Missing({ profile }: { profile: DatasetProfile }) {
   const complete = profile.columns.length - withMissing.length;
   return (
     <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
-      <Panel title="A parte em falta de cada coluna">
+      <Panel title="The missing share of each column">
         <BarChart
           items={withMissing.map((column) => ({
             key: column.name,
@@ -614,29 +607,25 @@ function Missing({ profile }: { profile: DatasetProfile }) {
             value: column.n_missing / column.n_rows,
           }))}
           format={(value) => formatPercent(value)}
-          valueLabel="dos valores em falta"
+          valueLabel="of the values missing"
           max={1}
-          description="A percentagem de valores em falta em cada coluna que tem nulos."
+          description="The percentage of missing values in each column that has nulls."
           caption={
             complete > 0
-              ? `${complete === 1 ? "A outra coluna não tem" : `As outras ${formatCount(complete)} colunas não têm`} valores em falta.`
+              ? `${complete === 1 ? "The other column has no" : `The other ${formatCount(complete)} columns have no`} missing values.`
               : undefined
           }
         />
       </Panel>
-      <Panel title="Onde estão os nulos">
+      <Panel title="Where the nulls are">
         <MissingMapView
           map={profile.missing_map}
-          description="O mapa dos valores em falta: as colunas na horizontal e as linhas na vertical."
+          description="The map of missing values: the columns across and the rows down."
           caption={
             <>
               <p className="mb-1">
-                {formatQuantity(
-                  profile.missing_map.rows.length,
-                  "linha mostrada",
-                  "linhas mostradas",
-                )}{" "}
-                de {formatCount(profile.n_rows)}.
+                {formatQuantity(profile.missing_map.rows.length, "row shown", "rows shown")} of{" "}
+                {formatCount(profile.n_rows)}.
               </p>
               <TopicText topic="missing_map" />
             </>
@@ -652,7 +641,7 @@ function Target({ profile }: { profile: DatasetProfile }) {
   if (target === null) {
     return (
       <p className="text-sm text-soft">
-        Escolhe uma coluna-alvo, no topo do ecrã, para ver as classes.
+        Choose a target column, at the top of the screen, to see its classes.
       </p>
     );
   }
@@ -686,12 +675,12 @@ function Classes({ profile }: { profile: DatasetProfile }) {
 
   return (
     <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
-      <Panel title={`As classes de ${balance.target}`}>
+      <Panel title={`The classes of ${balance.target}`}>
         <Facts
           size="sm"
           facts={[
             { label: "Classes", value: formatCount(balance.classes.length) },
-            { label: "Equilíbrio", value: formatPercent(largest === 0 ? 0 : smallest / largest) },
+            { label: "Balance", value: formatPercent(largest === 0 ? 0 : smallest / largest) },
           ]}
         />
         <BarChart
@@ -704,13 +693,13 @@ function Classes({ profile }: { profile: DatasetProfile }) {
           format={(count, item) =>
             `${formatCount(count)} (${formatPercent(ratios.get(item.key) ?? 0)})`
           }
-          valueLabel="linhas"
-          description={`Quantas linhas tem cada classe de ${balance.target}.`}
+          valueLabel="rows"
+          description={`How many rows each class of ${balance.target} has.`}
           caption={<TopicText topic="class_balance" />}
         />
       </Panel>
       {means !== null && (
-        <Panel title="A média de cada feature por classe">
+        <Panel title="Each feature's mean by class">
           <div>
             <DotPlot
               series={means.groups.map((group) => ({
@@ -729,27 +718,26 @@ function Classes({ profile }: { profile: DatasetProfile }) {
                 };
               })}
               format={formatStatistic}
-              description={`A média de cada feature numérica em cada classe de ${means.target}, entre o mínimo e o máximo da feature.`}
+              description={`The mean of each numeric feature in each class of ${means.target}, between the feature's minimum and maximum.`}
               caption={<TopicText topic="group_means" />}
             />
           </div>
           <details className="text-sm">
-            <summary className="cursor-pointer text-soft hover:text-strong">Ver os números</summary>
+            <summary className="cursor-pointer text-soft hover:text-strong">
+              See the numbers
+            </summary>
             <div className="relative mt-3 overflow-x-auto rounded-xl border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th
-                      scope="col"
-                      className="px-4 py-2.5 text-left font-mono text-xs font-normal text-dim"
-                    >
-                      Classe
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium text-dim">
+                      Class
                     </th>
                     {means.columns.map((name) => (
                       <th
                         key={name}
                         scope="col"
-                        className="px-4 py-2.5 text-right font-mono text-xs font-normal text-dim"
+                        className="px-4 py-2.5 text-right text-xs font-medium text-dim"
                       >
                         {name}
                       </th>

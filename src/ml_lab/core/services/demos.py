@@ -99,8 +99,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "moons",
-            "Luas",
-            "Duas meias-luas encaixadas: nenhuma reta as separa.",
+            "Moons",
+            "Two half-moons fitted together: no straight line separates them.",
             TaskType.BINARY_CLASSIFICATION,
         ),
         "moons",
@@ -110,8 +110,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "circles",
-            "Círculos",
-            "Um círculo dentro de outro: a fronteira tem de dar a volta.",
+            "Circles",
+            "One circle inside another: the boundary has to go all the way round.",
             TaskType.BINARY_CLASSIFICATION,
         ),
         "circles",
@@ -121,8 +121,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "blobs",
-            "Três nuvens",
-            "Três grupos de pontos, um por classe, que se tocam nas pontas.",
+            "Three blobs",
+            "Three groups of points, one per class, touching at the edges.",
             TaskType.MULTICLASS_CLASSIFICATION,
         ),
         "blobs",
@@ -132,8 +132,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "wave",
-            "Onda",
-            "Um alvo que sobe e desce com a feature: uma reta não o consegue seguir.",
+            "Wave",
+            "A target that rises and falls with the feature: a straight line can't follow it.",
             TaskType.REGRESSION,
         ),
         "wave",
@@ -143,8 +143,9 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "line",
-            "Reta com ruído",
-            "Um alvo que cresce a direito com a feature, mais ruído: o caso do modelo linear.",
+            "Noisy line",
+            "A target that grows in a straight line with the feature, plus noise: the case for a "
+            "linear model.",
             TaskType.REGRESSION,
         ),
         "regression",
@@ -154,8 +155,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "clusters",
-            "Três grupos",
-            "Três nuvens sem rótulo: o modelo tem de as encontrar sozinho.",
+            "Three groups",
+            "Three unlabelled clouds: the model has to find them on its own.",
             TaskType.CLUSTERING,
         ),
         "blobs",
@@ -165,8 +166,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "moon_clusters",
-            "Luas sem rótulo",
-            "Dois grupos com forma de lua: quem corta a direito separa-os mal.",
+            "Unlabelled moons",
+            "Two moon-shaped groups: whoever cuts in straight lines separates them badly.",
             TaskType.CLUSTERING,
         ),
         "moons",
@@ -176,8 +177,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "outliers",
-            "Anomalias",
-            "Duas nuvens normais e alguns pontos espalhados à volta delas.",
+            "Anomalies",
+            "Two normal clouds and a few points scattered around them.",
             TaskType.ANOMALY_DETECTION,
         ),
         "anomalies",
@@ -187,8 +188,8 @@ EXAMPLES: Final = (
     _Example(
         DemoExample(
             "high_dimensional",
-            "Nuvens em 5 dimensões",
-            "Quatro grupos num espaço de 5 features: a projeção tem de os manter separados em 2.",
+            "Clouds in 5 dimensions",
+            "Four groups in a space of 5 features: the projection has to keep them apart in 2.",
             TaskType.DIMENSIONALITY_REDUCTION,
         ),
         "blobs",
@@ -305,8 +306,7 @@ class ModelDemos:
                 return candidate
         names = ", ".join(candidate.info.name for candidate in usable)
         raise InvalidParameterError(
-            f"'{model.info.display_name}' não tem o exemplo '{example}'. Escolhe um destes: "
-            f"{names}."
+            f"'{model.info.display_name}' has no example '{example}'. Choose one of these: {names}."
         )
 
     def _train(self, example: _Example, model: str, hyperparameters: dict[str, Any]) -> ModelDemo:

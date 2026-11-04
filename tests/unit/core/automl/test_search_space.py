@@ -74,15 +74,15 @@ def test_a_model_with_nothing_to_search_has_an_empty_space() -> None:
     assert space.sample(np.random.default_rng(0)) == {}
 
 
-def test_the_space_describes_itself_in_portuguese() -> None:
+def test_the_space_describes_itself_in_plain_words() -> None:
     descriptions = [
         dimension.description for dimension in search_space(MODELS.get("svm")).dimensions
     ]
 
-    assert descriptions[0] == "C (custo dos erros): de 0,1 a 100, em escala logarítmica"
-    assert descriptions[1] == "Kernel: RBF (gaussiano), Linear"  # os nomes do x-labels
-    assert written_value(True) == "sim"
-    assert written_value(0.0128) == "0,0128"
+    assert descriptions[0] == "C (cost of errors): from 0.1 to 100, on a logarithmic scale"
+    assert descriptions[1] == "Kernel: RBF (Gaussian), Linear"  # os nomes do x-labels
+    assert written_value(True) == "yes"
+    assert written_value(0.0128) == "0.0128"
     assert written_value(0.00001) == "1 × 10⁻⁵"
 
 
@@ -106,5 +106,5 @@ def _fake(params: type[Hyperparameters]) -> type[LabModel[Any]]:
 
 @pytest.mark.parametrize("params", [_BadParams, _EmptyParams], ids=["range", "values"])
 def test_a_badly_written_search_is_a_model_error(params: type[Hyperparameters]) -> None:
-    with pytest.raises(ModelError, match="x-search de falso"):
+    with pytest.raises(ModelError, match="x-search of falso"):
         search_space(_fake(params))

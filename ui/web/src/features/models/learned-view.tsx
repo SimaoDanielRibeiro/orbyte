@@ -80,17 +80,17 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
         </div>
       )}
       {network !== null && (
-        <Block title="A rede" topic="network_diagram" className="@5xl/main:col-span-2">
+        <Block title="The network" topic="network_diagram" className="@5xl/main:col-span-2">
           <NetworkView
             network={network}
             step={step}
-            description="As camadas da rede neuronal, com a ativação média de cada neurónio."
+            description="The neural network's layers, with each neuron's mean activation."
           />
         </Block>
       )}
       {learned.weights !== null && <Weights weights={learned.weights} className={half} />}
       {learned.importances.length > 0 && (
-        <Block title="A importância de cada feature" topic="impurity_importance" className={half}>
+        <Block title="Each feature's importance" topic="impurity_importance" className={half}>
           <BarChart
             items={learned.importances.slice(0, TOP_FEATURES).map(([feature, value]) => ({
               key: feature,
@@ -98,21 +98,21 @@ export function LearnedViewPanel({ learned, network, step }: LearnedViewProps) {
               value,
             }))}
             format={(value) => formatPercent(value)}
-            valueLabel="da importância"
-            description="A importância de cada feature, pela redução das impurezas nas árvores."
+            valueLabel="of the importance"
+            description="Each feature's importance, by the reduction in impurity in the trees."
           />
         </Block>
       )}
       {learned.tree.length > 0 ? (
-        <Block title="A árvore" topic="tree_diagram" className="@5xl/main:col-span-2">
+        <Block title="The tree" topic="tree_diagram" className="@5xl/main:col-span-2">
           <TreeDiagram
             nodes={learned.tree}
-            description="A árvore de decisão: as perguntas de cada nó e a previsão de cada folha."
+            description="The decision tree: each node's question and each leaf's prediction."
           />
         </Block>
       ) : (
         learned.tree_rules.length > 0 && (
-          <Block title="As regras da árvore" className="@5xl/main:col-span-2">
+          <Block title="The tree's rules" className="@5xl/main:col-span-2">
             <pre className="relative overflow-x-auto rounded-xl border bg-ground p-4 font-mono text-xs leading-relaxed text-soft">
               {learned.tree_rules.join("\n")}
             </pre>
@@ -153,10 +153,10 @@ function Block({
 function Weights({ weights, className }: { weights: LinearWeights; className?: string }) {
   const intercepts =
     weights.outputs.length === 1
-      ? `A ordenada (b) é ${formatNumber(weights.intercepts[0] ?? 0, 3)}.`
-      : `As ordenadas (b) são ${formatList(
+      ? `The intercept (b) is ${formatNumber(weights.intercepts[0] ?? 0, 3)}.`
+      : `The intercepts (b) are ${formatList(
           weights.outputs.map(
-            (output, index) => `${formatNumber(weights.intercepts[index] ?? 0, 3)} em ${output}`,
+            (output, index) => `${formatNumber(weights.intercepts[index] ?? 0, 3)} for ${output}`,
           ),
         )}.`;
   const caption = (
@@ -168,7 +168,7 @@ function Weights({ weights, className }: { weights: LinearWeights; className?: s
   if (weights.outputs.length === 1) {
     const row = weights.weights[0] ?? [];
     return (
-      <Block title="Os pesos" explain={caption} className={className}>
+      <Block title="The weights" explain={caption} className={className}>
         <BarChart
           items={weights.features.map((feature, index) => ({
             key: feature,
@@ -176,15 +176,15 @@ function Weights({ weights, className }: { weights: LinearWeights; className?: s
             value: row[index] ?? 0,
           }))}
           format={(value) => formatNumber(value, 3)}
-          valueLabel="peso"
-          description="O peso de cada feature no modelo linear."
+          valueLabel="weight"
+          description="Each feature's weight in the linear model."
         />
       </Block>
     );
   }
   const strongest = Math.max(1e-9, ...weights.weights.flat().map(Math.abs));
   return (
-    <Block title="Os pesos" explain={caption} className={className}>
+    <Block title="The weights" explain={caption} className={className}>
       <div style={{ maxWidth: 140 + weights.outputs.length * 88 }}>
         <Heatmap
           rows={weights.features}
@@ -195,8 +195,8 @@ function Weights({ weights, className }: { weights: LinearWeights; className?: s
           color={(value) => diverging(value / strongest)}
           format={(value) => formatNumber(value, 2)}
           rowTitle="Feature"
-          columnTitle="Classe"
-          description="O peso de cada feature para cada classe, no modelo linear."
+          columnTitle="Class"
+          description="Each feature's weight for each class, in the linear model."
           labelWidth={140}
           cellHeight={30}
         />

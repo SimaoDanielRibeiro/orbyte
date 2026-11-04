@@ -3,7 +3,8 @@
 O Ollama é opcional (ADR 0042): sem ele, o laboratório funciona como sempre e os agentes de IA
 ficam desligados. O ``status`` diz à interface se os pode ligar e, se não, o que fazer, em
 avisos com um código estável. Não lança erro quando o Ollama não está a correr: isso é um
-estado, não uma falha do pedido.
+estado, não uma falha do pedido. Também pergunta se o modelo pensa antes de responder: o agente
+de IA mostra esse raciocínio, e o Ollama recusa o pedido a um modelo que não pensa.
 """
 
 from dataclasses import dataclass
@@ -24,15 +25,19 @@ class LanguageModelStatus:
     """O estado do modelo de linguagem dos agentes de IA.
 
     Attributes:
-        ready: Se os agentes de IA podem trabalhar (o Ollama responde e tem o modelo).
+        ready: Se os agentes de IA podem trabalhar (o Ollama responde, tem o modelo e o modelo
+            pensa antes de responder).
         running: Se o Ollama responde.
         url: Onde o Ollama devia estar.
         model: O modelo configurado (``ML_LAB_OLLAMA_MODEL``).
         installed: Se o Ollama tem o modelo configurado.
         version: A versão do Ollama, quando responde.
         models: Os modelos que o Ollama tem.
+        thinks: Se o modelo pensa à parte, antes de responder (o agente de IA mostra esse
+            raciocínio, e o Ollama recusa o pedido a um modelo que não pensa); ``None`` quando
+            não se sabe (sem o modelo, ou num Ollama que não diz as capacidades).
         notices: O que falta fazer, com um código estável (``ollama_not_running``,
-            ``model_not_installed``).
+            ``model_not_installed``, ``model_cannot_think``).
     """
 
     ready: bool
@@ -42,6 +47,7 @@ class LanguageModelStatus:
     installed: bool
     version: str | None
     models: tuple[str, ...]
+    thinks: bool | None = None
     notices: tuple[Notice, ...] = ()
 
 
@@ -79,6 +85,8 @@ class LanguageModelService:
         url = self._server.url
         try:
             info = self._server.info()
+            installed = has_model(info.models, self._model)
+            capabilities = self._server.capabilities(self._model) if installed else None
         except LanguageModelError as error:
             logger.debug("o Ollama não responde", extra={"url": url, "error": str(error)})
             return LanguageModelStatus(
@@ -92,33 +100,45 @@ class LanguageModelService:
                 notices=(
                     Notice.warning(
                         "ollama_not_running",
-                        f"O Ollama não está a correr em {url}. Para ligar os agentes de IA, abre "
-                        f"a aplicação do Ollama (ou corre «ollama serve») e descarrega o modelo "
-                        f"com «ollama pull {self._model}». O resto do laboratório funciona "
-                        "sem ele.",
+                        f"Ollama isn't running at {url}. To turn on the AI agents, open the "
+                        f"Ollama app (or run 'ollama serve') and download the model with "
+                        f"'ollama pull {self._model}'. The rest of the lab works without it.",
                     ),
                 ),
             )
-        installed = has_model(info.models, self._model)
+        thinks = None if capabilities is None else "thinking" in capabilities
         notices: tuple[Notice, ...] = ()
         if not installed:
-            found = ", ".join(info.models) or "nenhum"
+            found = ", ".join(info.models) or "none"
             notices = (
                 Notice.warning(
                     "model_not_installed",
-                    f"O Ollama está a correr, mas não tem o modelo {self._model}: descarrega-o "
-                    f"com «ollama pull {self._model}» (só da primeira vez). Os modelos que tem: "
-                    f"{found}.",
+                    f"Ollama is running, but it doesn't have the model {self._model}: download "
+                    f"it with 'ollama pull {self._model}' (only the first time). The models it "
+                    f"has: {found}.",
+                ),
+            )
+        elif thinks is False:
+            # O agente de IA pede o raciocínio ("think"), e o Ollama recusa-o a um modelo que
+            # não pensa: mais vale dizê-lo aqui do que falhar a meio de uma procura.
+            notices = (
+                Notice.warning(
+                    "model_cannot_think",
+                    f"The model {self._model} doesn't think before it answers, and the AI agent "
+                    "shows that thinking. Choose a model that thinks (qwen3, deepseek-r1 or "
+                    "gpt-oss, for example) in ML_LAB_OLLAMA_MODEL and download it with "
+                    "'ollama pull qwen3:8b'.",
                 ),
             )
         return LanguageModelStatus(
-            ready=installed,
+            ready=installed and thinks is not False,
             running=True,
             url=url,
             model=self._model,
             installed=installed,
             version=info.version,
             models=info.models,
+            thinks=thinks,
             notices=notices,
         )
 

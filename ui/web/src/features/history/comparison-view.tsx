@@ -37,16 +37,16 @@ import { formatPercent, formatStatistic } from "@/lib/format";
 import { comparedValue, primaryValue } from "./values";
 
 /** O cabeçalho de uma coluna das tabelas da comparação. */
-const HEAD = "px-3 py-2.5 font-mono text-xs font-normal text-dim";
+const HEAD = "px-3 py-2.5 text-xs font-medium text-dim";
 /** A linha que abre um grupo de linhas numa tabela (as métricas de um run, um grupo de escolhas). */
-const GROUP = "px-3 pt-5 pb-2 text-left font-mono text-xs font-normal text-dim";
+const GROUP = "px-3 pt-5 pb-2 text-left text-xs font-medium text-dim";
 
 export function ComparisonView({ runIds }: { runIds: readonly string[] }) {
   const comparison = useQuery(comparisonQuery(runIds));
   if (runIds.length < 2) {
     return (
       <p className="text-sm text-soft">
-        Escolhe dois a cinco runs na tabela para os ver lado a lado.
+        Choose two to five runs in the table to see them side by side.
       </p>
     );
   }
@@ -85,7 +85,7 @@ function Compared({ comparison }: { comparison: RunComparison }) {
 
       {comparison.notices.length > 0 && <NoticeList notices={comparison.notices} />}
 
-      <Panel title={`As métricas no ${label("Partition", comparison.partition).toLowerCase()}`}>
+      <Panel title={`The metrics on the ${label("Partition", comparison.partition).toLowerCase()}`}>
         <div
           className={cn(
             "grid gap-x-12 gap-y-8",
@@ -109,7 +109,7 @@ function Compared({ comparison }: { comparison: RunComparison }) {
                 color: categoryColor(index),
               }))}
               format={(value) => formatPercent(value)}
-              description="As métricas em percentagem que os runs têm em comum, numa linha de 0 a 100% por métrica."
+              description="The percentage metrics the runs share, on a 0 to 100% line per metric."
             />
           )}
         </div>
@@ -122,10 +122,10 @@ function Compared({ comparison }: { comparison: RunComparison }) {
           comparison.losses.length > 0 && "@5xl/main:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]",
         )}
       >
-        <Panel title="O que muda entre os runs">
+        <Panel title="What changes between the runs">
           {comparison.differences.length === 0 ? (
             <p className="text-sm text-soft">
-              Os runs têm exatamente a mesma configuração e a mesma seed.
+              The runs have exactly the same configuration and the same seed.
             </p>
           ) : (
             <DifferencesTable comparison={comparison} />
@@ -133,7 +133,7 @@ function Compared({ comparison }: { comparison: RunComparison }) {
         </Panel>
 
         {comparison.losses.length > 0 && (
-          <Panel title="A loss ao longo do treino">
+          <Panel title="The loss over the training">
             <LineChart
               series={comparison.losses.map((series) => {
                 const index = comparison.labels.indexOf(series.label);
@@ -146,15 +146,15 @@ function Compared({ comparison }: { comparison: RunComparison }) {
               })}
               // Losses de ordens de grandeza diferentes só se comparam em escala logarítmica.
               logY={spread > 100}
-              xLabel="Passo do treino"
+              xLabel="Training step"
               yLabel="Loss"
               formatY={formatStatistic}
-              description="A loss de cada run ao longo do treino."
+              description="Each run's loss over the training."
             />
             {withoutLoss.length > 0 && (
               <p className="mt-3 text-xs text-dim">
-                Sem curva: {withoutLoss.map((name) => splitLabel(name).letter).join(", ")} (não
-                treinou por passos).
+                No curve: {withoutLoss.map((name) => splitLabel(name).letter).join(", ")}{" "}
+                (didn&apos;t train in steps).
               </p>
             )}
           </Panel>
@@ -169,7 +169,7 @@ function RunCards({ comparison }: { comparison: RunComparison }) {
   const label = useLabel();
   return (
     <ul
-      aria-label="Os runs comparados"
+      aria-label="The runs compared"
       className="grid gap-3 @2xl/main:grid-cols-2 @6xl/main:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]"
     >
       {comparison.runs.map((run, index) => {
@@ -193,9 +193,9 @@ function RunCards({ comparison }: { comparison: RunComparison }) {
               </span>
             </div>
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
-              <Fact term="Modelo">{run.model_display_name}</Fact>
-              <Fact term="Dados">{run.dataset_name}</Fact>
-              <Fact term="Tarefa">{label("TaskType", run.task_type)}</Fact>
+              <Fact term="Model">{run.model_display_name}</Fact>
+              <Fact term="Data">{run.dataset_name}</Fact>
+              <Fact term="Task">{label("TaskType", run.task_type)}</Fact>
             </dl>
             {run.primary_label !== null && (
               <div className="mt-auto flex items-baseline justify-between gap-3 border-t pt-3">
@@ -264,10 +264,10 @@ function metricGroups(comparison: RunComparison): RowGroup<MetricComparison>[] {
     const key = owners.join(",");
     const all = owners.length === letters.length;
     const title = all
-      ? "Em comum"
+      ? "Shared"
       : owners.length === 0
-        ? "Sem valor"
-        : `Só ${owners.map((index) => letters[index]).join(" e ")}`;
+        ? "No value"
+        : `Only ${owners.map((index) => letters[index]).join(" and ")}`;
     const group = groups.get(key) ?? { key, title, rows: [] };
     group.rows.push(metric);
     groups.set(key, group);
@@ -287,11 +287,11 @@ function MetricsTable({ comparison }: { comparison: RunComparison }) {
   return (
     <div className="relative max-w-full overflow-x-auto">
       <table className="w-full text-sm">
-        <caption className="sr-only">As métricas de cada run, com a melhor marcada</caption>
+        <caption className="sr-only">Each run's metrics, with the best one marked</caption>
         <thead>
           <tr className="border-b">
             <th scope="col" className={cn("text-left", HEAD)}>
-              Métrica
+              Metric
             </th>
             <RunHeads labels={comparison.labels} align="right" />
           </tr>
@@ -328,7 +328,7 @@ function MetricsTable({ comparison }: { comparison: RunComparison }) {
                         {best && (
                           <>
                             <Star aria-hidden="true" className="size-3 fill-current" />
-                            <span className="sr-only">O melhor: </span>
+                            <span className="sr-only">The best: </span>
                           </>
                         )}
                         {comparedValue(value, metric.as_percent)}
@@ -365,11 +365,11 @@ function DifferencesTable({ comparison }: { comparison: RunComparison }) {
   return (
     <div className="relative max-w-full overflow-x-auto">
       <table className="w-full text-sm">
-        <caption className="sr-only">As escolhas que mudam de um run para outro</caption>
+        <caption className="sr-only">The choices that change from one run to another</caption>
         <thead>
           <tr className="border-b">
             <th scope="col" className={cn("text-left", HEAD)}>
-              Escolha
+              Choice
             </th>
             <RunHeads labels={comparison.labels} align="left" />
           </tr>

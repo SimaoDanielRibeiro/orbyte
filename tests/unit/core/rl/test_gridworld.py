@@ -32,7 +32,7 @@ def test_the_simple_map_is_read_row_by_row() -> None:
     assert world.reset(np.random.default_rng(0)) == 0
     assert layout.kind(cell(world, 4, 4)) is CellKind.GOAL
     assert layout.kind(cell(world, 1, 1)) is CellKind.WALL
-    assert world.title() == "Grelha · simples"
+    assert world.title() == "Grid world · Simple"
 
 
 def test_borders_and_walls_keep_the_agent_in_place_and_cost_a_step() -> None:
@@ -82,7 +82,7 @@ def test_without_randomness_there_is_no_slipping() -> None:
 
 
 def test_invalid_parameters_are_explained() -> None:
-    with pytest.raises(HyperparameterError, match="Escorregar"):
+    with pytest.raises(HyperparameterError, match="Slip"):
         GridWorldParams.parse({"slip": 0.9})
-    with pytest.raises(HyperparameterError, match="Mapa"):
+    with pytest.raises(HyperparameterError, match="Map"):
         GridWorldParams.parse({"layout": "lua"})

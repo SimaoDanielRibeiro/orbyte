@@ -41,10 +41,10 @@ class PCAParams(Hyperparameters):
         default=2,
         ge=1,
         le=10,
-        title="Número de componentes",
+        title="Number of components",
         description=(
-            "Quantas direções guardar. Com 2, os dados cabem num gráfico; a variância "
-            "explicada diz quanta informação ficou."
+            "How many directions to keep. With 2, the data fits on a chart; the explained "
+            "variance says how much information is left."
         ),
     )
 
@@ -58,8 +58,8 @@ def check_components(n_components: int, X: Features) -> None:
     limit = min(X.shape)
     if n_components > limit:
         raise ModelError(
-            f"Pediste {n_components} componentes, mas os dados só têm {X.shape[1]} features e "
-            f"{X.shape[0]} linhas: no máximo {limit}."
+            f"You asked for {n_components} components, but the data has only {X.shape[1]} "
+            f"features and {X.shape[0]} rows: at most {limit}."
         )
 
 
@@ -71,8 +71,8 @@ class PCANumpy(LabModel[PCAParams]):
         name="pca_numpy",
         display_name="PCA (NumPy)",
         summary=(
-            "Encontra as direções de maior variância com a matriz de covariância e os seus "
-            "vetores próprios, em NumPy, para comparares com a do scikit-learn."
+            "Finds the directions of greatest variance with the covariance matrix and its "
+            "eigenvectors, in NumPy, to compare with scikit-learn's."
         ),
         task_types=frozenset({TaskType.DIMENSIONALITY_REDUCTION}),
         family=ModelFamily.PROJECTION,

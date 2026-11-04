@@ -7,7 +7,7 @@
  */
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
-import { ArrowRight, CircleAlert } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ApiRequestError } from "@/api/errors";
@@ -85,7 +85,7 @@ export function Panel({
         <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-1">
             {title !== undefined && (
-              <Heading className="text-[0.9375rem] font-medium tracking-normal text-foreground">
+              <Heading className="text-base font-medium tracking-normal text-foreground">
                 {title}
               </Heading>
             )}
@@ -115,14 +115,14 @@ interface StatProps {
 export function Stat({ label, value, detail, tone = "neutral", className }: StatProps) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
-      <span className="text-[0.9375rem] text-soft">{label}</span>
-      <span className="text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] text-strong tabular-nums">
+      <span className="text-base text-soft">{label}</span>
+      <span className="text-[1.875rem] leading-tight font-semibold tracking-[-0.02em] text-strong tabular-nums">
         {value}
       </span>
       {detail !== undefined && (
         <span
           className={cn(
-            "font-mono text-xs",
+            "text-xs tabular-nums",
             tone === "positive"
               ? "text-positive"
               : tone === "negative"
@@ -202,9 +202,7 @@ export function Facts({ facts, size = "md", className }: FactsProps) {
     >
       {facts.map((fact) => (
         <div key={fact.label} className="min-w-0">
-          <dt className={size === "md" ? "text-[0.8125rem] text-soft" : "mono-label"}>
-            {fact.label}
-          </dt>
+          <dt className={size === "md" ? "text-xs text-soft" : "small-label"}>{fact.label}</dt>
           <dd
             className={cn(
               "mt-1 text-strong tabular-nums",
@@ -227,44 +225,22 @@ interface ProceedProps {
 }
 
 /**
- * Prosseguir para o passo seguinte: o botão mais saliente da página, sempre igual (branco, maior,
- * com a seta), no topo à direita e no fim da página (ADR 0036).
+ * Prosseguir para o passo seguinte: o botão mais saliente da página, sempre igual (branco e maior)
+ * e num só sítio, no topo à direita (ADR 0044). Sem seta: o nome já diz para onde se vai, e a
+ * seta acrescentada a cada botão era uma marca de interface feita em série (ADR 0045).
  */
 export function Proceed({ to, children, disabled = false }: ProceedProps) {
   if (disabled) {
     return (
       <Button variant="proceed" size="proceed" disabled>
         {children}
-        <ArrowRight aria-hidden="true" />
       </Button>
     );
   }
   return (
     <Button asChild variant="proceed" size="proceed">
-      <Link to={to}>
-        {children}
-        <ArrowRight aria-hidden="true" />
-      </Link>
+      <Link to={to}>{children}</Link>
     </Button>
-  );
-}
-
-interface NextStepProps {
-  /** O botão de prosseguir (um `Proceed`, ou um botão do ecrã com o mesmo aspeto). */
-  children: ReactNode;
-  className?: string;
-}
-
-/**
- * O fim de um passo: só o botão de prosseguir, à direita, longe do que está por cima (o fim do
- * passo não se mistura com o conteúdo), sem caixa nem filete. O nome do botão diz o que vem a
- * seguir; não há uma frase a repeti-lo (ADR 0038).
- */
-export function NextStep({ children, className }: NextStepProps) {
-  return (
-    <div className={cn("mt-24 flex justify-start @3xl/main:justify-end", className)}>
-      {children}
-    </div>
   );
 }
 
@@ -293,7 +269,7 @@ export function ErrorNote({ error, className }: { error: unknown; className?: st
   if (error === null || error === undefined) {
     return null;
   }
-  const message = error instanceof Error ? error.message : "Aconteceu um erro inesperado.";
+  const message = error instanceof Error ? error.message : "Something unexpected went wrong.";
   const problems = error instanceof ApiRequestError ? error.problems : [];
   return (
     <div role="alert" className={cn("flex max-w-[68ch] gap-3 text-destructive", className)}>

@@ -1,7 +1,7 @@
 """Explicações didáticas da avaliação, da explicabilidade e do Laboratório (painel "Porquê?").
 
-Como as das outras camadas, vivem no backend, escritas uma só vez, e a interface pede-as pela
-API; ``services/explanations.py`` junta-as todas.
+Como as das outras camadas, vivem no backend, escritas uma só vez (em inglês, como todo o site;
+ADR 0043), e a interface pede-as pela API; ``services/explanations.py`` junta-as todas.
 """
 
 from collections.abc import Mapping
@@ -13,191 +13,198 @@ from ml_lab.core.data.explanations import Explanation
 EVALUATION_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
     {
         "cross_validation": Explanation(
-            "Validação cruzada",
-            "Um só teste pode sair melhor ou pior por sorte (as linhas que calharam no teste). "
-            "A validação cruzada parte o treino em k folds e treina k vezes, cada uma avaliada "
-            "num fold diferente: a média estima o desempenho em dados novos e o desvio padrão "
-            "diz quanto ele varia. As transformações aprendem de novo em cada fold, para o fold "
-            "de fora nunca influenciar o treino.",
+            "Cross-validation",
+            "A single test can come out better or worse by luck (the rows that happened to land "
+            "in it). Cross-validation splits the training data into k folds and trains k times, "
+            "each evaluated on a different fold: the mean estimates the performance on new data "
+            "and the standard deviation says how much it varies. The transformations learn "
+            "again in each fold, so the held-out fold never influences the training.",
         ),
         "learning_curve": Explanation(
-            "Curva de aprendizagem",
-            "Treina-se com cada vez mais linhas e compara-se o treino com a avaliação. Curvas "
-            "afastadas no fim: o modelo decora (variância), e mais dados ou mais regularização "
-            "ajudam. Curvas juntas mas fracas: o modelo é simples demais (viés). A avaliação "
-            "ainda a subir no fim: mais dados ainda ajudariam.",
+            "Learning curve",
+            "The model trains on more and more rows, and the training score is compared with the "
+            "evaluation. Curves far apart at the end: the model memorises (variance), and more "
+            "data or more regularisation help. Curves close but weak: the model is too simple "
+            "(bias). The evaluation still rising at the end: more data would still help.",
         ),
         "roc_curve": Explanation(
-            "Curvas ROC e de precisão-recall",
-            "Um classificador com probabilidades decide com um limiar (por omissão, 50%). Cada "
-            "limiar dá uma combinação de acertos e falsos alarmes; a curva ROC mostra-as todas, "
-            "e a área por baixo dela (AUC) resume-as num número que não depende do limiar. Com "
-            "classes muito desequilibradas, a curva de precisão-recall é mais honesta.",
+            "ROC and precision-recall curves",
+            "A classifier with probabilities decides with a threshold (50% by default). Each "
+            "threshold gives a mix of hits and false alarms; the ROC curve shows them all, and "
+            "the area under it (AUC) sums them up in a number that doesn't depend on the "
+            "threshold. With very imbalanced classes, the precision-recall curve is more honest.",
         ),
         "residuals": Explanation(
-            "Resíduos",
-            "O resíduo é o erro de cada previsão: real menos previsto. Num bom modelo, os "
-            "resíduos parecem ruído à volta de zero. Uma curva nos resíduos quer dizer que o "
-            "modelo não apanhou uma relação curva; um leque a abrir quer dizer que o erro "
-            "cresce com o valor (talvez valha a pena prever o logaritmo do alvo).",
+            "Residuals",
+            "The residual is the error of each prediction: actual minus predicted. In a good "
+            "model, the residuals look like noise around zero. A curve in the residuals means the "
+            "model missed a curved relationship; a fan opening up means the error grows with the "
+            "value (predicting the logarithm of the target may be worth it).",
         ),
         "silhouette": Explanation(
-            "Silhueta",
-            "Para cada ponto, compara a distância média aos pontos do seu grupo com a distância "
-            "média aos do grupo vizinho mais próximo: perto de 1, o ponto está bem no seu "
-            "grupo; perto de 0, está na fronteira; negativa, estaria melhor noutro. O perfil "
-            "mostra todos os pontos de cada grupo, por ordem: grupos com muitas barras curtas "
-            "ou negativas estão mal definidos.",
+            "Silhouette",
+            "For each point, it compares the mean distance to the points of its group with the "
+            "mean distance to those of the nearest other group: near 1, the point sits well in "
+            "its group; near 0, it's on the border; negative, it would be better in another. The "
+            "profile shows every point of each group, in order: groups with many short or "
+            "negative bars are poorly defined.",
         ),
         "reference": Explanation(
-            "Coluna de referência",
-            "Nas tarefas sem alvo, uma coluna-alvo escolhida no ecrã Preparar não entra no "
-            "treino: fica como referência, para no fim comparar o que o modelo encontrou com "
-            "ela (os grupos do k-means com as espécies, as anomalias marcadas com as "
-            "verdadeiras). É uma forma honesta de avaliar aprendizagem não supervisionada.",
+            "Reference column",
+            "In tasks without a target, a target column chosen in Prepare doesn't go into the "
+            "training: it stays as a reference, to compare what the model found with it at the "
+            "end (the k-means groups with the species, the flagged anomalies with the true "
+            "ones). It's an honest way of evaluating unsupervised learning.",
         ),
         "permutation_importance": Explanation(
-            "Importância por permutação",
-            "Para saber quanto o modelo depende de uma feature, baralham-se os seus valores no "
-            "teste e mede-se quanto a métrica piora. Funciona com qualquer modelo e mede no "
-            "teste, por isso diz o que o modelo usa para generalizar. Com features "
-            "correlacionadas, baralhar uma custa pouco: a outra substitui-a.",
+            "Permutation importance",
+            "To know how much the model depends on a feature, its values are shuffled in the "
+            "test set and the drop in the metric is measured. It works with any model and "
+            "measures on the test set, so it says what the model uses to generalise. With "
+            "correlated features, shuffling one costs little: the other stands in for it.",
         ),
         "partial_dependence": Explanation(
-            "Dependência parcial",
-            "Mostra como a previsão muda, em média, quando uma feature muda e as outras ficam "
-            "como estão. As linhas finas (ICE) fazem o mesmo para linhas individuais: se forem "
-            "paralelas, o efeito é igual para todas; se se cruzarem, a feature interage com "
-            "outras. Cuidado com combinações que não existem nos dados.",
+            "Partial dependence",
+            "It shows how the prediction changes, on average, when one feature changes and the "
+            "others stay as they are. The thin lines (ICE) do the same for individual rows: if "
+            "they're parallel, the effect is the same for all; if they cross, the feature "
+            "interacts with others. Beware of combinations that don't exist in the data.",
         ),
         "local_explanation": Explanation(
-            "Explicar uma previsão",
-            "Nos modelos lineares, a previsão é a ordenada mais a soma de peso × valor de cada "
-            "feature: cada parcela é o contributo exato da feature. Nos outros modelos, mede-se "
-            "quanto a previsão muda quando cada feature passa a valer a média do treino: uma "
-            "aproximação, que ignora as interações entre features.",
+            "Explaining one prediction",
+            "In linear models, the prediction is the intercept plus the sum of weight × value of "
+            "each feature: each term is the feature's exact contribution. In other models, it "
+            "measures how much the prediction changes when each feature takes the training mean "
+            "instead: an approximation, which ignores the interactions between features.",
         ),
         "bias_variance": Explanation(
-            "Viés e variância",
-            "Um modelo simples demais erra sempre da mesma maneira (viés): fica mal no treino e "
-            "no teste. Um modelo flexível demais segue o ruído do treino (variância): fica ótimo "
-            "no treino e mal no teste. O melhor está no meio, e encontra-se olhando para o "
-            "teste, nunca para o treino.",
+            "Bias and variance",
+            "A model that's too simple always makes the same kind of mistake (bias): it does "
+            "badly on both training and test data. A model that's too flexible follows the noise "
+            "of the training data (variance): it does great on training and badly on test. The "
+            "best is in between, and you find it by looking at the test, never the training.",
         ),
         "learning_rate_demo": Explanation(
-            "Taxa de aprendizagem",
-            "O erro da regressão linear é uma taça com o fundo nos melhores pesos. O gradiente "
-            "descendente desce pela parte mais inclinada, com passos do tamanho da taxa. "
-            "Pequena demais, demora uma eternidade; grande demais, salta de um lado para o "
-            "outro da taça; maior ainda, salta para cada vez mais alto e explode.",
+            "Learning rate",
+            "The error of linear regression is a bowl with its bottom at the best weights. "
+            "Gradient descent goes down the steepest side, in steps the size of the rate. Too "
+            "small, it takes forever; too big, it jumps from one side of the bowl to the other; "
+            "bigger still, it jumps higher and higher and blows up.",
         ),
         "knn_k": Explanation(
-            "O k do KNN",
-            "Com k = 1, cada ponto de treino decide sozinho a sua vizinhança: acerta em 100% "
-            "do treino e desenha ilhas à volta do ruído. Com k grande, a votação junta pontos "
-            "longe demais e a fronteira fica lisa demais. O k certo equilibra os dois, e "
-            "escolhe-se pelo teste (ou com validação cruzada).",
+            "The k in KNN",
+            "With k = 1, each training point decides its neighbourhood alone: it gets 100% of "
+            "the training data right and draws islands around the noise. With a big k, the vote "
+            "gathers points that are too far away and the boundary gets too smooth. The right k "
+            "balances the two, and it's chosen on the test set (or with cross-validation).",
         ),
         "regularization": Explanation(
-            "Regularização",
-            "Somar ao erro um custo pelo tamanho dos pesos obriga o modelo a ser mais simples. "
-            "Na Ridge (L2) todos os pesos encolhem; no Lasso (L1) os menos úteis chegam "
-            "exatamente a zero. Alpha a mais apaga também o que importa; o melhor alpha "
-            "escolhe-se pelo teste.",
+            "Regularisation",
+            "Adding a cost for the size of the weights to the error forces the model to be "
+            "simpler. In Ridge (L2) all the weights shrink; in Lasso (L1) the least useful ones "
+            "reach exactly zero. Too much alpha also wipes out what matters; the best alpha is "
+            "chosen on the test set.",
+        ),
+        "decision_threshold": Explanation(
+            "Decision threshold",
+            "A classifier with probabilities only decides when the probability is compared with "
+            "a threshold. Lowering it flags more rows: more of the real positives are found "
+            "(recall), but more of the flags are false alarms (precision). Raising it does the "
+            "opposite. F1 balances the two. With imbalanced classes, accuracy hides all this: "
+            "always answering the larger class already scores high. The threshold is chosen by "
+            "the cost of each kind of mistake, on validation data, never on the test.",
         ),
         # Como ler os gráficos da avaliação: a interface mostra-os por baixo deles.
         "train_vs_test": Explanation(
-            "Treino e teste",
-            "O modelo aprendeu com o treino; o teste mostra como se sai com dados que nunca "
-            "viu. Uma diferença grande a favor do treino é o sinal de overfitting.",
+            "Training and test",
+            "The model learned from the training data; the test shows how it does on data it "
+            "has never seen. A big gap in favour of the training data is the sign of "
+            "overfitting.",
         ),
         "confusion_matrix": Explanation(
-            "Matriz de confusão",
-            "Cada linha é a classe real e cada coluna a prevista: a diagonal são os acertos, o "
-            "resto são as confusões do modelo.",
+            "Confusion matrix",
+            "Each row is the actual class and each column the predicted one: the diagonal holds "
+            "the hits, and the rest are the model's confusions.",
         ),
         "reference_matrix": Explanation(
-            "Grupos e referência",
-            "Cada linha é uma classe da coluna de referência e cada coluna um grupo "
-            "encontrado: grupos que correspondem a classes têm quase tudo numa só célula da "
-            "coluna.",
+            "Groups and reference",
+            "Each row is a class of the reference column and each column a group found: groups "
+            "that match classes have almost everything in a single cell of the column.",
         ),
         "anomaly_matrix": Explanation(
-            "Anomalias e referência",
-            "Cada linha é o que o ponto era (segundo a coluna de referência) e cada coluna o "
-            "que o detetor disse: a diagonal são os acertos.",
+            "Anomalies and reference",
+            "Each row is what the point was (according to the reference column) and each column "
+            "what the detector said: the diagonal holds the hits.",
         ),
         "roc_pr_chart": Explanation(
-            "Como ler as curvas",
-            "Cada ponto de uma curva é um limiar de decisão diferente. A ROC compara os "
-            "acertos com os falsos alarmes (a diagonal é o acaso); a de precisão-recall mostra "
-            "o preço de encontrar mais casos. Em multiclasse, há uma curva por classe contra "
-            "as outras.",
+            "How to read the curves",
+            "Each point of a curve is a different decision threshold. The ROC compares the hits "
+            "with the false alarms (the diagonal is chance); the precision-recall curve shows "
+            "the price of finding more cases. With several classes, there's one curve per class "
+            "against the others.",
         ),
         "errors_map": Explanation(
-            "Onde o modelo erra",
-            "Os pontos de teste no plano da projeção 2D do ecrã Preparar. Zonas com muitos "
-            "erros mostram onde o modelo tem mais dificuldade (muitas vezes, onde as classes "
-            "se misturam).",
+            "Where the model is wrong",
+            "The test points on the plane of the 2D projection from Prepare. Areas with many "
+            "errors show where the model struggles most (often, where the classes mix).",
         ),
         "cluster_sizes": Explanation(
-            "O tamanho dos grupos",
-            "Quantos pontos de teste ficaram em cada grupo. Grupos muito desequilibrados (um "
-            "enorme e vários minúsculos) costumam querer dizer um número de grupos errado.",
+            "The size of the groups",
+            "How many test points ended up in each group. Very uneven groups (one huge and "
+            "several tiny) usually mean the wrong number of groups.",
         ),
         "dendrogram": Explanation(
-            "Dendrograma",
-            "Cada «U» é uma junção de dois grupos, à altura da distância a que se deu (só as "
-            "últimas 30). A linha horizontal é o corte que dá os grupos escolhidos: uma junção "
-            "muito mais alta do que as de baixo é um bom sítio para cortar.",
+            "Dendrogram",
+            "Each “U” joins two groups, at the height of the distance at which they merged "
+            "(only the last 30). The horizontal line is the cut that gives the chosen groups: a "
+            "merge much higher than the ones below is a good place to cut.",
         ),
         "explained_variance": Explanation(
-            "Variância explicada",
-            "Quanto da variância dos dados guarda cada componente, por ordem. A soma é o que a "
-            "redução guardou; o que falta perdeu-se nela.",
+            "Explained variance",
+            "How much of the data's variance each component keeps, in order. The sum is what "
+            "the reduction kept; what's missing was lost in it.",
         ),
         "anomaly_scores": Explanation(
-            "As pontuações de anomalia",
-            "A pontuação de cada ponto de teste. Acima do limiar (a linha), o detetor marca o "
-            "ponto como anomalia. Com uma coluna de referência, as cores são as anomalias "
-            "verdadeiras: as que ficam abaixo do limiar escaparam ao detetor, e os pontos "
-            "normais acima dele são falsos alarmes. Sem ela, as cores são o que o detetor "
-            "decidiu.",
+            "The anomaly scores",
+            "The score of each test point. Above the threshold (the line), the detector flags "
+            "the point as an anomaly. With a reference column, the colours are the true "
+            "anomalies: the ones below the threshold escaped the detector, and the normal points "
+            "above it are false alarms. Without it, the colours are what the detector decided.",
         ),
         "anomaly_roc": Explanation(
-            "A ROC da pontuação",
-            "A curva ROC da pontuação contra as anomalias verdadeiras (da coluna de "
-            "referência): não depende do limiar.",
+            "The score's ROC",
+            "The ROC curve of the score against the true anomalies (from the reference "
+            "column): it doesn't depend on the threshold.",
         ),
         # Como ler os gráficos do ecrã Explicar.
         "importance_bars": Explanation(
-            "Como ler a importância",
-            "Cada barra é quanto a métrica principal piora no teste quando se baralha a "
-            "feature, e o traço à volta da ponta é o desvio entre as repetições. Perto de zero, "
-            "ou negativa: o modelo não precisa dessa feature, ou outra correlacionada "
-            "substitui-a.",
+            "How to read the importance",
+            "Each bar is how much the main metric drops on the test set when the feature is "
+            "shuffled, and the whisker around its end is the spread between the repeats. Near "
+            "zero, or negative: the model doesn't need that feature, or a correlated one stands "
+            "in for it.",
         ),
         "dependence_curves": Explanation(
-            "Como ler a dependência parcial",
-            "A linha forte é a previsão média quando todas as linhas do teste recebem esse "
-            "valor da feature; as ténues são algumas linhas, uma a uma. Os traços em baixo "
-            "mostram onde há dados: longe deles, a curva é pura extrapolação. Os valores da "
-            "feature estão na escala depois da preparação (padronizados, se for o caso).",
+            "How to read the partial dependence",
+            "The bold line is the mean prediction when every test row gets that value of the "
+            "feature; the faint ones are a few rows, one by one. The ticks at the bottom show "
+            "where there's data: far from them, the curve is pure extrapolation. The feature's "
+            "values are on the scale after the preparation (standardised, if that's the case).",
         ),
         # Como ler o que um modelo aprendeu (a página de cada modelo e o fim de um treino).
         "impurity_importance": Explanation(
-            "Importância pelas impurezas",
-            "Quanto cada feature reduziu a impureza nas divisões das árvores, somado em todas "
-            "elas e normalizado para dar 1. Favorece as features com muitos valores "
-            "diferentes: a importância por permutação (ecrã Explicar) é mais honesta.",
+            "Impurity importance",
+            "How much each feature reduced the impurity in the trees' splits, summed over all of "
+            "them and normalised to add up to 1. It favours features with many different values: "
+            "permutation importance (in Explain) is more honest.",
         ),
         "tree_diagram": Explanation(
-            "Como ler a árvore",
-            "Cada nó faz uma pergunta a uma feature («x2 ≤ 0,26?»): os pontos que respondem "
-            "sim seguem para a esquerda, os outros para a direita. As folhas, em baixo, dão a "
-            "previsão: a classe mais frequente dos pontos de treino que lá chegam, com a parte "
-            "que ela tem. Uma folha pura (100%) só tem pontos de uma classe; muitas folhas "
-            "pequenas e puras são o sinal de uma árvore que decorou o treino.",
+            "How to read the tree",
+            "Each node asks a feature a question (“x2 ≤ 0.26?”): the points that answer yes go "
+            "left, the others go right. The leaves, at the bottom, give the prediction: the most "
+            "frequent class among the training points that reach them, with the share it has. A "
+            "pure leaf (100%) only has points of one class; many small, pure leaves are the sign "
+            "of a tree that memorised the training data.",
         ),
     }
 )

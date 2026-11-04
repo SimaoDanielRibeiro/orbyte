@@ -29,10 +29,10 @@ def _drop_present(
 
 @cleaning_operation(
     "drop_columns",
-    title="Remover colunas",
+    title="Drop columns",
     description=(
-        "Remove colunas que não ajudam o modelo: identificadores, texto livre, colunas "
-        "quase vazias ou constantes."
+        "Drops columns that don't help the model: identifiers, free text, nearly empty or "
+        "constant columns."
     ),
     replay=_drop_present,
 )
@@ -40,11 +40,11 @@ def drop_columns(frame: pd.DataFrame, *, columns: Sequence[str]) -> CleaningResu
     """Remove as ``columns`` indicadas."""
     names = list(columns)
     if not names:
-        raise InvalidParameterError("Indica pelo menos uma coluna a remover.")
+        raise InvalidParameterError("Name at least one column to drop.")
     require_columns(frame, names)
     result = frame.drop(columns=names)
-    label = "a coluna" if len(names) == 1 else "as colunas"
-    description = f"Removida{'s' if len(names) > 1 else ''} {label} {', '.join(names)}."
+    label = "the column" if len(names) == 1 else "the columns"
+    description = f"Dropped {label} {', '.join(names)}."
     return CleaningResult(
         result, cleaning_step("drop_columns", description, frame, result, {"columns": names})
     )

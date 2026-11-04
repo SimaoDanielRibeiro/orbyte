@@ -29,7 +29,7 @@ export function ColumnDetail({ column }: { column: ColumnProfile }) {
         <h3 className="text-xl">{column.name}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-soft">
           {label("ColumnKind", column.kind)}
-          <Explain title={`Porquê «${label("ColumnKind", column.kind)}»`}>
+          <Explain title={`Why “${label("ColumnKind", column.kind)}”`}>
             {column.kind_reason}
           </Explain>
         </p>
@@ -38,30 +38,30 @@ export function ColumnDetail({ column }: { column: ColumnProfile }) {
         size="sm"
         facts={[
           {
-            label: "Em falta",
+            label: "Missing",
             value: `${formatCount(column.n_missing)} (${formatPercent(missing)})`,
           },
-          { label: "Valores distintos", value: formatCount(column.n_unique) },
-          { label: "Tipo no pandas", value: column.dtype },
+          { label: "Distinct values", value: formatCount(column.n_unique) },
+          { label: "pandas type", value: column.dtype },
           ...(column.date_range === null
             ? []
-            : [{ label: "Datas", value: `${column.date_range[0]} a ${column.date_range[1]}` }]),
+            : [{ label: "Dates", value: `${column.date_range[0]} to ${column.date_range[1]}` }]),
         ]}
       />
       {numeric !== null && (
         <Facts
           size="sm"
           facts={[
-            { label: "Média", value: formatStatistic(numeric.mean) },
-            { label: "Desvio padrão", value: formatStatistic(numeric.std) },
-            { label: "Mínimo", value: formatStatistic(numeric.minimum) },
-            { label: "1.º quartil", value: formatStatistic(numeric.q1) },
-            { label: "Mediana", value: formatStatistic(numeric.median) },
-            { label: "3.º quartil", value: formatStatistic(numeric.q3) },
-            { label: "Máximo", value: formatStatistic(numeric.maximum) },
+            { label: "Mean", value: formatStatistic(numeric.mean) },
+            { label: "Standard deviation", value: formatStatistic(numeric.std) },
+            { label: "Minimum", value: formatStatistic(numeric.minimum) },
+            { label: "1st quartile", value: formatStatistic(numeric.q1) },
+            { label: "Median", value: formatStatistic(numeric.median) },
+            { label: "3rd quartile", value: formatStatistic(numeric.q3) },
+            { label: "Maximum", value: formatStatistic(numeric.maximum) },
             ...(numeric.skewness === null
               ? []
-              : [{ label: "Assimetria", value: formatNumber(numeric.skewness) }]),
+              : [{ label: "Skewness", value: formatNumber(numeric.skewness) }]),
           ]}
         />
       )}
@@ -83,7 +83,7 @@ function Distribution({ column }: { column: ColumnProfile }) {
         edges={column.histogram.edges}
         series={[{ label: column.name, color: CATEGORICAL[0], counts: column.histogram.counts }]}
         formatEdge={(value) => formatValue(value)}
-        description={`A distribuição de ${column.name}: quantas linhas caem em cada intervalo.`}
+        description={`The distribution of ${column.name}: how many rows fall in each interval.`}
         xLabel={column.name}
       />
     );
@@ -102,11 +102,11 @@ function Distribution({ column }: { column: ColumnProfile }) {
       format={(count, item) =>
         `${formatCount(count)} (${formatPercent(ratios.get(item.key) ?? 0)})`
       }
-      valueLabel="linhas"
-      description={`Os valores mais frequentes de ${column.name} e quantas linhas tem cada um.`}
+      valueLabel="rows"
+      description={`The most frequent values of ${column.name} and how many rows each one has.`}
       caption={
         column.n_unique > column.top_values.length
-          ? `Os ${formatCount(column.top_values.length)} valores mais frequentes, de ${formatQuantity(column.n_unique, "valor distinto", "valores distintos")}.`
+          ? `The ${formatCount(column.top_values.length)} most frequent values, out of ${formatQuantity(column.n_unique, "distinct value", "distinct values")}.`
           : undefined
       }
       labelWidth={150}

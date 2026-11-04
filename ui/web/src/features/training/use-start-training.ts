@@ -40,7 +40,7 @@ export function useStartTraining() {
       {
         onSuccess: (job) => {
           openRun(job.run_id, title);
-          void navigate({ to: "/treinar/$runId", params: { runId: job.run_id } });
+          void navigate({ to: "/train/$runId", params: { runId: job.run_id } });
         },
       },
     );

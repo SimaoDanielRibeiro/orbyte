@@ -104,8 +104,10 @@ from ml_lab.core.services.explanations import explain, topics
 from ml_lab.core.services.history import HistoryService
 from ml_lab.core.services.lab import Lab
 from ml_lab.core.services.laboratory import (
+    DataSizeDemo,
     DemoCard,
     DemoControl,
+    DemoGuide,
     DemoVariant,
     KnnDemo,
     LaboratoryDemo,
@@ -115,6 +117,7 @@ from ml_lab.core.services.laboratory import (
     OverfittingDemo,
     Points,
     RegularizationDemo,
+    ThresholdDemo,
 )
 from ml_lab.core.services.llm import LanguageModelService, LanguageModelStatus
 from ml_lab.core.services.packages import (
@@ -135,6 +138,14 @@ from ml_lab.core.services.reinforcement import (
     ReinforcementResult,
     ReinforcementService,
     ReinforcementUpdate,
+)
+from ml_lab.core.services.story import (
+    SplitPart,
+    StoryBar,
+    StoryBars,
+    StoryChapter,
+    StoryCurve,
+    TrainingStory,
 )
 from ml_lab.core.services.vocabulary import TaskInfo, Vocabulary, vocabulary
 from ml_lab.core.tracking.store import RunEntry
@@ -203,12 +214,14 @@ __all__ = [
     "CurvePoint",
     "DataDecision",
     "DataError",
+    "DataSizeDemo",
     "DatasetProfile",
     "DatasetService",
     "DatasetSummary",
     "DemoCard",
     "DemoControl",
     "DemoExample",
+    "DemoGuide",
     "DemoVariant",
     "Dendrogram",
     "Distribution",
@@ -320,19 +333,26 @@ __all__ = [
     "SkippedModel",
     "SourceSpec",
     "SplitConfig",
+    "SplitPart",
     "SplitStrategy",
     "Stage",
     "StepRecord",
+    "StoryBar",
+    "StoryBars",
+    "StoryChapter",
+    "StoryCurve",
     "TablePreview",
     "TaskInfo",
     "TaskOptions",
     "TaskSuggestion",
     "TaskType",
     "Thought",
+    "ThresholdDemo",
     "TrackingError",
     "TrainingAnimation",
     "TrainingJob",
     "TrainingStateError",
+    "TrainingStory",
     "TrainingUpdate",
     "TransformConfig",
     "TreeNode",

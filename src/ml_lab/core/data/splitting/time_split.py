@@ -36,13 +36,13 @@ def time_split(
             pd.api.types.is_datetime64_any_dtype(times) or pd.api.types.is_numeric_dtype(times)
         ):
             raise DataError(
-                f"A coluna {column} não é de datas nem numérica: converte-a primeiro na "
-                "limpeza (operação convert_type)."
+                f"The column {column} is neither dates nor numbers: convert it first in the "
+                "cleaning (the convert_type operation)."
             )
         if times.isna().any():
             raise DataError(
-                f"A coluna {column} tem valores em falta: sem data, não se sabe onde a linha "
-                "fica no tempo. Remove essas linhas na limpeza."
+                f"The column {column} has missing values: without a date, there's no telling "
+                "where the row sits in time. Drop those rows in the cleaning."
             )
         # Ordenação estável: linhas com o mesmo instante mantêm a ordem do ficheiro.
         order = np.argsort(times.to_numpy(), kind="stable").astype(np.intp)

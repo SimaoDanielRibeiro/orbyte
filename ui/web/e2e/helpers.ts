@@ -12,17 +12,38 @@ export interface ExperimentRequest {
   seed?: number;
 }
 
+/**
+ * Espera que as animações de entrada acabem (as que têm fim: os desenhos dos modelos andam sem
+ * parar). As páginas entram a acender (ADR 0048), e o axe, a meio, media o contraste do texto
+ * ainda meio transparente: tem de ver a página como ela fica.
+ *
+ * Primeiro espera-se pela rede: um bloco que chega com os dados (a lista dos modelos) só começa a
+ * acender depois, e com a máquina carregada chegava já com o axe a medir.
+ */
+export async function animationsSettled(page: Page): Promise<void> {
+  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.playState !== "running" ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
+  );
+}
+
 /** Carrega um dataset de exemplo no ecrã Dados e espera que fique aberto. */
 export async function loadSample(page: Page, title: string): Promise<void> {
-  await page.goto("/dados");
-  await page.getByRole("button", { name: `Carregar ${title}` }).click();
+  await page.goto("/data");
+  await page.getByRole("button", { name: `Load ${title}` }).click();
   await expect(page.getByRole("heading", { level: 2, name: title })).toBeVisible();
 }
 
 /** Prepara o dataset aberto com as sugestões do backend e espera que a preparação sirva. */
 export async function prepareWithSuggestions(page: Page): Promise<void> {
-  await page.goto("/preparar");
-  await expect(page.getByRole("link", { name: "Escolher o modelo" }).first()).toBeVisible({
+  await page.goto("/prepare");
+  await expect(page.getByRole("link", { name: "Choose the model" }).first()).toBeVisible({
     timeout: 30_000,
   });
 }
@@ -49,7 +70,7 @@ export async function trainThroughApi(
 
 /**
  * O mesmo pacote `.mllab`, sem a assinatura (`manifest.sig`): continua intacto (os ficheiros
- * conferem com o manifesto), mas para o ML Lab passa a ser de outra instalação, e o modelo só
+ * conferem com o manifesto), mas para o Orbyte passa a ser de outra instalação, e o modelo só
  * abre depois do aviso. As entradas do ZIP copiam-se tal como estão (comprimidas); só se refazem
  * o diretório central e o registo final, com as posições novas.
  */

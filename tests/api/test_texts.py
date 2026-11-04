@@ -6,8 +6,8 @@ from fastapi.testclient import TestClient
 def test_the_vocabulary_names_every_value(client: TestClient) -> None:
     vocabulary = client.get("/vocabulary").json()
 
-    assert vocabulary["labels"]["TaskType"]["binary_classification"] == "Classificação binária"
-    assert vocabulary["labels"]["JobStatus"]["running"] == "A treinar"
+    assert vocabulary["labels"]["TaskType"]["binary_classification"] == "Binary classification"
+    assert vocabulary["labels"]["JobStatus"]["running"] == "Training"
     regression = next(t for t in vocabulary["tasks"] if t["task_type"] == "regression")
     assert regression["primary_metric"] == "r2"
     assert regression["suggested_model"] == "linear_regression"

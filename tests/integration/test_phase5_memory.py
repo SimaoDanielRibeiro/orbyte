@@ -60,7 +60,7 @@ def test_closing_reopening_and_comparing_two_runs(fresh: Settings) -> None:
     assert (runs[strong.run_id].name, runs[strong.run_id].saved) == ("C alto", True)
     assert not runs[weak.run_id].saved
     assert [difference.label for difference in comparison.differences] == [
-        "Hiperparâmetro · C (inverso da regularização)"
+        "Hyperparameter · C (inverse of regularisation)"
     ]
     accuracy = next(metric for metric in comparison.metrics if metric.name == "accuracy")
     assert accuracy.values == (

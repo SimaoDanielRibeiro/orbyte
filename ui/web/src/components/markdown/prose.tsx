@@ -78,7 +78,7 @@ export function Prose({ text, size = "reading", gfm = false, className }: ProseP
         "max-w-[68ch]",
         size === "reading"
           ? "text-reading text-foreground/90"
-          : "text-[0.8125rem] leading-relaxed text-soft [&_p]:my-0 [&_p+p]:mt-2",
+          : "text-sm leading-relaxed text-soft [&_p]:my-0 [&_p+p]:mt-2",
         className,
       )}
     >

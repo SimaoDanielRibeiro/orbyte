@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { catalogModelOptions } from "@/api/generated/@tanstack/react-query.gen";
 import { ModelScreen } from "@/features/models/model-screen";
 
-export const Route = createFileRoute("/modelos/$name")({
+export const Route = createFileRoute("/models/$name")({
   // O cartão chega antes de a página se mostrar: assim o nome que vem da lista tem logo onde
   // aterrar (a transição do título precisa dos dois no mesmo instante).
   loader: ({ context, params }) =>

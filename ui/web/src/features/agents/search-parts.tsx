@@ -7,13 +7,12 @@
  * quadro final se lê.
  */
 import { cn } from "cn";
-import { Check, Database, Network, Sparkles, Workflow } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   AgentMessage,
-  AgentRole,
   AutoMlResult,
   Candidate,
   ObjectiveOption,
@@ -22,56 +21,64 @@ import type {
 } from "@/api/generated";
 import { useLabel } from "@/api/vocabulary";
 import { Prose } from "@/components/markdown/prose";
-import { formatCount, formatNumber } from "@/lib/format";
+import { formatCount, formatNumber, formatOrdinal } from "@/lib/format";
 
-import { AI_AGENT_COLOR, messageColor } from "./agent-colors";
-import { changesText, objectiveValue } from "./values";
+import { AI_AGENT_COLOR, messageColor, ROLE_ICONS } from "./agent-colors";
+import { changesText, objectiveValue, recipientsText } from "./values";
 
 /** A marca dos candidatos que o agente de IA propôs (e não o sorteio de um agente de família). */
 export function AiMark() {
   return (
     <span
-      className="ml-2 inline-flex items-center gap-1 rounded-full border px-1.5 py-px font-mono text-[11px]"
+      className="ml-2 inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[12px] font-medium"
       style={{ borderColor: AI_AGENT_COLOR, color: AI_AGENT_COLOR }}
     >
       <Sparkles aria-hidden="true" className="size-3" />
-      IA
+      AI
     </span>
   );
 }
 
 const PHASES: readonly SearchPhase[] = ["data", "screening", "tuning", "final", "done"];
 
-/** As fases da procura, por ordem: a de agora a amarelo, as que passaram com um visto. */
+/**
+ * As fases da procura, por ordem: a de agora a amarelo, as que passaram com um visto. Compactas
+ * (círculos pequenos, traços curtos), para as cinco caberem numa linha num portátil: a última
+ * sozinha na linha de baixo parecia outra coisa.
+ */
 export function PhaseSteps({ phase }: { phase: SearchPhase | null }) {
   const label = useLabel();
   const current = phase === null ? -1 : PHASES.indexOf(phase);
   return (
     <ol
-      className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm"
-      aria-label="As fases da procura"
+      className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm"
+      aria-label="The phases of the search"
     >
       {PHASES.map((one, index) => {
         const done = index < current || phase === "done";
         const now = index === current && phase !== "done";
         return (
-          <li key={one} className="flex items-center gap-2" aria-current={now ? "step" : undefined}>
+          <li
+            key={one}
+            className="flex items-center gap-1.5"
+            aria-current={now ? "step" : undefined}
+          >
             <span
               aria-hidden="true"
               className={cn(
-                "flex size-6 items-center justify-center rounded-full border text-xs tabular-nums",
+                "flex size-5 items-center justify-center rounded-full border text-[12px] tabular-nums",
                 now && "border-now bg-now text-background",
                 done && "border-muted-foreground text-foreground",
                 !now && !done && "text-muted-foreground",
               )}
             >
-              {done ? <Check className="size-3.5" /> : index + 1}
+              {done ? <Check className="size-3" /> : index + 1}
             </span>
             <span className={cn(now ? "text-foreground" : "text-muted-foreground")}>
               {label("SearchPhase", one)}
             </span>
             {index < PHASES.length - 1 && (
-              <span aria-hidden="true" className="mx-1 h-px w-5 bg-input" />
+              <span aria-hidden="true" className="mx-0.5 h-px w-4 bg-input" />
             )}
           </li>
         );
@@ -94,30 +101,27 @@ export function CandidateFeed({ candidates, objective, leader, limit = 12 }: Fee
   const reduced = useReducedMotion() ?? false;
   const recent = [...candidates].reverse().slice(0, limit);
   if (recent.length === 0) {
-    return <p className="font-mono text-xs text-dim">Ainda não há candidatos medidos.</p>;
+    return <p className="text-sm text-dim">No candidates measured yet.</p>;
   }
   return (
     <div className="relative overflow-x-auto">
       <table className="w-full text-sm whitespace-nowrap">
         <thead>
           <tr className="border-b text-left">
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              N.º
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              #
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              Modelo
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              Model
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              Ronda
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              Round
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              O que mudou
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              What changed
             </th>
-            <th
-              scope="col"
-              className="px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
-            >
-              {objective?.label ?? "Valor"}
+            <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-dim">
+              {objective?.label ?? "Value"}
             </th>
           </tr>
         </thead>
@@ -141,9 +145,7 @@ export function CandidateFeed({ candidates, objective, leader, limit = 12 }: Fee
                 <td className="px-3 py-2">
                   {candidate.model_display_name}
                   {candidate.ai && <AiMark />}
-                  {best && (
-                    <span className="ml-2 text-xs text-muted-foreground">o melhor até agora</span>
-                  )}
+                  {best && <span className="ml-2 text-xs text-muted-foreground">best so far</span>}
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">
                   {label("SearchPhase", candidate.phase)}
@@ -154,7 +156,7 @@ export function CandidateFeed({ candidates, objective, leader, limit = 12 }: Fee
                 <td className="px-3 py-2 text-right tabular-nums">
                   {candidate.error === null
                     ? `${objectiveValue(candidate.mean, objective)} ± ${objectiveValue(candidate.std, objective)}`
-                    : "falhou"}
+                    : "failed"}
                 </td>
               </motion.tr>
             );
@@ -181,38 +183,29 @@ export function Board({ result }: { result: AutoMlResult }) {
       <table className="w-full text-sm whitespace-nowrap">
         <thead>
           <tr className="border-b text-left">
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              Lugar
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              Place
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              Modelo
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              Model
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              Agente
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              Agent
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              Ronda
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              Round
             </th>
-            <th scope="col" className="px-3 py-2.5 font-mono text-xs font-normal text-dim">
-              O que mudou
+            <th scope="col" className="px-3 py-2.5 text-xs font-medium text-dim">
+              What changed
             </th>
-            <th
-              scope="col"
-              className="px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
-            >
+            <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-dim">
               {objective.label}
             </th>
-            <th
-              scope="col"
-              className="px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
-            >
-              No treino
+            <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-dim">
+              On training
             </th>
-            <th
-              scope="col"
-              className="px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
-            >
-              Segundos
+            <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-dim">
+              Seconds
             </th>
           </tr>
         </thead>
@@ -227,13 +220,11 @@ export function Board({ result }: { result: AutoMlResult }) {
                   candidate.number === result.winner && "bg-surface-high text-strong",
                 )}
               >
-                <td className="px-3 py-2 tabular-nums">
-                  {place > 0 ? `${formatCount(place)}.º` : "—"}
-                </td>
+                <td className="px-3 py-2 tabular-nums">{place > 0 ? formatOrdinal(place) : "—"}</td>
                 <td className="px-3 py-2">
                   {candidate.model_display_name}
                   <span className="ml-2 text-xs text-muted-foreground tabular-nums">
-                    n.º {formatCount(candidate.number)}
+                    #{formatCount(candidate.number)}
                   </span>
                   {candidate.ai && <AiMark />}
                 </td>
@@ -249,7 +240,7 @@ export function Board({ result }: { result: AutoMlResult }) {
                 <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">
                   {candidate.error === null
                     ? `${objectiveValue(candidate.mean, objective)} ± ${objectiveValue(candidate.std, objective)}`
-                    : "falhou"}
+                    : "failed"}
                 </td>
                 <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
                   {objectiveValue(candidate.train_mean, objective)}
@@ -266,21 +257,14 @@ export function Board({ result }: { result: AutoMlResult }) {
   );
 }
 
-const ROLE_ICONS: Readonly<Record<AgentRole, typeof Database>> = {
-  data: Database,
-  coordinator: Workflow,
-  model: Network,
-  ai: Sparkles,
-};
-
 /**
  * A conversa dos agentes, pela ordem; segue a mensagem mais recente enquanto chegam. Cada agente
  * tem a sua cor (a do nó dele no fluxograma), no contorno da caixa do ícone: lê-se quem fala sem
  * ler o nome. O texto fica nas cores do texto.
  *
  * O agente de IA pensa antes de responder: enquanto pensa, o raciocínio aparece no fim da
- * conversa, a crescer (`thought`); depois fica guardado numa mensagem "Pensamento", fechada, que
- * se abre para o ler todo.
+ * conversa, a crescer (`thought`); depois fica guardado numa mensagem "Thought", fechada, que
+ * se abre para o ler todo. Para a ler como um chat, em ecrã inteiro, há a `ConversationRoom`.
  */
 export function Conversation({
   messages,
@@ -299,6 +283,10 @@ export function Conversation({
   const reduced = useReducedMotion() ?? false;
   const list = useRef<HTMLOListElement>(null);
   const count = messages.length;
+  // Só entram a deslizar as mensagens que chegam depois de a conversa aparecer: abrir uma
+  // procura terminada não anima centenas de mensagens de uma vez. (Um estado que nunca muda, e
+  // não uma ref: o desenho pode lê-lo.)
+  const [settled] = useState(count);
   const thinking = thought?.text.length ?? -1;
   // Só a caixa da conversa rola (nunca a página): quem está a ver o fluxograma não salta. Ao
   // vivo segue a última mensagem; no histórico, a que está à vista.
@@ -318,48 +306,34 @@ export function Conversation({
     }
   }, [count, active, reduced, thinking]);
   if (count === 0) {
-    return <p className="font-mono text-xs text-dim">Os agentes ainda não disseram nada.</p>;
+    return <p className="text-sm text-dim">The agents haven't said anything yet.</p>;
   }
-  const to = (message: AgentMessage) => {
-    const { recipients } = message;
-    if (recipients.length === 0) {
-      return null;
-    }
-    if (recipients.length > 3) {
-      return `para os ${formatCount(recipients.length)} agentes`;
-    }
-    return `para ${recipients
-      .map((recipient) =>
-        recipient.kind === "model" && recipient.family !== null
-          ? label("ModelFamily", recipient.family)
-          : label("ParticipantKind", recipient.kind),
-      )
-      .join(", ")}`;
-  };
   return (
     <ol ref={list} className={cn("relative flex flex-col gap-4 overflow-y-auto pr-2", className)}>
-      {messages.map((message) => {
+      {messages.map((message, index) => {
         const Icon = ROLE_ICONS[message.role];
         const color = messageColor(message);
         const now = active === message.number;
-        // Um pedido do coordenador (dar a vez a um agente) é curto: fica numa linha só.
+        const enter = reduced || index < settled ? false : { opacity: 0, x: -6 };
+        // Um pedido do coordenador (dar a vez a um agente) diz porquê (ADR 0049): lê-se inteiro,
+        // em vez de se cortar numa linha, mas mais discreto do que as respostas.
         if (message.kind === "request") {
           return (
             <motion.li
               key={message.number}
               data-message={message.number}
-              initial={reduced ? false : { opacity: 0, x: -6 }}
+              initial={enter}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: reduced ? 0 : 0.25 }}
               className={cn(
-                "grid grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-3 rounded-lg",
+                "grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-3 rounded-lg lazy-paint",
                 now && "bg-surface-high ring-1 ring-[#3a3a3a]",
               )}
             >
-              <span aria-hidden="true" className="flex justify-center font-mono text-xs text-dim">
+              <span aria-hidden="true" className="flex justify-center py-0.5 text-xs text-dim">
                 →
               </span>
-              <p className="min-w-0 truncate py-0.5 font-mono text-xs text-dim">{message.text}</p>
+              <p className="min-w-0 py-0.5 text-xs leading-snug text-soft">{message.text}</p>
             </motion.li>
           );
         }
@@ -369,11 +343,11 @@ export function Conversation({
             <motion.li
               key={message.number}
               data-message={message.number}
-              initial={reduced ? false : { opacity: 0, x: -6 }}
+              initial={enter}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: reduced ? 0 : 0.25 }}
               className={cn(
-                "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg",
+                "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg lazy-paint",
                 now && "bg-surface-high py-2 ring-1 ring-[#3a3a3a]",
               )}
             >
@@ -395,16 +369,16 @@ export function Conversation({
             </motion.li>
           );
         }
-        const recipients = to(message);
+        const recipients = recipientsText(message.recipients, label);
         return (
           <motion.li
             key={message.number}
             data-message={message.number}
-            initial={reduced ? false : { opacity: 0, x: -6 }}
+            initial={enter}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: reduced ? 0 : 0.25 }}
             className={cn(
-              "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg",
+              "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg lazy-paint",
               now && "bg-surface-high py-2 ring-1 ring-[#3a3a3a]",
             )}
           >
@@ -419,10 +393,8 @@ export function Conversation({
             <div className="min-w-0">
               <p className="text-sm">
                 <span className="font-medium text-strong">{message.author}</span>
-                {recipients !== null && <span className="ml-1.5 text-soft">{recipients}</span>}
-                <span className="ml-2 font-mono text-xs text-dim">
-                  {label("SearchPhase", message.phase)}
-                </span>
+                {recipients !== null && <span className="ml-1.5 text-soft">to {recipients}</span>}
+                <span className="ml-2 text-xs text-dim">{label("SearchPhase", message.phase)}</span>
               </p>
               <Prose text={message.text} size="small" className="mt-0.5 text-foreground/85" />
             </div>
@@ -435,7 +407,7 @@ export function Conversation({
 }
 
 /** O agente de IA a pensar, agora: o raciocínio a crescer, com um cursor a piscar no fim. */
-function LiveThought({ thought }: { thought: Thought }) {
+export function LiveThought({ thought }: { thought: Thought }) {
   return (
     <li
       className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3 rounded-lg"
@@ -453,7 +425,7 @@ function LiveThought({ thought }: { thought: Thought }) {
         <p className="text-sm">
           <span className="font-medium text-strong">{thought.author}</span>
           <span className="ml-1.5 text-soft">
-            está a pensar no candidato n.º {formatCount(thought.candidate)}
+            is thinking about candidate #{formatCount(thought.candidate)}
           </span>
         </p>
         <p

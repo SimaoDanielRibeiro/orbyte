@@ -84,9 +84,9 @@ function AgentRun({ runId }: { runId: string }) {
         />
         {missing ? (
           <NeedsStep
-            message="Este treino não está na memória da API nem no histórico: talvez tenha sido apagado. Os runs registados estão no ecrã Histórico."
-            to="/experiencias"
-            action="Abrir as experiências"
+            message="This training is neither in the API's memory nor in the history: maybe it was deleted. The recorded runs are in History."
+            to="/history"
+            action="Open the history"
           />
         ) : (
           <ErrorNote error={result.error} className="mt-10" />
@@ -108,9 +108,7 @@ function AgentRun({ runId }: { runId: string }) {
       <header className="mt-4 flex flex-col gap-4 @3xl/main:flex-row @3xl/main:items-end @3xl/main:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-[2rem] leading-tight tracking-[-0.025em]">
-              {data?.agent_display_name ?? "O treino do agente"}
-            </h1>
+            <h1 className="text-title">{data?.agent_display_name ?? "The agent's training"}</h1>
             <WhyButton
               title={SCREENS.reinforcement.title}
               description={SCREENS.reinforcement.description}
@@ -129,10 +127,10 @@ function AgentRun({ runId }: { runId: string }) {
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <SaveRunButton runId={runId} />
             <Button asChild variant="outline">
-              <Link to="/experiencias">Ver nas experiências</Link>
+              <Link to="/history">See it in History</Link>
             </Button>
             <Button asChild>
-              <Link to="/rl">Treinar outro agente</Link>
+              <Link to="/rl">Train another agent</Link>
             </Button>
           </div>
         )}
@@ -141,7 +139,7 @@ function AgentRun({ runId }: { runId: string }) {
       {status === "failed" && (
         <ErrorNote
           className="mt-10"
-          error={new Error(live.state?.error ?? "O treino falhou sem dizer porquê.")}
+          error={new Error(live.state?.error ?? "The training failed without saying why.")}
         />
       )}
       {data === undefined ? (
@@ -166,7 +164,7 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
   const paused = state?.status === "paused";
 
   return (
-    <section aria-label="O treino a decorrer" className="mt-8 flex flex-col gap-4">
+    <section aria-label="The training in progress" className="mt-8 flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4 py-1">
         <div role="status" className="flex flex-wrap items-center gap-3">
           <span aria-hidden="true" className="relative flex size-2.5">
@@ -182,11 +180,11 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
             />
           </span>
           <span className="font-medium text-strong">
-            {state === null ? "A ligar" : label("JobStatus", state.status)}
+            {state === null ? "Connecting" : label("JobStatus", state.status)}
           </span>
           <span className="font-mono text-xs text-dim tabular-nums">
-            Episódio {formatCount(episodes)}
-            {planned === null ? "" : ` de ${formatCount(planned)}`}
+            Episode {formatCount(episodes)}
+            {planned === null ? "" : ` of ${formatCount(planned)}`}
           </span>
         </div>
         <div className="flex gap-2">
@@ -197,7 +195,7 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
               }}
               disabled={resume.isPending}
             >
-              Retomar
+              Resume
             </Button>
           ) : (
             <Button
@@ -207,7 +205,7 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
               }}
               disabled={pause.isPending || state === null}
             >
-              Pausar
+              Pause
             </Button>
           )}
           <Tooltip>
@@ -219,12 +217,12 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
                 }}
                 disabled={cancel.isPending || state === null}
               >
-                Parar
+                Stop
               </Button>
             </TooltipTrigger>
             <TooltipContent className="max-w-64">
-              O treino pára no fim do episódio atual; o agente fica com o que já aprendeu e é
-              avaliado na mesma.
+              The training stops at the end of the current episode; the agent keeps what it has
+              learned and is still evaluated.
             </TooltipContent>
           </Tooltip>
         </div>
@@ -232,15 +230,15 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
       {planned !== null && (
         <Progress
           value={Math.min(100, (episodes / planned) * 100)}
-          aria-label="O progresso do treino"
+          aria-label="The training's progress"
         />
       )}
       <ErrorNote error={pause.error ?? resume.error ?? cancel.error} />
       <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="min-w-0">
           {live.preview === null || live.layout === null ? (
-            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed font-mono text-xs text-dim">
-              À espera da primeira fotografia do treino.
+            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed text-sm text-dim">
+              Waiting for the first snapshot of the training.
             </div>
           ) : (
             <GridWorld
@@ -248,8 +246,8 @@ function Live({ live, runId }: { live: LiveAgent; runId: string }) {
               values={live.preview.values}
               actions={live.preview.actions}
               path={live.preview.path}
-              description={`O que o agente sabia no episódio ${String(live.preview.episode)}: o valor de cada célula, a política e o caminho.`}
-              caption={`No episódio ${formatCount(live.preview.episode)}.`}
+              description={`What the agent knew at episode ${String(live.preview.episode)}: the value of each cell, the policy and the path.`}
+              caption={`At episode ${formatCount(live.preview.episode)}.`}
             />
           )}
         </div>
@@ -271,8 +269,8 @@ function RewardDots({ episodes }: { episodes: LiveAgent["episodes"] }) {
       series={[]}
       dots={[
         {
-          key: "recompensa",
-          label: "Recompensa do episódio",
+          key: "reward",
+          label: "Episode reward",
           color: CATEGORICAL[0],
           radius: 2.5,
           opacity: 0.6,
@@ -283,10 +281,10 @@ function RewardDots({ episodes }: { episodes: LiveAgent["episodes"] }) {
         },
       ]}
       height={300}
-      xLabel="Episódio"
-      yLabel="Recompensa"
+      xLabel="Episode"
+      yLabel="Reward"
       formatY={formatStatistic}
-      description="A recompensa de cada episódio do treino, até agora."
+      description="The reward of each training episode, so far."
     />
   );
 }
@@ -311,15 +309,15 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
         className="mt-8"
         items={[
           {
-            key: "ambiente",
-            label: "Ambiente",
+            key: "environment",
+            label: "Environment",
             value: result.environment_name,
-            detail: fromHistory ? "do histórico" : undefined,
+            detail: fromHistory ? "from the history" : undefined,
           },
-          { key: "treino", label: "Treino", value: `${formatCount(steps)} episódios` },
+          { key: "training", label: "Training", value: `${formatCount(steps)} episodes` },
           {
-            key: "duracao",
-            label: "Duração",
+            key: "duration",
+            label: "Duration",
             value: `${formatNumber(result.duration_seconds, 2)} s`,
           },
           {
@@ -336,19 +334,19 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
         </div>
       )}
 
-      <Part id="metricas" title="As métricas" topic="rl_evaluation">
+      <Part id="metrics" title="The metrics" topic="rl_evaluation">
         <div>
           <ReportsTable reports={result.reports} main={result.main_partition} />
         </div>
       </Part>
 
-      <Part id="recompensa" title="A recompensa ao longo do treino">
+      <Part id="reward" title="The reward over the training">
         <div className="grid gap-x-12 gap-y-10 *:min-w-0 @5xl/main:grid-cols-2">
           <LineChart
             series={[
               {
-                key: "media",
-                label: `Média dos últimos ${String(result.rewards.window)} episódios`,
+                key: "mean",
+                label: `Mean of the last ${String(result.rewards.window)} episodes`,
                 color: CATEGORICAL[0],
                 width: 2.5,
                 points: result.rewards.episodes.map((x, i) => ({
@@ -359,8 +357,8 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
             ]}
             dots={[
               {
-                key: "episodios",
-                label: "Recompensa do episódio",
+                key: "episodes",
+                label: "Episode reward",
                 color: CATEGORICAL[0],
                 radius: 2,
                 opacity: 0.35,
@@ -372,18 +370,18 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
               },
             ]}
             height={300}
-            xLabel="Episódio"
-            yLabel="Recompensa"
+            xLabel="Episode"
+            yLabel="Reward"
             formatY={formatStatistic}
             formatX={(value) => formatNumber(value, 0)}
-            description="A recompensa de cada episódio do treino e a média móvel."
+            description="The reward of each training episode and the moving average."
             caption={<TopicText topic="reward_curve" />}
           />
           <LineChart
             series={[
               {
-                key: "sucesso",
-                label: "Chegou ao objetivo",
+                key: "success",
+                label: "Reached the goal",
                 color: CATEGORICAL[2],
                 points: result.rewards.episodes.map((x, i) => ({
                   x,
@@ -393,22 +391,22 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
             ]}
             height={300}
             yDomain={[0, 1]}
-            xLabel="Episódio"
-            yLabel="Chegou ao objetivo"
+            xLabel="Episode"
+            yLabel="Reached the goal"
             formatY={(value) => formatPercent(value, 0)}
             formatX={(value) => formatNumber(value, 0)}
-            description="A parte dos últimos episódios em que o agente chegou ao objetivo."
+            description="The share of the latest episodes in which the agent reached the goal."
             caption={<TopicText topic="success_curve" />}
           />
         </div>
       </Part>
 
-      <Part id="aprendeu" title="O que o agente aprendeu">
+      <Part id="learned" title="What the agent learned">
         <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex min-w-0 flex-col gap-5">
             {frames.length > 1 ? (
               <OptionSlider
-                label="Episódio"
+                label="Episode"
                 values={episodes}
                 value={episode}
                 onChange={setEpisode}
@@ -417,8 +415,8 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
             ) : (
               result.trace === null && (
                 <p className="text-sm text-soft">
-                  Este run abriu do histórico sem os episódios intermédios (só ficam nos runs
-                  guardados): vês o que o agente sabia no fim.
+                  This run opened from the history without the intermediate episodes (only saved
+                  runs keep them): you see what the agent knew at the end.
                 </p>
               )
             )}
@@ -427,7 +425,7 @@ function Finished({ result, fromHistory }: { result: ReinforcementResult; fromHi
               values={frame.values}
               actions={frame.actions}
               path={frame.path}
-              description={`O que o agente sabia no episódio ${String(frame.episode)}: o valor de cada célula, a política e o caminho a partir da partida.`}
+              description={`What the agent knew at episode ${String(frame.episode)}: the value of each cell, the policy and the path from the start.`}
               caption={<TopicText topic="policy_map" />}
             />
           </div>
@@ -443,24 +441,24 @@ function QTable({ result, frame }: { result: ReinforcementResult; frame: PolicyF
   return (
     <section aria-labelledby="tabela-q-titulo" className="flex min-w-0 flex-col gap-4">
       <div className="flex items-center gap-1">
-        <h3 id="tabela-q-titulo" className="text-[0.9375rem] font-normal tracking-normal text-soft">
-          A tabela Q, ação a ação
+        <h3 id="tabela-q-titulo" className="text-base font-normal tracking-normal text-soft">
+          The Q table, action by action
         </h3>
         <Explain topic="q_table" />
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-6">
         {result.layout.action_labels.map((name, action) => (
           <div key={name} className="flex min-w-0 flex-col gap-1.5">
-            <p className="font-mono text-xs text-dim capitalize">{name}</p>
+            <p className="text-xs font-medium text-dim capitalize">{name}</p>
             <GridWorld
               layout={result.layout}
               values={frame.q_values.map((q, cell) =>
                 frame.actions[cell] === null ? null : (q[action] ?? null),
               )}
-              valueLabel={`Q de ${name}`}
+              valueLabel={`Q of ${name}`}
               maxCell={36}
               legend={false}
-              description={`O Q da ação ${name} em cada célula, no episódio ${String(frame.episode)}.`}
+              description={`The Q of action ${name} in each cell, at episode ${String(frame.episode)}.`}
             />
           </div>
         ))}
@@ -488,11 +486,8 @@ function ReportsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th
-              scope="col"
-              className="px-3 py-2.5 text-left font-mono text-xs font-normal text-dim"
-            >
-              Métrica
+            <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-dim">
+              Metric
             </th>
             {partitions.map((partition) => (
               <th
@@ -500,8 +495,8 @@ function ReportsTable({
                 scope="col"
                 className={
                   partition === main
-                    ? "px-3 py-2.5 text-right font-mono text-xs font-normal text-soft"
-                    : "px-3 py-2.5 text-right font-mono text-xs font-normal text-dim"
+                    ? "px-3 py-2.5 text-right text-xs font-medium text-soft"
+                    : "px-3 py-2.5 text-right text-xs font-medium text-dim"
                 }
               >
                 {label("Partition", partition)}

@@ -7,6 +7,7 @@
  * acompanha a página.
  */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import type { DatasetSummary, PrepareRequest } from "@/api/generated";
@@ -18,7 +19,8 @@ import {
 import { datasetsPrepare } from "@/api/generated/sdk.gen";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
-import { NextStep, Proceed } from "@/components/shell/blocks";
+import { Proceed } from "@/components/shell/blocks";
+import { Button } from "@/components/ui/button";
 import { RequireDataset } from "@/features/data/require-dataset";
 import { useDebounced } from "@/hooks/use-debounced";
 import { useSession } from "@/state/session";
@@ -52,9 +54,19 @@ export function PrepareScreen() {
           "pca_loadings",
         ]}
       >
-        <Proceed to="/modelos" disabled={!ready}>
-          Escolher o modelo
-        </Proceed>
+        {/* Daqui, os modelos abrem já com a tarefa preparada (ADR 0051): é para ela que se escolhe.
+            Pela barra, abrem com todas. */}
+        {ready ? (
+          <Button asChild variant="proceed" size="proceed">
+            <Link to="/models" search={{ task: preparation.taskType }}>
+              Choose the model
+            </Link>
+          </Button>
+        ) : (
+          <Proceed to="/models" disabled>
+            Choose the model
+          </Proceed>
+        )}
       </PageHeader>
       <RequireDataset>{(dataset) => <Prepare key={dataset.id} dataset={dataset} />}</RequireDataset>
     </Page>
@@ -143,20 +155,25 @@ function Prepare({ dataset }: { dataset: DatasetSummary }) {
   const pending = request !== settled || summary.isFetching;
   return (
     <>
-      <div className="mt-8 grid gap-x-12 gap-y-10 @6xl/main:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-        <PrepareForm
-          dataset={dataset}
-          choices={choices}
-          onChange={change}
-          suggestion={suggestion.data}
-          cleaning={cleaning.data}
-          options={options.data}
-          taskType={taskType}
-        />
-        <div className="min-w-0 @6xl/main:sticky @6xl/main:top-6 @6xl/main:max-h-[calc(100svh-3rem)] @6xl/main:self-start @6xl/main:overflow-y-auto @6xl/main:pr-2">
+      {/* Duas colunas a partir de um portátil (1440 px): os controlos numa coluna estreita e o
+          resultado ao lado. Numa só coluna, os controlos não esticam: um interruptor longe do
+          seu nome lê-se mal. */}
+      <div className="mt-8 grid gap-x-10 gap-y-10 @5xl/main:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] @7xl/main:gap-x-14">
+        <div className="max-w-2xl min-w-0 @5xl/main:max-w-none">
+          <PrepareForm
+            dataset={dataset}
+            choices={choices}
+            onChange={change}
+            suggestion={suggestion.data}
+            cleaning={cleaning.data}
+            options={options.data}
+            taskType={taskType}
+          />
+        </div>
+        <div className="min-w-0 @5xl/main:sticky @5xl/main:top-6 @5xl/main:max-h-[calc(100svh-3rem)] @5xl/main:self-start @5xl/main:overflow-y-auto @5xl/main:pr-2">
           {impossible ? (
             <p className="text-sm text-soft">
-              Com este alvo não há nenhuma tarefa possível: escolhe outra coluna-alvo.
+              No task is possible with this target: choose another target column.
             </p>
           ) : (
             <PrepareResult
@@ -167,11 +184,6 @@ function Prepare({ dataset }: { dataset: DatasetSummary }) {
           )}
         </div>
       </div>
-      {current !== null && (
-        <NextStep>
-          <Proceed to="/modelos">Escolher o modelo</Proceed>
-        </NextStep>
-      )}
     </>
   );
 }

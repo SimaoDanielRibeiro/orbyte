@@ -156,7 +156,7 @@ def prepare_folds(
     if max_rows is not None and len(train) > max_rows:
         if max_rows < k:
             raise InvalidParameterError(
-                f"A amostra do treino tem de ter pelo menos uma linha por fold ({k}); pediste "
+                f"The training sample needs at least one row per fold ({k}); you asked for "
                 f"{max_rows}."
             )
         kept = _sample_positions(
@@ -166,7 +166,7 @@ def prepare_folds(
         train = train[kept]
     if not 2 <= k <= len(train):
         raise InvalidParameterError(
-            f"A validação cruzada precisa de entre 2 e {len(train)} folds; pediste {k}."
+            f"Cross-validation needs between 2 and {len(train)} folds; you asked for {k}."
         )
     folds = _fold_positions(selected.frame.iloc[train], k, seeds.seed_for(FOLDS_SEED), target)
     datasets = []
@@ -180,9 +180,9 @@ def prepare_folds(
             stage=Stage.SPLIT,
             operation="cross_validation_fold",
             description=(
-                f"Validação cruzada, fold {number} de {k}: treino com "
-                f"{format_quantity(len(kept), 'linha', 'linhas')} e avaliação com as "
-                f"{format_quantity(len(held_out), 'linha', 'linhas')} do fold."
+                f"Cross-validation, fold {number} of {k}: training on "
+                f"{format_quantity(len(kept), 'row', 'rows')} and evaluating on the fold's "
+                f"{format_quantity(len(held_out), 'row', 'rows')}."
             ),
             params={"fold": number, "k": k},
             rows_after=len(kept),
@@ -195,13 +195,13 @@ def prepare_folds(
 
 REFERENCE_USES: Final[Mapping[TaskType, str]] = MappingProxyType(
     {
-        TaskType.CLUSTERING: "por exemplo, os grupos do k-means com as espécies do Iris",
+        TaskType.CLUSTERING: "the k-means groups with the Iris species, for example",
         TaskType.DIMENSIONALITY_REDUCTION: (
-            "por exemplo, se as espécies do Iris ficam separadas no mapa"
+            "whether the Iris species end up apart on the map, for example"
         ),
         TaskType.ANOMALY_DETECTION: (
-            "as anomalias marcadas com as verdadeiras; com duas classes, a mais rara conta "
-            "como anomalia"
+            "the flagged anomalies with the true ones; with two classes, the rarer one counts "
+            "as the anomaly"
         ),
     }
 )
@@ -230,9 +230,9 @@ def task_options(task_type: TaskType, target: str | None) -> TaskOptions:
     note = None
     if reference is not None:
         note = (
-            f"Com {task_type.label.lower()}, a coluna {reference} não entra no treino: fica "
-            "como **referência**, para no fim comparares o que o modelo encontrou com ela "
-            f"({REFERENCE_USES[task_type]})."
+            f"With {task_type.label.lower()}, the column {reference} doesn't go into the "
+            "training: it stays as a **reference**, so that at the end you can compare what the "
+            f"model found with it ({REFERENCE_USES[task_type]})."
         )
     strategies = [SplitStrategy.RANDOM, SplitStrategy.TIME]
     if _class_column(task_type, target) is not None:
@@ -263,8 +263,8 @@ def _select(table: LoadedTable, config: PreparationConfig) -> _Selected:
             stage=Stage.INPUT,
             operation="load",
             description=(
-                f"Carregado {table.name}: {format_quantity(len(frame), 'linha', 'linhas')} × "
-                f"{format_quantity(frame.shape[1], 'coluna', 'colunas')}."
+                f"Loaded {table.name}: {format_quantity(len(frame), 'row', 'rows')} × "
+                f"{format_quantity(frame.shape[1], 'column', 'columns')}."
             ),
             params=table.spec.to_dict(),
             rows_after=len(frame),
@@ -274,7 +274,7 @@ def _select(table: LoadedTable, config: PreparationConfig) -> _Selected:
     frame, lineage = cleaned.frame, cleaned.lineage
     notices: list[Notice] = list(cleaned.notices)
     if frame.empty:
-        raise DataError("Depois da limpeza não sobrou nenhuma linha: revê os passos da limpeza.")
+        raise DataError("No rows were left after the cleaning: check the cleaning steps.")
 
     task = suggest_task(frame, config.target)
     task_type = _choose_task(task, config)
@@ -287,8 +287,8 @@ def _select(table: LoadedTable, config: PreparationConfig) -> _Selected:
     features = schema.feature_names()
     if not features:
         raise DataError(
-            "Não sobrou nenhuma feature que o modelo possa usar: confirma o alvo e as colunas "
-            "removidas na limpeza."
+            "No feature the model can use was left: check the target and the columns dropped "
+            "in the cleaning."
         )
     lineage = lineage.then(_task_step(task, task_type, config, features, schema))
     return _Selected(
@@ -311,8 +311,8 @@ def _split(
     classes = _class_column(selected.task_type, config.target)
     if config.split.strategy is SplitStrategy.STRATIFIED and classes is None:
         raise InvalidParameterError(
-            "A divisão estratificada precisa de classes (um alvo categórico ou uma coluna de "
-            "referência): escolhe a divisão aleatória."
+            "The stratified split needs classes (a categorical target or a reference column): "
+            "choose the random split."
         )
     return split_rows(
         selected.frame,
@@ -444,13 +444,13 @@ def _sample_positions(
 
 
 def _sample_step(rows: int, kept: int, target: str | None) -> LineageStep:
-    how = f", com a proporção de cada classe de {target}" if target else ", ao acaso"
+    how = f", keeping the share of each class of {target}" if target else ", at random"
     return LineageStep(
         stage=Stage.SPLIT,
         operation="sample_train",
         description=(
-            f"Amostra de {format_quantity(kept, 'linha', 'linhas')} das "
-            f"{format_count(rows)} do treino{how}, para a validação cruzada ser rápida."
+            f"Sample of {format_quantity(kept, 'row', 'rows')} out of the "
+            f"{format_count(rows)} training rows{how}, so the cross-validation is quick."
         ),
         params={"max_rows": kept},
         rows_before=rows,
@@ -489,11 +489,12 @@ def _choose_task(task: TaskSuggestion, config: PreparationConfig) -> TaskType:
         allowed = ", ".join(option.label.lower() for option in task.allowed)
         if config.target is None:
             raise InvalidParameterError(
-                f"{chosen.label} precisa de uma coluna-alvo. Sem alvo, as tarefas possíveis são: "
-                f"{allowed}."
+                f"{chosen.label} needs a target column. Without a target, the possible tasks "
+                f"are: {allowed}."
             )
         raise InvalidParameterError(
-            f"{chosen.label} não serve para o alvo {config.target}. Escolhe uma destas: {allowed}."
+            f"{chosen.label} doesn't suit the target {config.target}. Choose one of these: "
+            f"{allowed}."
         )
     return chosen
 
@@ -509,8 +510,8 @@ def _drop_rows_without_target(
         stage=Stage.TASK,
         operation="drop_missing_target",
         description=(
-            f"{'Removida' if removed == 1 else 'Removidas'} "
-            f"{format_quantity(removed, 'linha', 'linhas')} sem valor no alvo {target}."
+            f"Removed {format_quantity(removed, 'row', 'rows')} with no value in the target "
+            f"{target}."
         ),
         params={"target": target},
         rows_before=len(frame),
@@ -535,8 +536,8 @@ def _model_schema(
         notices.append(
             Notice.warning(
                 "unconverted_text",
-                f"{', '.join(as_text)} ficaram de fora do modelo porque estão guardadas como "
-                "texto: converte-as na limpeza (operação convert_type) para as usar.",
+                f"{', '.join(as_text)} were left out of the model because they're stored as "
+                "text: convert them in the cleaning (the convert_type operation) to use them.",
             )
         )
     ignored = [c.name for c in schema if c.role is ColumnRole.IGNORED and c.name not in as_text]
@@ -544,8 +545,8 @@ def _model_schema(
         notices.append(
             Notice.info(
                 "ignored_columns",
-                f"{', '.join(ignored)} não entram no modelo (texto livre ou identificadores). "
-                "Podes removê-las na limpeza.",
+                f"{', '.join(ignored)} don't go into the model (free text or identifiers). You "
+                "can drop them in the cleaning.",
             )
         )
     return schema, notices
@@ -558,18 +559,18 @@ def _task_step(
     features: tuple[str, ...],
     schema: TableSchema,
 ) -> LineageStep:
-    origin = "sugerida" if config.task_type in (None, task.task_type) else "escolhida por ti"
+    origin = "suggested" if config.task_type in (None, task.task_type) else "chosen by you"
     if config.target and not task_type.requires_target:
-        target = f"Referência {config.target} (não entra no treino; serve para comparar)"
+        target = f"Reference {config.target} (not used in the training; it's for comparing)"
     else:
-        target = f"Alvo {config.target}" if config.target else "Sem alvo"
+        target = f"Target {config.target}" if config.target else "No target"
     description = (
-        f"{target}; tarefa: {task_type.label.lower()} ({origin}). "
+        f"{target}; task: {task_type.label.lower()} ({origin}). "
         f"{format_quantity(len(features), 'feature', 'features')}: {', '.join(features)}."
     )
     ignored = [column.name for column in schema if column.role is ColumnRole.IGNORED]
     if ignored:
-        description += f" Ficam de fora: {', '.join(ignored)}."
+        description += f" Left out: {', '.join(ignored)}."
     return LineageStep(
         stage=Stage.TASK,
         operation="choose_task",
@@ -581,15 +582,17 @@ def _task_step(
 def _unknown_category_notices(counts: dict[str, int], partition: Partition) -> list[Notice]:
     notices: list[Notice] = []
     for column, count in counts.items():
-        if count == 1:
-            verbs = "não existia no treino e ficou"
-        else:
-            verbs = "não existiam no treino e ficaram"
+        verbs = (
+            "didn't exist in the training data and was"
+            if count == 1
+            else "didn't exist in the training data and were"
+        )
         notices.append(
             Notice.info(
                 "unknown_category",
-                f"No {partition.label.lower()}, {format_quantity(count, 'valor', 'valores')} de "
-                f"{column} {verbs} com zeros na codificação.",
+                f"On the {partition.label.lower()} data, "
+                f"{format_quantity(count, 'value', 'values')} of {column} {verbs} encoded as "
+                "zeros.",
                 column,
             )
         )
@@ -603,12 +606,12 @@ def _output_step(
         f"{part.label.lower()} {format_count(len(split))} × {len(feature_names)}"
         for part, split in splits.items()
     )
-    description = f"Entregue em NumPy (float64): {shapes}."
+    description = f"Handed over as NumPy (float64): {shapes}."
     if labels:
-        mapping = ", ".join(f"«{label}» → {index}" for index, label in enumerate(labels))
+        mapping = ", ".join(f"“{label}” → {index}" for index, label in enumerate(labels))
         description += (
-            f" O alvo tem {format_quantity(len(labels), 'classe', 'classes')}, trocadas por "
-            f"números: {mapping}."
+            f" The target has {format_quantity(len(labels), 'class', 'classes')}, swapped for "
+            f"numbers: {mapping}."
         )
     return LineageStep(
         stage=Stage.OUTPUT,

@@ -1,63 +1,65 @@
-# Perceptrão
+# Perceptron
 
-## Intuição
+## Intuition
 
-O perceptrão (Rosenblatt, 1958) é o classificador linear mais antigo que aprende sozinho. Tem
-uma reta (ou um plano) a separar as classes e só a mexe quando erra: se um exemplo cai do
-lado errado, a reta roda e desloca-se um bocadinho na direção dele. Se acerta, nada muda.
+The perceptron (Rosenblatt, 1958) is the oldest linear classifier that learns on its own. It has
+a line (or a plane) separating the classes and only moves it when it's wrong: if an example falls
+on the wrong side, the line turns and shifts a little towards it. If it's right, nothing changes.
 
-É o antepassado direto das redes neuronais: um neurónio artificial é um perceptrão com uma
-função mais suave no lugar do "sim ou não".
+It's the direct ancestor of neural networks: an artificial neuron is a perceptron with a smoother
+function in place of the "yes or no".
 
-## Matemática essencial
+## Essential maths
 
-Com as classes codificadas como $y = +1$ e $y = -1$, o perceptrão prevê o sinal de
-$w \cdot x + b$. Em cada época percorre os exemplos e, para cada um:
+With the classes coded as $y = +1$ and $y = -1$, the perceptron predicts the sign of
+$w \cdot x + b$. In each epoch it goes through the examples and, for each one:
 
-$$\text{se } y\,(w \cdot x + b) \le 0: \qquad w \leftarrow w + \eta\, y\, x \qquad b \leftarrow b + \eta\, y$$
+$$\text{if } y\,(w \cdot x + b) \le 0: \qquad w \leftarrow w + \eta\, y\, x \qquad b \leftarrow b + \eta\, y$$
 
-onde $\eta$ é a taxa de aprendizagem. A correção empurra a pontuação do exemplo no sentido
-certo: $y\,(w + \eta y x) \cdot x = y\, w \cdot x + \eta \lVert x \rVert^2$, maior do que antes.
+where $\eta$ is the learning rate. The correction pushes the example's score the right way:
+$y\,(w + \eta y x) \cdot x = y\, w \cdot x + \eta \lVert x \rVert^2$, larger than before.
 
-**Teorema de convergência:** se as classes se separarem com uma reta, o perceptrão encontra
-uma fronteira sem erros ao fim de um número finito de correções. Se não se separarem, nunca
-pára de corrigir.
+**Convergence theorem:** if the classes can be separated by a straight line, the perceptron finds
+a boundary with no errors after a finite number of corrections. If they can't, it never stops
+correcting.
 
-Com mais de duas classes, treina-se um perceptrão por classe ("esta classe contra as
-outras") e prevê-se a classe com a maior pontuação $w_k \cdot x + b_k$.
+With more than two classes, one perceptron is trained per class ("this class against the
+others") and the prediction is the class with the highest score $w_k \cdot x + b_k$.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `learning_rate` | O tamanho de cada correção ($\eta$). Com os pesos a começar em zero, só muda a escala dos pesos e da ordenada | 1,0 |
-| `max_epochs` | Máximo de passagens pelos dados de treino | 100 |
-| `shuffle` | Percorrer os exemplos por uma ordem diferente em cada época (com a seed do modelo) | sim |
-| `fit_intercept` | Se aprende a ordenada $b$ (sem ela, a fronteira passa pela origem) | sim |
+| `learning_rate` | The size of each correction ($\eta$). With the weights starting at zero, it only changes the scale of the weights and the intercept | 1.0 |
+| `max_epochs` | The most passes over the training data | 100 |
+| `shuffle` | Go through the examples in a different order each epoch (with the model's seed) | yes |
+| `fit_intercept` | Whether it learns the intercept $b$ (without it, the boundary goes through the origin) | yes |
 
-## Quando usar
+## When to use
 
-- Para **perceber** como um classificador aprende com os erros, e a origem das redes
-  neuronais.
-- Em dados que se separam com uma reta, onde encontra uma fronteira perfeita no treino.
+- To **understand** how a classifier learns from its mistakes, and where neural networks came
+  from.
+- On data that a straight line can separate, where it finds a perfect boundary on the training
+  data.
 
-Na prática, a regressão logística ou o SVM linear são melhores: dão probabilidades ou a
-melhor margem, e lidam bem com classes que se sobrepõem.
+In practice, logistic regression or the linear SVM are better: they give probabilities or the
+best margin, and handle overlapping classes well.
 
-## Armadilhas
+## Pitfalls
 
-- **Classes que não se separam com uma reta** (as luas, o Iris com versicolor e virginica):
-  o perceptrão nunca pára de corrigir, e a fronteira final depende da época em que parou. O
-  modelo avisa ("ainda errava no treino").
-- **Não dá probabilidades:** só a classe. Por isso não há curva ROC nem log-loss.
-- **Qualquer fronteira sem erros serve:** entre várias retas possíveis, fica com a primeira
-  que encontrou, muitas vezes encostada a uma das classes. O SVM, pelo contrário, procura a
-  que fica mais longe das duas.
-- **A ordem dos exemplos conta:** com `shuffle`, outra seed dá outra fronteira.
+- **Classes that a straight line can't separate** (the moons, Iris with versicolor and
+  virginica): the perceptron never stops correcting, and the final boundary depends on the epoch
+  where it stopped. The model warns you ("it still made mistakes on the training data").
+- **It gives no probabilities:** only the class. So there's no ROC curve and no log-loss.
+- **Any boundary with no errors will do:** among several possible lines, it keeps the first one
+  it found, often pressed against one of the classes. The SVM, by contrast, looks for the one
+  furthest from both.
+- **The order of the examples matters:** with `shuffle`, another seed gives another boundary.
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Treinar e avaliar**, cada passo é uma época. A curva da loss mostra a proporção de exemplos
-corrigidos nessa época. Em dados separáveis chega a zero e o treino pára; nos outros
-oscila sem nunca chegar lá. A fronteira salta de época para época, porque só se mexe com os
-erros: é o contraste com a descida suave do gradiente descendente da regressão logística.
+On the **Train & evaluate** screen, each step is an epoch. The loss curve shows the share of
+examples corrected in that epoch. On separable data it reaches zero and the training stops; on
+the rest it oscillates without ever getting there. The boundary jumps from epoch to epoch,
+because it only moves with the mistakes: that's the contrast with the smooth descent of logistic
+regression's gradient descent.

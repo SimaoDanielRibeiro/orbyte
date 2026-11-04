@@ -44,36 +44,36 @@ class KMeansParams(Hyperparameters):
         default=3,
         ge=2,
         le=20,
-        title="Número de grupos (k)",
+        title="Number of clusters (k)",
         description=(
-            "Quantos grupos procurar. O k-means encontra sempre k grupos, mesmo que os dados "
-            "não os tenham: compara a silhueta de vários k."
+            "How many clusters to look for. K-means always finds k clusters, even if the data "
+            "doesn't have them: compare the silhouette of several k."
         ),
     )
     init: Literal["k-means++", "random"] = Field(
         default="k-means++",
-        title="Pontos de partida",
+        title="Starting points",
         description=(
-            "Onde começam os centróides: k-means++ espalha-os pelos dados; ao acaso, pode pôr "
-            "dois no mesmo grupo e acabar num mau resultado."
+            "Where the centroids start: k-means++ spreads them over the data; at random, it "
+            "can put two in the same cluster and end in a poor result."
         ),
-        json_schema_extra={"x-labels": {"k-means++": "k-means++", "random": "Ao acaso"}},
+        json_schema_extra={"x-labels": {"k-means++": "k-means++", "random": "At random"}},
     )
     max_iter: int = Field(
         default=300,
         ge=1,
         le=1_000,
-        title="Máximo de iterações",
-        description="Quantas vezes, no máximo, repete atribuir e atualizar.",
+        title="Maximum iterations",
+        description="How many times, at most, it repeats assigning and updating.",
     )
     tol: float = Field(
         default=0.0001,
         ge=1e-8,
         le=0.1,
-        title="Tolerância de paragem",
+        title="Stopping tolerance",
         description=(
-            "Pára quando os centróides quase não mexem: o deslocamento fica abaixo desta "
-            "fração da variância dos dados."
+            "Stops when the centroids barely move: the shift falls below this fraction of the "
+            "data's variance."
         ),
         json_schema_extra={"x-scale": "log"},
     )
@@ -87,8 +87,8 @@ class KMeansNumpy(LabModel[KMeansParams]):
         name="kmeans_numpy",
         display_name="K-means (NumPy)",
         summary=(
-            "Agrupa os pontos à volta de k centróides, escrito em NumPy: vês os centróides a "
-            "andar até ao meio dos seus grupos, iteração a iteração."
+            "Groups the points around k centroids, written in NumPy: you see the centroids "
+            "walk to the middle of their clusters, iteration by iteration."
         ),
         task_types=frozenset({TaskType.CLUSTERING}),
         family=ModelFamily.CENTROID,
@@ -123,7 +123,9 @@ class KMeansNumpy(LabModel[KMeansParams]):
         params = self.hyperparameters
         k = params.n_clusters
         if k > len(X):
-            raise ModelError(f"Pediste {k} grupos, mas o treino só tem {len(X)} linhas.")
+            raise ModelError(
+                f"You asked for {k} clusters, but the training data has only {len(X)} rows."
+            )
         rng = np.random.default_rng(self.seed)
         self._centers = self._start(X, k, rng)
         self._initial = self._centers.copy()
@@ -157,16 +159,16 @@ class KMeansNumpy(LabModel[KMeansParams]):
             self._note(
                 Notice.warning(
                     "empty_clusters",
-                    f"{format_count(empty)} dos {k} grupos ficaram vazios: há mais grupos do que "
-                    "a estrutura dos dados justifica. Experimenta um k menor.",
+                    f"{format_count(empty)} of the {k} clusters ended up empty: there are more "
+                    "clusters than the structure of the data justifies. Try a smaller k.",
                 )
             )
         if not self._converged and self._iterations == params.max_iter:
             self._note(
                 Notice.warning(
                     "not_converged",
-                    f"Os centróides ainda mexiam ao fim de {format_count(params.max_iter)} "
-                    "iterações: aumenta o máximo de iterações.",
+                    "The centroids were still moving after "
+                    f"{format_count(params.max_iter)} iterations: raise the maximum iterations.",
                 )
             )
 

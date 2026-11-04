@@ -1,53 +1,54 @@
-# Regressão polinomial
+# Polynomial regression
 
-## Intuição
+## Intuition
 
-Uma reta não segue uma curva. Mas se juntarmos às features as suas potências ($x^2$, $x^3$,
-...) e os seus produtos ($x \cdot z$), uma regressão **linear** nessas novas features já
-desenha curvas. O modelo continua linear nos pesos; só as features é que ficaram curvas.
+A straight line can't follow a curve. But if we add the features' powers ($x^2$, $x^3$, ...) and
+their products ($x \cdot z$) to the features, a **linear** regression on those new features can
+draw curves. The model is still linear in the weights; only the features became curved.
 
-É a demonstração clássica do **overfitting**: com grau baixo, a curva é simples demais
-(underfitting); com grau alto, passa por todos os pontos de treino e ondula loucamente entre
-eles.
+It's the classic demonstration of **overfitting**: with a low degree, the curve is too simple
+(underfitting); with a high degree, it goes through every training point and wiggles wildly
+between them.
 
-## Matemática essencial
+## Essential maths
 
-Com uma feature e grau $d$:
+With one feature and degree $d$:
 
 $$\hat y = b + w_1 x + w_2 x^2 + \dots + w_d x^d$$
 
-Com $p$ features, o polinómio de grau $d$ tem todos os produtos até grau $d$: são
-$\binom{p + d}{d} - 1$ termos. Com 10 features e grau 3, já são 285. O modelo do laboratório
-é um *pipeline* de três peças:
+With $p$ features, the polynomial of degree $d$ has every product up to degree $d$: that's
+$\binom{p + d}{d} - 1$ terms. With 10 features and degree 3, that's already 285. The lab's model
+is a *pipeline* of three pieces:
 
-1. cria as potências e os produtos (`PolynomialFeatures`);
-2. padroniza-os ($x^{15}$ e $x$ têm escalas incomparáveis);
-3. ajusta uma Ridge, com o $\alpha$ escolhido, que trava os pesos dos termos.
+1. create the powers and the products (`PolynomialFeatures`);
+2. standardise them ($x^{15}$ and $x$ have incomparable scales);
+3. fit a Ridge, with the chosen $\alpha$, which holds back the terms' weights.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `degree` | A maior potência. Grau 1 é a reta; graus altos fazem curvas que passam por todos os pontos de treino | 2 |
-| `alpha` | A regularização da Ridge. Quase zero mostra o overfitting em toda a sua glória; aumentar amansa as curvas dos graus altos | $10^{-6}$ |
+| `degree` | The highest power. Degree 1 is the straight line; high degrees make curves that go through every training point | 2 |
+| `alpha` | The Ridge regularisation. Near zero shows overfitting in all its glory; raising it tames the curves of the high degrees | $10^{-6}$ |
 
-## Quando usar
+## When to use
 
-- Quando a relação é **curva e suave** e há poucas features (uma ou duas).
-- Para **ver** o equilíbrio entre viés e variância (a demonstração "Overfitting" do ecrã
-  Laboratório).
+- When the relationship is **curved and smooth** and there are few features (one or two).
+- To **see** the balance between bias and variance (the Lab screen's "Complexity and
+  overfitting" demo).
 
-## Armadilhas
+## Pitfalls
 
-- **O número de termos explode** com o grau e o número de features. O modelo recusa mais de
-  5000 termos.
-- **Overfitting com graus altos:** o erro de treino desce sempre; o de teste desce e volta a
-  subir. Escolhe o grau pelo teste (ou com validação cruzada), nunca pelo treino.
-- **Extrapolação desastrosa:** fora do intervalo dos dados, um polinómio de grau alto dispara
-  para mais ou menos infinito.
+- **The number of terms explodes** with the degree and the number of features. The model refuses
+  more than 5,000 terms.
+- **Overfitting with high degrees:** the training error always falls; the test error falls and
+  then rises again. Pick the degree by the test (or with cross-validation), never by the training
+  data.
+- **Disastrous extrapolation:** outside the range of the data, a high-degree polynomial shoots off
+  towards plus or minus infinity.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. Com uma só feature, o ecrã **Treinar e avaliar** desenha a curva por cima dos
-pontos. Experimenta o grau 1, o 3 e o 15. Na avaliação, compara o erro no treino e no teste: a
-diferença cresce com o grau.
+It trains in one go. With a single feature, the **Train & evaluate** screen draws the curve over
+the points. Try degree 1, 3 and 15. In the evaluation, compare the error on the training data and
+on the test: the gap grows with the degree.

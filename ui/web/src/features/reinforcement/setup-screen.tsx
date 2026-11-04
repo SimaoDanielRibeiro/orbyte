@@ -9,7 +9,7 @@
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import type { AgentCard, EnvironmentCard } from "@/api/generated";
@@ -70,14 +70,14 @@ export function SetupScreen() {
             params={{ runId: lastRun }}
             className="underline-offset-4 hover:text-strong hover:underline"
           >
-            Voltar ao último agente treinado
+            Back to the last trained agent
           </Link>
         </p>
       )}
       <RlLesson />
       <section aria-labelledby="treinar-titulo" className="mt-20">
         <h2 id="treinar-titulo" className="text-xl">
-          Treinar um agente
+          Train an agent
         </h2>
         <ErrorNote error={environments.error ?? agents.error} className="mt-8" />
         {environments.data === undefined || agents.data === undefined ? (
@@ -131,9 +131,9 @@ function Setup({
 
   return (
     <div className="mt-8 grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
-      <Group title="O ambiente">
+      <Group title="The environment">
         {environments.length > 1 && (
-          <Field label="Ambiente" htmlFor="rl-ambiente">
+          <Field label="Environment" htmlFor="rl-ambiente">
             <Select value={environment.name} onValueChange={setEnvironmentName}>
               <SelectTrigger id="rl-ambiente" className="w-full">
                 <SelectValue />
@@ -162,9 +162,9 @@ function Setup({
         />
       </Group>
 
-      <Group title="O agente">
+      <Group title="The agent">
         <ToggleGroup
-          aria-label="O agente"
+          aria-label="The agent"
           type="single"
           variant="outline"
           value={agent.name}
@@ -182,7 +182,7 @@ function Setup({
           ))}
         </ToggleGroup>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-[#2a2a2a] px-3 py-1 font-mono text-xs text-soft">
+          <span className="rounded-full border border-[#2a2a2a] px-3 py-1 text-xs font-medium text-soft">
             {label("Implementation", agent.implementation)}
           </span>
           <Explain title={agent.display_name}>{agent.summary}</Explain>
@@ -190,7 +190,7 @@ function Setup({
         {agent.doc !== "" && (
           <Collapsible>
             <CollapsibleTrigger className="rounded-md text-sm text-soft underline-offset-4 outline-none hover:text-strong hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-              Ler a ficha didática do {agent.display_name}
+              Read the {agent.display_name} guide
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
               <Prose text={agent.doc} />
@@ -198,7 +198,7 @@ function Setup({
           </Collapsible>
         )}
         <section className="flex flex-col gap-3">
-          <h4 className="text-sm font-normal text-soft">Os hiperparâmetros</h4>
+          <h4 className="text-sm font-normal text-soft">The hyperparameters</h4>
           <SchemaForm
             schema={agent.hyperparameters_schema}
             values={agentValues}
@@ -211,7 +211,7 @@ function Setup({
         <Field
           label="Seed"
           htmlFor="rl-seed"
-          help="A mesma seed dá o mesmo treino: a mesma exploração e o mesmo acaso do ambiente."
+          help="The same seed gives the same training: the same exploration and the same randomness in the environment."
         >
           <Input
             id="rl-seed"
@@ -246,8 +246,7 @@ function Setup({
             }}
           >
             {start.isPending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-            Treinar o agente
-            {!start.isPending && <ArrowRight aria-hidden="true" />}
+            Train the agent
           </Button>
           <ErrorNote error={start.error} />
         </div>
@@ -260,7 +259,7 @@ function Setup({
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex min-w-0 flex-col gap-6 self-start">
-      <h3 className="text-[0.9375rem] font-normal tracking-normal text-soft">{title}</h3>
+      <h3 className="text-base font-normal tracking-normal text-soft">{title}</h3>
       {children}
     </section>
   );

@@ -13,6 +13,6 @@ interface WhyButtonProps {
   description?: string;
 }
 
-export function WhyButton({ topics, title = "Porquê?", description }: WhyButtonProps) {
+export function WhyButton({ topics, title = "Why?", description }: WhyButtonProps) {
   return <PageExplain title={title} description={description} topics={topics} />;
 }

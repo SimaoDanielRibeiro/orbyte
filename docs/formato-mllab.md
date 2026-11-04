@@ -182,8 +182,8 @@ label, probabilities = session.run(None, linha)
 
 ## `examples.csv`
 
-Algumas linhas do teste, como chegaram, com o alvo e uma coluna `previsto` com o que o modelo
-previu. Servem para confirmar que o modelo prevê o mesmo noutro sítio. Vêm por omissão nos
+Algumas linhas do teste, como chegaram, com o alvo e uma coluna `predicted` com o que o modelo
+previu (o nome em inglês, como todo o site; ADR 0043). Servem para confirmar que o modelo prevê o mesmo noutro sítio. Vêm por omissão nos
 datasets de exemplo e nos sintéticos, e não nos ficheiros carregados (podem ser dados de alguém).
 
 ## `model.joblib`

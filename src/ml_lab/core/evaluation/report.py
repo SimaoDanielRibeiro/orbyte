@@ -42,7 +42,7 @@ class MetricResult:
 
     @property
     def formatted(self) -> str:
-        """O valor escrito à portuguesa (``96,7%``, ``0,12``) ou ``—`` se não existir."""
+        """O valor escrito como no site (``96.7%``, ``0.12``) ou ``—`` se não existir."""
         if self.value is None or math.isnan(self.value):
             return "—"
         if self.as_percent:

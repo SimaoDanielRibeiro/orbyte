@@ -36,16 +36,16 @@ import { RunSheet } from "./run-sheet";
 import { MAX_COMPARED, primaryValue } from "./values";
 
 /** O valor de um filtro que não filtra nada. */
-const ALL = "todos";
+const ALL = "all";
 
 export function HistoryScreen() {
-  const search = useSearch({ from: "/experiencias" });
+  const search = useSearch({ from: "/history" });
   const navigate = useNavigate();
-  const task = search.tarefa === undefined ? undefined : (search.tarefa as TaskType);
+  const task = search.task === undefined ? undefined : (search.task as TaskType);
   const everything = useQuery({ ...historyRunsOptions(), staleTime: 0 });
   const filtered = useQuery({
     ...historyRunsOptions({
-      query: { task_type: task, dataset_name: search.dataset, model_name: search.modelo },
+      query: { task_type: task, dataset_name: search.dataset, model_name: search.model },
     }),
     staleTime: 0,
   });
@@ -57,9 +57,9 @@ export function HistoryScreen() {
       ? null
       : ((everything.data ?? []).find((entry) => entry.run_id === opened) ?? null);
 
-  const setFilter = (key: "tarefa" | "dataset" | "modelo", value: string) => {
+  const setFilter = (key: "task" | "dataset" | "model", value: string) => {
     void navigate({
-      to: "/experiencias",
+      to: "/history",
       search: { ...search, [key]: value === ALL ? undefined : value },
     });
   };
@@ -85,9 +85,9 @@ export function HistoryScreen() {
         everything.error === null && <Skeleton className="mt-10 h-64 w-full" />
       ) : everything.data.length === 0 ? (
         <NeedsStep
-          message="Ainda não há runs no histórico: cada treino que termina fica registado aqui sozinho."
-          to="/modelos"
-          action="Escolher um modelo"
+          message="No runs in the history yet: every training that finishes is recorded here on its own."
+          to="/models"
+          action="Choose a model"
         />
       ) : (
         <>
@@ -106,7 +106,7 @@ export function HistoryScreen() {
           />
 
           <Section
-            title="Comparar runs"
+            title="Compare runs"
             topic="comparing_runs"
             actions={
               chosen.length > 0 && (
@@ -117,7 +117,7 @@ export function HistoryScreen() {
                     setChosen([]);
                   }}
                 >
-                  Limpar a escolha ({chosen.length})
+                  Clear the selection ({chosen.length})
                 </Button>
               )
             }
@@ -140,9 +140,9 @@ export function HistoryScreen() {
 }
 
 interface HistorySearch {
-  tarefa?: string;
+  task?: string;
   dataset?: string;
-  modelo?: string;
+  model?: string;
 }
 
 /** Os filtros: as opções são os valores que o histórico tem. */
@@ -155,12 +155,12 @@ function Filters({
   all: readonly RunEntry[];
   search: HistorySearch;
   count: number | null;
-  onChange: (key: "tarefa" | "dataset" | "modelo", value: string) => void;
+  onChange: (key: "task" | "dataset" | "model", value: string) => void;
 }) {
   const label = useLabel();
   const tasks = [...new Set(all.map((entry) => entry.task_type))];
   const datasets = [...new Set(all.map((entry) => entry.dataset_name))].sort((a, b) =>
-    a.localeCompare(b, "pt"),
+    a.localeCompare(b, "en"),
   );
   const models = new Map(all.map((entry) => [entry.model_name, entry.model_display_name]));
   return (
@@ -168,16 +168,16 @@ function Filters({
       <div className="flex flex-wrap gap-4">
         <Filter
           id="historico-tarefa"
-          label="Tarefa"
-          value={search.tarefa ?? ALL}
+          label="Task"
+          value={search.task ?? ALL}
           options={tasks.map((task) => [task, label("TaskType", task)])}
           onChange={(value) => {
-            onChange("tarefa", value);
+            onChange("task", value);
           }}
         />
         <Filter
           id="historico-dataset"
-          label="Dataset ou ambiente"
+          label="Dataset or environment"
           value={search.dataset ?? ALL}
           options={datasets.map((name) => [name, name])}
           onChange={(value) => {
@@ -186,17 +186,17 @@ function Filters({
         />
         <Filter
           id="historico-modelo"
-          label="Modelo ou agente"
-          value={search.modelo ?? ALL}
-          options={[...models].sort((a, b) => a[1].localeCompare(b[1], "pt"))}
+          label="Model or agent"
+          value={search.model ?? ALL}
+          options={[...models].sort((a, b) => a[1].localeCompare(b[1], "en"))}
           onChange={(value) => {
-            onChange("modelo", value);
+            onChange("model", value);
           }}
         />
       </div>
       {count !== null && (
         <div className="flex items-center gap-1">
-          <p role="status" className="font-mono text-xs text-dim">
+          <p role="status" className="text-xs text-dim tabular-nums">
             {formatQuantity(count, "run", "runs")}
           </p>
           <Explain topic="run_history" />
@@ -221,7 +221,7 @@ function Filter({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="mono-label">
+      <label htmlFor={id} className="small-label">
         {label}
       </label>
       <Select value={value} onValueChange={onChange}>
@@ -229,7 +229,7 @@ function Filter({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>Todos</SelectItem>
+          <SelectItem value={ALL}>All</SelectItem>
           {options.map(([option, name]) => (
             <SelectItem key={option} value={option}>
               {name}
@@ -241,7 +241,14 @@ function Filter({
   );
 }
 
-/** A tabela dos runs: o nome abre a gaveta; a caixa escolhe o run para comparar. */
+/**
+ * A tabela dos runs: o nome abre a gaveta; a caixa escolhe o run para comparar.
+ *
+ * Cada célula tem uma linha principal e, por baixo, o pormenor em letra pequena (a tarefa por
+ * baixo do dataset, o nome da métrica por baixo do valor): assim cabe num portátil sem o nome
+ * partir em três linhas nem a tabela deslizar para o lado. A seed só aparece num ecrã largo
+ * (está também na gaveta do run).
+ */
 function RunsTable({
   entries,
   chosen,
@@ -260,43 +267,40 @@ function RunsTable({
     return <Skeleton className="mt-4 h-48 w-full" />;
   }
   if (entries.length === 0) {
-    return <p className="mt-4 text-sm text-soft">Nenhum run corresponde a estes filtros.</p>;
+    return <p className="mt-4 text-sm text-soft">No run matches these filters.</p>;
   }
   const full = chosen.length >= MAX_COMPARED;
-  const head = "px-3 py-2.5 font-mono text-xs font-normal text-dim";
+  const head = "px-3 py-2.5 text-xs font-medium text-dim";
   return (
     // `relative`: os textos só para leitores de ecrã das células (posição absoluta) ficam presos
     // aqui; sem ele, saíam da caixa e a página toda deslizava para o lado no telemóvel.
     <div className="relative mt-4 max-w-full overflow-x-auto">
       <table className="w-full text-sm">
         <caption className="sr-only">
-          Os runs do histórico, do mais recente para o mais antigo
+          The runs in the history, from the newest to the oldest
         </caption>
         <thead>
           <tr className="border-b text-left">
             <th scope="col" className={cn("w-10", head)}>
-              <span className="sr-only">Comparar</span>
+              <span className="sr-only">Compare</span>
             </th>
             <th scope="col" className={cn("whitespace-nowrap", head)}>
-              Quando
+              When
             </th>
             <th scope="col" className={head}>
-              Nome
+              Name
             </th>
             <th scope="col" className={head}>
-              Dataset
-            </th>
-            <th scope="col" className={head}>
-              Tarefa
+              Dataset and task
             </th>
             <th scope="col" className={cn("text-right whitespace-nowrap", head)}>
-              Métrica principal
+              Main metric
             </th>
-            <th scope="col" className={cn("text-right", head)}>
+            <th scope="col" className={cn("hidden text-right @7xl/main:table-cell", head)}>
               Seed
             </th>
             <th scope="col" className={head}>
-              Guardado
+              Saved
             </th>
           </tr>
         </thead>
@@ -315,7 +319,7 @@ function RunsTable({
                   <Checkbox
                     checked={on}
                     disabled={!on && full}
-                    aria-label={`Comparar «${entry.name}»`}
+                    aria-label={`Compare “${entry.name}”`}
                     onCheckedChange={(checked) => {
                       onToggle(entry.run_id, checked === true);
                     }}
@@ -324,7 +328,7 @@ function RunsTable({
                 <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap text-dim tabular-nums">
                   {formatMoment(entry.created_at)}
                 </td>
-                <td className="px-3 py-2.5">
+                <td className="min-w-56 px-3 py-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -335,29 +339,31 @@ function RunsTable({
                     {entry.name}
                   </button>
                 </td>
-                <td className="px-3 py-2.5 text-soft">{entry.dataset_name}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-soft">
-                  {label("TaskType", entry.task_type)}
+                <td className="px-3 py-3">
+                  <span className="block text-soft">{entry.dataset_name}</span>
+                  <span className="block text-xs whitespace-nowrap text-dim">
+                    {label("TaskType", entry.task_type)}
+                  </span>
                 </td>
-                <td className="px-3 py-2.5 text-right whitespace-nowrap text-strong tabular-nums">
-                  {primaryValue(entry)}
+                <td className="px-3 py-3 text-right whitespace-nowrap">
+                  <span className="block text-strong tabular-nums">{primaryValue(entry)}</span>
                   {entry.primary_label !== null && (
-                    <span className="ml-1.5 font-mono text-xs text-dim">{entry.primary_label}</span>
+                    <span className="block text-xs text-dim">{entry.primary_label}</span>
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono text-xs text-dim tabular-nums">
+                <td className="hidden px-3 py-3 text-right font-mono text-xs text-dim tabular-nums @7xl/main:table-cell">
                   {entry.seed}
                 </td>
                 <td className="px-3 py-2.5">
                   {entry.saved ? (
                     <>
                       <Check aria-hidden="true" className="size-4 text-positive" />
-                      <span className="sr-only">Sim</span>
+                      <span className="sr-only">Yes</span>
                     </>
                   ) : (
                     <span className="text-dim">
                       <span aria-hidden="true">—</span>
-                      <span className="sr-only">Não</span>
+                      <span className="sr-only">No</span>
                     </span>
                   )}
                 </td>

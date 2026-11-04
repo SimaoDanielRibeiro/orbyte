@@ -38,49 +38,49 @@ class DQNParams(EpisodicParams):
         default=300,
         ge=10,
         le=2_000,
-        title="Episódios",
-        description="Quantas vezes o agente atravessa o ambiente, do início ao fim.",
+        title="Episodes",
+        description="How many times the agent crosses the environment, from start to finish.",
     )
     learning_rate: float = Field(
         default=0.001,
         ge=0.00001,
         le=0.1,
-        title="Taxa de aprendizagem",
-        description="O tamanho de cada passo do otimizador (Adam) da rede.",
+        title="Learning rate",
+        description="The size of each step of the network's optimiser (Adam).",
         json_schema_extra={"x-scale": "log"},
     )
     hidden_units: int = Field(
         default=64,
         ge=8,
         le=256,
-        title="Neurónios por camada",
-        description="O tamanho das duas camadas escondidas da rede.",
+        title="Neurons per layer",
+        description="The size of the network's two hidden layers.",
     )
     batch_size: int = Field(
         default=32,
         ge=8,
         le=256,
-        title="Tamanho do lote",
-        description="Quantos passos da memória entram em cada passo de treino da rede.",
+        title="Batch size",
+        description="How many steps from the memory go into each training step of the network.",
     )
     replay_size: int = Field(
         default=5_000,
         ge=100,
         le=100_000,
-        title="Memória de repetição",
+        title="Replay memory",
         description=(
-            "Quantos passos a memória guarda (os mais antigos saem primeiro). A rede aprende "
-            "com lotes tirados dela ao acaso."
+            "How many steps the memory keeps (the oldest leave first). The network learns from "
+            "batches drawn from it at random."
         ),
     )
     target_update: int = Field(
         default=100,
         ge=1,
         le=5_000,
-        title="Atualizar a rede-alvo a cada",
+        title="Update the target network every",
         description=(
-            "De quantos em quantos passos de treino a rede-alvo (a que calcula os alvos) passa "
-            "a ser uma cópia da rede. Com 1, não há rede-alvo."
+            "Every how many training steps the target network (the one that computes the "
+            "targets) becomes a copy of the network. With 1, there's no target network."
         ),
     )
 
@@ -93,8 +93,8 @@ class DQNAgent(EpisodicAgent[DQNParams]):
         name="dqn",
         display_name="DQN (Deep Q-Network)",
         summary=(
-            "O Q-learning com uma rede neuronal no lugar da tabela, uma memória de repetição "
-            "e uma rede-alvo para o treino ser estável."
+            "Q-learning with a neural network in place of the table, a replay memory and a "
+            "target network to keep the training stable."
         ),
         implementation=Implementation.PYTORCH,
         hyperparameters=DQNParams,

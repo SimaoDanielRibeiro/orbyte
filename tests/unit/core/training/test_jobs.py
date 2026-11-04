@@ -128,11 +128,11 @@ def test_the_state_is_one_plain_picture_of_the_job() -> None:
     assert failed.state().error == "partiu"
 
 
-def test_the_statuses_have_portuguese_names() -> None:
+def test_the_statuses_have_names_to_show() -> None:
     assert [status.label for status in JobStatus] == [
-        "À espera",
-        "A treinar",
-        "Em pausa",
-        "Terminado",
-        "Falhou",
+        "Waiting",
+        "Training",
+        "Paused",
+        "Finished",
+        "Failed",
     ]

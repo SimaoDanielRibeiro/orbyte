@@ -41,7 +41,7 @@ class TaskSuggestion:
         target: A coluna-alvo, ou ``None`` para aprendizagem não supervisionada.
         task_type: O tipo sugerido, ou ``None`` se o alvo não servir para nenhum.
         allowed: Os tipos que o utilizador pode escolher, com o sugerido em primeiro.
-        reason: Porque se sugere este tipo, em português.
+        reason: Porque se sugere este tipo, em inglês.
         n_classes: Número de classes, nas tarefas de classificação.
         notices: Avisos sobre o alvo; um erro impede usá-lo.
     """
@@ -70,8 +70,8 @@ def suggest_task(frame: pd.DataFrame, target: str | None) -> TaskSuggestion:
             task_type=TaskType.CLUSTERING,
             allowed=UNSUPERVISED_TASKS,
             reason=(
-                "Sem coluna-alvo só há aprendizagem não supervisionada: agrupar os dados "
-                "(clustering), reduzir as dimensões ou detetar anomalias."
+                "Without a target column there's only unsupervised learning: grouping the data "
+                "(clustering), reducing its dimensions or detecting anomalies."
             ),
         )
     if target not in frame.columns:
@@ -82,29 +82,31 @@ def suggest_task(frame: pd.DataFrame, target: str | None) -> TaskSuggestion:
     notices: list[Notice] = []
     n_missing = len(series) - len(present)
     if n_missing:
-        rows = format_quantity(n_missing, "linha", "linhas")
+        rows = format_quantity(n_missing, "row", "rows")
         notices.append(
             Notice.warning(
                 "missing_target",
-                f"O alvo {target} está em falta em {rows}, que a preparação remove: sem alvo, "
-                "uma linha não serve para aprender.",
+                f"The target {target} is missing in {rows}, which the preparation drops: without "
+                "a target, a row is no use for learning.",
                 target,
             )
         )
     if present.empty:
-        return _unusable(target, f"O alvo {target} não tem nenhum valor.", notices)
+        return _unusable(target, f"The target {target} has no values at all.", notices)
     n_unique = int(present.nunique())
     if n_unique == 1:
         return _unusable(
-            target, f"O alvo {target} tem sempre o mesmo valor: não há nada para prever.", notices
+            target,
+            f"The target {target} always has the same value: there's nothing to predict.",
+            notices,
         )
 
     inference = infer_column(series)
     if inference.kind is ColumnKind.DATETIME:
         return _unusable(
             target,
-            f"{target} é uma coluna de datas, que não serve de alvo. Escolhe outra coluna (ou "
-            "extrai uma parte da data, como o ano, para uma coluna numérica).",
+            f"{target} is a date column, which can't be a target. Choose another column (or "
+            "extract part of the date, such as the year, into a numeric column).",
             notices,
         )
     if looks_like_classes(series, inference):
@@ -114,9 +116,9 @@ def suggest_task(frame: pd.DataFrame, target: str | None) -> TaskSuggestion:
     notices.append(
         Notice.warning(
             "many_classes",
-            f"O alvo {target} tem {format_count(n_unique)} valores diferentes: parece texto "
-            "livre ou um identificador. Um classificador precisa de muitos exemplos de cada "
-            "classe para aprender.",
+            f"The target {target} has {format_count(n_unique)} different values: it looks like "
+            "free text or an identifier. A classifier needs many examples of each class to "
+            "learn.",
             target,
         )
     )
@@ -124,7 +126,7 @@ def suggest_task(frame: pd.DataFrame, target: str | None) -> TaskSuggestion:
         target=target,
         task_type=TaskType.MULTICLASS_CLASSIFICATION,
         allowed=(TaskType.MULTICLASS_CLASSIFICATION,),
-        reason=f"O alvo {target} é texto, por isso cada valor diferente é uma classe.",
+        reason=f"The target {target} is text, so each different value is a class.",
         n_classes=n_unique,
         notices=tuple(notices),
     )
@@ -136,15 +138,15 @@ def _classification(
     task = TaskType.BINARY_CLASSIFICATION if n_classes == 2 else TaskType.MULTICLASS_CLASSIFICATION
     label = task.label.lower()
     if kind is ColumnKind.BOOLEAN:
-        values = " e ".join(sorted(present.astype(str).unique().tolist()))
-        reason = f"O alvo {target} só tem dois valores ({values}): {label}."
+        values = " and ".join(sorted(present.astype(str).unique().tolist()))
+        reason = f"The target {target} only has two values ({values}): {label}."
     elif kind is ColumnKind.CATEGORICAL:
-        reason = f"O alvo {target} é categórico, com {n_classes} classes: {label}."
+        reason = f"The target {target} is categorical, with {n_classes} classes: {label}."
     else:
         reason = (
-            f"O alvo {target} é um número inteiro com poucos valores distintos ({n_classes}), "
-            f"por isso cada valor é uma classe: {label}. Se os números forem quantidades "
-            "(e não categorias), escolhe regressão."
+            f"The target {target} is a whole number with few distinct values ({n_classes}), so "
+            f"each value is a class: {label}. If the numbers are quantities (and not "
+            "categories), choose regression."
         )
     allowed = (task, TaskType.REGRESSION) if kind is ColumnKind.NUMERIC else (task,)
     # Um alvo com classes também serve de referência às tarefas sem alvo: não entra no
@@ -156,8 +158,8 @@ def _classification(
         notices.append(
             Notice.warning(
                 "tiny_class",
-                f"As classes {', '.join(tiny)} de {target} só têm uma linha: não chegam ao treino "
-                "e ao teste ao mesmo tempo.",
+                f"The classes {', '.join(tiny)} of {target} only have one row: they can't reach "
+                "both the training and the test data.",
                 target,
             )
         )
@@ -171,8 +173,8 @@ def _regression(
         notices.append(
             Notice.error(
                 "target_as_text",
-                f"O alvo {target} são números guardados como texto: converte-o para número na "
-                "limpeza (operação convert_type) antes de preparar os dados.",
+                f"The target {target} is numbers stored as text: convert it to a number in the "
+                "cleaning (the convert_type operation) before preparing the data.",
                 target,
             )
         )
@@ -183,8 +185,8 @@ def _regression(
     if integral and n_unique <= MAX_INTEGER_CLASSES:
         allowed = (TaskType.REGRESSION, TaskType.MULTICLASS_CLASSIFICATION)
     reason = (
-        f"O alvo {target} é numérico, com {format_count(n_unique)} valores distintos: "
-        "regressão (prever um número)."
+        f"The target {target} is numeric, with {format_count(n_unique)} distinct values: "
+        "regression (predicting a number)."
     )
     return TaskSuggestion(target, TaskType.REGRESSION, allowed, reason, None, tuple(notices))
 

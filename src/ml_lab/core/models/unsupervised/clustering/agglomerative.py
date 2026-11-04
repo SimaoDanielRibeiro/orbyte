@@ -46,23 +46,23 @@ class AgglomerativeParams(Hyperparameters):
         default=3,
         ge=2,
         le=20,
-        title="Número de grupos",
-        description="Em quantos grupos se corta o dendrograma.",
+        title="Number of clusters",
+        description="How many clusters the dendrogram is cut into.",
     )
     linkage: Literal["ward", "complete", "average", "single"] = Field(
         default="ward",
-        title="Ligação",
+        title="Linkage",
         description=(
-            "Como se mede a distância entre dois grupos: Ward (o aumento da variância), "
-            "completa (os pontos mais afastados), média (a média dos pares) ou simples (os "
-            "pontos mais próximos)."
+            "How the distance between two clusters is measured: Ward (the increase in "
+            "variance), complete (the furthest points), average (the mean of the pairs) or "
+            "single (the closest points)."
         ),
         json_schema_extra={
             "x-labels": {
                 "ward": "Ward",
-                "complete": "Completa",
-                "average": "Média",
-                "single": "Simples",
+                "complete": "Complete",
+                "average": "Average",
+                "single": "Single",
             }
         },
     )
@@ -89,10 +89,10 @@ class Agglomerative(SklearnModel[AgglomerativeParams]):
 
     info = ModelInfo(
         name="agglomerative",
-        display_name="Clustering hierárquico",
+        display_name="Hierarchical clustering",
         summary=(
-            "Junta os pontos em grupos cada vez maiores, dos mais próximos para os mais "
-            "afastados: o dendrograma mostra a hierarquia toda."
+            "Joins the points into ever larger clusters, from the closest to the furthest: the "
+            "dendrogram shows the whole hierarchy."
         ),
         task_types=frozenset({TaskType.CLUSTERING}),
         family=ModelFamily.HIERARCHICAL,
@@ -122,14 +122,14 @@ class Agglomerative(SklearnModel[AgglomerativeParams]):
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if len(X) > MAX_ROWS:
             raise ModelError(
-                f"O clustering hierárquico guarda a distância entre todos os pares de pontos: com "
-                f"{format_count(len(X))} linhas seriam demasiados pares. Usa no máximo "
-                f"{format_count(MAX_ROWS)} linhas de treino (por exemplo, com um teste maior)."
+                "Hierarchical clustering keeps the distance between every pair of points: with "
+                f"{format_count(len(X))} rows there would be too many pairs. Use at most "
+                f"{format_count(MAX_ROWS)} training rows (for example, with a larger test set)."
             )
         if self.hyperparameters.n_clusters > len(X):
             raise ModelError(
-                f"Pediste {self.hyperparameters.n_clusters} grupos, mas o treino só tem "
-                f"{len(X)} linhas."
+                f"You asked for {self.hyperparameters.n_clusters} clusters, but the training "
+                f"data has only {len(X)} rows."
             )
         super()._fit(X, None, context)
         self._train = X.copy()

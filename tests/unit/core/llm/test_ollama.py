@@ -33,19 +33,24 @@ class FakeOllama:
         url: O endereço do servidor.
         version: A versão que diz ter.
         models: Os modelos que diz ter.
+        capabilities: O que diz que os modelos sabem fazer (``None``: não o diz, como as
+            versões antigas).
         chat_lines: As linhas do NDJSON da próxima conversa (cada uma, um objeto).
         chat_status: O código HTTP da conversa (404 para um modelo que não existe).
         chat_error: O erro da conversa, quando o código não é 200.
         requests: O corpo de cada ``POST /api/chat`` recebido.
+        shown: O corpo de cada ``POST /api/show`` recebido.
     """
 
     url: str = ""
-    version: str = "0.0-teste"
+    version: str = "0.0-test"
     models: list[str] = field(default_factory=list)
+    capabilities: list[str] | None = field(default_factory=lambda: ["completion", "thinking"])
     chat_lines: list[dict[str, Any]] = field(default_factory=list)
     chat_status: int = 200
     chat_error: str = ""
     requests: list[dict[str, Any]] = field(default_factory=list)
+    shown: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _handler(fake: FakeOllama) -> type[BaseHTTPRequestHandler]:
@@ -67,11 +72,17 @@ def _handler(fake: FakeOllama) -> type[BaseHTTPRequestHandler]:
             elif self.path == "/api/tags":
                 self._json(200, {"models": [{"name": name} for name in fake.models]})
             else:
-                self._json(404, {"error": "não existe"})
+                self._json(404, {"error": "not found"})
 
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
-            fake.requests.append(json.loads(self.rfile.read(length)))
+            body = json.loads(self.rfile.read(length))
+            if self.path == "/api/show":
+                fake.shown.append(body)
+                found = {} if fake.capabilities is None else {"capabilities": fake.capabilities}
+                self._json(200, {"details": {"family": "test"}, **found})
+                return
+            fake.requests.append(body)
             if fake.chat_status != 200:
                 self._json(fake.chat_status, {"error": fake.chat_error})
                 return
@@ -120,8 +131,8 @@ def line(*, thinking: str = "", content: str = "", done: bool = False) -> dict[s
 
 def test_the_thinking_arrives_apart_from_the_answer(fake_ollama: FakeOllama) -> None:
     fake_ollama.chat_lines = [
-        line(thinking="A árvore "),
-        line(thinking="decora o treino."),
+        line(thinking="The tree "),
+        line(thinking="memorises the training data."),
         line(content='{"max_depth"'),
         line(content=": 4}"),
         line(done=True),
@@ -130,13 +141,13 @@ def test_the_thinking_arrives_apart_from_the_answer(fake_ollama: FakeOllama) -> 
     pieces: list[str] = []
 
     reply = collect(
-        model.chat([Message("user", "Propõe.")], think=True, schema=SCHEMA, seed=7),
+        model.chat([Message("user", "Propose.")], think=True, schema=SCHEMA, seed=7),
         on_chunk=lambda chunk: pieces.append(chunk.thinking),
     )
 
-    assert reply.thinking == "A árvore decora o treino."
+    assert reply.thinking == "The tree memorises the training data."
     assert json.loads(reply.content) == {"max_depth": 4}
-    assert pieces[:2] == ["A árvore ", "decora o treino."]  # chega aos bocados, ao vivo
+    assert pieces[:2] == ["The tree ", "memorises the training data."]  # chega aos bocados
 
 
 def test_the_request_asks_for_the_thinking_the_format_and_a_fixed_temperature(
@@ -145,7 +156,7 @@ def test_the_request_asks_for_the_thinking_the_format_and_a_fixed_temperature(
     fake_ollama.chat_lines = [line(content="{}", done=True)]
     model = OllamaModel(fake_ollama.url, "qwen3:8b")
 
-    collect(model.chat([Message("user", "Propõe.")], think=True, schema=SCHEMA, seed=7))
+    collect(model.chat([Message("user", "Propose.")], think=True, schema=SCHEMA, seed=7))
 
     body = fake_ollama.requests[0]
     assert body["model"] == "qwen3:8b"
@@ -153,7 +164,7 @@ def test_the_request_asks_for_the_thinking_the_format_and_a_fixed_temperature(
     assert body["think"] is True
     assert body["format"] == SCHEMA
     assert body["options"] == {"temperature": 0.0, "seed": 7}
-    assert body["messages"] == [{"role": "user", "content": "Propõe."}]
+    assert body["messages"] == [{"role": "user", "content": "Propose."}]
 
 
 def test_the_tools_go_out_and_the_calls_come_back(fake_ollama: FakeOllama) -> None:
@@ -163,11 +174,11 @@ def test_the_tools_go_out_and_the_calls_come_back(fake_ollama: FakeOllama) -> No
     ]
     tool = Tool(
         "show_candidate",
-        "Mostra um candidato do quadro.",
+        "Shows a candidate from the board.",
         {"type": "object", "properties": {"number": {"type": "integer"}}},
     )
     history = [
-        Message("user", "Porque ganhou o 3?"),
+        Message("user", "Why did number 3 win?"),
         Message("assistant", "", (ToolCall("list_candidates", {}),)),
         Message("tool", "[1, 2, 3]", tool_name="list_candidates"),
     ]
@@ -188,21 +199,21 @@ def test_a_missing_model_says_how_to_download_it(fake_ollama: FakeOllama) -> Non
     fake_ollama.chat_error = "model 'qwen3:8b' not found"
 
     with pytest.raises(LanguageModelError, match="ollama pull qwen3:8b"):
-        collect(OllamaModel(fake_ollama.url, "qwen3:8b").chat([Message("user", "Olá")]))
+        collect(OllamaModel(fake_ollama.url, "qwen3:8b").chat([Message("user", "Hello")]))
 
 
 def test_an_error_in_the_middle_of_the_answer_stops_it(fake_ollama: FakeOllama) -> None:
-    fake_ollama.chat_lines = [line(content="Come"), {"error": "sem memória na gráfica"}]
+    fake_ollama.chat_lines = [line(content="Start"), {"error": "out of GPU memory"}]
 
-    with pytest.raises(LanguageModelError, match="sem memória na gráfica"):
-        collect(OllamaModel(fake_ollama.url, "qwen3:8b").chat([Message("user", "Olá")]))
+    with pytest.raises(LanguageModelError, match="out of GPU memory"):
+        collect(OllamaModel(fake_ollama.url, "qwen3:8b").chat([Message("user", "Hello")]))
 
 
 def test_without_the_ollama_the_error_says_how_to_start_it(closed_url: str) -> None:
     model = OllamaModel(closed_url, "qwen3:8b", timeout=2)
 
     with pytest.raises(LanguageModelError, match="ollama serve"):
-        collect(model.chat([Message("user", "Olá")]))
+        collect(model.chat([Message("user", "Hello")]))
 
 
 def test_the_server_says_its_version_and_its_models(fake_ollama: FakeOllama) -> None:
@@ -210,8 +221,17 @@ def test_the_server_says_its_version_and_its_models(fake_ollama: FakeOllama) -> 
 
     info = OllamaServer(fake_ollama.url).info()
 
-    assert info.version == "0.0-teste"
+    assert info.version == "0.0-test"
     assert info.models == ("llama3.1:8b", "qwen3:8b")
+
+
+def test_the_server_says_what_a_model_can_do(fake_ollama: FakeOllama) -> None:
+    fake_ollama.capabilities = ["completion", "tools"]
+
+    found = OllamaServer(fake_ollama.url).capabilities("llama3.1:8b")
+
+    assert found == ("completion", "tools")
+    assert fake_ollama.shown == [{"model": "llama3.1:8b"}]
 
 
 # --- o estado, no serviço --------------------------------------------------------------
@@ -255,8 +275,38 @@ def test_with_the_model_the_ai_agents_can_work(fake_ollama: FakeOllama, tmp_path
     status = status_service(fake_ollama.url, tmp_path).status()
 
     assert status.ready
-    assert status.version == "0.0-teste"
+    assert status.thinks is True
+    assert status.version == "0.0-test"
     assert status.notices == ()
+
+
+def test_a_model_that_does_not_think_cannot_be_the_ai_agent(
+    fake_ollama: FakeOllama, tmp_path: Path
+) -> None:
+    # O agente de IA pede o raciocínio, e o Ollama recusa-o a um modelo que não pensa: o estado
+    # di-lo antes de a procura começar, em vez de ela falhar a meio.
+    fake_ollama.models = ["llama3.1:8b"]
+    fake_ollama.capabilities = ["completion", "tools"]
+
+    status = status_service(fake_ollama.url, tmp_path, model="llama3.1:8b").status()
+
+    assert status.installed
+    assert status.thinks is False
+    assert not status.ready
+    assert [notice.code for notice in status.notices] == ["model_cannot_think"]
+    assert "ollama pull qwen3:8b" in status.notices[0].message
+
+
+def test_an_ollama_that_does_not_say_what_models_do_is_trusted(
+    fake_ollama: FakeOllama, tmp_path: Path
+) -> None:
+    fake_ollama.models = ["qwen3:8b"]
+    fake_ollama.capabilities = None
+
+    status = status_service(fake_ollama.url, tmp_path).status()
+
+    assert status.ready
+    assert status.thinks is None
 
 
 def test_a_model_without_a_tag_is_the_latest() -> None:

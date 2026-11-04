@@ -29,11 +29,11 @@ type TargetType = Literal["numeric", "datetime", "boolean", "category", "text"]
 TARGET_TYPES: Final[tuple[TargetType, ...]] = ("numeric", "datetime", "boolean", "category", "text")
 
 _LABELS: Final = {
-    "numeric": "número",
-    "datetime": "data",
-    "boolean": "booleano",
-    "category": "categoria (category)",
-    "text": "texto",
+    "numeric": "number",
+    "datetime": "date",
+    "boolean": "boolean",
+    "category": "category",
+    "text": "text",
 }
 _EXAMPLES: Final = 3
 
@@ -49,10 +49,10 @@ def _convert_new_rows(
 
 @cleaning_operation(
     "convert_type",
-    title="Converter o tipo de uma coluna",
+    title="Convert a column's type",
     description=(
-        "Converte uma coluna para número, data, booleano, categoria ou texto. Os valores "
-        "que não se conseguem converter ficam em falta, e a linhagem diz quantos foram."
+        "Converts a column to number, date, boolean, category or text. The values that can't "
+        "be converted become missing, and the lineage says how many there were."
     ),
     replay=_convert_new_rows,
 )
@@ -79,32 +79,31 @@ def convert_type(
     require_columns(frame, [column])
     if to not in TARGET_TYPES:
         raise InvalidParameterError(
-            f"Tipo '{to}' desconhecido. Usa um destes: {', '.join(TARGET_TYPES)}."
+            f"Unknown type '{to}'. Use one of these: {', '.join(TARGET_TYPES)}."
         )
     if decimal not in (".", ","):
-        raise InvalidParameterError("O separador decimal tem de ser '.' ou ','.")
+        raise InvalidParameterError("The decimal separator must be '.' or ','.")
     original = frame[column]
     converted = _convert(original, to, decimal, date_format)
     failed = converted.isna() & original.notna()
     n_failed = int(failed.sum())
     result = frame.assign(**{column: converted})
 
-    description = f"Coluna {column} convertida para {_LABELS[to]}."
+    description = f"Converted the column {column} to {_LABELS[to]}."
     notices: tuple[Notice, ...] = ()
     if n_failed:
         examples = ", ".join(repr(str(v)) for v in original[failed].unique()[:_EXAMPLES])
         failures = (
-            "1 valor não se converteu e ficou em falta"
+            "1 value didn't convert and became missing"
             if n_failed == 1
-            else f"{format_count(n_failed)} valores não se converteram e ficaram em falta"
+            else f"{format_count(n_failed)} values didn't convert and became missing"
         )
-        description += f" {failures} (por exemplo {examples})."
+        description += f" {failures} (for example {examples})."
         notices = (
             Notice.warning(
                 "conversion_failures",
-                f"Na conversão de {column}, ficaram em falta "
-                f"{format_quantity(n_failed, 'valor', 'valores')}: "
-                "confirma se o tipo escolhido é o certo.",
+                f"Converting {column} left {format_quantity(n_failed, 'value', 'values')} "
+                "missing: check that the chosen type is the right one.",
                 column,
             ),
         )

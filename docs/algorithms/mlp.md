@@ -1,128 +1,129 @@
-# Rede neuronal densa (MLP)
+# Dense neural network (MLP)
 
-## Intuição
+## Intuition
 
-Uma regressão logística soma as features com pesos e decide de que lado de uma **reta** está
-cada exemplo. Uma rede neuronal faz isso muitas vezes e encadeado: cada **neurónio** da
-primeira camada é uma pequena regressão logística, a segunda camada combina as respostas da
-primeira, e assim por diante. Entre camadas há uma **ativação** não linear, que dobra o espaço:
-com ela, a rede desenha fronteiras **curvas**, como a que separa as duas luas.
+A logistic regression adds up the features with weights and decides which side of a **line**
+each example is on. A neural network does that many times over, in a chain: each **neuron** of
+the first layer is a small logistic regression, the second layer combines the first layer's
+answers, and so on. Between layers there's a non-linear **activation**, which folds the space:
+with it, the network draws **curved** boundaries, like the one that separates the two moons.
 
-Ninguém diz à rede o que cada neurónio deve fazer. Os pesos começam ao acaso e o treino
-ajusta-os todos ao mesmo tempo, passo a passo, para a loss descer. Os neurónios acabam por se
-especializar: uns reagem a um lado do plano, outros a outro, e a saída junta-os.
+Nobody tells the network what each neuron should do. The weights start at random and the
+training adjusts them all at once, step by step, so the loss goes down. The neurons end up
+specialising: some react to one side of the plane, others to another, and the output combines
+them.
 
-O nome **MLP** vem de *multilayer perceptron*: várias camadas de perceptrões, mas com
-ativações suaves (que deixam calcular gradientes), em vez do degrau do perceptrão.
+The name **MLP** comes from *multilayer perceptron*: several layers of perceptrons, but with
+smooth activations (which let gradients be computed), instead of the perceptron's step.
 
-## Matemática essencial
+## Essential maths
 
-Uma camada densa transforma o vetor de entrada $h$ (as features, ou a saída da camada
-anterior) assim:
+A dense layer transforms the input vector $h$ (the features, or the previous layer's output)
+like this:
 
 $$h' = f(W h + b)$$
 
-onde $W$ é a matriz de pesos (um peso por par entrada-neurónio), $b$ as ordenadas e $f$ a
-ativação, aplicada a cada neurónio:
+where $W$ is the weight matrix (one weight per input-neuron pair), $b$ the intercepts and $f$
+the activation, applied to each neuron:
 
-- **ReLU:** $f(z) = \max(0, z)$. É a habitual: barata e com gradiente 1 sempre que está ligada;
-- **tanh:** $f(z) = \tanh(z)$, entre −1 e 1;
-- **sigmoide:** $f(z) = 1 / (1 + e^{-z})$, entre 0 e 1.
+- **ReLU:** $f(z) = \max(0, z)$. It's the usual one: cheap, with a gradient of 1 whenever it's on;
+- **tanh:** $f(z) = \tanh(z)$, between −1 and 1;
+- **sigmoid:** $f(z) = 1 / (1 + e^{-z})$, between 0 and 1.
 
-Sem $f$, duas camadas seguidas seriam $W_2(W_1 h) = (W_2 W_1) h$: outra conta linear. É a
-ativação que dá à rede o poder de aproximar qualquer forma.
+Without $f$, two layers in a row would be $W_2(W_1 h) = (W_2 W_1) h$: just another linear sum.
+It's the activation that gives the network the power to approximate any shape.
 
-A **saída** depende da tarefa. Na classificação há um neurónio por classe e o **softmax**
-transforma-os em probabilidades; a loss é a **entropia cruzada**, a mesma log-loss da
-regressão logística. Na regressão há um neurónio sem ativação, e a loss é o **erro quadrático
-médio** (o alvo é padronizado antes de treinar e as previsões voltam à escala original).
+The **output** depends on the task. In classification there's one neuron per class and the
+**softmax** turns them into probabilities; the loss is the **cross-entropy**, the same log-loss
+as logistic regression. In regression there's one neuron with no activation, and the loss is the
+**mean squared error** (the target is standardised before training and the predictions go back
+to the original scale).
 
-Para treinar é preciso o gradiente da loss em cada peso. A **retropropagação** calcula-os
-todos de uma vez, da saída para a entrada, com a regra da cadeia: o gradiente de uma camada
-obtém-se do da camada seguinte multiplicado pelas derivadas das ativações. O PyTorch faz esta
-conta sozinho (`backward`). O treino percorre os dados em **lotes**; em cada lote:
+To train, you need the gradient of the loss for each weight. **Backpropagation** computes them
+all at once, from the output back to the input, with the chain rule: a layer's gradient comes
+from the next layer's, multiplied by the derivatives of the activations. PyTorch does this sum
+on its own (`backward`). Training goes through the data in **batches**; for each batch:
 
-$$\text{previsões} \rightarrow \text{loss} \rightarrow \nabla \text{(retropropagação)} \rightarrow w \leftarrow w - \eta\, \nabla_w$$
+$$\text{predictions} \rightarrow \text{loss} \rightarrow \nabla \text{(backpropagation)} \rightarrow w \leftarrow w - \eta\, \nabla_w$$
 
-O **Adam** é um gradiente descendente que ajusta o passo de cada peso pela história dos seus
-gradientes: costuma funcionar à primeira, sem afinar a taxa. O **SGD com momento** segue o
-gradiente com alguma inércia.
+**Adam** is a gradient descent that adjusts each weight's step by the history of its gradients:
+it usually works first time, without tuning the rate. **SGD with momentum** follows the gradient
+with some inertia.
 
-Os pesos iniciais não podem ser todos iguais (os neurónios aprenderiam todos o mesmo) nem ter
-uma escala qualquer: grandes demais saturam as ativações, pequenos demais apagam o sinal de
-camada para camada. Por isso tiram-se ao acaso com a escala da ativação: **He** para a ReLU e
-**Glorot** para a tanh e a sigmoide.
+The starting weights can't all be equal (the neurons would all learn the same thing), nor have
+just any scale: too large saturates the activations, too small fades the signal from layer to
+layer. So they're drawn at random with the activation's scale: **He** for ReLU and **Glorot** for
+tanh and the sigmoid.
 
-O **early stopping** põe de lado uma parte do treino, a **validação**. Enquanto a loss na
-validação desce, a rede aprende o que generaliza; quando deixa de descer (e a do treino
-continua a cair), começa a decorar. O treino pára depois de `patience` épocas sem melhorar, e a
-rede fica com os pesos da melhor época.
+**Early stopping** sets part of the training data aside, the **validation**. While the
+validation loss falls, the network learns what generalises; when it stops falling (and the
+training loss keeps dropping), it starts memorising. Training stops after `patience` epochs
+without improvement, and the network keeps the weights from the best epoch.
 
-## Hiperparâmetros
+## Hyperparameters
 
-A forma da rede:
+The shape of the network:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `hidden_layers` | Quantas camadas escondidas: mais camadas, formas mais ricas (e mais difíceis de treinar) | 2 |
-| `units` | Neurónios em cada camada escondida: poucos, fronteira simples; muitos, mais risco de decorar | 16 |
-| `activation` | A não linearidade: `relu`, `tanh` ou `sigmoid` | `relu` |
+| `hidden_layers` | How many hidden layers: more layers, richer shapes (and harder to train) | 2 |
+| `units` | Neurons in each hidden layer: few, a simple boundary; many, more risk of memorising | 16 |
+| `activation` | The non-linearity: `relu`, `tanh` or `sigmoid` | `relu` |
 
-O treino:
+The training:
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `optimizer` | `adam` (ajusta o passo de cada peso) ou `sgd` (com momento) | `adam` |
-| `learning_rate` | Tamanho de cada passo: grande demais, a loss salta ou explode | 0,01 |
-| `batch_size` | Exemplos por passo: lotes pequenos dão passos ruidosos e muitos por época | 32 |
-| `max_epochs` | Máximo de passagens pelos dados de treino | 300 |
-| `alpha` | Regularização L2: puxa os pesos para zero, a fronteira fica mais suave | 0,0001 |
-| `early_stopping` | Se pára quando a validação deixa de melhorar | sim |
-| `patience` | Épocas sem melhorar na validação até parar | 20 |
-| `validation_fraction` | Parte do treino posta de lado para a validação | 0,1 |
+| `optimizer` | `adam` (adjusts each weight's step) or `sgd` (with momentum) | `adam` |
+| `learning_rate` | The size of each step: too large, the loss jumps or blows up | 0.01 |
+| `batch_size` | Examples per step: small batches give noisy steps, and many per epoch | 32 |
+| `max_epochs` | The most passes over the training data | 300 |
+| `alpha` | L2 regularisation: pulls the weights towards zero, so the boundary gets smoother | 0.0001 |
+| `early_stopping` | Whether it stops when the validation stops improving | yes |
+| `patience` | Epochs without improvement on the validation before it stops | 20 |
+| `validation_fraction` | The part of the training data set aside for the validation | 0.1 |
 
-## Quando usar
+## When to use
 
-- Quando a fronteira (ou a relação com o alvo) é **não linear** e há dados suficientes: as
-  luas, os círculos, interações entre features que um modelo linear não vê.
-- Como ponto de partida para as redes maiores (de imagem, de texto): o ciclo de treino é o
-  mesmo.
-- Em dados tabulares pequenos, as florestas e o boosting costumam ganhar com menos trabalho;
-  a rede vale pelo que ensina sobre treino, gradientes e ativações.
+- When the boundary (or the relationship with the target) is **non-linear** and there's enough
+  data: the moons, the circles, interactions between features that a linear model can't see.
+- As a starting point for bigger networks (for images, for text): the training loop is the same.
+- On small tabular data, forests and boosting usually win with less work; the network is worth it
+  for what it teaches about training, gradients and activations.
 
-## Armadilhas
+## Pitfalls
 
-- **Escala das features.** Uma rede com features em escalas muito diferentes treina mal:
-  padroniza na preparação.
-- **Taxa de aprendizagem.** Grande demais, a loss salta ou explode (o treino pára com o aviso
-  "a loss explodiu"); pequena demais, arrasta-se. Com o Adam, 0,01 ou 0,001 costumam servir.
-- **Neurónios mortos.** Uma ReLU cuja soma ficou sempre negativa dá sempre zero, e o gradiente
-  que passa por ela também é zero: não volta. Muitos neurónios parados (em **As camadas da rede**) pedem
-  uma taxa menor.
-- **Gradiente que desaparece.** Com a sigmoide (ou a tanh) em redes fundas, o gradiente encolhe
-  de camada para camada e as primeiras quase não aprendem. Vê-se no gráfico dos gradientes.
-- **Overfitting.** Com muitos neurónios e poucos dados, a rede decora o treino. O early
-  stopping, o `alpha` e redes mais pequenas ajudam; a loss na validação a subir enquanto a do
-  treino desce é o sinal.
-- **Aleatoriedade.** Os pesos iniciais e a ordem dos lotes vêm da seed: com outra seed, o
-  resultado muda um pouco. Compara runs com a mesma seed (ou várias seeds) no ecrã
-  Experiências.
-- **Poucos dados.** Com poucas linhas, a validação fica com tão poucas que o early stopping
-  pára ao acaso (ou fica desligado, se não sobrar nenhuma).
+- **Feature scale.** A network with features on very different scales trains badly: standardise
+  in the preparation.
+- **Learning rate.** Too large, the loss jumps or blows up (the training stops with the "loss blew
+  up" warning); too small, it drags on. With Adam, 0.01 or 0.001 usually work.
+- **Dead neurons.** A ReLU whose sum always stayed negative always gives zero, and the gradient
+  through it is zero too: it doesn't come back. Many stuck neurons (in **The network's layers**)
+  call for a smaller rate.
+- **Vanishing gradient.** With the sigmoid (or tanh) in deep networks, the gradient shrinks from
+  layer to layer and the first layers barely learn. You can see it in the gradients chart.
+- **Overfitting.** With many neurons and little data, the network memorises the training data.
+  Early stopping, `alpha` and smaller networks help; the validation loss rising while the training
+  loss falls is the sign.
+- **Randomness.** The starting weights and the order of the batches come from the seed: with
+  another seed, the result changes a little. Compare runs with the same seed (or several seeds)
+  in History.
+- **Little data.** With few rows, the validation gets so few that early stopping stops at random
+  (or is turned off, if none are left).
 
-## O que observar no treino
+## What to watch in training
 
-No ecrã **Treinar e avaliar**, a rede é fotografada época a época:
+On the **Train & evaluate** screen, the network is photographed epoch by epoch:
 
-- a **fronteira de decisão** começa quase reta e vai-se curvando à volta das luas;
-- a **curva da loss** mostra o treino e a validação: enquanto descem juntas, a rede aprende;
-  quando a da validação estabiliza ou sobe, o early stopping está perto;
-- o **diagrama da rede** pinta cada neurónio com a sua ativação média; os parados aparecem
-  esbatidos. Muda o passo e vê as camadas a organizarem-se;
-- o **gráfico dos gradientes** mostra o tamanho do gradiente de cada camada. Experimenta 4
-  camadas com a sigmoide e vê o gradiente das primeiras a encolher;
-- as **ativações** de cada camada: na ReLU, a barra em zero são os neurónios desligados; na
-  tanh, barras altas nos extremos são neurónios saturados.
+- the **decision boundary** starts almost straight and curves around the moons;
+- the **loss curve** shows the training and the validation: while they fall together, the network
+  is learning; when the validation one levels off or rises, early stopping is near;
+- the **network diagram** colours each neuron by its mean activation; the stuck ones appear faded.
+  Change the step and watch the layers organise themselves;
+- the **gradients chart** shows the size of each layer's gradient. Try 4 layers with the sigmoid
+  and watch the first layers' gradient shrink;
+- each layer's **activations**: in ReLU, the bar at zero is the neurons switched off; in tanh,
+  tall bars at the extremes are saturated neurons.
 
-Experimenta nas luas: com 2 neurónios por camada, a fronteira fica quase reta; com 16, curva-se
-à volta de cada lua; com uma taxa de 0,5, os neurónios morrem e a loss pára de descer.
+Try it on the moons: with 2 neurons per layer, the boundary stays almost straight; with 16, it
+curves around each moon; with a rate of 0.5, the neurons die and the loss stops falling.

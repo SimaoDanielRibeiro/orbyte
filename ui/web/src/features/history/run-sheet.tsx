@@ -101,7 +101,7 @@ function RunDetails({
     ...historySaveMutation(),
     onSuccess: () => {
       invalidateHistory(queryClient);
-      toast.success("Experiência guardada.");
+      toast.success("Run saved.");
     },
   });
   const rename = useMutation({
@@ -116,7 +116,7 @@ function RunDetails({
       invalidateHistory(queryClient);
       onDeleted(entry.run_id);
       onClose();
-      toast.success("Run apagado do histórico.");
+      toast.success("Run deleted from the history.");
     },
   });
 
@@ -125,24 +125,24 @@ function RunDetails({
       <SheetHeader className="gap-2 border-b p-6">
         <SheetTitle className="pr-8 text-xl font-medium text-strong">{entry.name}</SheetTitle>
         <SheetDescription className="text-sm leading-relaxed text-soft">
-          {entry.model_display_name} em {entry.dataset_name},{" "}
+          {entry.model_display_name} on {entry.dataset_name},{" "}
           {label("TaskType", entry.task_type).toLowerCase()}.
         </SheetDescription>
       </SheetHeader>
       <div className="flex flex-col gap-6 p-6">
         <div className="flex flex-col gap-5">
           <Stat
-            label={entry.primary_label ?? "Métrica principal"}
+            label={entry.primary_label ?? "Main metric"}
             value={primaryValue(entry)}
             detail={label("Partition", entry.partition)}
           />
           <Facts
             size="sm"
             facts={[
-              { label: "Quando", value: formatMoment(entry.created_at) },
+              { label: "When", value: formatMoment(entry.created_at) },
               { label: "Seed", value: entry.seed },
               { label: "Run", value: <span className="font-mono text-xs">{entry.run_id}</span> },
-              { label: "Guardado", value: entry.saved ? "Sim" : "Não" },
+              { label: "Saved", value: entry.saved ? "Yes" : "No" },
             ]}
           />
         </div>
@@ -155,7 +155,7 @@ function RunDetails({
             }}
           >
             <Play aria-hidden="true" />
-            Abrir
+            Open
           </Button>
           <Button
             variant="outline"
@@ -165,7 +165,7 @@ function RunDetails({
             }}
           >
             <RotateCcw aria-hidden="true" />
-            Reproduzir
+            Replay
           </Button>
           <Button
             variant="outline"
@@ -175,12 +175,12 @@ function RunDetails({
             }}
           >
             {entry.saved ? <Check aria-hidden="true" /> : <Save aria-hidden="true" />}
-            {entry.saved ? "Guardado" : "Guardar"}
+            {entry.saved ? "Saved" : "Save"}
           </Button>
-          <Explain title="Reproduzir e guardar" align="end">
-            Reproduzir treina outra vez com a mesma configuração e a mesma seed: o run novo entra no
-            histórico, para os comparares. Guardar só funciona nos runs que a API ainda tem em
-            memória (os últimos).
+          <Explain title="Replay and save" align="end">
+            Replay trains again with the same configuration and the same seed: the new run goes into
+            the history, so you can compare them. Save only works on the runs the API still has in
+            memory (the latest ones).
           </Explain>
         </div>
         <ErrorNote error={reproduce.error ?? save.error} />
@@ -193,7 +193,7 @@ function RunDetails({
           }}
         >
           <label htmlFor="run-nome" className="text-sm text-soft">
-            Nome
+            Name
           </label>
           <div className="flex gap-2">
             <Input
@@ -210,7 +210,7 @@ function RunDetails({
               variant="outline"
               disabled={rename.isPending || name.trim() === entry.name}
             >
-              Mudar o nome
+              Rename
             </Button>
           </div>
           <ErrorNote error={rename.error} />
@@ -221,25 +221,25 @@ function RunDetails({
             <AlertDialogTrigger asChild>
               <Button variant="destructive">
                 <Trash2 aria-hidden="true" />
-                Apagar o run
+                Delete the run
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Apagar «{entry.name}»?</AlertDialogTitle>
+                <AlertDialogTitle>Delete “{entry.name}”?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  O run sai do histórico com os seus ficheiros (o modelo e o treino passo a passo,
-                  se estiver guardado). Não se pode desfazer.
+                  The run leaves the history with its files (the model and the step-by-step
+                  training, if it was saved). This can&apos;t be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
                     remove.mutate({ path });
                   }}
                 >
-                  Apagar
+                  Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

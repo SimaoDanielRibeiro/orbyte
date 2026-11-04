@@ -48,23 +48,28 @@ LOSS_POINTS: Final = 300
 
 _PREPARATION_FIELDS: Final[Mapping[str, str]] = {
     # A divisão.
-    "strategy": "estratégia",
-    "test_size": "parte de teste",
-    "validation_size": "parte de validação",
-    "time_column": "coluna do tempo",
+    "strategy": "strategy",
+    "test_size": "test share",
+    "validation_size": "validation share",
+    "time_column": "time column",
     # As transformações.
-    "numeric_imputation": "nulos numéricos",
-    "categorical_imputation": "nulos categóricos",
-    "scaling": "escala",
-    "date_features": "features das datas",
-    "polynomial_degree": "grau polinomial",
-    "binned_columns": "colunas em intervalos",
-    "n_bins": "número de intervalos",
+    "numeric_imputation": "numeric nulls",
+    "categorical_imputation": "categorical nulls",
+    "scaling": "scaling",
+    "date_features": "date features",
+    "polynomial_degree": "polynomial degree",
+    "binned_columns": "binned columns",
+    "n_bins": "number of bins",
     # A projeção 2D.
-    "method": "método",
-    "columns": "colunas",
+    "method": "method",
+    "columns": "columns",
 }
 """O nome a mostrar de cada escolha da preparação (o resto do nome é a parte a que pertence)."""
+
+SEED_CHOICE: Final = "Seed"
+MODEL_CHOICE: Final = "Model"
+AGENT_CHOICE: Final = "Agent"
+"""Os nomes das escolhas que a leitura da comparação procura (só a seed mudou? o modelo?)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,16 +107,16 @@ class ChoiceGroup(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface."""
         return _CHOICE_GROUP_LABELS[self]
 
 
 _CHOICE_GROUP_LABELS: Final[Mapping[ChoiceGroup, str]] = MappingProxyType(
     {
-        ChoiceGroup.RUN: "O run",
-        ChoiceGroup.PREPARATION: "A preparação",
-        ChoiceGroup.ENVIRONMENT: "O ambiente",
-        ChoiceGroup.HYPERPARAMETERS: "Os hiperparâmetros",
+        ChoiceGroup.RUN: "The run",
+        ChoiceGroup.PREPARATION: "The preparation",
+        ChoiceGroup.ENVIRONMENT: "The environment",
+        ChoiceGroup.HYPERPARAMETERS: "The hyperparameters",
     }
 )
 
@@ -247,13 +252,13 @@ def _choices(result: Compared) -> list[_Choice]:
         return _agent_choices(result)
     choices = [
         _Choice(ChoiceGroup.RUN, "Dataset", result.dataset_name),
-        _Choice(ChoiceGroup.RUN, "Tarefa", result.task_type.label),
-        _Choice(ChoiceGroup.RUN, "Modelo", result.model_display_name),
-        _Choice(ChoiceGroup.RUN, "Seed", str(result.seed)),
+        _Choice(ChoiceGroup.RUN, "Task", result.task_type.label),
+        _Choice(ChoiceGroup.RUN, MODEL_CHOICE, result.model_display_name),
+        _Choice(ChoiceGroup.RUN, SEED_CHOICE, str(result.seed)),
     ]
     titles = _titles(lambda: MODELS.get(result.model_name).info.hyperparameters)
     choices += [
-        _Choice(ChoiceGroup.HYPERPARAMETERS, titles.get(name, name), _text(value), "Hiperparâmetro")
+        _Choice(ChoiceGroup.HYPERPARAMETERS, titles.get(name, name), _text(value), "Hyperparameter")
         for name, value in result.hyperparameters.items()
     ]
     return choices + _preparation_choices(result.config.preparation)
@@ -262,18 +267,18 @@ def _choices(result: Compared) -> list[_Choice]:
 def _preparation_choices(preparation: PreparationConfig) -> list[_Choice]:
     """As escolhas da preparação, com o nome a mostrar de cada uma (a tarefa já está em cima)."""
     choices = [
-        _Choice(ChoiceGroup.PREPARATION, "Alvo", _text(preparation.target)),
-        _Choice(ChoiceGroup.PREPARATION, "Limpeza", _cleaning_text(preparation.cleaning)),
+        _Choice(ChoiceGroup.PREPARATION, "Target", _text(preparation.target)),
+        _Choice(ChoiceGroup.PREPARATION, "Cleaning", _cleaning_text(preparation.cleaning)),
     ]
     parts = (
-        ("Divisão", preparation.split),
-        ("Transformações", preparation.transforms),
-        ("Projeção", preparation.projection),
+        ("Split", preparation.split),
+        ("Transformations", preparation.transforms),
+        ("Projection", preparation.projection),
     )
     for part, config in parts:
         for item in fields(config):
             title = _PREPARATION_FIELDS.get(item.name, item.name)
-            # A parte fica no nome: dentro do grupo, "Divisão · estratégia" ainda diz de onde vem.
+            # A parte fica no nome: dentro do grupo, "Split · strategy" ainda diz de onde vem.
             value = _text(getattr(config, item.name))
             choices.append(_Choice(ChoiceGroup.PREPARATION, f"{part} · {title}", value))
     return choices
@@ -282,7 +287,7 @@ def _preparation_choices(preparation: PreparationConfig) -> list[_Choice]:
 def _cleaning_text(steps: Sequence[CleaningStep]) -> str:
     """A receita de limpeza por extenso: o nome de cada operação e os seus parâmetros."""
     if not steps:
-        return "nenhuma"
+        return "none"
     written = []
     for step in steps:
         try:
@@ -302,19 +307,21 @@ def _agent_choices(result: ReinforcementResult) -> list[_Choice]:
     except ComponentNotFoundError:
         environment_name = environment
     choices = [
-        _Choice(ChoiceGroup.RUN, "Ambiente", environment_name),
-        _Choice(ChoiceGroup.RUN, "Tarefa", result.task_type.label),
-        _Choice(ChoiceGroup.RUN, "Agente", result.agent_display_name),
-        _Choice(ChoiceGroup.RUN, "Seed", str(result.seed)),
+        _Choice(ChoiceGroup.RUN, "Environment", environment_name),
+        _Choice(ChoiceGroup.RUN, "Task", result.task_type.label),
+        _Choice(ChoiceGroup.RUN, AGENT_CHOICE, result.agent_display_name),
+        _Choice(ChoiceGroup.RUN, SEED_CHOICE, str(result.seed)),
     ]
     parameter_titles = _titles(lambda: ENVIRONMENTS.get(environment).info.parameters)
     choices += [
-        _Choice(ChoiceGroup.ENVIRONMENT, parameter_titles.get(name, name), _text(value), "Ambiente")
+        _Choice(
+            ChoiceGroup.ENVIRONMENT, parameter_titles.get(name, name), _text(value), "Environment"
+        )
         for name, value in result.environment_parameters.items()
     ]
     titles = _titles(lambda: AGENTS.get(result.agent_name).info.hyperparameters)
     choices += [
-        _Choice(ChoiceGroup.HYPERPARAMETERS, titles.get(name, name), _text(value), "Hiperparâmetro")
+        _Choice(ChoiceGroup.HYPERPARAMETERS, titles.get(name, name), _text(value), "Hyperparameter")
         for name, value in result.hyperparameters.items()
     ]
     return choices
@@ -339,7 +346,7 @@ def _text(value: Any) -> str:
     if isinstance(value, Enum):  # antes do texto: um StrEnum também é um str
         return str(getattr(value, "label", value.value))
     if isinstance(value, bool):
-        return "sim" if value else "não"
+        return "yes" if value else "no"
     if isinstance(value, float):
         return format_significant(value)
     if isinstance(value, int | str):
@@ -392,7 +399,7 @@ def _reading(
         return (
             Notice.warning(
                 "different_tasks",
-                "Os runs resolvem tarefas diferentes: as métricas não se comparam diretamente.",
+                "The runs solve different tasks: their metrics don't compare directly.",
             ),
         )
     changed = [difference.label for difference in differences]
@@ -401,41 +408,42 @@ def _reading(
             return (
                 Notice.info(
                     "reproduced",
-                    "Os runs têm a mesma configuração e a mesma seed, e as métricas são iguais: "
-                    "o resultado reproduz-se.",
+                    "The runs have the same configuration and the same seed, and the metrics are "
+                    "the same: the result reproduces.",
                 ),
             )
         return (
             Notice.warning(
                 "not_reproduced",
-                "Os runs têm a mesma configuração e a mesma seed, mas as métricas diferem: "
-                "alguma coisa no treino não é determinística, ou os dados mudaram.",
+                "The runs have the same configuration and the same seed, but the metrics differ: "
+                "something in the training isn't deterministic, or the data changed.",
             ),
         )
     notices = []
-    if changed == ["Seed"]:
+    if changed == [SEED_CHOICE]:
         notices.append(
             Notice.info(
                 "seed_only",
-                "Só a seed muda: a diferença nas métricas é o efeito do acaso (outra divisão e "
-                "outra inicialização). Dá uma ideia de quanto um resultado varia sem mudar nada.",
+                "Only the seed changes: the difference in the metrics is the effect of chance "
+                "(another split and another initialisation). It gives an idea of how much a "
+                "result varies without changing anything.",
             )
         )
-    elif "Modelo" in changed or "Agente" in changed:
-        noun = "agentes" if "Agente" in changed else "modelos"
+    elif MODEL_CHOICE in changed or AGENT_CHOICE in changed:
+        noun = "agents" if AGENT_CHOICE in changed else "models"
         notices.append(
             Notice.info(
                 "different_models",
-                f"Os runs usam {noun} diferentes: a comparação mede cada um com os seus "
-                "hiperparâmetros, e não uma escolha só.",
+                f"The runs use different {noun}: the comparison measures each one with its own "
+                "hyperparameters, not a single choice.",
             )
         )
     elif len(changed) > 1:
         notices.append(
             Notice.info(
                 "several_changes",
-                f"Mudam {len(changed)} escolhas entre os runs: não se sabe qual delas fez a "
-                "diferença. Para aprender com a comparação, muda uma coisa de cada vez.",
+                f"{len(changed)} choices change between the runs: there's no telling which one "
+                "made the difference. To learn from the comparison, change one thing at a time.",
             )
         )
     primary = PRIMARY_METRIC.get(results[0].task_type)
@@ -447,7 +455,7 @@ def _reading(
         notices.append(
             Notice.info(
                 "best",
-                f"{row.display_name} no {partition.label.lower()}: o melhor é "
+                f"{row.display_name} on the {partition.label.lower()} data: the best is "
                 f"{labels[row.best]} ({written}).",
             )
         )

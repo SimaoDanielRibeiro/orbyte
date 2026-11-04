@@ -63,9 +63,9 @@ def partial_dependence(
         ModelError: Se a feature não existir, ou numa tarefa sem alvo.
     """
     if feature not in dataset.feature_names:
-        raise ModelError(f"A feature {feature} não existe nos dados preparados.")
+        raise ModelError(f"The feature {feature} doesn't exist in the prepared data.")
     if not dataset.task_type.requires_target:
-        raise ModelError("A dependência parcial mostra previsões: só nas tarefas com alvo.")
+        raise ModelError("Partial dependence shows predictions: only for tasks with a target.")
     column = dataset.feature_names.index(feature)
     rng = np.random.default_rng(seed)
     X = dataset.test.X
@@ -103,7 +103,7 @@ def _outputs(model: LabModel[Any], dataset: Dataset) -> tuple[tuple[str, ...], A
     """O nome de cada saída e a função que a calcula para uma matriz de features."""
     task = dataset.task_type
     if task is TaskType.REGRESSION:
-        label = f"Previsão de {dataset.target_name}" if dataset.target_name else "Previsão"
+        label = f"Prediction of {dataset.target_name}" if dataset.target_name else "Prediction"
         return (label,), lambda X: np.asarray(model.predict(X), dtype=np.float64)[:, None]
     labels = dataset.class_labels
     if model.info.supports_proba:
@@ -113,10 +113,10 @@ def _outputs(model: LabModel[Any], dataset: Dataset) -> tuple[tuple[str, ...], A
             return proba[:, 1:] if len(labels) == 2 else proba
 
         names = labels[1:] if len(labels) == 2 else labels
-        return tuple(f"Probabilidade de «{name}»" for name in names), probabilities
+        return tuple(f"Probability of “{name}”" for name in names), probabilities
 
     def shares(X: NDArray[np.float64]) -> NDArray[np.float64]:
         predicted = np.asarray(model.predict(X), dtype=np.int64)
         return np.eye(len(labels))[predicted]
 
-    return tuple(f"Proporção prevista como «{name}»" for name in labels), shares
+    return tuple(f"Share predicted as “{name}”" for name in labels), shares

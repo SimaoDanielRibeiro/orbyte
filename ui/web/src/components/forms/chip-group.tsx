@@ -29,7 +29,7 @@ interface ChipGroupProps {
 
 export function ChipGroup({ options, value, onChange, label, id, className }: ChipGroupProps) {
   if (options.length === 0) {
-    return <p className="text-sm text-muted-foreground">Não há colunas para escolher.</p>;
+    return <p className="text-sm text-muted-foreground">There are no columns to choose.</p>;
   }
   return (
     <ToggleGroup

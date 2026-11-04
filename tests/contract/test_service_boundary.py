@@ -112,7 +112,11 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
         lab.analysis.permutation_importance(result.run_id),
         lab.analysis.partial_dependence(result.run_id, result.feature_names[0]),
         lab.analysis.explain_row(result.run_id, 0),
+        lab.history.story(result.run_id),
+        lab.history.story(clustering.run_id),
         lab.laboratory.knn(5),
+        lab.laboratory.threshold(0.9999),  # um limiar que não marca nada: a precisão é None
+        lab.laboratory.data_size(10),
         lab.reinforcement.lesson(),
         list(lab.packages.candidates()),
         lab.packages.options(result.run_id),

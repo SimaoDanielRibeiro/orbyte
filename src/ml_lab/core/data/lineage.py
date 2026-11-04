@@ -43,19 +43,19 @@ class Stage(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome da etapa em português."""
+        """Nome da etapa, a mostrar na interface."""
         return _STAGE_LABELS[self]
 
 
 _STAGE_LABELS: Final[Mapping[Stage, str]] = MappingProxyType(
     {
-        Stage.INPUT: "Entrada",
-        Stage.CLEANING: "Limpeza",
-        Stage.TASK: "Tarefa",
-        Stage.SPLIT: "Divisão",
-        Stage.TRANSFORM: "Transformação",
-        Stage.PROJECTION: "Projeção",
-        Stage.OUTPUT: "Saída",
+        Stage.INPUT: "Input",
+        Stage.CLEANING: "Cleaning",
+        Stage.TASK: "Task",
+        Stage.SPLIT: "Split",
+        Stage.TRANSFORM: "Transformation",
+        Stage.PROJECTION: "Projection",
+        Stage.OUTPUT: "Output",
     }
 )
 
@@ -67,7 +67,7 @@ class LineageStep:
     Attributes:
         stage: Etapa em que aconteceu.
         operation: Nome estável da operação, por exemplo ``"drop_duplicates"``.
-        description: O que aconteceu, em português, com os números concretos.
+        description: O que aconteceu, em inglês, com os números concretos.
         params: Parâmetros usados (só valores simples, serializáveis em JSON).
         rows_before: Linhas antes da operação, se a operação as conta.
         rows_after: Linhas depois da operação.

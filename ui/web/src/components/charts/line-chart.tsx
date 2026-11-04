@@ -314,7 +314,7 @@ export function LineChart({
                     x={plot.width}
                     y={y(reference.y) - 6}
                     textAnchor="end"
-                    className="fill-dim text-[12px]"
+                    className="fill-dim text-[13px]"
                   >
                     {reference.label}
                   </text>
@@ -423,7 +423,7 @@ export function LineChart({
                   x={x(last.x) + 6}
                   y={y(last.y)}
                   dy="0.32em"
-                  className="fill-soft text-[12px] tabular-nums"
+                  className="fill-soft text-[13px] tabular-nums"
                   aria-hidden="true"
                 >
                   {one.endLabel}
@@ -459,7 +459,7 @@ export function LineChart({
                   x={x(markerX.x) + (x(markerX.x) > plot.width * 0.75 ? -4 : 4)}
                   y={10}
                   textAnchor={x(markerX.x) > plot.width * 0.75 ? "end" : "start"}
-                  className="fill-foreground text-[12px]"
+                  className="fill-foreground text-[13px]"
                 >
                   {markerX.label}
                 </text>

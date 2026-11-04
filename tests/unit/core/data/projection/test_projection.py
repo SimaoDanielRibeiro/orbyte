@@ -73,7 +73,7 @@ def test_more_features_use_pca_learned_on_the_training_data() -> None:
     assert projection.method == "pca"
     assert projection.coordinates[Partition.TEST].shape == (50, 2)
     assert projection.loadings is not None
-    assert "PC1 explica" in step.description
+    assert "PC1 explains" in step.description
 
 
 def test_columns_can_be_chosen() -> None:

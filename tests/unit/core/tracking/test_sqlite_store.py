@@ -64,7 +64,7 @@ def test_a_database_from_a_newer_version_is_refused(tmp_path: Path) -> None:
     with sqlite3.connect(path) as connection:
         connection.execute(f"PRAGMA user_version = {len(MIGRATIONS) + 1}")
 
-    with pytest.raises(TrackingError, match="atualiza o ML Lab"):
+    with pytest.raises(TrackingError, match="update Orbyte"):
         SqliteStore(path)
 
 

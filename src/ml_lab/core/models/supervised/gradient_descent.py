@@ -26,7 +26,7 @@ def diverged_notice(learning_rate: float) -> Notice:
     """O aviso a dar quando o treino pára porque a loss explodiu."""
     return Notice.warning(
         "diverged",
-        f"A loss explodiu com a taxa de aprendizagem {format_number(learning_rate, 4)}: cada passo "
-        "saltava por cima do mínimo e caía mais longe. Experimenta uma taxa menor (e padroniza "
-        "as features na preparação).",
+        f"The loss blew up with a learning rate of {format_number(learning_rate, 4)}: each step "
+        "jumped over the minimum and landed further away. Try a smaller rate (and standardise "
+        "the features in the preparation).",
     )

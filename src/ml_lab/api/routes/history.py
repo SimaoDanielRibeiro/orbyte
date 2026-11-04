@@ -15,6 +15,7 @@ from ml_lab.core.services import (
     RunComparison,
     RunEntry,
     TaskType,
+    TrainingStory,
 )
 
 router = ServiceRouter(prefix="/history", tags=["history"], responses=ERROR_RESPONSES)
@@ -41,6 +42,12 @@ def entry(lab: LabDep, run_id: str) -> RunEntry:
 def open(lab: LabDep, run_id: str) -> ExperimentResult:  # o nome do método do serviço
     """O resultado de um run, pronto a mostrar (um run guardado volta com o modelo)."""
     return lab.history.open(run_id)
+
+
+@router.get("/runs/{run_id}/story")
+def story(lab: LabDep, run_id: str) -> TrainingStory:
+    """O que aconteceu no treino de um run, em capítulos curtos com texto e visuais."""
+    return lab.history.story(run_id)
 
 
 @router.get("/runs/{run_id}/reinforcement-result")

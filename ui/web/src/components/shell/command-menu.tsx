@@ -23,7 +23,7 @@ import { INTERFACE_NAMES, interfaceOf, SCREENS, type Screen } from "./screens";
 const ALL_SCREENS: readonly Screen[] = Object.values(SCREENS);
 
 const GROUP =
-  "[&_[cmdk-group-heading]]:mono-label [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5";
+  "[&_[cmdk-group-heading]]:small-label [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5";
 const ITEM =
   "flex h-10 cursor-pointer items-center gap-3 rounded-[10px] px-3 text-sm text-soft select-none data-[selected=true]:bg-surface-high data-[selected=true]:text-strong [&_svg]:size-4 [&_svg]:shrink-0";
 
@@ -66,29 +66,29 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
           aria-describedby={undefined}
           className="fixed top-[14vh] left-1/2 z-50 w-[min(38rem,calc(100%-2rem))] -translate-x-1/2 overflow-hidden panel shadow-2xl outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95"
         >
-          <Dialog.Title className="sr-only">Procurar</Dialog.Title>
-          <Command label="Procurar ecrãs, modelos e métricas" loop>
+          <Dialog.Title className="sr-only">Search</Dialog.Title>
+          <Command label="Search screens, models and metrics" loop>
             <div className="flex items-center gap-3 border-b px-4">
               <Search aria-hidden="true" className="size-4 text-dim" />
               <Command.Input
-                placeholder="Procurar ecrãs, modelos e métricas"
-                className="h-13 flex-1 bg-transparent text-[0.9375rem] text-strong outline-none placeholder:text-dim"
+                placeholder="Search screens, models and metrics"
+                className="h-13 flex-1 bg-transparent text-base text-strong outline-none placeholder:text-dim"
               />
               <Kbd>Esc</Kbd>
             </div>
             <Command.List className="max-h-[min(26rem,60vh)] scroll-py-2 overflow-y-auto overscroll-contain p-2">
               <Command.Empty className="px-3 py-8 text-center text-sm text-dim">
-                Nada com esse nome.
+                Nothing by that name.
               </Command.Empty>
 
-              <Command.Group heading="Ecrãs" className={GROUP}>
+              <Command.Group heading="Screens" className={GROUP}>
                 {ALL_SCREENS.map((screen) => {
                   const only = interfaceOf(screen.to);
                   const Icon = screen.icon;
                   return (
                     <Command.Item
                       key={screen.to}
-                      value={`ecrã ${screen.title}`}
+                      value={`screen ${screen.title}`}
                       className={ITEM}
                       onSelect={() => {
                         go(() => navigate({ to: screen.to }));
@@ -96,39 +96,41 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
                     >
                       <Icon aria-hidden="true" />
                       <span className="flex-1 truncate">{screen.title}</span>
-                      {only !== null && <span className="mono-label">{INTERFACE_NAMES[only]}</span>}
+                      {only !== null && (
+                        <span className="small-label">{INTERFACE_NAMES[only]}</span>
+                      )}
                     </Command.Item>
                   );
                 })}
               </Command.Group>
 
               {models.data !== undefined && (
-                <Command.Group heading="Modelos" className={GROUP}>
+                <Command.Group heading="Models" className={GROUP}>
                   {models.data.map((model) => (
                     <Command.Item
                       key={model.name}
-                      value={`modelo ${model.display_name} ${model.name}`}
+                      value={`model ${model.display_name} ${model.name}`}
                       className={ITEM}
                       onSelect={() => {
-                        go(() => navigate({ to: "/modelos/$name", params: { name: model.name } }));
+                        go(() => navigate({ to: "/models/$name", params: { name: model.name } }));
                       }}
                     >
                       <span className="flex-1 truncate">{model.display_name}</span>
-                      <span className="mono-label">{label("ModelFamily", model.family)}</span>
+                      <span className="small-label">{label("ModelFamily", model.family)}</span>
                     </Command.Item>
                   ))}
                 </Command.Group>
               )}
 
               {metrics.data !== undefined && (
-                <Command.Group heading="Métricas" className={GROUP}>
+                <Command.Group heading="Metrics" className={GROUP}>
                   {metrics.data.map((metric) => (
                     <Command.Item
                       key={metric.name}
-                      value={`métrica ${metric.display_name} ${metric.name}`}
+                      value={`metric ${metric.display_name} ${metric.name}`}
                       className={ITEM}
                       onSelect={() => {
-                        go(() => navigate({ to: "/metricas", hash: metricAnchor(metric.name) }));
+                        go(() => navigate({ to: "/metrics", hash: metricAnchor(metric.name) }));
                       }}
                     >
                       <span className="flex-1 truncate">{metric.display_name}</span>

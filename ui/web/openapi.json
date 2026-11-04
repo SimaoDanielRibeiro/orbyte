@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "ML Lab",
-    "description": "\nOs serviços do ML Lab por HTTP: carregar e preparar dados, treinar em segundo plano,\nacompanhar o treino, avaliar, explicar e comparar runs.\n\n**Um percurso para começar, aqui mesmo:**\n\n1. `POST /datasets/uploads` envia um CSV (ou `POST /datasets/samples/iris` carrega um\n   exemplo). A resposta tem o `id` do dataset e a origem (`source`).\n2. `POST /experiments` começa um treino com a origem, a preparação e o modelo (por exemplo\n   `{\"dataset\": <source>, \"preparation\": {\"target\": \"species\"}, \"model\": {\"name\":\n   \"logistic_regression_gd\"}, \"seed\": 42}`). A resposta tem o `run_id`.\n3. `GET /experiments/{run_id}/updates` mostra o progresso, os passos e a fronteira do\n   último snapshot (o WebSocket `/experiments/{run_id}/stream` envia o mesmo sozinho).\n4. `GET /experiments/{run_id}/result` dá o resultado quando o treino termina.\n\n**O modo automático:** `POST /automl` com `{\"dataset\": <source>, \"target\": \"Survived\"}` põe\nos agentes a procurar o melhor modelo. `GET /automl/{search_id}/updates` traz a conversa\ndos agentes e os candidatos novos, e `GET /automl/{search_id}/result` o quadro final, com o\n`run_id` do vencedor.\n\n**Para o frontend arrancar:** `GET /vocabulary` dá o nome a mostrar de cada valor (as\ntarefas, as famílias, os estados) e `GET /explanations` os textos do painel «Porquê?». Pede-se\numa vez e guarda-se.\n\nOs erros vêm sempre com um `code` estável e uma `message` em português que diz o que fazer.\n",
+    "title": "Orbyte",
+    "description": "\nOs serviços do ML Lab por HTTP: carregar e preparar dados, treinar em segundo plano,\nacompanhar o treino, avaliar, explicar e comparar runs.\n\n**Um percurso para começar, aqui mesmo:**\n\n1. `POST /datasets/uploads` envia um CSV (ou `POST /datasets/samples/iris` carrega um\n   exemplo). A resposta tem o `id` do dataset e a origem (`source`).\n2. `POST /experiments` começa um treino com a origem, a preparação e o modelo (por exemplo\n   `{\"dataset\": <source>, \"preparation\": {\"target\": \"species\"}, \"model\": {\"name\":\n   \"logistic_regression_gd\"}, \"seed\": 42}`). A resposta tem o `run_id`.\n3. `GET /experiments/{run_id}/updates` mostra o progresso, os passos e a fronteira do\n   último snapshot (o WebSocket `/experiments/{run_id}/stream` envia o mesmo sozinho).\n4. `GET /experiments/{run_id}/result` dá o resultado quando o treino termina.\n\n**O modo automático:** `POST /automl` com `{\"dataset\": <source>, \"target\": \"Survived\"}` põe\nos agentes a procurar o melhor modelo. `GET /automl/{search_id}/updates` traz a conversa\ndos agentes e os candidatos novos, e `GET /automl/{search_id}/result` o quadro final, com o\n`run_id` do vencedor.\n\n**Para o frontend arrancar:** `GET /vocabulary` dá o nome a mostrar de cada valor (as\ntarefas, as famílias, os estados) e `GET /explanations` os textos do painel «Porquê?». Pede-se\numa vez e guarda-se.\n\nOs erros vêm sempre com um `code` estável e uma `message` em inglês que diz o que fazer.\n",
     "version": "0.1.0"
   },
   "paths": {
@@ -3621,6 +3621,88 @@
         }
       }
     },
+    "/history/runs/{run_id}/story": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "O que aconteceu no treino de um run, em capítulos curtos com texto e visuais.",
+        "operationId": "history_story",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingStory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/history/runs/{run_id}/reinforcement-result": {
       "get": {
         "tags": [
@@ -4374,6 +4456,170 @@
         }
       }
     },
+    "/laboratory/threshold": {
+      "get": {
+        "tags": [
+          "laboratory"
+        ],
+        "summary": "A regressão logística em dados desequilibrados, a decidir com o limiar ``threshold``.",
+        "operationId": "laboratory_threshold",
+        "parameters": [
+          {
+            "name": "threshold",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThresholdDemo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/laboratory/data-size": {
+      "get": {
+        "tags": [
+          "laboratory"
+        ],
+        "summary": "A árvore e a regressão logística treinadas com ``size`` linhas.",
+        "operationId": "laboratory_data_size",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataSizeDemo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/reinforcement/environments": {
       "get": {
         "tags": [
@@ -4529,8 +4775,23 @@
         "tags": [
           "reinforcement"
         ],
-        "summary": "A lição que abre o ecrã: um Q-learning pequeno, passo a passo (não é um run).",
+        "summary": "A lição que abre o ecrã: um agente no penhasco, passo a passo (não é um run).",
+        "description": "Há uma por agente; a primeira vez que se pede a de um agente, treina-se (a do DQN demora\nuns segundos) e fica guardada.",
         "operationId": "reinforcement_lesson",
+        "parameters": [
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "The agent, by its name in the registry.",
+              "default": "q_learning",
+              "title": "Agent"
+            },
+            "description": "The agent, by its name in the registry."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7395,7 +7656,7 @@
           "recipients"
         ],
         "title": "AgentMessage",
-        "description": "Uma mensagem da conversa: quem a diz, a quem, e o quê.\n\nAs mensagens contam a procura como uma troca: o agente de dados entrega o plano ao\ncoordenador (``REPORT``); o coordenador anuncia as rondas aos agentes (``ANNOUNCEMENT``),\npede a cada um que meça um candidato (``REQUEST``) e recebe a resposta com o resultado\n(``REPLY``); no fim, passa o melhor ao vencedor (``DECISION``) e o vencedor vai ao teste\n(``TEST``). O agente de IA, antes de responder, pensa em voz alta (``THOUGHT``, sem\ndestinatários: é para quem acompanha). É com ``kind`` e ``recipients`` que o histórico\nvisual desenha cada troca.\n\nAttributes:\n    number: A ordem na conversa (1, 2, 3…).\n    role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.\n    author: O nome a mostrar de quem fala.\n    text: O que diz, em português.\n    phase: A fase da procura em que o disse.\n    family: Num agente de modelo, a sua família.\n    candidate: O candidato de que fala, se for o caso.\n    kind: O que a mensagem é na troca.\n    recipients: A quem se dirige (vazio: a quem acompanha a procura)."
+        "description": "Uma mensagem da conversa: quem a diz, a quem, e o quê.\n\nAs mensagens contam a procura como uma troca: o agente de dados entrega o plano ao\ncoordenador (``REPORT``); o coordenador anuncia as rondas aos agentes (``ANNOUNCEMENT``),\npede a cada um que meça um candidato (``REQUEST``) e recebe a resposta com o resultado\n(``REPLY``); no fim, passa o melhor ao vencedor (``DECISION``) e o vencedor vai ao teste\n(``TEST``). O agente de IA, antes de responder, pensa em voz alta (``THOUGHT``, sem\ndestinatários: é para quem acompanha). É com ``kind`` e ``recipients`` que o histórico\nvisual desenha cada troca.\n\nAttributes:\n    number: A ordem na conversa (1, 2, 3…).\n    role: Quem fala: o agente de dados, o coordenador ou um agente de modelo.\n    author: O nome a mostrar de quem fala.\n    text: O que diz, em inglês.\n    phase: A fase da procura em que o disse.\n    family: Num agente de modelo, a sua família.\n    candidate: O candidato de que fala, se for o caso.\n    kind: O que a mensagem é na troca.\n    recipients: A quem se dirige (vazio: a quem acompanha a procura)."
       },
       "AgentModel": {
         "properties": {
@@ -7482,7 +7743,7 @@
           "problems"
         ],
         "title": "ApiError",
-        "description": "Um erro, como a API o devolve.\n\nAttributes:\n    code: Identificador estável do erro (``run_not_found``, ``invalid_request``...).\n    message: O que aconteceu e o que fazer, em português.\n    problems: Num pedido inválido, uma frase por cada problema."
+        "description": "Um erro, como a API o devolve.\n\nAttributes:\n    code: Identificador estável do erro (``run_not_found``, ``invalid_request``...).\n    message: O que aconteceu e o que fazer, em inglês.\n    problems: Num pedido inválido, uma frase por cada problema."
       },
       "AutoMLOptions": {
         "properties": {
@@ -7551,7 +7812,7 @@
           "doc"
         ],
         "title": "AutoMLOptions",
-        "description": "O que se pode pedir aos agentes numa tarefa (o ecrã Agentes monta o pedido com isto).\n\nAttributes:\n    task_type: A tarefa.\n    supported: Se os agentes trabalham nesta tarefa.\n    reason: Se não trabalham, porquê.\n    objectives: As métricas que sabem otimizar; a primeira é a principal.\n    agents: Os agentes de modelo, com os modelos de cada um.\n    skipped: Os modelos da tarefa que ficam de fora, com a razão.\n    settings_schema: O JSON Schema do tamanho da procura (de onde se gera o formulário).\n    settings: Os valores por omissão do tamanho da procura.\n    doc: A ficha didática dos agentes, em Markdown."
+        "description": "O que se pode pedir aos agentes numa tarefa (o ecrã Agentes monta o pedido com isto).\n\nAttributes:\n    task_type: A tarefa.\n    supported: Se os agentes trabalham nesta tarefa.\n    reason: Se não trabalham, porquê.\n    objectives: As métricas que sabem otimizar; a primeira é a principal.\n    agents: Os agentes de modelo, com todos os modelos que podem entrar com este objetivo:\n        é entre eles que o ecrã escolhe os da procura (``AutoMLRequest.models``).\n    skipped: Os modelos da tarefa que não se podem medir com este objetivo, com a razão.\n    settings_schema: O JSON Schema do tamanho da procura (de onde se gera o formulário).\n    settings: Os valores por omissão do tamanho da procura.\n    doc: A ficha didática dos agentes, em Markdown."
       },
       "AutoMLPlan": {
         "properties": {
@@ -7706,10 +7967,13 @@
             "title": "Families",
             "default": []
           },
-          "include_didactic": {
-            "type": "boolean",
-            "title": "Include Didactic",
-            "default": false
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models",
+            "default": []
           },
           "preparation": {
             "anyOf": [
@@ -7758,7 +8022,7 @@
           "target"
         ],
         "title": "AutoMLRequest",
-        "description": "O pedido aos agentes: que modelo prevê melhor ``target`` nestes dados?\n\nAttributes:\n    dataset: De onde vêm os dados.\n    target: A coluna a prever.\n    task_type: A tarefa; ``None`` aceita a sugestão do agente de dados.\n    objective: A métrica a otimizar (o nome no registo, como ``\"f1\"``); ``None`` deixa o\n        agente de dados sugerir.\n    families: As famílias de modelos que participam; vazio = todas.\n    include_didactic: Se entram também as implementações didáticas.\n    preparation: Uma preparação feita à mão, que o agente de dados adota; ``None`` deixa-o\n        decidir.\n    settings: O tamanho da procura.\n    seed: Seed raiz; ``None`` gera uma nova, que fica registada no resultado.\n    ai_agent: Se o agente de IA entra na afinação (precisa do Ollama, ADR 0042).\n    ai_replies: As respostas do agente de IA de uma procura anterior: com elas, a procura\n        repete-se tal e qual, sem o Ollama. O resultado traz sempre as que usou."
+        "description": "O pedido aos agentes: que modelo prevê melhor ``target`` nestes dados?\n\nAttributes:\n    dataset: De onde vêm os dados.\n    target: A coluna a prever.\n    task_type: A tarefa; ``None`` aceita a sugestão do agente de dados.\n    objective: A métrica a otimizar (o nome no registo, como ``\"f1\"``); ``None`` deixa o\n        agente de dados sugerir.\n    families: As famílias de modelos que participam; vazio = todas.\n    models: Os modelos que participam, pelo nome no registo; vazio = todos os que podem\n        (ADR 0049). Com as famílias, entra o que estiver nas duas escolhas.\n    preparation: Uma preparação feita à mão, que o agente de dados adota; ``None`` deixa-o\n        decidir.\n    settings: O tamanho da procura.\n    seed: Seed raiz; ``None`` gera uma nova, que fica registada no resultado.\n    ai_agent: Se o agente de IA entra na afinação (precisa do Ollama, ADR 0042).\n    ai_replies: As respostas do agente de IA de uma procura anterior: com elas, a procura\n        repete-se tal e qual, sem o Ollama. O resultado traz sempre as que usou."
       },
       "AutoMLResult": {
         "properties": {
@@ -7944,6 +8208,18 @@
         "title": "AutoMLUpdate",
         "description": "O que mudou numa procura desde a última pergunta (o que a API transmite).\n\nAttributes:\n    state: O retrato do trabalho agora (o progresso conta candidatos).\n    phase: A fase da procura.\n    objective: A métrica que os agentes otimizam (para mostrar os valores).\n    candidates: Os candidatos novos (depois de ``after_step``), pela ordem.\n    messages: As mensagens novas da conversa (depois de ``after_message``).\n    leader: O melhor candidato até agora.\n    working: O candidato que um agente está a medir agora, e em que fold vai\n        (``None`` entre candidatos e fora das rondas).\n    thought: O que o agente de IA está a pensar agora, até aqui (``None`` quando não pensa)."
       },
+      "BarTone": {
+        "type": "string",
+        "enum": [
+          "baseline",
+          "train",
+          "validation",
+          "test",
+          "up",
+          "down",
+          "plain"
+        ]
+      },
       "Body_datasets_upload": {
         "properties": {
           "file": {
@@ -8116,6 +8392,17 @@
         "title": "CellKind",
         "description": "O que há numa célula da grelha."
       },
+      "ChapterKey": {
+        "type": "string",
+        "enum": [
+          "data",
+          "learning",
+          "learned",
+          "result",
+          "errors",
+          "next"
+        ]
+      },
       "ChoiceGroup": {
         "type": "string",
         "enum": [
@@ -8197,7 +8484,7 @@
           "column"
         ],
         "title": "CleaningSuggestion",
-        "description": "Um passo de limpeza sugerido e a razão.\n\nAttributes:\n    step: O passo, pronto a juntar à receita.\n    reason: Porque é sugerido, em português.\n    column: A coluna a que diz respeito, se for o caso."
+        "description": "Um passo de limpeza sugerido e a razão.\n\nAttributes:\n    step: O passo, pronto a juntar à receita.\n    reason: Porque é sugerido, em inglês.\n    column: A coluna a que diz respeito, se for o caso."
       },
       "ColumnInfo": {
         "properties": {
@@ -8659,7 +8946,101 @@
           "reason"
         ],
         "title": "DataDecision",
-        "description": "Uma decisão do agente de dados.\n\nAttributes:\n    title: O que decidiu (\"Remover PassengerId\").\n    reason: Porquê, em português."
+        "description": "Uma decisão do agente de dados.\n\nAttributes:\n    title: O que decidiu (\"Drop PassengerId\").\n    reason: Porquê (a mostrar na interface)."
+      },
+      "DataSizeDemo": {
+        "properties": {
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "sizes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Sizes"
+          },
+          "tree_train": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Tree Train"
+          },
+          "tree_test": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Tree Test"
+          },
+          "tree_spread": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Tree Spread"
+          },
+          "logistic_train": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Logistic Train"
+          },
+          "logistic_test": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Logistic Test"
+          },
+          "logistic_spread": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Logistic Spread"
+          },
+          "test_rows": {
+            "type": "integer",
+            "title": "Test Rows"
+          },
+          "boundary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrainingAnimation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "size",
+          "sizes",
+          "tree_train",
+          "tree_test",
+          "tree_spread",
+          "logistic_train",
+          "logistic_test",
+          "logistic_spread",
+          "test_rows",
+          "boundary",
+          "notices"
+        ],
+        "title": "DataSizeDemo",
+        "description": "A exatidão de uma árvore e de uma regressão logística para cada quantidade de dados.\n\nCada valor é a média das amostras (``REPEATS``); o ``spread`` é o desvio padrão entre elas.\n\nAttributes:\n    size: A quantidade de linhas de treino escolhida.\n    sizes: As quantidades comparadas (com a escolhida).\n    tree_train: A exatidão da árvore nas suas linhas de treino.\n    tree_test: A exatidão da árvore no teste.\n    tree_spread: O desvio da exatidão da árvore no teste, entre as amostras.\n    logistic_train: A exatidão da regressão logística nas suas linhas de treino.\n    logistic_test: A exatidão da regressão logística no teste.\n    logistic_spread: O desvio da exatidão da regressão logística no teste.\n    test_rows: As linhas do teste (sempre as mesmas).\n    boundary: A fronteira da árvore treinada com a quantidade escolhida (a primeira amostra),\n        com as linhas que a treinaram.\n    notices: A leitura da quantidade escolhida."
       },
       "DatasetProfile": {
         "properties": {
@@ -8841,6 +9222,9 @@
             "type": "string",
             "title": "Topic"
           },
+          "guide": {
+            "$ref": "#/components/schemas/DemoGuide"
+          },
           "control": {
             "anyOf": [
               {
@@ -8887,13 +9271,14 @@
           "name",
           "summary",
           "topic",
+          "guide",
           "control",
           "variants",
           "variant_label",
           "default_variant"
         ],
         "title": "DemoCard",
-        "description": "Uma demonstração do Laboratório, pronta a mostrar.\n\nAttributes:\n    name: A demonstração (o nome do método e o da rota).\n    summary: O que se vê e o que se pode mexer.\n    topic: O tema do painel \"Porquê?\" que a explica.\n    control: O controlo, nas demonstrações com uma só versão.\n    variants: As versões, cada uma com o seu controlo (só a regularização as tem).\n    variant_label: O nome a mostrar da escolha da versão.\n    default_variant: A versão com que a demonstração abre."
+        "description": "Uma demonstração do Laboratório, pronta a mostrar.\n\nAttributes:\n    name: A demonstração (o nome do método e o da rota).\n    summary: O que se vê e o que se pode mexer.\n    topic: O tema do painel \"Porquê?\" que a explica.\n    guide: A ideia, o que experimentar e o que fica.\n    control: O controlo, nas demonstrações com uma só versão.\n    variants: As versões, cada uma com o seu controlo (só a regularização as tem).\n    variant_label: O nome a mostrar da escolha da versão.\n    default_variant: A versão com que a demonstração abre."
       },
       "DemoControl": {
         "properties": {
@@ -8949,6 +9334,33 @@
         ],
         "title": "DemoExample",
         "description": "Um conjunto de exemplo para ver um modelo a trabalhar.\n\nAttributes:\n    name: O identificador (o que se pede em ``example``).\n    title: O nome a mostrar.\n    description: O que o conjunto tem de interessante, numa frase.\n    task_type: A tarefa que o modelo resolve nele."
+      },
+      "DemoGuide": {
+        "properties": {
+          "idea": {
+            "type": "string",
+            "title": "Idea"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "takeaway": {
+            "type": "string",
+            "title": "Takeaway"
+          }
+        },
+        "type": "object",
+        "required": [
+          "idea",
+          "steps",
+          "takeaway"
+        ],
+        "title": "DemoGuide",
+        "description": "O guia de uma demonstração: a ideia, o que experimentar e o que fica.\n\nAttributes:\n    idea: O conceito, em duas ou três frases, antes de mexer em nada.\n    steps: O que experimentar, por ordem: cada passo diz que valor escolher e o que ver.\n    takeaway: O que fica, numa frase, para levar para os modelos a sério."
       },
       "DemoRequest": {
         "properties": {
@@ -9751,7 +10163,7 @@
           "meaning"
         ],
         "title": "FormulaSymbol",
-        "description": "Um símbolo da fórmula e o que quer dizer.\n\nAttributes:\n    symbol: O símbolo, em LaTeX.\n    meaning: O que é, em português (pode ter fórmulas curtas entre ``$``)."
+        "description": "Um símbolo da fórmula e o que quer dizer.\n\nAttributes:\n    symbol: O símbolo, em LaTeX.\n    meaning: O que é (pode ter fórmulas curtas entre ``$``)."
       },
       "GenerateRequest": {
         "properties": {
@@ -10102,7 +10514,9 @@
           "overfitting",
           "learning_rate",
           "knn",
-          "regularization"
+          "regularization",
+          "threshold",
+          "data_size"
         ],
         "title": "LaboratoryDemo",
         "description": "Uma demonstração do Laboratório (o nome é o do método e o da rota)."
@@ -10147,6 +10561,17 @@
             "type": "array",
             "title": "Models"
           },
+          "thinks": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thinks"
+          },
           "notices": {
             "items": {
               "$ref": "#/components/schemas/Notice"
@@ -10165,10 +10590,11 @@
           "installed",
           "version",
           "models",
+          "thinks",
           "notices"
         ],
         "title": "LanguageModelStatus",
-        "description": "O estado do modelo de linguagem dos agentes de IA.\n\nAttributes:\n    ready: Se os agentes de IA podem trabalhar (o Ollama responde e tem o modelo).\n    running: Se o Ollama responde.\n    url: Onde o Ollama devia estar.\n    model: O modelo configurado (``ML_LAB_OLLAMA_MODEL``).\n    installed: Se o Ollama tem o modelo configurado.\n    version: A versão do Ollama, quando responde.\n    models: Os modelos que o Ollama tem.\n    notices: O que falta fazer, com um código estável (``ollama_not_running``,\n        ``model_not_installed``)."
+        "description": "O estado do modelo de linguagem dos agentes de IA.\n\nAttributes:\n    ready: Se os agentes de IA podem trabalhar (o Ollama responde, tem o modelo e o modelo\n        pensa antes de responder).\n    running: Se o Ollama responde.\n    url: Onde o Ollama devia estar.\n    model: O modelo configurado (``ML_LAB_OLLAMA_MODEL``).\n    installed: Se o Ollama tem o modelo configurado.\n    version: A versão do Ollama, quando responde.\n    models: Os modelos que o Ollama tem.\n    thinks: Se o modelo pensa à parte, antes de responder (o agente de IA mostra esse\n        raciocínio, e o Ollama recusa o pedido a um modelo que não pensa); ``None`` quando\n        não se sabe (sem o modelo, ou num Ollama que não diz as capacidades).\n    notices: O que falta fazer, com um código estável (``ollama_not_running``,\n        ``model_not_installed``, ``model_cannot_think``)."
       },
       "LayerFrame": {
         "properties": {
@@ -10653,7 +11079,7 @@
           "columns_changed"
         ],
         "title": "LineageStep",
-        "description": "Uma operação aplicada aos dados.\n\nAttributes:\n    stage: Etapa em que aconteceu.\n    operation: Nome estável da operação, por exemplo ``\"drop_duplicates\"``.\n    description: O que aconteceu, em português, com os números concretos.\n    params: Parâmetros usados (só valores simples, serializáveis em JSON).\n    rows_before: Linhas antes da operação, se a operação as conta.\n    rows_after: Linhas depois da operação.\n    columns_added: Colunas criadas.\n    columns_removed: Colunas removidas.\n    columns_changed: Colunas que ficaram com valores ou tipo diferentes."
+        "description": "Uma operação aplicada aos dados.\n\nAttributes:\n    stage: Etapa em que aconteceu.\n    operation: Nome estável da operação, por exemplo ``\"drop_duplicates\"``.\n    description: O que aconteceu, em inglês, com os números concretos.\n    params: Parâmetros usados (só valores simples, serializáveis em JSON).\n    rows_before: Linhas antes da operação, se a operação as conta.\n    rows_after: Linhas depois da operação.\n    columns_added: Colunas criadas.\n    columns_removed: Colunas removidas.\n    columns_changed: Colunas que ficaram com valores ou tipo diferentes."
       },
       "LinearWeights": {
         "properties": {
@@ -11060,7 +11486,7 @@
           "group"
         ],
         "title": "MetricTerm",
-        "description": "Uma quantidade da fórmula de uma métrica, com o valor nos dados avaliados.\n\nAttributes:\n    symbol: O símbolo, como aparece na fórmula (em LaTeX), por exemplo ``\\mathrm{VP}``.\n    label: O nome a mostrar (\"Verdadeiros positivos\").\n    value: O valor.\n    group: Numa métrica que é a média de uma conta por classe, o número da classe deste\n        termo; ``None`` nos termos da métrica inteira."
+        "description": "Uma quantidade da fórmula de uma métrica, com o valor nos dados avaliados.\n\nAttributes:\n    symbol: O símbolo, como aparece na fórmula (em LaTeX), por exemplo ``\\mathrm{TP}``.\n    label: O nome a mostrar (\"True positives\").\n    value: O valor.\n    group: Numa métrica que é a média de uma conta por classe, o número da classe deste\n        termo; ``None`` nos termos da métrica inteira."
       },
       "MissingMap": {
         "properties": {
@@ -11122,7 +11548,7 @@
           "models"
         ],
         "title": "ModelAgentCard",
-        "description": "Um agente de modelo, pronto a mostrar.\n\nAttributes:\n    family: A família de que trata.\n    name: O nome a mostrar (\"Agente · Árvores de decisão\").\n    models: Os modelos que experimenta."
+        "description": "Um agente de modelo, pronto a mostrar.\n\nAttributes:\n    family: A família de que trata.\n    name: O nome a mostrar (\"Agent · Decision trees\").\n    models: Os modelos que experimenta."
       },
       "ModelCard": {
         "properties": {
@@ -11478,7 +11904,7 @@
           "subject"
         ],
         "title": "Notice",
-        "description": "Um aviso didático.\n\nAttributes:\n    level: Gravidade do aviso.\n    code: Código estável em ``snake_case``, por exemplo ``\"missing_values\"``.\n    message: Explicação em português, com o que fazer quando há alguma coisa a fazer.\n    subject: Aquilo a que o aviso se refere (uma coluna, uma métrica...), se houver."
+        "description": "Um aviso didático.\n\nAttributes:\n    level: Gravidade do aviso.\n    code: Código estável em ``snake_case``, por exemplo ``\"missing_values\"``.\n    message: Explicação em inglês, com o que fazer quando há alguma coisa a fazer.\n    subject: Aquilo a que o aviso se refere (uma coluna, uma métrica...), se houver."
       },
       "NoticeLevel": {
         "type": "string",
@@ -11540,6 +11966,16 @@
                 "type": "null"
               }
             ]
+          },
+          "gross_outliers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutlierBounds"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -11552,7 +11988,8 @@
           "q3",
           "maximum",
           "skewness",
-          "outliers"
+          "outliers",
+          "gross_outliers"
         ],
         "title": "NumericSummary",
         "description": "Estatísticas de uma coluna numérica (calculadas sem os nulos)."
@@ -12601,6 +13038,19 @@
         "title": "PrepareRequest",
         "description": "Preparar um dataset carregado.\n\nAttributes:\n    config: O alvo, a tarefa, a limpeza, a divisão, as transformações e a projeção.\n    seed: A seed da divisão (a mesma do treino, para os dados serem os mesmos)."
       },
+      "Problem": {
+        "type": "string",
+        "enum": [
+          "classification",
+          "regression",
+          "clustering",
+          "dimensionality_reduction",
+          "anomaly_detection",
+          "control"
+        ],
+        "title": "Problem",
+        "description": "O problema que uma tarefa resolve: a pergunta que se faz aos dados.\n\nVárias tarefas podem responder à mesma pergunta: a classificação binária e a multiclasse\nsão as duas uma classificação, e os mesmos modelos fazem as duas. É pelo problema que o\necrã Modelos arruma os modelos e lhes dá cor (ADR 0048)."
+      },
       "Progress": {
         "properties": {
           "steps": {
@@ -12828,7 +13278,7 @@
           "value"
         ],
         "title": "Property",
-        "description": "Um número simples do estado (as iterações, a inércia…), com o nome em português."
+        "description": "Um número simples do estado (as iterações, a inércia…), com o nome em inglês."
       },
       "RecordedReply": {
         "properties": {
@@ -12972,6 +13422,10 @@
       },
       "ReinforcementLesson": {
         "properties": {
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
           "environment_name": {
             "type": "string",
             "title": "Environment Name"
@@ -13008,10 +13462,19 @@
             },
             "type": "array",
             "title": "Kept"
+          },
+          "update_topic": {
+            "type": "string",
+            "title": "Update Topic"
+          },
+          "update_rule": {
+            "type": "string",
+            "title": "Update Rule"
           }
         },
         "type": "object",
         "required": [
+          "agent",
           "environment_name",
           "agent_display_name",
           "layout",
@@ -13019,10 +13482,12 @@
           "discount",
           "episodes",
           "rewards",
-          "kept"
+          "kept",
+          "update_topic",
+          "update_rule"
         ],
         "title": "ReinforcementLesson",
-        "description": "A lição: o ambiente, o agente e os episódios escolhidos, passo a passo.\n\nAttributes:\n    environment_name: O ambiente (\"Grelha · penhasco\").\n    agent_display_name: O agente (\"Q-learning\").\n    layout: A grelha.\n    learning_rate: A taxa de aprendizagem (α): a fração da surpresa que corrige o Q.\n    discount: O desconto (γ) de uma recompensa futura.\n    episodes: Quantos episódios teve o treino.\n    rewards: A recompensa de cada episódio do treino, por ordem.\n    kept: Os episódios guardados, por ordem."
+        "description": "A lição: o ambiente, o agente e os episódios escolhidos, passo a passo.\n\nAttributes:\n    agent: O agente, pelo nome no registo ``AGENTS``.\n    environment_name: O ambiente (\"Grelha · penhasco\").\n    agent_display_name: O agente (\"Q-learning\").\n    layout: A grelha.\n    learning_rate: A taxa de aprendizagem: a fração da surpresa que corrige o Q (α), no\n        Q-learning; o passo do otimizador da rede, no DQN.\n    discount: O desconto (γ) de uma recompensa futura.\n    episodes: Quantos episódios teve o treino.\n    rewards: A recompensa de cada episódio do treino, por ordem.\n    kept: Os episódios guardados, por ordem.\n    update_topic: O tema que explica a correção do Q deste agente (o último cartão do\n        ciclo): numa tabela não é o mesmo que numa rede.\n    update_rule: O que acontece ao Q depois da surpresa, numa frase curta, sem ponto final\n        (\"Q moves α = 0.5 of it\")."
       },
       "ReinforcementResult": {
         "properties": {
@@ -13803,32 +14268,32 @@
             "type": "integer",
             "maximum": 200.0,
             "minimum": 1.0,
-            "title": "Orçamento (candidatos)",
-            "description": "Quantos candidatos medir, contando a triagem e a afinação. Cada candidato treina uma vez por fold: é isto que decide quanto tempo a procura demora.",
+            "title": "Budget (candidates)",
+            "description": "How many candidates to measure, counting the screening and the tuning. Each candidate trains once per fold: this is what decides how long the search takes.",
             "default": 24
           },
           "folds": {
             "type": "integer",
             "maximum": 10.0,
             "minimum": 2.0,
-            "title": "Folds da validação cruzada",
-            "description": "Em quantas partes se divide o treino para medir cada candidato. Mais folds, estimativa mais segura e procura mais lenta.",
+            "title": "Cross-validation folds",
+            "description": "How many parts the training data is split into to measure each candidate. More folds, a safer estimate and a slower search.",
             "default": 5
           },
           "finalists": {
             "type": "integer",
             "maximum": 10.0,
             "minimum": 1.0,
-            "title": "Finalistas",
-            "description": "Quantos modelos da triagem passam à afinação e repartem o resto do orçamento.",
+            "title": "Finalists",
+            "description": "How many models from the screening move on to the tuning and share the rest of the budget.",
             "default": 3
           },
           "max_rows": {
             "type": "integer",
             "maximum": 100000.0,
             "minimum": 100.0,
-            "title": "Linhas na procura",
-            "description": "Com mais linhas de treino do que isto, a validação cruzada usa uma amostra, para a procura ser rápida. O vencedor treina no fim com o treino todo.",
+            "title": "Rows in the search",
+            "description": "With more training rows than this, cross-validation uses a sample, so the search is fast. The winner trains at the end on all the training data.",
             "default": 2000,
             "x-scale": "log"
           }
@@ -13898,6 +14363,11 @@
           "reason": {
             "type": "string",
             "title": "Reason"
+          },
+          "chosen_out": {
+            "type": "boolean",
+            "title": "Chosen Out",
+            "default": false
           }
         },
         "type": "object",
@@ -13905,10 +14375,11 @@
           "model",
           "display_name",
           "family",
-          "reason"
+          "reason",
+          "chosen_out"
         ],
         "title": "SkippedModel",
-        "description": "Um modelo da tarefa que nenhum agente experimenta, e porquê.\n\nAttributes:\n    model: O modelo, no registo.\n    display_name: O nome a mostrar.\n    family: A família.\n    reason: Porque fica de fora."
+        "description": "Um modelo da tarefa que nenhum agente experimenta, e porquê.\n\nAttributes:\n    model: O modelo, no registo.\n    display_name: O nome a mostrar.\n    family: A família.\n    reason: Porque fica de fora.\n    chosen_out: Se ficou de fora por escolha de quem fez o pedido (e não porque não se\n        pode medir): o ecrã Agentes deixa voltar a escolhê-lo."
       },
       "SourceSpec": {
         "properties": {
@@ -13962,6 +14433,34 @@
         "type": "object",
         "title": "SplitConfig",
         "description": "Configuração da divisão.\n\nAttributes:\n    strategy: Aleatória, estratificada (mantém a proporção de cada classe) ou temporal\n        (o passado treina, o futuro testa).\n    test_size: Proporção das linhas que vai para o teste.\n    validation_size: Proporção que vai para a validação (0 para não haver validação).\n    time_column: Na divisão temporal, a coluna com o tempo; sem ela, usa-se a ordem\n        das linhas."
+      },
+      "SplitPart": {
+        "properties": {
+          "partition": {
+            "$ref": "#/components/schemas/Partition"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "share": {
+            "type": "number",
+            "title": "Share"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partition",
+          "rows",
+          "share",
+          "role"
+        ],
+        "title": "SplitPart",
+        "description": "Uma parte das linhas do run: quantas são e para que servem.\n\nAttributes:\n    partition: A parte.\n    rows: Quantas linhas tem.\n    share: A fração das linhas todas (de 0 a 1).\n    role: Para que serve, numa frase curta (\"to learn from\")."
       },
       "SplitStrategy": {
         "type": "string",
@@ -14050,6 +14549,209 @@
         "title": "StepRecord",
         "description": "Um passo do treino: o número, a loss e as métricas parciais."
       },
+      "StoryBar": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "tone": {
+            "$ref": "#/components/schemas/BarTone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value",
+          "tone"
+        ],
+        "title": "StoryBar",
+        "description": "Uma barra de um visual da história.\n\nAttributes:\n    label: O nome a mostrar.\n    value: O valor (uma fração, se as barras forem percentagens).\n    tone: O papel da barra (a interface escolhe a cor por ele)."
+      },
+      "StoryBars": {
+        "properties": {
+          "value_label": {
+            "type": "string",
+            "title": "Value Label"
+          },
+          "as_percent": {
+            "type": "boolean",
+            "title": "As Percent"
+          },
+          "bars": {
+            "items": {
+              "$ref": "#/components/schemas/StoryBar"
+            },
+            "type": "array",
+            "title": "Bars"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_label",
+          "as_percent",
+          "bars"
+        ],
+        "title": "StoryBars",
+        "description": "Umas barras: as métricas comparadas, os pesos ou a importância das features.\n\nAttributes:\n    value_label: O que os valores são, para o eixo.\n    as_percent: Se os valores se mostram como percentagens.\n    bars: As barras, pela ordem a mostrar."
+      },
+      "StoryChapter": {
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ChapterKey"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Points",
+            "default": []
+          },
+          "split": {
+            "items": {
+              "$ref": "#/components/schemas/SplitPart"
+            },
+            "type": "array",
+            "title": "Split",
+            "default": []
+          },
+          "curve": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoryCurve"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bars": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoryBars"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "matrix": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfusionMatrix"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "matrix_rows": {
+            "type": "string",
+            "title": "Matrix Rows",
+            "default": ""
+          },
+          "matrix_columns": {
+            "type": "string",
+            "title": "Matrix Columns",
+            "default": ""
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "text",
+          "points",
+          "split",
+          "curve",
+          "bars",
+          "matrix",
+          "matrix_rows",
+          "matrix_columns",
+          "notices"
+        ],
+        "title": "StoryChapter",
+        "description": "Um capítulo da história: uma pergunta, a resposta em poucas frases e um visual.\n\nAttributes:\n    key: O capítulo, por um nome estável.\n    title: A pergunta a que responde, como título.\n    text: A resposta, com os números que contam a negrito (``**…**``).\n    points: Linhas curtas a seguir ao texto (por exemplo, os passos da preparação).\n    split: A divisão das linhas, para desenhar como uma barra.\n    curve: A loss ao longo do treino.\n    bars: Umas barras (as métricas comparadas, os pesos, a importância…).\n    matrix: Uma matriz de confusão (o que é real nas linhas).\n    matrix_rows: O título das linhas da matriz.\n    matrix_columns: O título das colunas da matriz.\n    notices: Os avisos que dizem o que fazer (no último capítulo)."
+      },
+      "StoryCurve": {
+        "properties": {
+          "step_label": {
+            "type": "string",
+            "title": "Step Label"
+          },
+          "steps": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "loss": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Loss"
+          },
+          "validation": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Validation",
+            "default": []
+          },
+          "best_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Step"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_label",
+          "steps",
+          "loss",
+          "validation",
+          "best_step"
+        ],
+        "title": "StoryCurve",
+        "description": "A loss ao longo do treino, para o capítulo \"como aprendeu\".\n\nAttributes:\n    step_label: O nome de um passo, para o eixo (\"Epoch\", \"Iteration\"…).\n    steps: O número de cada passo (um treino longo vem resumido).\n    loss: A loss no treino, em cada passo.\n    validation: A loss na validação em cada passo, se o modelo a mediu (senão, vazio).\n    best_step: O passo com a menor loss na validação, se houver."
+      },
       "TablePreview": {
         "properties": {
           "columns": {
@@ -14101,6 +14803,9 @@
           "paradigm": {
             "$ref": "#/components/schemas/Paradigm"
           },
+          "problem": {
+            "$ref": "#/components/schemas/Problem"
+          },
           "requires_target": {
             "type": "boolean",
             "title": "Requires Target"
@@ -14141,6 +14846,7 @@
           "task_type",
           "label",
           "paradigm",
+          "problem",
           "requires_target",
           "learns_from_data",
           "primary_metric",
@@ -14148,7 +14854,7 @@
           "agents"
         ],
         "title": "TaskInfo",
-        "description": "Uma tarefa e o que muda com ela.\n\nAttributes:\n    task_type: A tarefa.\n    label: O nome a mostrar.\n    paradigm: O paradigma (supervisionada, não supervisionada, reinforcement learning).\n    requires_target: Se precisa de uma coluna-alvo.\n    learns_from_data: Se aprende com um dataset (o controlo aprende num ambiente).\n    primary_metric: A métrica que resume um run desta tarefa, no \"último resultado\" e no\n        histórico (o nome no registo de métricas).\n    suggested_model: O primeiro modelo a experimentar, a referência dos outros.\n    agents: Se os agentes do modo automático trabalham nesta tarefa."
+        "description": "Uma tarefa e o que muda com ela.\n\nAttributes:\n    task_type: A tarefa.\n    label: O nome a mostrar.\n    paradigm: O paradigma (supervisionada, não supervisionada, reinforcement learning).\n    problem: O problema que resolve (as duas classificações são o mesmo problema).\n    requires_target: Se precisa de uma coluna-alvo.\n    learns_from_data: Se aprende com um dataset (o controlo aprende num ambiente).\n    primary_metric: A métrica que resume um run desta tarefa, no \"último resultado\" e no\n        histórico (o nome no registo de métricas).\n    suggested_model: O primeiro modelo a experimentar, a referência dos outros.\n    agents: Se os agentes do modo automático trabalham nesta tarefa."
       },
       "TaskOptions": {
         "properties": {
@@ -14255,7 +14961,7 @@
           "notices"
         ],
         "title": "TaskSuggestion",
-        "description": "O tipo de tarefa sugerido para um alvo e as alternativas permitidas.\n\nAttributes:\n    target: A coluna-alvo, ou ``None`` para aprendizagem não supervisionada.\n    task_type: O tipo sugerido, ou ``None`` se o alvo não servir para nenhum.\n    allowed: Os tipos que o utilizador pode escolher, com o sugerido em primeiro.\n    reason: Porque se sugere este tipo, em português.\n    n_classes: Número de classes, nas tarefas de classificação.\n    notices: Avisos sobre o alvo; um erro impede usá-lo."
+        "description": "O tipo de tarefa sugerido para um alvo e as alternativas permitidas.\n\nAttributes:\n    target: A coluna-alvo, ou ``None`` para aprendizagem não supervisionada.\n    task_type: O tipo sugerido, ou ``None`` se o alvo não servir para nenhum.\n    allowed: Os tipos que o utilizador pode escolher, com o sugerido em primeiro.\n    reason: Porque se sugere este tipo, em inglês.\n    n_classes: Número de classes, nas tarefas de classificação.\n    notices: Avisos sobre o alvo; um erro impede usá-lo."
       },
       "TaskType": {
         "type": "string",
@@ -14295,6 +15001,127 @@
         ],
         "title": "Thought",
         "description": "O agente de IA a pensar, agora: o raciocínio até aqui, que vai crescendo aos bocados.\n\nAttributes:\n    author: Quem pensa.\n    candidate: O número que o candidato proposto vai ter.\n    text: O raciocínio até aqui."
+      },
+      "ThresholdDemo": {
+        "properties": {
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "thresholds": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Thresholds"
+          },
+          "precision": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Precision"
+          },
+          "recall": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Recall"
+          },
+          "f1": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "F1"
+          },
+          "accuracy": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Accuracy"
+          },
+          "baseline_accuracy": {
+            "type": "number",
+            "title": "Baseline Accuracy"
+          },
+          "positive_share": {
+            "type": "number",
+            "title": "Positive Share"
+          },
+          "class_labels": {
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Class Labels"
+          },
+          "confusion": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Confusion"
+          },
+          "negatives": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Negatives"
+          },
+          "positives": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Positives"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "threshold",
+          "thresholds",
+          "precision",
+          "recall",
+          "f1",
+          "accuracy",
+          "baseline_accuracy",
+          "positive_share",
+          "class_labels",
+          "confusion",
+          "negatives",
+          "positives",
+          "notices"
+        ],
+        "title": "ThresholdDemo",
+        "description": "As métricas para cada limiar, a matriz de confusão do escolhido e as probabilidades.\n\nAttributes:\n    threshold: O limiar escolhido.\n    thresholds: Os limiares comparados (com o escolhido).\n    precision: Dos que o modelo marca como positivos, a parte que o é (``None`` quando não\n        marca nenhum: não há de onde tirar a parte).\n    recall: Dos positivos, a parte que o modelo encontra.\n    f1: A média harmónica das duas.\n    accuracy: A parte das linhas certas.\n    baseline_accuracy: A exatidão de responder sempre \"negativo\" (a classe maior).\n    positive_share: A parte de positivos no teste.\n    class_labels: O nome de cada classe (negativa e positiva).\n    confusion: A matriz de confusão do limiar escolhido; as linhas são a classe real e as\n        colunas a prevista, pela ordem de ``class_labels``.\n    negatives: A probabilidade de \"positivo\" que o modelo dá a cada linha negativa do teste.\n    positives: A mesma probabilidade, para cada linha positiva do teste.\n    notices: A leitura do limiar escolhido."
       },
       "TrainingAnimation": {
         "properties": {
@@ -14390,6 +15217,33 @@
         ],
         "title": "TrainingAnimation",
         "description": "Tudo o que é preciso para animar o treino.\n\nAttributes:\n    dimensions: 2 (campo no plano) ou 1 (curva ao longo de uma feature).\n    value_kind: O que os valores do campo são.\n    value_label: O nome a mostrar para os valores.\n    xs: A grelha no eixo horizontal.\n    ys: A grelha no eixo vertical (vazio em 1D).\n    axis_labels: O nome de cada eixo.\n    class_labels: O nome das classes dos pontos (do alvo ou da referência).\n    frames: Um campo por snapshot, por ordem de passo.\n    points: Os pontos de treino.\n    field_labels: Quando o campo são categorias, o nome de cada valor (o valor ``k`` é\n        ``field_labels[k]``): as classes, ou os grupos do clustering.\n    noise: Se a última categoria do campo é o ruído (pontos sem grupo).\n    how_to_read: Como se lê o desenho, numa ou duas frases (a interface mostra-o por\n        baixo dele)."
+      },
+      "TrainingStory": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "headline": {
+            "type": "string",
+            "title": "Headline"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/StoryChapter"
+            },
+            "type": "array",
+            "title": "Chapters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "headline",
+          "chapters"
+        ],
+        "title": "TrainingStory",
+        "description": "O que aconteceu no treino de um run, do princípio ao fim.\n\nAttributes:\n    run_id: O run.\n    headline: O resumo, numa frase.\n    chapters: Os capítulos, pela ordem em que se leem."
       },
       "TrainingUpdate": {
         "properties": {

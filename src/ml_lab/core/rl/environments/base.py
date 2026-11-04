@@ -60,17 +60,17 @@ class CellKind(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface, em inglês."""
         return _CELL_LABELS[self]
 
 
 _CELL_LABELS: Final[Mapping[CellKind, str]] = MappingProxyType(
     {
-        CellKind.EMPTY: "Livre",
-        CellKind.WALL: "Parede",
-        CellKind.START: "Partida",
-        CellKind.GOAL: "Objetivo",
-        CellKind.TRAP: "Armadilha",
+        CellKind.EMPTY: "Empty",
+        CellKind.WALL: "Wall",
+        CellKind.START: "Start",
+        CellKind.GOAL: "Goal",
+        CellKind.TRAP: "Trap",
     }
 )
 
@@ -135,8 +135,8 @@ class Environment[P: Hyperparameters](ABC):
         chosen = parameters if parameters is not None else expected()
         if not isinstance(chosen, expected):
             raise InvalidParameterError(
-                f"'{self.info.name}' recebe parâmetros do tipo {expected.__name__}, "
-                f"não {type(chosen).__name__}."
+                f"'{self.info.name}' takes parameters of type {expected.__name__}, "
+                f"not {type(chosen).__name__}."
             )
         self.parameters = cast("P", chosen)
 

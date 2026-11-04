@@ -32,24 +32,24 @@ def _counts(inputs: MetricInputs) -> tuple[int, int, int]:
 def _rate_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     flags = np.asarray(inputs.predicted)
     return (
-        MetricTerm(r"n_{\text{marcados}}", "Pontos marcados", float(np.sum(flags == 1))),
-        MetricTerm("n", "Pontos avaliados", float(len(flags))),
+        MetricTerm(r"n_{\text{flagged}}", "Points flagged", float(np.sum(flags == 1))),
+        MetricTerm("n", "Points evaluated", float(len(flags))),
     )
 
 
 def _precision_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     true_positives, false_positives, _ = _counts(inputs)
     return (
-        MetricTerm(r"\mathrm{VP}", "Anomalias verdadeiras marcadas", true_positives),
-        MetricTerm(r"\mathrm{FP}", "Pontos normais marcados", false_positives),
+        MetricTerm(r"\mathrm{TP}", "True anomalies flagged", true_positives),
+        MetricTerm(r"\mathrm{FP}", "Normal points flagged", false_positives),
     )
 
 
 def _recall_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     true_positives, _, false_negatives = _counts(inputs)
     return (
-        MetricTerm(r"\mathrm{VP}", "Anomalias verdadeiras marcadas", true_positives),
-        MetricTerm(r"\mathrm{FN}", "Anomalias por marcar", false_negatives),
+        MetricTerm(r"\mathrm{TP}", "True anomalies flagged", true_positives),
+        MetricTerm(r"\mathrm{FN}", "Anomalies left unflagged", false_negatives),
     )
 
 
@@ -58,7 +58,7 @@ def _recall_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
 
 @metric(
     "anomaly_rate",
-    display_name="Anomalias marcadas",
+    display_name="Anomalies flagged",
     task_types=ANOMALY,
     higher_is_better=None,
     needs=("y_pred",),
@@ -73,7 +73,7 @@ def anomaly_rate(inputs: MetricInputs) -> float:
 
 @metric(
     "anomaly_precision",
-    display_name="Precisão das anomalias",
+    display_name="Anomaly precision",
     task_types=ANOMALY,
     higher_is_better=True,
     as_percent=True,
@@ -89,7 +89,7 @@ def anomaly_precision(inputs: MetricInputs) -> float:
 
 @metric(
     "anomaly_recall",
-    display_name="Recall das anomalias",
+    display_name="Anomaly recall",
     task_types=ANOMALY,
     higher_is_better=True,
     as_percent=True,
@@ -105,7 +105,7 @@ def anomaly_recall(inputs: MetricInputs) -> float:
 
 @metric(
     "anomaly_roc_auc",
-    display_name="ROC AUC da pontuação",
+    display_name="Score ROC AUC",
     task_types=ANOMALY,
     higher_is_better=True,
     needs=("y_true", "scores"),

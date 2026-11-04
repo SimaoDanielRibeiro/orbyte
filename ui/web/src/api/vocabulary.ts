@@ -25,6 +25,7 @@ import type {
   Paradigm,
   ParticipantKind,
   Partition,
+  Problem,
   ScalingMethod,
   SearchPhase,
   SplitStrategy,
@@ -53,6 +54,7 @@ export interface VocabularyKinds {
   Paradigm: Paradigm;
   ParticipantKind: ParticipantKind;
   Partition: Partition;
+  Problem: Problem;
   ScalingMethod: ScalingMethod;
   SearchPhase: SearchPhase;
   SplitStrategy: SplitStrategy;

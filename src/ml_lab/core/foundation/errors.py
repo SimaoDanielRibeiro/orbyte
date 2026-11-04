@@ -1,7 +1,8 @@
-"""Exceções do domínio do ML Lab.
+"""Exceções do domínio do Orbyte.
 
 Todas herdam de ``MLLabError``, por isso ``except MLLabError`` apanha qualquer erro
-do projeto. As mensagens explicam o que aconteceu e o que fazer a seguir.
+do projeto. As mensagens, em inglês como todo o site (ADR 0043), explicam o que aconteceu e
+o que fazer a seguir.
 """
 
 import difflib
@@ -9,7 +10,7 @@ from collections.abc import Iterable
 
 
 class MLLabError(Exception):
-    """Base de todas as exceções do ML Lab."""
+    """Base de todas as exceções do Orbyte."""
 
 
 class ConfigurationError(MLLabError):
@@ -40,8 +41,8 @@ class DuplicateComponentError(RegistryError):
         self.registry = registry
         self.name = name
         super().__init__(
-            f"Já existe um componente chamado '{name}' no registo '{registry}'. "
-            "Escolhe outro nome ou remove o registo repetido."
+            f"There's already a component called '{name}' in the '{registry}' registry. "
+            "Choose another name or remove the repeated registration."
         )
 
 
@@ -63,19 +64,17 @@ class ComponentNotFoundError(RegistryError, LookupError):
         super().__init__(self._build_message())
 
     def _build_message(self) -> str:
-        message = (
-            f"Não existe nenhum componente chamado '{self.name}' no registo '{self.registry}'."
-        )
+        message = f"There's no component called '{self.name}' in the '{self.registry}' registry."
         if not self.available:
             return (
-                f"{message} O registo está vazio: os componentes registam-se quando o seu "
-                "módulo é importado, por isso confirma que o ficheiro existe e usa o decorador "
-                "register."
+                f"{message} The registry is empty: components register themselves when their "
+                "module is imported, so check that the file exists and uses the register "
+                "decorator."
             )
         close = difflib.get_close_matches(self.name, self.available, n=1)
         if close:
-            message += f" Querias dizer '{close[0]}'?"
-        return f"{message} Disponíveis: {', '.join(self.available)}."
+            message += f" Did you mean '{close[0]}'?"
+        return f"{message} Available: {', '.join(self.available)}."
 
 
 class NotFittedError(MLLabError):
@@ -100,8 +99,7 @@ class DatasetNotFoundError(MLLabError, LookupError):
     def __init__(self, dataset_id: str) -> None:
         self.dataset_id = dataset_id
         super().__init__(
-            f"Não há nenhum dataset carregado com o identificador '{dataset_id}': carrega-o "
-            "primeiro no ecrã Dados."
+            f"There's no loaded dataset with the identifier '{dataset_id}': load it first in Data."
         )
 
 
@@ -114,7 +112,7 @@ class DataValidationError(DataError):
 
     def __init__(self, problems: Iterable[str]) -> None:
         self.problems = tuple(problems)
-        super().__init__(" ".join(self.problems) or "Os dados não passaram a validação.")
+        super().__init__(" ".join(self.problems) or "The data didn't pass validation.")
 
 
 class ColumnNotFoundError(DataError, LookupError):
@@ -128,12 +126,12 @@ class ColumnNotFoundError(DataError, LookupError):
     def __init__(self, column: str, available: Iterable[str]) -> None:
         self.column = column
         self.available = tuple(available)
-        message = f"Não existe nenhuma coluna chamada '{column}'."
+        message = f"There's no column called '{column}'."
         close = difflib.get_close_matches(column, self.available, n=1)
         if close:
-            message += f" Querias dizer '{close[0]}'?"
+            message += f" Did you mean '{close[0]}'?"
         if self.available:
-            message += f" Colunas: {', '.join(self.available)}."
+            message += f" Columns: {', '.join(self.available)}."
         super().__init__(message)
 
 
@@ -152,7 +150,7 @@ class HyperparameterError(ModelError, ValueError):
     def __init__(self, model: str, problems: Iterable[str]) -> None:
         self.model = model
         self.problems = tuple(problems)
-        super().__init__(f"Hiperparâmetros inválidos para '{model}': {' '.join(self.problems)}")
+        super().__init__(f"Invalid hyperparameters for '{model}': {' '.join(self.problems)}")
 
 
 class CapabilityError(ModelError):
@@ -169,8 +167,8 @@ class RunNotInMemoryError(ModelError, LookupError):
     def __init__(self, run_id: str) -> None:
         self.run_id = run_id
         super().__init__(
-            f"O run {run_id} já não está em memória (só ficam os últimos). Se o guardaste, "
-            "abre-o no ecrã Histórico, que o modelo volta com ele; se não, treina-o outra vez."
+            f"Run {run_id} is no longer in memory (only the latest ones stay). If you saved it, "
+            "open it in History, and the model comes back with it; if not, train it again."
         )
 
 
@@ -184,8 +182,8 @@ class JobNotFoundError(MLLabError, LookupError):
     def __init__(self, run_id: str) -> None:
         self.run_id = run_id
         super().__init__(
-            f"Não há nenhum treino '{run_id}' nesta sessão: os mais antigos saem da memória, e "
-            "um servidor que reinicia começa sem nenhum."
+            f"There's no training '{run_id}' in this session: the oldest ones leave the memory, "
+            "and a server that restarts starts with none."
         )
 
 
@@ -199,9 +197,9 @@ class SearchNotFoundError(MLLabError, LookupError):
     def __init__(self, search_id: str) -> None:
         self.search_id = search_id
         super().__init__(
-            f"Não há nenhuma procura '{search_id}' nesta sessão: só as últimas ficam em memória, "
-            "e um servidor que reinicia começa sem nenhuma. O vencedor de cada procura está no "
-            "histórico (ecrã Histórico)."
+            f"There's no search '{search_id}' in this session: only the latest ones stay in "
+            "memory, and a server that restarts starts with none. Each search's winner is in "
+            "the history (History)."
         )
 
 
@@ -217,8 +215,8 @@ class CandidateNotFoundError(MLLabError, LookupError):
     def __init__(self, search_id: str, number: int, count: int) -> None:
         self.search_id = search_id
         self.number = number
-        where = f"tem os candidatos de 1 a {count}" if count else "não mediu nenhum candidato"
-        super().__init__(f"A procura '{search_id}' não tem o candidato {number}: {where}.")
+        where = f"it has candidates 1 to {count}" if count else "it measured no candidate"
+        super().__init__(f"The search '{search_id}' has no candidate {number}: {where}.")
 
 
 class TrainingStateError(MLLabError):
@@ -235,8 +233,8 @@ class TrainingInProgressError(TrainingStateError):
     def __init__(self, run_id: str) -> None:
         self.run_id = run_id
         super().__init__(
-            f"O run '{run_id}' ainda está a treinar: o resultado só existe quando o treino "
-            "terminar (o estado do treino diz quando)."
+            f"Run '{run_id}' is still training: the result only exists when the training "
+            "finishes (the training's state says when)."
         )
 
 
@@ -251,7 +249,7 @@ class TrainingFailedError(TrainingStateError):
     def __init__(self, run_id: str, reason: str) -> None:
         self.run_id = run_id
         self.reason = reason
-        super().__init__(f"O treino do run '{run_id}' falhou: {reason}")
+        super().__init__(f"The training of run '{run_id}' failed: {reason}")
 
 
 class TrackingError(MLLabError):
@@ -268,12 +266,12 @@ class RunNotFoundError(TrackingError, LookupError):
     def __init__(self, run_id: str) -> None:
         self.run_id = run_id
         super().__init__(
-            f"Não há nenhum run '{run_id}' no registo de experiências: pode ter sido apagado."
+            f"There's no run '{run_id}' in the experiment log: it may have been deleted."
         )
 
 
 class PackageError(DataError):
-    """Um ficheiro que não é um pacote do ML Lab, ou que está estragado (ADR 0039)."""
+    """Um ficheiro que não é um pacote do Orbyte, ou que está estragado (ADR 0039)."""
 
 
 class PackageNotFoundError(TrackingError, LookupError):
@@ -286,7 +284,7 @@ class PackageNotFoundError(TrackingError, LookupError):
     def __init__(self, package_id: str) -> None:
         self.package_id = package_id
         super().__init__(
-            f"Não há nenhum pacote '{package_id}' na biblioteca: pode ter sido apagado."
+            f"There's no package '{package_id}' in the library: it may have been deleted."
         )
 
 

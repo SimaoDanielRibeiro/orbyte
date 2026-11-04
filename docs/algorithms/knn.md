@@ -1,57 +1,58 @@
-# K vizinhos mais próximos (KNN)
+# K-nearest neighbours (KNN)
 
-## Intuição
+## Intuition
 
-"Diz-me com quem andas, dir-te-ei quem és." O KNN não aprende pesos nem regras: guarda os
-exemplos de treino e, para classificar um ponto novo, procura os k exemplos mais parecidos
-com ele e dá a classe que aparece mais vezes entre eles.
+"Tell me who your friends are, and I'll tell you who you are." KNN learns no weights and no
+rules: it keeps the training examples and, to classify a new point, looks for the k examples
+most similar to it and gives the class that shows up most often among them.
 
-É o exemplo clássico de um modelo **baseado em instâncias**: o treino é instantâneo (só
-guardar), e o trabalho todo fica para a previsão.
+It's the classic example of an **instance-based** model: training is instant (it just
+stores), and all the work is left for the prediction.
 
-## Matemática essencial
+## Essential maths
 
-Para um ponto $x$:
+For a point $x$:
 
-1. calcula a distância a cada exemplo de treino. A **euclidiana** é a linha reta,
-   $d(x, z) = \sqrt{\sum_j (x_j - z_j)^2}$; a de **Manhattan** é a soma das diferenças,
-   $d(x, z) = \sum_j \lvert x_j - z_j \rvert$, como andar por quarteirões;
-2. fica com os $k$ exemplos de menor distância;
-3. conta os votos de cada classe. Com pesos uniformes, cada vizinho vale 1; com pesos por
-   distância, vale $1/d$ (um vizinho à distância zero leva o voto todo).
+1. compute the distance to each training example. The **Euclidean** distance is the straight
+   line, $d(x, z) = \sqrt{\sum_j (x_j - z_j)^2}$; the **Manhattan** distance is the sum of the
+   differences, $d(x, z) = \sum_j \lvert x_j - z_j \rvert$, like walking around city blocks;
+2. keep the $k$ examples with the smallest distance;
+3. count the votes for each class. With uniform weights, each neighbour is worth 1; with
+   distance weights, it's worth $1/d$ (a neighbour at distance zero takes the whole vote).
 
-A "probabilidade" de cada classe é a sua fração dos votos. A versão didática do laboratório
-(`knn_numpy`) faz estas três contas em NumPy, aos blocos de linhas, para não encher a
-memória.
+The "probability" of each class is its share of the votes. The lab's teaching version
+(`knn_numpy`) does these three steps in NumPy, in blocks of rows, so it doesn't fill the
+memory.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `n_neighbors` | Quantos vizinhos votam (o $k$). Poucos: fronteira irregular, que segue o ruído; muitos: fronteira lisa, que pode apagar detalhes | 5 |
-| `weights` | `uniform` (todos os votos valem o mesmo) ou `distance` (os mais próximos valem mais) | `uniform` |
-| `metric` | A distância: `euclidean` (linha reta) ou `manhattan` (soma das diferenças) | `euclidean` |
+| `n_neighbors` | How many neighbours vote (the $k$). Few: a jagged boundary that follows the noise; many: a smooth boundary that can wipe out details | 5 |
+| `weights` | `uniform` (every vote counts the same) or `distance` (the closest count more) | `uniform` |
+| `metric` | The distance: `euclidean` (straight line) or `manhattan` (sum of the differences) | `euclidean` |
 
-## Quando usar
+## When to use
 
-- Como referência simples e honesta, sobretudo com poucas features e muitos exemplos.
-- Quando a fronteira entre as classes é irregular e não se sabe que forma tem.
+- As a simple, honest baseline, especially with few features and many examples.
+- When the boundary between the classes is irregular and you don't know what shape it has.
 
-## Armadilhas
+## Pitfalls
 
-- **Escala das features:** a distância mistura todas as features. Uma feature em milhares
-  (o rendimento) esmaga uma em unidades (a idade). Padroniza sempre na preparação.
-- **k pequeno decora o treino:** com $k = 1$, cada ponto de treino acerta em si próprio
-  (100% no treino) e cria uma "ilha" à sua volta (overfitting). O ecrã Laboratório mostra o
-  efeito de k.
-- **Muitas features:** em muitas dimensões, todos os pontos ficam mais ou menos à mesma
-  distância uns dos outros (a "maldição da dimensionalidade"), e "o mais próximo" deixa de
-  querer dizer "o mais parecido".
-- **Previsões lentas:** cada previsão compara o ponto com todos os exemplos de treino.
-- **Empates:** com k par, duas classes podem empatar. Fica a de menor número.
+- **Feature scale:** the distance mixes all the features. A feature in the thousands (income)
+  crushes one in units (age). Always standardise in the preparation.
+- **A small k memorises the training data:** with $k = 1$, each training point gets itself
+  right (100% on the training data) and creates an "island" around it (overfitting). The Lab
+  screen shows the effect of k.
+- **Many features:** in many dimensions, all points end up at roughly the same distance from
+  each other (the "curse of dimensionality"), and "the closest" stops meaning "the most
+  similar".
+- **Slow predictions:** each prediction compares the point with every training example.
+- **Ties:** with an even k, two classes can tie. The one with the lower number wins.
 
-## O que observar no treino
+## What to watch in training
 
-O KNN treina de uma vez (só guarda os dados). No ecrã **Treinar e avaliar** vês a fronteira final: com k
-pequeno aparecem ilhas à volta de pontos isolados; com k grande, a fronteira fica lisa. Compara
-`knn` com `knn_numpy` nos mesmos dados: as previsões são iguais.
+KNN trains in one go (it only stores the data). On the **Train & evaluate** screen you see the
+final boundary: with a small k, islands appear around isolated points; with a large k, the
+boundary is smooth. Compare `knn` with `knn_numpy` on the same data: the predictions are the
+same.

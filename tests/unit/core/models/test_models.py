@@ -88,9 +88,9 @@ def test_seeds_are_validated() -> None:
 @pytest.mark.parametrize(
     ("X", "y", "message"),
     [
-        (np.zeros(4), None, "matriz"),
-        (np.zeros((0, 2)), None, "matriz"),
-        (np.zeros((4, 2)), np.zeros(3), "um valor por linha"),
+        (np.zeros(4), None, "a matrix"),
+        (np.zeros((0, 2)), None, "a matrix"),
+        (np.zeros((4, 2)), np.zeros(3), "one value per row"),
     ],
 )
 def test_bad_shapes_are_explained(
@@ -113,7 +113,7 @@ def test_models_without_probabilities_say_so() -> None:
     X, y = separable()
     model = Sign().fit(X, y)
 
-    with pytest.raises(CapabilityError, match="não dá probabilidades"):
+    with pytest.raises(CapabilityError, match="doesn't give probabilities"):
         model.predict_proba(X)
     assert model.classes() is None
     assert model.state() == {}
@@ -175,18 +175,18 @@ def test_library_warnings_become_didactic_notices() -> None:
     model = LogisticRegression(LogisticRegressionParams(max_iter=10)).fit(X, y)
 
     assert [notice.code for notice in model.notices] == ["convergence"]
-    assert "escala as features" in model.notices[0].message
+    assert "scale the features" in model.notices[0].message
     model.fit(*separable())
     assert model.notices == ()  # cada treino começa sem avisos
 
 
-def test_invalid_hyperparameters_are_explained_in_portuguese() -> None:
+def test_invalid_hyperparameters_are_explained_in_plain_words() -> None:
     with pytest.raises(HyperparameterError) as error:
         LogisticRegressionParams.parse(
             {"C": 0, "class_weight": "auto"}, model="logistic_regression"
         )
 
     assert error.value.problems == (
-        "C (inverso da regularização) tem de ser pelo menos 0,0001.",
-        "Peso das classes tem de ser um destes: 'none' or 'balanced'.",
+        "C (inverse of regularisation) must be at least 0.0001.",
+        "Class weights must be one of: 'none' or 'balanced'.",
     )

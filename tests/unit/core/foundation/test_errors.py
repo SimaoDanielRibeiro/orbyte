@@ -53,15 +53,15 @@ def test_domain_errors_are_also_standard_python_errors() -> None:
 def test_component_not_found_suggests_the_closest_name() -> None:
     error = ComponentNotFoundError("models", "knm", ["knn", "kmeans"])
 
-    assert "Querias dizer 'knn'?" in str(error)
-    assert "Disponíveis: kmeans, knn." in str(error)
+    assert "Did you mean 'knn'?" in str(error)
+    assert "Available: kmeans, knn." in str(error)
     assert error.available == ("kmeans", "knn")
 
 
 def test_component_not_found_explains_an_empty_registry() -> None:
     error = ComponentNotFoundError("models", "knn", [])
 
-    assert "O registo está vazio" in str(error)
+    assert "The registry is empty" in str(error)
 
 
 def test_duplicate_component_names_the_conflict() -> None:
@@ -74,7 +74,7 @@ def test_duplicate_component_names_the_conflict() -> None:
 def test_column_not_found_suggests_the_closest_column() -> None:
     error = ColumnNotFoundError("Sruvived", ["Survived", "Age"])
 
-    assert "Querias dizer 'Survived'?" in str(error)
+    assert "Did you mean 'Survived'?" in str(error)
     assert error.column == "Sruvived"
     assert error.available == ("Survived", "Age")
 
@@ -87,10 +87,10 @@ def test_data_validation_error_keeps_every_problem() -> None:
 
 
 def test_hyperparameter_error_lists_every_problem() -> None:
-    error = HyperparameterError("knn", ["k tem de ser pelo menos 1.", "Falta o valor de p."])
+    error = HyperparameterError("knn", ["k must be at least 1.", "p is missing a value."])
 
     assert error.model == "knn"
-    assert error.problems == ("k tem de ser pelo menos 1.", "Falta o valor de p.")
+    assert error.problems == ("k must be at least 1.", "p is missing a value.")
     assert str(error) == (
-        "Hiperparâmetros inválidos para 'knn': k tem de ser pelo menos 1. Falta o valor de p."
+        "Invalid hyperparameters for 'knn': k must be at least 1. p is missing a value."
     )

@@ -1,65 +1,65 @@
-# Máquinas de vetores de suporte (SVM e SVR)
+# Support vector machines (SVM and SVR)
 
-## Intuição
+## Intuition
 
-Entre todas as retas que separam duas classes, o SVM escolhe a que fica **mais longe das
-duas**: a do meio da faixa mais larga sem pontos (a **margem**). Uma fronteira com folga
-generaliza melhor do que uma encostada aos pontos de uma das classes.
+Of all the lines that separate two classes, the SVM picks the one that stays **furthest from
+both**: the one in the middle of the widest empty strip (the **margin**). A boundary with room to
+spare generalises better than one pressed against the points of one of the classes.
 
-Só os pontos na borda da margem (ou do lado errado) decidem onde fica a fronteira: são os
-**vetores de suporte**. Os outros podiam desaparecer sem mudar nada.
+Only the points on the edge of the margin (or on the wrong side) decide where the boundary goes:
+they're the **support vectors**. The others could disappear without changing anything.
 
-Com um **kernel**, a fronteira pode curvar-se: é como se os pontos fossem levados para um
-espaço com mais dimensões, onde uma reta os separa, sem nunca calcular essas dimensões.
+With a **kernel**, the boundary can curve: it's as if the points were taken to a space with more
+dimensions, where a straight line separates them, without ever computing those dimensions.
 
-## Matemática essencial
+## Essential maths
 
-O SVM procura $w$ e $b$ que minimizam
+The SVM looks for the $w$ and $b$ that minimise
 
 $$\frac{1}{2}\lVert w \rVert^2 + C \sum_i \max\big(0,\ 1 - y_i (w \cdot x_i + b)\big)$$
 
-O primeiro termo alarga a margem (que tem largura $2/\lVert w \rVert$); o segundo castiga os
-pontos dentro da margem ou do lado errado (a *hinge loss*), pesado por $C$.
+The first term widens the margin (whose width is $2/\lVert w \rVert$); the second punishes the
+points inside the margin or on the wrong side (the *hinge loss*), weighted by $C$.
 
-O **truque do kernel** troca cada produto $x \cdot z$ por uma função $K(x, z)$. O kernel RBF,
-$K(x, z) = e^{-\gamma \lVert x - z \rVert^2}$, mede a semelhança entre dois pontos: cada
-vetor de suporte cria uma "colina" à sua volta, com largura $1/\sqrt{\gamma}$.
+The **kernel trick** swaps each product $x \cdot z$ for a function $K(x, z)$. The RBF kernel,
+$K(x, z) = e^{-\gamma \lVert x - z \rVert^2}$, measures how similar two points are: each support
+vector creates a "hill" around it, with a width of $1/\sqrt{\gamma}$.
 
-O SVM dá distâncias à fronteira, não probabilidades. Para as ter, o laboratório **calibra**
-as distâncias com uma regressão logística ajustada por validação cruzada (o método de Platt).
+The SVM gives distances to the boundary, not probabilities. To get them, the lab **calibrates**
+the distances with a logistic regression fitted by cross-validation (Platt's method).
 
-O **SVR** aplica a mesma ideia à regressão: procura uma função tão plana quanto possível que
-passe a menos de $\varepsilon$ de cada ponto. Os erros dentro desse "tubo" não contam.
+**SVR** applies the same idea to regression: it looks for a function as flat as possible that
+passes within $\varepsilon$ of each point. The errors inside that "tube" don't count.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `C` | Quanto custa cada ponto do lado errado da margem. Grande: margem estreita, que tenta acertar em tudo (overfitting); pequeno: margem larga e tolerante | 1,0 |
-| `kernel` | A forma da fronteira: `linear`, `rbf` (curvas à volta dos pontos) ou `poly` (polinómio de grau 3) | `rbf` |
-| `gamma` | Nos kernels RBF e polinomial, o alcance de cada ponto. Grande: cada ponto cria a sua ilha (overfitting); pequeno: fronteira suave | 0,5 |
-| `epsilon` | No SVR, a largura do tubo onde os erros não contam (na escala do alvo) | 0,1 |
+| `C` | How much each point on the wrong side of the margin costs. Large: a narrow margin that tries to get everything right (overfitting); small: a wide, tolerant margin | 1.0 |
+| `kernel` | The shape of the boundary: `linear`, `rbf` (curves around the points) or `poly` (a polynomial of degree 3) | `rbf` |
+| `gamma` | In the RBF and polynomial kernels, each point's reach. Large: each point makes its own island (overfitting); small: a smooth boundary | 0.5 |
+| `epsilon` | In SVR, the width of the tube where errors don't count (on the target's scale) | 0.1 |
 
-## Quando usar
+## When to use
 
-- Com **dados de tamanho médio** (até umas dezenas de milhares de linhas) e muitas features,
-  incluindo mais features do que linhas.
-- Quando a fronteira é curva, mas suave: o kernel RBF adapta-se bem.
+- With **medium-sized data** (up to a few tens of thousands of rows) and many features, even
+  more features than rows.
+- When the boundary is curved but smooth: the RBF kernel adapts well.
 
-## Armadilhas
+## Pitfalls
 
-- **Escala das features:** a margem e o kernel RBF usam distâncias. Padroniza sempre.
-- **`C` e `gamma` andam juntos:** os dois grandes decoram o treino; os dois pequenos dão um
-  modelo quase constante. Afina-os em conjunto, com validação cruzada.
-- **Lento com muitas linhas:** o treino cresce entre o quadrado e o cubo do número de linhas.
-- **As probabilidades são uma calibração extra:** custam mais um treino por fold e, com
-  poucos dados, podem ser pouco fiáveis.
-- **No SVR, `epsilon` está na escala do alvo:** com um alvo em milhares, 0,1 é praticamente
-  zero.
+- **Feature scale:** the margin and the RBF kernel use distances. Always standardise.
+- **`C` and `gamma` go together:** both large memorise the training data; both small give an
+  almost constant model. Tune them together, with cross-validation.
+- **Slow with many rows:** training grows between the square and the cube of the number of rows.
+- **The probabilities are an extra calibration:** they cost one more training per fold and, with
+  little data, can be unreliable.
+- **In SVR, `epsilon` is on the target's scale:** with a target in the thousands, 0.1 is
+  practically zero.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar**, vê como a fronteira muda com o `gamma`:
-pequeno dá uma curva suave, grande dá ilhas à volta dos pontos. Em **O que aprendeu** está o
-número de vetores de suporte. Muitos vetores (perto do número de linhas)
-indicam uma margem que quase não separa nada.
+It trains in one go. On the **Train & evaluate** screen, see how the boundary changes with
+`gamma`: small gives a smooth curve, large gives islands around the points. **What it learned**
+shows the number of support vectors. Many vectors (close to the number of rows) point to a
+margin that barely separates anything.

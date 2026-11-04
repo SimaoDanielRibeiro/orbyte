@@ -24,10 +24,10 @@ class GaussianNBParams(Hyperparameters):
         default=1e-9,
         ge=1e-12,
         le=1.0,
-        title="Suavização da variância",
+        title="Variance smoothing",
         description=(
-            "Uma fração da maior variância somada a todas, para nenhuma ser zero (uma feature "
-            "constante numa classe daria probabilidades de 0 ou 1)."
+            "A fraction of the largest variance added to all of them, so none is zero (a "
+            "constant feature in a class would give probabilities of 0 or 1)."
         ),
         json_schema_extra={"x-scale": "log", "x-search": {"range": [1e-10, 0.1]}},
     )
@@ -39,10 +39,10 @@ class GaussianNB(SklearnModel[GaussianNBParams]):
 
     info = ModelInfo(
         name="gaussian_nb",
-        display_name="Naive Bayes gaussiano",
+        display_name="Gaussian naive Bayes",
         summary=(
-            "Aprende a média e a variância de cada feature em cada classe e escolhe a classe "
-            "mais provável: muito rápido, mesmo com poucos dados."
+            "Learns the mean and the variance of each feature in each class and picks the most "
+            "likely class: very fast, even with little data."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.PROBABILISTIC,

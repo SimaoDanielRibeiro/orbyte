@@ -66,11 +66,11 @@ class ArtifactStore:
         """
         path = self._folder(run_id) / MODEL_FILE
         if not path.is_file():
-            raise TrackingError(f"O run '{run_id}' não tem o modelo guardado.")
+            raise TrackingError(f"Run '{run_id}' has no saved model.")
         try:
             return joblib.load(path)
         except Exception as error:  # um pickle de outra versão do código falha de muitas formas
-            raise TrackingError(f"O modelo do run '{run_id}' não abriu: {error}") from error
+            raise TrackingError(f"The model of run '{run_id}' didn't open: {error}") from error
 
     def document(self, run_id: str, name: str) -> Any | None:
         """Um documento de um run guardado, em valores de JSON (``None`` se não o tiver)."""
@@ -85,12 +85,12 @@ class ArtifactStore:
         # O identificador vira o nome de uma pasta: um nome simples garante que nunca se
         # escreve (nem apaga) fora da pasta dos artefactos.
         if not _SAFE_NAME.fullmatch(run_id):
-            raise TrackingError(f"Identificador de run inválido: '{run_id}'.")
+            raise TrackingError(f"Invalid run id: '{run_id}'.")
         return self.directory / run_id
 
 
 def _document_file(name: str) -> str:
     # Pela mesma razão, o nome de um documento também tem de ser simples.
     if not _SAFE_NAME.fullmatch(name):
-        raise TrackingError(f"Nome de documento inválido: '{name}'.")
+        raise TrackingError(f"Invalid document name: '{name}'.")
     return f"{name}.json"

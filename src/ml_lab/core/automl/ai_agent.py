@@ -40,17 +40,18 @@ type Finalist = tuple[ModelAgent, type[LabModel[Any]]]
 """Um modelo finalista e o agente da família dele (que sabe o espaço e o que já se experimentou)."""
 
 INSTRUCTIONS: Final = (
-    "És o agente de IA de uma procura de modelos de machine learning, num laboratório para "
-    "aprender. Na tua vez, escolhes o próximo candidato a medir: um dos modelos finalistas e os "
-    "valores dos hiperparâmetros que queres mudar, sempre dentro do espaço de procura de cada "
-    "um. Olha para os resultados que já há: o que melhorou, o que piorou, e a distância entre o "
-    "treino e a validação (uma distância grande quer dizer que o modelo está a decorar o "
-    "treino). Não repitas uma combinação já medida. Não vês o teste e não escolhes o vencedor: "
-    "o coordenador mede a tua proposta com validação cruzada, como as outras. Pensa em "
-    "português de Portugal. Responde só com o JSON pedido; a razão vai em «reason», numa ou "
-    "duas frases, em português de Portugal."
+    "You are the AI agent of a machine learning model search, in a lab for learning. On your "
+    "turn, you choose the next candidate to measure: one of the finalist models and the values "
+    "of the hyperparameters you want to change, always inside each one's search space. Look at "
+    "the results there already are: what improved, what got worse, and the gap between the "
+    "training and the validation scores (a big gap means the model is memorising the training "
+    "data). Don't repeat a combination that was already measured. You don't see the test data "
+    "and you don't pick the winner: the coordinator measures your proposal with "
+    "cross-validation, like the others. Think in English. Answer only with the requested JSON; "
+    "the reason goes in “reason”, in one or two sentences, in English."
 )
-"""As instruções do agente de IA (a mensagem de sistema): o papel, as regras e o formato."""
+"""As instruções do agente de IA (a mensagem de sistema): o papel, as regras e o formato. Em
+inglês, como o site (ADR 0043): o raciocínio aparece na conversa, ao vivo."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,7 +107,7 @@ class AiAgent:
 
     @property
     def name(self) -> str:
-        """O nome a mostrar ("Agente · IA")."""
+        """O nome a mostrar ("Agent · AI")."""
         return AI_AGENT
 
     @property
@@ -160,23 +161,24 @@ def briefing(
     Os números vão como em JSON (com ponto), porque é assim que o modelo os tem de responder.
     """
     lines = [
-        f"Tarefa: {task_type.label.lower()}. Métrica a otimizar: {objective.label} "
-        f"({objective.direction}), medida com validação cruzada só no treino.",
+        f"Task: {task_type.label.lower()}. Metric to optimise: {objective.label} "
+        f"({objective.direction}), measured with cross-validation on the training data only.",
         "",
-        "Os finalistas, e o que se pode mudar em cada um:",
+        "The finalists, and what can be changed in each one:",
     ]
     for agent, model in finalists:
         defaults = agent.defaults(model)
         lines.append(f"- {model.info.name} ({model.info.display_name}):")
         for dimension in agent.space(model).dimensions:
             default = json.dumps(defaults.get(dimension.name))
-            lines.append(f"    - {dimension.name}: {_domain(dimension)}; por omissão {default}")
-    lines += ["", "Os candidatos já medidos, pela ordem:"]
-    lines += [_measured(candidate) for candidate in candidates] or ["(nenhum)"]
+            lines.append(f"    - {dimension.name}: {_domain(dimension)}; default {default}")
+    lines += ["", "The candidates measured so far, in order:"]
+    lines += [_measured(candidate) for candidate in candidates] or ["(none)"]
     lines += [
         "",
-        "Propõe o próximo candidato: um dos finalistas, com valores dentro do espaço e uma "
-        "combinação que ainda não se mediu. Em «values», põe só os hiperparâmetros que mudas.",
+        "Propose the next candidate: one of the finalists, with values inside the space and a "
+        "combination that hasn't been measured yet. In “values”, put only the hyperparameters "
+        "you change.",
     ]
     return "\n".join(lines)
 
@@ -221,18 +223,18 @@ def read_answer(
     try:
         answer = json.loads(content)
     except ValueError:
-        return None, "a resposta não é o JSON pedido"
+        return None, "the answer isn't the requested JSON"
     if not isinstance(answer, dict):
-        return None, "a resposta não é um objeto JSON"
+        return None, "the answer isn't a JSON object"
     chosen = answer.get("model")
     entry = next((entry for entry in finalists if entry[1].info.name == chosen), None)
     if entry is None:
         names = ", ".join(model.info.name for _, model in finalists)
-        return None, f"«{chosen}» não é um dos finalistas ({names})"
+        return None, f"“{chosen}” isn't one of the finalists ({names})"
     agent, model = entry
     raw = answer.get("values") or {}
     if not isinstance(raw, dict):
-        return None, "os valores têm de vir num objeto, com o nome de cada hiperparâmetro"
+        return None, "the values must come in an object, with each hyperparameter's name"
     space = agent.space(model)
     values = space.normalized(raw)
     problems = space.problems(values)
@@ -240,27 +242,27 @@ def read_answer(
         return None, "; ".join(problems)
     full = {**agent.defaults(model), **values}
     if agent.has_tried(model, full):
-        return None, f"essa combinação de {model.info.display_name} já foi medida"
-    reason = str(answer.get("reason") or "").strip() or "Não disse porquê."
+        return None, f"that combination of {model.info.display_name} was already measured"
+    reason = str(answer.get("reason") or "").strip() or "It didn't say why."
     return AiProposal(agent, model, full, reason), None
 
 
 def _domain(dimension: Dimension) -> str:
     """O espaço de uma dimensão, para o modelo de linguagem ler."""
     if dimension.values:
-        return f"um destes: {json.dumps(list(dimension.values))}"
+        return f"one of: {json.dumps(list(dimension.values))}"
     low, high = dimension.bounds
     if dimension.integer:
-        return f"inteiro entre {int(low)} e {int(high)}"
-    scale = " (escala logarítmica)" if dimension.log else ""
-    return f"número entre {low:g} e {high:g}{scale}"
+        return f"integer between {int(low)} and {int(high)}"
+    scale = " (logarithmic scale)" if dimension.log else ""
+    return f"number between {low:g} and {high:g}{scale}"
 
 
 def _measured(candidate: Candidate) -> str:
     """Um candidato medido, numa linha: o modelo, o que mudou e o resultado."""
-    changes = json.dumps(candidate.changes) if candidate.changes else "valores por omissão"
+    changes = json.dumps(candidate.changes) if candidate.changes else "default values"
     head = f"#{candidate.number} {candidate.model} {changes}"
     if candidate.failed or candidate.mean is None:
-        return f"{head}: falhou ({candidate.error})"
-    train = "" if candidate.train_mean is None else f", no treino {candidate.train_mean:.4f}"
+        return f"{head}: failed ({candidate.error})"
+    train = "" if candidate.train_mean is None else f", training {candidate.train_mean:.4f}"
     return f"{head}: {candidate.mean:.4f} ± {(candidate.std or 0.0):.4f}{train}"

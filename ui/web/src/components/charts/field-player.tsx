@@ -94,7 +94,11 @@ export function FieldPlayer({
             variant="outline"
             size="icon-sm"
             aria-label={
-              playing ? "Pausar o treino" : atEnd ? "Ver o treino outra vez" : "Reproduzir o treino"
+              playing
+                ? "Pause the training"
+                : atEnd
+                  ? "Watch the training again"
+                  : "Play the training"
             }
             onClick={() => {
               if (playing) {
@@ -110,7 +114,7 @@ export function FieldPlayer({
             {playing ? <Pause /> : atEnd ? <RotateCcw /> : <Play />}
           </Button>
           <Slider
-            aria-label="Fotografia do treino"
+            aria-label="Training snapshot"
             className="flex-1"
             min={0}
             max={last}
@@ -122,7 +126,7 @@ export function FieldPlayer({
             }}
           />
           <span className="min-w-36 text-right font-mono text-xs text-dim tabular-nums">
-            {frame === undefined ? "" : `Passo ${formatCount(frame.step)}`}
+            {frame === undefined ? "" : `Step ${formatCount(frame.step)}`}
             {frame?.loss !== null && frame?.loss !== undefined
               ? `, loss ${formatStatistic(frame.loss)}`
               : ""}

@@ -32,10 +32,10 @@ class SklearnKMeansParams(KMeansParams):
         default=10,
         ge=1,
         le=50,
-        title="Número de partidas",
+        title="Number of starts",
         description=(
-            "Quantas vezes corre o algoritmo com pontos de partida diferentes; fica com o "
-            "resultado de menor inércia."
+            "How many times the algorithm runs from different starting points; it keeps the "
+            "result with the lowest inertia."
         ),
     )
 
@@ -52,8 +52,8 @@ class KMeans(SklearnModel[SklearnKMeansParams]):
         name="kmeans",
         display_name="K-means",
         summary=(
-            "Agrupa os pontos à volta de k centróides, com várias partidas para fugir dos maus "
-            "começos: rápido e o primeiro método de clustering a experimentar."
+            "Groups the points around k centroids, with several starts to escape bad "
+            "beginnings: fast, and the first clustering method to try."
         ),
         task_types=frozenset({TaskType.CLUSTERING}),
         family=ModelFamily.CENTROID,
@@ -80,8 +80,8 @@ class KMeans(SklearnModel[SklearnKMeansParams]):
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if self.hyperparameters.n_clusters > len(X):
             raise ModelError(
-                f"Pediste {self.hyperparameters.n_clusters} grupos, mas o treino só tem "
-                f"{len(X)} linhas."
+                f"You asked for {self.hyperparameters.n_clusters} clusters, but the training "
+                f"data has only {len(X)} rows."
             )
         super()._fit(X, None, context)
 

@@ -29,24 +29,34 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0022](0022-api-fina-por-cima-dos-servicos.md) | A API: rotas finas por cima dos serviços, e o treino acompanhado pelo mesmo pedido | Proposta |
 | [0023](0023-o-processo-pede-para-nao-ser-travado.md) | O processo pede ao Windows para não ser travado | Proposta |
 | [0024](0024-reinforcement-learning-com-os-mesmos-contratos.md) | Reinforcement learning: um paradigma novo, com a mesma maquinaria de treino | Proposta |
-| [0025](0025-agentes-de-automl-deterministas.md) | Agentes de AutoML deterministas, por cima dos serviços | Proposta; mudada pela 0042 |
+| [0025](0025-agentes-de-automl-deterministas.md) | Agentes de AutoML deterministas, por cima dos serviços | Proposta; mudada pela 0042, pela 0049 e pela 0051 |
 | [0026](0026-contrato-com-o-frontend.md) | O contrato com o frontend: tipos exatos, um vocabulário e o OpenAPI guardado | Proposta |
 | [0027](0027-interface-web-com-o-cliente-gerado.md) | A interface web: React, com o cliente gerado do contrato | Proposta |
 | [0028](0028-demonstracoes-dos-modelos-e-formulas-das-metricas.md) | A página de cada modelo e a explicação de cada métrica: demonstrações e fórmulas | Proposta |
 | [0029](0029-sistema-visual-ardosia-e-giz.md) | O sistema visual: ardósia e giz | Substituída por 0032 |
 | [0030](0030-textos-de-leitura-no-backend.md) | Os textos de leitura vivem no backend, e as interfaces pedem-nos pelo nome | Proposta |
 | [0031](0031-retirar-a-interface-streamlit.md) | A interface web é a única: a interface Streamlit sai | Proposta |
-| [0032](0032-sistema-visual-da-referencia.md) | O sistema visual da referência: preto, cinzentos e os dados a cores | Proposta |
+| [0032](0032-sistema-visual-da-referencia.md) | O sistema visual da referência: preto, cinzentos e os dados a cores | Proposta; mudada pela 0051 |
 | [0033](0033-duas-interfaces-e-a-entrada.md) | Duas interfaces e uma entrada: o Manual e os Agentes, cada um com a sua barra | Proposta |
 | [0034](0034-pagina-larga-seccoes-abertas-e-agentes-vivos.md) | A página larga, as secções abertas e o fluxograma vivo dos agentes | Proposta |
 | [0035](0035-historico-visual-das-trocas.md) | O histórico visual das trocas: cada mensagem diz a quem se dirige | Proposta |
-| [0036](0036-barra-pelos-passos-espaco-e-prosseguir.md) | A barra pelos passos, o espaço em vez dos filetes e o botão de prosseguir | Proposta |
-| [0037](0037-cores-por-familia-barra-que-desliza-e-licao-do-rl.md) | Cores fixas por família, a barra que desliza e a lição do reinforcement learning | Proposta |
+| [0036](0036-barra-pelos-passos-espaco-e-prosseguir.md) | A barra pelos passos, o espaço em vez dos filetes e o botão de prosseguir | Proposta; mudada pela 0044 |
+| [0037](0037-cores-por-familia-barra-que-desliza-e-licao-do-rl.md) | Cores fixas por família, a barra que desliza e a lição do reinforcement learning | Proposta; mudada pela 0048, pela 0049 e pela 0050 |
 | [0038](0038-contorno-colorido-sem-numeros-e-menos-texto.md) | O contorno colorido, sem números nem brilho, e menos texto à vista | Proposta |
-| [0039](0039-pacote-do-modelo.md) | O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado | Aceite |
+| [0039](0039-pacote-do-modelo.md) | O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado | Aceite; a disposição do ecrã mudada pela 0051 |
 | [0040](0040-uma-thread-para-a-mesma-seed-dar-o-mesmo.md) | Uma só thread nos estimadores que somam em paralelo, para a mesma seed dar o mesmo | Proposta |
 | [0041](0041-procura-aberta-e-comparacao-por-grupos.md) | A procura dos agentes fica aberta, e a comparação arruma-se por grupos | Proposta |
 | [0042](0042-agentes-de-ia-com-o-ollama.md) | Agentes de IA com o Ollama, ao lado dos agentes de regras | Proposta |
+| [0043](0043-orbyte-e-o-site-em-ingles.md) | Orbyte: o nome novo e o site todo em inglês | Proposta |
+| [0044](0044-um-botao-de-prosseguir-letra-maior-barra-alinhada.md) | Um só botão de prosseguir, a letra maior e a barra alinhada | Proposta; mudada pela 0048 |
+| [0045](0045-identidade-visual-letra-propria-e-barra-mais-estreita.md) | Identidade visual: uma letra própria nos títulos, rótulos sem maiúsculas e a barra a 18rem | Proposta; mudada pela 0048 |
+| [0046](0046-gerar-o-cliente-so-no-dev-no-build-e-na-verificacao.md) | O cliente da API gera-se só no `dev`, no `build` e na verificação | Proposta |
+| [0047](0047-a-historia-do-treino-no-ecra-explicar.md) | A história do treino no ecrã Explicar: capítulos com texto e um visual | Proposta; mudada pela 0048 |
+| [0048](0048-modelos-por-problema-letra-maior-e-movimento.md) | Os modelos arrumados por problema, a letra maior e um movimento com peso | Proposta; mudada pela 0049 |
+| [0049](0049-agentes-com-todos-os-modelos-escolhidos-e-por-palavras.md) | Os agentes com todos os modelos, escolhidos à mão, a falar por palavras; os ícones fixos | Proposta; mudada pela 0050 |
+| [0050](0050-barra-que-desliza-pagina-de-erro-troca-e-licao-por-agente.md) | A barra que desliza sem reorganizar a página, a página de erro, a troca que leva ao passo certo e uma lição por agente | Proposta |
+| [0051](0051-orbita-parar-laboratorio-guardar-e-dados-de-verdade.md) | Um logótipo só com a órbita, o Parar que para tudo, o Laboratório que se explica, o Guardar em passos e os dados de verdade | Proposta; mudada pela 0052 |
+| [0052](0052-parquet-excel-antigo-e-licenca-mit.md) | O Parquet e o Excel antigo entram, com o pyarrow e o calamine; e o código fica com a licença MIT | Proposta |
 
 ## Como escrever uma ADR
 

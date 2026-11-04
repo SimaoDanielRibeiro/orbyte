@@ -52,7 +52,7 @@ class ClassificationEvaluator(Evaluator):
         class_labels: tuple[str, ...] = (),
     ) -> EvaluationReport:
         if y is None or not class_labels:
-            raise ModelError("Para avaliar uma classificação são precisos o alvo e as classes.")
+            raise ModelError("Evaluating a classification needs the target and the classes.")
         n_classes = len(class_labels)
         y_true = y.astype(np.int64)
         y_pred = np.asarray(model.predict(X), dtype=np.int64)
@@ -64,7 +64,7 @@ class ClassificationEvaluator(Evaluator):
         matrix = ConfusionMatrix(class_labels, tuple(tuple(int(c) for c in row) for row in counts))
         notices = [
             _baseline_notice(y_true, y_pred, class_labels, partition),
-            *undefined_notices(undefined, partition, "falta pelo menos uma classe"),
+            *undefined_notices(undefined, partition, "at least one class is missing"),
         ]
         return EvaluationReport(
             partition=partition,
@@ -86,16 +86,16 @@ def _baseline_notice(
     majority = int(counts.argmax())
     baseline = float(counts[majority] / len(y_true))
     accuracy = float((y_true == y_pred).mean())
-    where = f"no {partition.label.lower()}"
+    where = f"on the {partition.label.lower()} data"
     if accuracy <= baseline + _BASELINE_MARGIN:
         return Notice.warning(
             "below_baseline",
-            f"Prever sempre «{class_labels[majority]}» acertava {format_percent(baseline)} "
-            f"{where}, e o modelo acerta {format_percent(accuracy)}: não aprendeu nada que "
-            "ajude. Revê as features e a preparação.",
+            f"Always predicting “{class_labels[majority]}” would get {format_percent(baseline)} "
+            f"right {where}, and the model gets {format_percent(accuracy)}: it learned nothing "
+            "that helps. Check the features and the preparation.",
         )
     return Notice.info(
         "baseline",
-        f"Para comparar: prever sempre «{class_labels[majority]}» acertava "
-        f"{format_percent(baseline)} {where}; o modelo acerta {format_percent(accuracy)}.",
+        f"For comparison: always predicting “{class_labels[majority]}” would get "
+        f"{format_percent(baseline)} right {where}; the model gets {format_percent(accuracy)}.",
     )

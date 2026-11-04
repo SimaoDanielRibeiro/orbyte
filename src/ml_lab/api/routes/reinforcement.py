@@ -39,9 +39,18 @@ def agents(lab: LabDep) -> list[AgentCard]:
 
 
 @router.get("/lesson")
-def lesson(lab: LabDep) -> ReinforcementLesson:
-    """A lição que abre o ecrã: um Q-learning pequeno, passo a passo (não é um run)."""
-    return lab.reinforcement.lesson()
+def lesson(
+    lab: LabDep,
+    agent: Annotated[str, Query(description="The agent, by its name in the registry.")] = (
+        "q_learning"
+    ),
+) -> ReinforcementLesson:
+    """A lição que abre o ecrã: um agente no penhasco, passo a passo (não é um run).
+
+    Há uma por agente; a primeira vez que se pede a de um agente, treina-se (a do DQN demora
+    uns segundos) e fica guardada.
+    """
+    return lab.reinforcement.lesson(agent)
 
 
 @router.post("", status_code=202)

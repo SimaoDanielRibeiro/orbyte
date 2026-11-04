@@ -1,4 +1,4 @@
-"""Tipos partilhados por todo o projeto: paradigmas, tipos de tarefa e partições dos dados.
+"""Tipos partilhados por todo o projeto: paradigmas, problemas, tipos de tarefa e partições.
 
 O tipo de tarefa (``TaskType``) organiza o ML Lab inteiro: decide que algoritmos
 aparecem no catálogo, que métricas se calculam e que snapshots fazem sentido
@@ -29,8 +29,29 @@ class Paradigm(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface, em inglês."""
         return _PARADIGM_LABELS[self]
+
+
+class Problem(StrEnum):
+    """O problema que uma tarefa resolve: a pergunta que se faz aos dados.
+
+    Várias tarefas podem responder à mesma pergunta: a classificação binária e a multiclasse
+    são as duas uma classificação, e os mesmos modelos fazem as duas. É pelo problema que o
+    ecrã Modelos arruma os modelos e lhes dá cor (ADR 0048).
+    """
+
+    CLASSIFICATION = "classification"
+    REGRESSION = "regression"
+    CLUSTERING = "clustering"
+    DIMENSIONALITY_REDUCTION = "dimensionality_reduction"
+    ANOMALY_DETECTION = "anomaly_detection"
+    CONTROL = "control"
+
+    @property
+    def label(self) -> str:
+        """Nome a mostrar na interface, em inglês."""
+        return _PROBLEM_LABELS[self]
 
 
 class TaskType(StrEnum):
@@ -51,13 +72,18 @@ class TaskType(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface, em inglês."""
         return _LABELS[self]
 
     @property
     def paradigm(self) -> Paradigm:
         """Paradigma a que o tipo de tarefa pertence."""
         return _PARADIGMS[self]
+
+    @property
+    def problem(self) -> Problem:
+        """O problema que a tarefa resolve (as duas classificações são o mesmo)."""
+        return _PROBLEMS[self]
 
     @property
     def requires_target(self) -> bool:
@@ -89,31 +115,54 @@ class Partition(StrEnum):
 
     @property
     def label(self) -> str:
-        """Nome a mostrar na interface, em português."""
+        """Nome a mostrar na interface, em inglês."""
         return _PARTITION_LABELS[self]
 
 
 _PARTITION_LABELS: Final[Mapping[Partition, str]] = MappingProxyType(
-    {Partition.TRAIN: "Treino", Partition.VALIDATION: "Validação", Partition.TEST: "Teste"}
+    {Partition.TRAIN: "Training", Partition.VALIDATION: "Validation", Partition.TEST: "Test"}
 )
 
 _PARADIGM_LABELS: Final[Mapping[Paradigm, str]] = MappingProxyType(
     {
-        Paradigm.SUPERVISED: "Supervisionada",
-        Paradigm.UNSUPERVISED: "Não supervisionada",
+        Paradigm.SUPERVISED: "Supervised",
+        Paradigm.UNSUPERVISED: "Unsupervised",
         Paradigm.REINFORCEMENT: "Reinforcement learning",
     }
 )
 
 _LABELS: Final[Mapping[TaskType, str]] = MappingProxyType(
     {
-        TaskType.BINARY_CLASSIFICATION: "Classificação binária",
-        TaskType.MULTICLASS_CLASSIFICATION: "Classificação multiclasse",
-        TaskType.REGRESSION: "Regressão",
+        TaskType.BINARY_CLASSIFICATION: "Binary classification",
+        TaskType.MULTICLASS_CLASSIFICATION: "Multiclass classification",
+        TaskType.REGRESSION: "Regression",
         TaskType.CLUSTERING: "Clustering",
-        TaskType.DIMENSIONALITY_REDUCTION: "Redução de dimensionalidade",
-        TaskType.ANOMALY_DETECTION: "Deteção de anomalias",
-        TaskType.CONTROL: "Controlo",
+        TaskType.DIMENSIONALITY_REDUCTION: "Dimensionality reduction",
+        TaskType.ANOMALY_DETECTION: "Anomaly detection",
+        TaskType.CONTROL: "Control",
+    }
+)
+
+_PROBLEM_LABELS: Final[Mapping[Problem, str]] = MappingProxyType(
+    {
+        Problem.CLASSIFICATION: "Classification",
+        Problem.REGRESSION: "Regression",
+        Problem.CLUSTERING: "Clustering",
+        Problem.DIMENSIONALITY_REDUCTION: "Dimensionality reduction",
+        Problem.ANOMALY_DETECTION: "Anomaly detection",
+        Problem.CONTROL: "Control",
+    }
+)
+
+_PROBLEMS: Final[Mapping[TaskType, Problem]] = MappingProxyType(
+    {
+        TaskType.BINARY_CLASSIFICATION: Problem.CLASSIFICATION,
+        TaskType.MULTICLASS_CLASSIFICATION: Problem.CLASSIFICATION,
+        TaskType.REGRESSION: Problem.REGRESSION,
+        TaskType.CLUSTERING: Problem.CLUSTERING,
+        TaskType.DIMENSIONALITY_REDUCTION: Problem.DIMENSIONALITY_REDUCTION,
+        TaskType.ANOMALY_DETECTION: Problem.ANOMALY_DETECTION,
+        TaskType.CONTROL: Problem.CONTROL,
     }
 )
 

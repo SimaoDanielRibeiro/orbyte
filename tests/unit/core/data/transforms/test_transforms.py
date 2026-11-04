@@ -53,14 +53,14 @@ def test_transforms_never_change_their_input() -> None:
 
 
 def test_using_a_transform_before_fit_is_explained() -> None:
-    with pytest.raises(NotFittedError, match="ainda não aprendeu"):
+    with pytest.raises(NotFittedError, match="hasn't learned from the training data yet"):
         Imputer(["age"], ImputationStrategy.MEAN).transform(TRAIN)
     with pytest.raises(NotFittedError):
         StandardScaler(["age"]).lineage_step()
 
 
 def test_missing_columns_are_reported() -> None:
-    with pytest.raises(ColumnNotFoundError, match="Querias dizer 'age'"):
+    with pytest.raises(ColumnNotFoundError, match="Did you mean 'age'"):
         Imputer(["agee"], ImputationStrategy.MEAN).fit(TRAIN)
 
 
@@ -85,13 +85,13 @@ def test_imputation_strategies() -> None:
     assert mean.fill_values["age"] == pytest.approx(70 / 3)
     assert frequent.fill_values["city"] == "Porto"
     assert frequent.transform(TRAIN)["city"].tolist() == ["Porto", "Lisboa", "Porto", "Porto"]
-    assert "1 nulo" in mean.describe()
+    assert "1 null" in mean.describe()
 
 
 def test_columns_without_missing_values_in_training_are_explained() -> None:
     imputer = Imputer(["member"], ImputationStrategy.MOST_FREQUENT).fit(TRAIN)
 
-    assert imputer.describe().startswith("Nenhuma das 1 coluna tinha nulos no treino")
+    assert imputer.describe().startswith("None of the 1 column had nulls in the training data")
 
 
 def test_one_hot_uses_the_training_categories_and_zeros_for_new_ones() -> None:
@@ -132,7 +132,7 @@ def test_dates_become_numeric_parts() -> None:
 
     assert parts.columns.tolist() == ["dia_year", "dia_month", "dia_day", "dia_day_of_week"]
     assert parts.iloc[0].tolist() == [2024, 12, 25, 2]  # 25/12/2024 foi uma quarta-feira
-    with pytest.raises(DataError, match="não é do tipo data"):
+    with pytest.raises(DataError, match="isn't a date"):
         DateFeatures(["dia"]).fit(pd.DataFrame({"dia": ["2024-12-25"]}))
 
 
@@ -163,7 +163,7 @@ def test_drop_columns_explains_why() -> None:
     dropper = DropColumns(["city"], "não interessa.").fit(TRAIN)
 
     assert "city" not in dropper.transform(TRAIN).columns
-    assert dropper.describe() == "Retiradas city: não interessa."
+    assert dropper.describe() == "Dropped city: não interessa."
 
 
 # --- pipeline -----------------------------------------------------------------------------
@@ -224,9 +224,9 @@ def test_transform_config_accepts_json_values_and_validates_them() -> None:
 
     assert config.numeric_imputation is ImputationStrategy.MEAN
     assert config.scaling is ScalingMethod.MINMAX
-    with pytest.raises(InvalidParameterError, match="média ou a mediana"):
+    with pytest.raises(InvalidParameterError, match="the mean or the median"):
         TransformConfig(numeric_imputation=ImputationStrategy.MOST_FREQUENT)
     with pytest.raises(InvalidParameterError):
         TransformConfig(polynomial_degree=4)
-    with pytest.raises(InvalidParameterError, match="Só as features numéricas"):
+    with pytest.raises(InvalidParameterError, match="Only numeric features"):
         build_pipeline(schema(), TransformConfig(binned_columns=("city",)))

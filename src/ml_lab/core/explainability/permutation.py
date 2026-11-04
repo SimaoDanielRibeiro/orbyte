@@ -64,7 +64,7 @@ def permutation_importance(
         ModelError: Numa tarefa sem alvo.
     """
     if dataset.test.y is None or not dataset.task_type.requires_target:
-        raise ModelError("A importância por permutação mede previsões contra um alvo.")
+        raise ModelError("Permutation importance measures predictions against a target.")
     rng = np.random.default_rng(seed)
     X, y = _sample(dataset.test.X, dataset.test.y, rng)
     metric = primary_metric(dataset.task_type)

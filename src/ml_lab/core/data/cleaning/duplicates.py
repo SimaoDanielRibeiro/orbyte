@@ -20,10 +20,10 @@ from ml_lab.formatting import format_quantity
 
 @cleaning_operation(
     "drop_duplicates",
-    title="Remover linhas duplicadas",
+    title="Drop duplicate rows",
     description=(
-        "Remove as linhas repetidas e fica com a primeira de cada grupo. Com colunas "
-        "indicadas, duas linhas contam como iguais quando coincidem nessas colunas."
+        "Drops the repeated rows and keeps the first of each group. With columns given, two "
+        "rows count as equal when they match on those columns."
     ),
 )
 def drop_duplicates(frame: pd.DataFrame, *, columns: Sequence[str] | None = None) -> CleaningResult:
@@ -34,17 +34,13 @@ def drop_duplicates(frame: pd.DataFrame, *, columns: Sequence[str] | None = None
     duplicated = frame.duplicated(subset=subset, keep="first")
     n_duplicated = int(duplicated.sum())
     result = frame.loc[~duplicated]
-    scope = f" (comparando {', '.join(subset)})" if subset else ""
+    scope = f" (comparing {', '.join(subset)})" if subset else ""
     if n_duplicated:
-        removed = format_quantity(n_duplicated, "linha duplicada", "linhas duplicadas")
-        description = f"{_removed(n_duplicated)} {removed}{scope}."
+        removed = format_quantity(n_duplicated, "duplicate row", "duplicate rows")
+        description = f"Dropped {removed}{scope}."
     else:
-        description = f"Não havia linhas duplicadas{scope}."
+        description = f"There were no duplicate rows{scope}."
     params = {"columns": subset} if subset else {}
     return CleaningResult(
         result, cleaning_step("drop_duplicates", description, frame, result, params)
     )
-
-
-def _removed(count: int) -> str:
-    return "Removida" if count == 1 else "Removidas"

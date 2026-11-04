@@ -43,7 +43,7 @@ class ScriptedModel:
         name: O nome a mostrar.
     """
 
-    def __init__(self, replies: Iterable[Reply], *, name: str = "escrito-à-mão") -> None:
+    def __init__(self, replies: Iterable[Reply], *, name: str = "hand-written") -> None:
         self._replies = deque(replies)
         self._name = name
         self.calls: list[ScriptedCall] = []
@@ -70,7 +70,8 @@ class ScriptedModel:
         self.calls.append(ScriptedCall(tuple(messages), think, schema, tuple(tools), seed))
         if not self._replies:
             raise LanguageModelError(
-                "O modelo escrito à mão já não tem respostas: o teste pediu mais do que previu."
+                "The hand-written model has no replies left: the test asked for more than it "
+                "planned."
             )
         return _pieces(self._replies.popleft(), think=think)
 

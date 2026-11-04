@@ -113,8 +113,8 @@ def test_a_changed_file_is_caught_and_the_model_never_opens(key: PackageKey) -> 
 
     assert not opened.intact
     assert not opened.made_here
-    assert "run.json não é o que o manifesto descreve" in opened.problems[0]
-    with pytest.raises(PackageError, match="estragado ou foi alterado"):
+    assert "run.json isn't what the manifest describes" in opened.problems[0]
+    with pytest.raises(PackageError, match="damaged or was changed"):
         load_model(opened)
 
 
@@ -131,7 +131,7 @@ def test_a_file_whose_bytes_broke_is_reported_and_the_rest_reads(key: PackageKey
 
     assert not opened.intact
     assert not opened.made_here
-    assert "input.json está estragado e não se lê" in opened.problems[0]
+    assert "input.json is damaged and can't be read" in opened.problems[0]
     assert opened.contents.get(README) == b"# Teste\n"
 
 
@@ -144,16 +144,16 @@ def test_files_the_format_does_not_know_are_reported(key: PackageKey) -> None:
     opened = read_package(buffer.getvalue(), key)
 
     assert not opened.intact
-    assert any("não conhece: ../../fora.txt" in problem for problem in opened.problems)
+    assert any("doesn't know: ../../fora.txt" in problem for problem in opened.problems)
 
 
 def test_what_is_not_a_package_is_explained(key: PackageKey) -> None:
-    with pytest.raises(PackageError, match="não abre como um"):
+    with pytest.raises(PackageError, match="doesn't open as one"):
         read_package(b"isto nao e um zip", key)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr(README, b"# Sem manifesto")
-    with pytest.raises(PackageError, match=r"falta o manifest\.json"):
+    with pytest.raises(PackageError, match=r"lacks the manifest\.json"):
         read_package(buffer.getvalue(), key)
 
 
@@ -161,21 +161,21 @@ def test_a_newer_format_asks_for_a_newer_lab(key: PackageKey) -> None:
     newer = {**MANIFEST_BASE, "format_version": FORMAT_VERSION + 1}
     data = assemble(parts(), newer, key).to_zip()
 
-    with pytest.raises(PackageError, match=f"versão {FORMAT_VERSION + 1} do formato"):
+    with pytest.raises(PackageError, match=f"version {FORMAT_VERSION + 1} of the format"):
         read_package(data, key)
 
 
 def test_a_package_without_the_model_says_so(key: PackageKey) -> None:
     opened = read_package(assemble(parts(with_model=False), MANIFEST_BASE, key).to_zip(), key)
 
-    with pytest.raises(PackageError, match="não traz o modelo"):
+    with pytest.raises(PackageError, match="doesn't carry the model"):
         load_model(opened)
 
 
 def test_only_the_names_of_the_format_can_be_assembled(key: PackageKey) -> None:
-    with pytest.raises(PackageError, match="nomes do formato"):
+    with pytest.raises(PackageError, match="the format's names"):
         assemble([*parts(), PackageFile("outro.txt", b"")], MANIFEST_BASE, key)
-    with pytest.raises(PackageError, match="nomes do formato"):
+    with pytest.raises(PackageError, match="the format's names"):
         assemble([PackageFile(EXAMPLES, b"")], MANIFEST_BASE, key)
 
 

@@ -70,9 +70,9 @@ export function Evaluation({ result }: { result: ExperimentResult }) {
       )}
       {charts.error !== null ? (
         <p className="text-sm text-soft">
-          Os gráficos precisam do modelo, e a API já não o tem: só ficam os últimos runs, e um run
-          do histórico só volta com o modelo se tiver sido guardado. Para os ver, reproduz este run
-          no ecrã Histórico.
+          The charts need the model, and the API no longer has it: it only keeps the latest runs,
+          and a run from the history only comes back with its model if it was saved. To see them,
+          replay this run in History.
         </p>
       ) : charts.data === undefined ? (
         <Skeleton className="h-64 w-full" />
@@ -110,27 +110,24 @@ function MetricsTable({
   }
   return (
     <Panel
-      title="As métricas"
+      title="The metrics"
       topic="train_vs_test"
-      explain="Carrega no nome de uma métrica para ver a fórmula e a conta deste run."
+      explain="Click a metric's name to see its formula and this run's calculation."
     >
       <div className="relative max-w-3xl overflow-x-auto">
         <table className="w-full text-sm">
-          <caption className="sr-only">As métricas</caption>
+          <caption className="sr-only">The metrics</caption>
           <thead>
             <tr className="border-b">
-              <th
-                scope="col"
-                className="px-3 py-2.5 text-left font-mono text-xs font-normal text-dim"
-              >
-                Métrica
+              <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-dim">
+                Metric
               </th>
               {partitions.map((partition) => (
                 <th
                   key={partition}
                   scope="col"
                   className={cn(
-                    "px-3 py-2.5 text-right font-mono text-xs font-normal",
+                    "px-3 py-2.5 text-right text-xs font-medium",
                     partition === result.main_partition ? "text-soft" : "text-dim",
                   )}
                 >
@@ -221,30 +218,30 @@ function TaskCharts({ result, charts }: { result: ExperimentResult; charts: Eval
         <>
           <Confusion
             result={result}
-            title="Matriz de confusão"
-            rowTitle="Real"
-            columnTitle="Previsto"
+            title="Confusion matrix"
+            rowTitle="Actual"
+            columnTitle="Predicted"
             topic="confusion_matrix"
           />
-          <Block title="Curvas ROC e de precisão-recall" topic="roc_pr_chart" wide>
+          <Block title="ROC and precision-recall curves" topic="roc_pr_chart" wide>
             {charts.roc.length === 0 ? (
               <p className="text-sm text-soft">
-                Este modelo não dá probabilidades (ou falta uma classe no teste): sem elas, não há
-                curvas.
+                This model doesn&apos;t give probabilities (or a class is missing from the test):
+                without them, there are no curves.
               </p>
             ) : (
               <Curves charts={charts} />
             )}
           </Block>
-          <PointsMap charts={charts} title="Onde o modelo erra" />
+          <PointsMap charts={charts} title="Where the model gets it wrong" />
         </>
       )}
       {task === "regression" && <Residuals charts={charts} />}
-      {task === "regression" && <PointsMap charts={charts} title="Onde o modelo erra" />}
+      {task === "regression" && <PointsMap charts={charts} title="Where the model gets it wrong" />}
       {task === "clustering" && (
         <>
           {charts.cluster_sizes.length > 0 && (
-            <Block title="O tamanho dos grupos">
+            <Block title="The size of the clusters">
               <BarChart
                 items={charts.cluster_sizes.map(([group, size], index) => ({
                   key: group,
@@ -253,36 +250,36 @@ function TaskCharts({ result, charts }: { result: ExperimentResult; charts: Eval
                   color: categoryColor(index),
                 }))}
                 format={(value) => formatCount(value)}
-                valueLabel="pontos de teste"
-                description="Quantos pontos de teste ficaram em cada grupo."
+                valueLabel="test points"
+                description="How many test points ended up in each cluster."
                 caption={<TopicText topic="cluster_sizes" />}
               />
             </Block>
           )}
-          <PointsMap charts={charts} title="Os grupos no plano" />
+          <PointsMap charts={charts} title="The clusters on the plane" />
           {charts.silhouette !== null && (
-            <Block title="Silhueta" wide>
+            <Block title="Silhouette" wide>
               <SilhouetteChart
                 silhouette={charts.silhouette}
-                description="A silhueta de cada ponto de teste, por grupo."
+                description="The silhouette of each test point, by cluster."
                 caption={<TopicText topic="silhouette" />}
               />
             </Block>
           )}
           {charts.dendrogram !== null && (
-            <Block title="Dendrograma" wide>
+            <Block title="Dendrogram" wide>
               <DendrogramChart
                 dendrogram={charts.dendrogram}
-                description="As junções dos grupos, à altura da distância a que se deram."
+                description="The cluster merges, at the height of the distance at which they happened."
                 caption={<TopicText topic="dendrogram" />}
               />
             </Block>
           )}
           <Confusion
             result={result}
-            title="Grupos e referência"
-            rowTitle="Referência"
-            columnTitle="Grupo"
+            title="Clusters and reference"
+            rowTitle="Reference"
+            columnTitle="Cluster"
             topic="reference_matrix"
           />
         </>
@@ -293,33 +290,33 @@ function TaskCharts({ result, charts }: { result: ExperimentResult; charts: Eval
       {task === "anomaly_detection" && (
         <>
           {charts.scores !== null && (
-            <Block title="As pontuações de anomalia" wide>
+            <Block title="The anomaly scores" wide>
               <Histogram
                 edges={charts.scores.edges}
                 series={distributionSeries(charts.scores)}
                 formatEdge={formatStatistic}
-                xLabel="Pontuação de anomalia"
+                xLabel="Anomaly score"
                 marker={
                   charts.threshold === null
                     ? undefined
-                    : { value: charts.threshold, label: "limiar" }
+                    : { value: charts.threshold, label: "threshold" }
                 }
-                description="A distribuição das pontuações de anomalia dos pontos de teste."
+                description="The distribution of the test points' anomaly scores."
                 caption={<TopicText topic="anomaly_scores" />}
               />
             </Block>
           )}
           {charts.roc.length > 0 && (
-            <Block title="A ROC da pontuação">
+            <Block title="The score's ROC">
               <RocChart charts={charts} caption={<TopicText topic="anomaly_roc" />} />
             </Block>
           )}
-          <PointsMap charts={charts} title="As anomalias no plano" />
+          <PointsMap charts={charts} title="The anomalies on the plane" />
           <Confusion
             result={result}
-            title="Anomalias e referência"
-            rowTitle="Real"
-            columnTitle="Detetor"
+            title="Anomalies and reference"
+            rowTitle="Actual"
+            columnTitle="Detector"
             topic="anomaly_matrix"
           />
         </>
@@ -369,7 +366,7 @@ function Confusion({ result, title, rowTitle, columnTitle, topic }: ConfusionPro
               setChosen(value as Partition);
             }
           }}
-          aria-label="Parte dos dados"
+          aria-label="Part of the data"
           className="justify-start"
         >
           {parts.map((partition) => (
@@ -389,7 +386,7 @@ function Confusion({ result, title, rowTitle, columnTitle, topic }: ConfusionPro
           rowTitle={rowTitle}
           columnTitle={columnTitle}
           highlightDiagonal={sameClasses}
-          description={`${title}: quantos pontos de cada classe real ficaram em cada classe prevista.`}
+          description={`${title}: how many points of each actual class ended up in each predicted class.`}
         />
       </div>
     </Block>
@@ -409,11 +406,11 @@ function RocChart({ charts, caption }: { charts: EvaluationCharts; caption?: Rea
       height={260}
       xDomain={[0, 1]}
       yDomain={[0, 1]}
-      xLabel="Taxa de falsos positivos"
-      yLabel="Taxa de verdadeiros positivos"
+      xLabel="False positive rate"
+      yLabel="True positive rate"
       formatX={(value) => formatPercent(value, 0)}
       formatY={(value) => formatPercent(value, 0)}
-      description="A curva ROC de cada classe."
+      description="The ROC curve of each class."
       caption={caption}
     />
   );
@@ -427,7 +424,7 @@ function Curves({ charts }: { charts: EvaluationCharts }) {
         <LineChart
           series={charts.pr.map((curve, index) => ({
             key: curve.label,
-            label: `${curve.label} (área ${formatNumber(curve.area, 3)})`,
+            label: `${curve.label} (area ${formatNumber(curve.area, 3)})`,
             color: CATEGORICAL[index] ?? CATEGORICAL[0],
             points: curve.x.map((x, position) => ({ x, y: curve.y[position] ?? null })),
           }))}
@@ -435,10 +432,10 @@ function Curves({ charts }: { charts: EvaluationCharts }) {
           xDomain={[0, 1]}
           yDomain={[0, 1]}
           xLabel="Recall"
-          yLabel="Precisão"
+          yLabel="Precision"
           formatX={(value) => formatPercent(value, 0)}
           formatY={(value) => formatPercent(value, 0)}
-          description="A curva de precisão-recall de cada classe."
+          description="The precision-recall curve of each class."
         />
       </div>
     </div>
@@ -477,7 +474,7 @@ function PointsMap({ charts, title }: { charts: EvaluationCharts; title: string 
           };
         })}
         legend={classes.map((name) => ({ label: name, color: color(name), kind: "dot" as const }))}
-        description={`${title}: os pontos de teste no plano da projeção 2D.`}
+        description={`${title}: the test points on the plane of the 2D projection.`}
         caption={<TopicText topic="errors_map" />}
       />
     </Block>
@@ -490,39 +487,39 @@ function Residuals({ charts }: { charts: EvaluationCharts }) {
     return null;
   }
   return (
-    <Block title="Os resíduos" wide>
+    <Block title="The residuals" wide>
       <div className="grid gap-6 @3xl/main:grid-cols-2">
         <Scatter
           height={260}
           zeroLine
-          xLabel="Previsto"
-          yLabel="Erro (real − previsto)"
+          xLabel="Predicted"
+          yLabel="Error (actual − predicted)"
           points={residuals.predicted.map((x, index) => ({
             x,
             y: residuals.errors[index] ?? 0,
             color: CATEGORICAL[0],
           }))}
-          description="O erro de cada ponto de teste contra o valor previsto."
+          description="The error of each test point against the predicted value."
         />
         <Scatter
           height={260}
           identity
-          xLabel="Real"
-          yLabel="Previsto"
+          xLabel="Actual"
+          yLabel="Predicted"
           points={residuals.actual.map((x, index) => ({
             x,
             y: residuals.predicted[index] ?? 0,
             color: CATEGORICAL[0],
           }))}
-          description="O valor previsto contra o real, em cada ponto de teste: na diagonal, acerta."
+          description="The predicted value against the actual one, for each test point: on the diagonal, it's right."
         />
       </div>
       <Histogram
         edges={residuals.histogram.edges}
         series={distributionSeries(residuals.histogram)}
         formatEdge={formatStatistic}
-        xLabel="Erro (real − previsto)"
-        description="Quantos pontos de teste têm cada tamanho de erro."
+        xLabel="Error (actual − predicted)"
+        description="How many test points have each size of error."
         caption={<TopicText topic="residuals" />}
       />
     </Block>
@@ -533,16 +530,16 @@ function Variance({ ratios }: { ratios: readonly number[] }) {
   const total = ratios.reduce((sum, ratio) => sum + ratio, 0);
   const items = ratios.map((ratio, index) => ({
     key: String(index),
-    label: `Componente ${String(index + 1)}`,
+    label: `Component ${String(index + 1)}`,
     value: ratio,
   }));
   return (
     <Block
-      title="Variância explicada"
+      title="Explained variance"
       topic="explained_variance"
       actions={
-        <span className="font-mono text-xs text-dim">
-          {formatPercent(total)} da variância guardada
+        <span className="text-xs text-dim tabular-nums">
+          {formatPercent(total)} of the variance kept
         </span>
       }
       wide
@@ -551,8 +548,8 @@ function Variance({ ratios }: { ratios: readonly number[] }) {
         items={items}
         format={(value) => formatPercent(value)}
         max={1}
-        valueLabel="da variância"
-        description="A parte da variância dos dados que cada componente guarda."
+        valueLabel="of the variance"
+        description="The share of the data's variance that each component keeps."
       />
     </Block>
   );
@@ -582,7 +579,7 @@ function Validation({ result }: { result: ExperimentResult }) {
 
   return (
     <div className="grid gap-x-12 gap-y-10 @5xl/main:grid-cols-2">
-      <Block title="Validação cruzada" topic="cross_validation">
+      <Block title="Cross-validation" topic="cross_validation">
         {!crossValidation ? (
           <Button
             variant="outline"
@@ -591,11 +588,11 @@ function Validation({ result }: { result: ExperimentResult }) {
               setCrossValidation(true);
             }}
           >
-            Correr a validação cruzada
+            Run the cross-validation
           </Button>
         ) : folds.data === undefined ? (
           folds.error === null ? (
-            <Pending text="A treinar o modelo em cada fold" />
+            <Pending text="Training the model on each fold" />
           ) : (
             <ErrorNote error={folds.error} />
           )
@@ -605,14 +602,14 @@ function Validation({ result }: { result: ExperimentResult }) {
               size="sm"
               facts={[
                 {
-                  label: `${folds.data.metric_label}, média`,
+                  label: `${folds.data.metric_label}, mean`,
                   value:
                     folds.data.mean === null
                       ? "—"
                       : percent(folds.data.as_percent)(folds.data.mean),
                 },
                 {
-                  label: "Desvio padrão",
+                  label: "Standard deviation",
                   value:
                     folds.data.std === null ? "—" : percent(folds.data.as_percent)(folds.data.std),
                 },
@@ -621,14 +618,14 @@ function Validation({ result }: { result: ExperimentResult }) {
             <LineChart
               series={[
                 {
-                  key: "treino",
-                  label: "No treino de cada fold",
+                  key: "train",
+                  label: "On each fold's training",
                   color: CATEGORICAL[0],
                   points: folds.data.folds.map((fold) => ({ x: fold.fold, y: fold.train })),
                 },
                 {
-                  key: "fora",
-                  label: "No fold de fora",
+                  key: "held-out",
+                  label: "On the held-out fold",
                   color: CATEGORICAL[1],
                   points: folds.data.folds.map((fold) => ({ x: fold.fold, y: fold.test })),
                 },
@@ -639,15 +636,17 @@ function Validation({ result }: { result: ExperimentResult }) {
               formatX={(value) => formatCount(value)}
               formatY={percent(folds.data.as_percent)}
               reference={
-                folds.data.mean === null ? undefined : { y: folds.data.mean, label: "média fora" }
+                folds.data.mean === null
+                  ? undefined
+                  : { y: folds.data.mean, label: "held-out mean" }
               }
-              description={`${folds.data.metric_label} em cada fold, no treino e no fold de fora.`}
+              description={`${folds.data.metric_label} on each fold, on training and on the held-out fold.`}
             />
             <NoticeList notices={folds.data.notices} />
           </>
         )}
       </Block>
-      <Block title="Curva de aprendizagem" topic="learning_curve">
+      <Block title="Learning curve" topic="learning_curve">
         {!learningCurve ? (
           <Button
             variant="outline"
@@ -656,11 +655,11 @@ function Validation({ result }: { result: ExperimentResult }) {
               setLearningCurve(true);
             }}
           >
-            Desenhar a curva de aprendizagem
+            Draw the learning curve
           </Button>
         ) : curve.data === undefined ? (
           curve.error === null ? (
-            <Pending text="A treinar com cada vez mais linhas" />
+            <Pending text="Training with more and more rows" />
           ) : (
             <ErrorNote error={curve.error} />
           )
@@ -669,8 +668,8 @@ function Validation({ result }: { result: ExperimentResult }) {
             <LineChart
               series={[
                 {
-                  key: "treino",
-                  label: "No treino",
+                  key: "train",
+                  label: "On training",
                   color: CATEGORICAL[0],
                   points: curve.data.points.map((point) => ({
                     x: point.size,
@@ -683,8 +682,8 @@ function Validation({ result }: { result: ExperimentResult }) {
                   })),
                 },
                 {
-                  key: "avaliacao",
-                  label: "Na avaliação",
+                  key: "evaluation",
+                  label: "On evaluation",
                   color: CATEGORICAL[1],
                   points: curve.data.points.map((point) => ({
                     x: point.size,
@@ -698,10 +697,10 @@ function Validation({ result }: { result: ExperimentResult }) {
                 },
               ]}
               height={240}
-              xLabel="Linhas de treino"
+              xLabel="Training rows"
               formatX={(value) => formatCount(value)}
               formatY={percent(curve.data.as_percent)}
-              description={`${curve.data.metric_label} com cada vez mais linhas de treino.`}
+              description={`${curve.data.metric_label} with more and more training rows.`}
             />
             <NoticeList notices={curve.data.notices} />
           </>
@@ -722,7 +721,7 @@ function distributionSeries(distribution: Distribution) {
 
 function Pending({ text }: { text: string }) {
   return (
-    <p role="status" className="flex items-center gap-2 font-mono text-xs text-dim">
+    <p role="status" className="flex items-center gap-2 text-sm text-dim">
       <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
       {text}
     </p>

@@ -2,7 +2,8 @@
   "name": "ml-lab-web",
   "private": true,
   "version": "0.1.0",
-  "description": "A interface do ML Lab (fase 10): React, TypeScript e Vite, a falar com a API.",
+  "description": "A interface do Orbyte (fase 10): React, TypeScript e Vite, a falar com a API.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -14,21 +15,19 @@
     "prebuild": "npm run api",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "pretypecheck": "npm run api",
     "typecheck": "tsc -b",
-    "prelint": "npm run api",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "pretest": "npm run api",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pree2e": "npm run api",
+    "check": "npm run api && npm run lint && npm run typecheck && npm test",
     "e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
+    "@fontsource-variable/unbounded": "5.3.0",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.46",
     "class-variance-authority": "0.7.1",

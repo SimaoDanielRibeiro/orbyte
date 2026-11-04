@@ -1,53 +1,52 @@
-# Naive Bayes gaussiano
+# Gaussian naive Bayes
 
-## Intuição
+## Intuition
 
-Para cada classe, o Naive Bayes aprende como são os seus exemplos: a média e a variância de
-cada feature. Uma flor *setosa* tem pétalas curtas, com pouca variação; uma *virginica* tem
-pétalas compridas. Para classificar uma flor nova, pergunta: "com estas medidas, de que
-classe é mais provável que venha?"
+For each class, naive Bayes learns what its examples look like: the mean and the variance of
+each feature. A *setosa* flower has short petals, with little variation; a *virginica* has long
+petals. To classify a new flower, it asks: "with these measurements, which class is it most
+likely to come from?"
 
-É **ingénuo** (*naive*) porque supõe que, dentro de cada classe, as features não têm nada a
-ver umas com as outras. Quase nunca é verdade, mas funciona surpreendentemente bem.
+It's **naive** because it assumes that, within each class, the features have nothing to do with
+each other. That's almost never true, but it works surprisingly well.
 
-## Matemática essencial
+## Essential maths
 
-A regra de Bayes dá a probabilidade de cada classe $c$ dado o ponto $x$:
+Bayes' rule gives the probability of each class $c$ given the point $x$:
 
 $$p(c \mid x) \propto p(c)\, p(x \mid c)$$
 
-$p(c)$ é a frequência da classe no treino. Com a hipótese ingénua, $p(x \mid c)$ é o produto
-das probabilidades de cada feature, cada uma com a sua curva normal (gaussiana):
+$p(c)$ is the class's frequency in the training data. With the naive assumption, $p(x \mid c)$ is
+the product of the probabilities of each feature, each with its own normal (Gaussian) curve:
 
 $$p(x \mid c) = \prod_j \frac{1}{\sqrt{2\pi\sigma_{cj}^2}} \exp\!\left(-\frac{(x_j - \mu_{cj})^2}{2\sigma_{cj}^2}\right)$$
 
-Treinar é só calcular $\mu_{cj}$ e $\sigma_{cj}^2$, a média e a variância da feature $j$ na
-classe $c$: uma passagem pelos dados, sem otimizador. As contas fazem-se com logaritmos,
-para os produtos de números pequenos não darem zero.
+Training is just computing $\mu_{cj}$ and $\sigma_{cj}^2$, the mean and the variance of feature
+$j$ in class $c$: one pass over the data, with no optimiser. The sums are done with logarithms,
+so the products of small numbers don't turn into zero.
 
-## Hiperparâmetros
+## Hyperparameters
 
-| Hiperparâmetro | O que controla | Omissão |
+| Hyperparameter | What it controls | Default |
 |---|---|---|
-| `var_smoothing` | Uma fração da maior variância somada a todas, para nenhuma ser zero. Uma feature constante numa classe daria probabilidades de 0 ou 1 | $10^{-9}$ |
+| `var_smoothing` | A fraction of the largest variance added to all of them, so none is zero. A constant feature in a class would give probabilities of 0 or 1 | $10^{-9}$ |
 
-## Quando usar
+## When to use
 
-- Com **poucos dados**: aprende só médias e variâncias, por isso não precisa de muitos
-  exemplos.
-- Como referência rapidíssima, e em texto (com a variante multinomial, que conta palavras).
+- With **little data**: it only learns means and variances, so it doesn't need many examples.
+- As a lightning-fast baseline, and for text (with the multinomial variant, which counts words).
 
-## Armadilhas
+## Pitfalls
 
-- **Features correlacionadas contam a dobrar:** se duas features dizem a mesma coisa, o
-  modelo trata-as como duas provas independentes e fica confiante demais. As probabilidades
-  tendem a ser extremas (quase 0 ou quase 1), mesmo quando a classe prevista está certa.
-- **Supõe curvas normais:** uma feature com duas "corcovas" na mesma classe fica mal descrita.
-- **A fronteira é quadrática:** curva, mas sempre com a forma de uma elipse ou de uma
-  parábola, nunca arbitrária.
+- **Correlated features count twice:** if two features say the same thing, the model treats them
+  as two independent pieces of evidence and becomes overconfident. The probabilities tend to be
+  extreme (almost 0 or almost 1), even when the predicted class is right.
+- **It assumes normal curves:** a feature with two "humps" in the same class is badly described.
+- **The boundary is quadratic:** curved, but always shaped like an ellipse or a parabola, never
+  arbitrary.
 
-## O que observar no treino
+## What to watch in training
 
-Treina de uma vez. No ecrã **Treinar e avaliar**, as cruzes são as médias de cada classe no plano da
-projeção, e a fronteira passa entre elas, mais perto da classe com menor variância. Em
-**O que aprendeu** estão as médias e as variâncias de cada classe.
+It trains in one go. On the **Train & evaluate** screen, the crosses are the means of each class
+on the projection's plane, and the boundary runs between them, closer to the class with the
+smaller variance. **What it learned** shows each class's means and variances.

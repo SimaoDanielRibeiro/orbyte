@@ -51,4 +51,4 @@ def test_task_type_round_trips_through_its_text_value() -> None:
 
 
 def test_partitions_have_portuguese_labels() -> None:
-    assert [partition.label for partition in Partition] == ["Treino", "Validação", "Teste"]
+    assert [partition.label for partition in Partition] == ["Training", "Validation", "Test"]

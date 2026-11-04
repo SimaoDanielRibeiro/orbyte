@@ -5,14 +5,14 @@ import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
 import { useSession } from "@/state/session";
 
-export const Route = createFileRoute("/treinar/")({
-  // Com um run aberto, o ecrã é o dele; sem nenhum, diz onde se começa um.
+export const Route = createFileRoute("/explain/")({
+  // Com um run aberto, explica-se o dele; sem nenhum, diz onde se treina um.
   beforeLoad: () => {
     const { runId } = useSession.getState();
     if (runId !== null) {
       // O redirect do router lança-se, como um erro (é assim que ele o apanha).
       // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw redirect({ to: "/treinar/$runId", params: { runId } });
+      throw redirect({ to: "/explain/$runId", params: { runId } });
     }
   },
   component: NoRun,
@@ -21,11 +21,11 @@ export const Route = createFileRoute("/treinar/")({
 function NoRun() {
   return (
     <Page>
-      <PageHeader title={SCREENS.train.title} description={SCREENS.train.description} />
+      <PageHeader title={SCREENS.explain.title} description={SCREENS.explain.description} />
       <NeedsStep
-        message="Ainda não treinaste nenhum modelo. Escolhe um modelo, ajusta os hiperparâmetros e carrega em «Treinar com estes valores»."
-        to="/modelos"
-        action="Escolher o modelo"
+        message="To explain a model's predictions, you need to train it first. Choose a model and press “Train with these values”."
+        to="/models"
+        action="Choose the model"
       />
     </Page>
   );

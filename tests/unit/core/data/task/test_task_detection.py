@@ -34,7 +34,7 @@ def test_titanic_survived_suggests_binary_classification(passengers: pd.DataFram
 
     assert suggestion.task_type is TaskType.BINARY_CLASSIFICATION
     assert suggestion.n_classes == 2
-    assert "dois valores (0 e 1)" in suggestion.reason
+    assert "two values (0 and 1)" in suggestion.reason
 
 
 @pytest.mark.parametrize(

@@ -23,9 +23,9 @@ from ml_lab.core.foundation.types import TaskType
 
 CLASSIFICATION: Final = (TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION)
 
-_TRUE_POSITIVES: Final = (r"\mathrm{VP}", "Verdadeiros positivos")
-_FALSE_POSITIVES: Final = (r"\mathrm{FP}", "Falsos positivos")
-_FALSE_NEGATIVES: Final = (r"\mathrm{FN}", "Falsos negativos")
+_TRUE_POSITIVES: Final = (r"\mathrm{TP}", "True positives")
+_FALSE_POSITIVES: Final = (r"\mathrm{FP}", "False positives")
+_FALSE_NEGATIVES: Final = (r"\mathrm{FN}", "False negatives")
 
 
 def _average(inputs: MetricInputs) -> Literal["binary", "macro"]:
@@ -60,8 +60,8 @@ def _ratio(part: float, whole: float) -> float:
 def _accuracy_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     truth, predicted = np.asarray(inputs.truth), np.asarray(inputs.predicted)
     return (
-        MetricTerm(r"\text{acertos}", "Previsões certas", float(np.sum(truth == predicted))),
-        MetricTerm("n", "Exemplos avaliados", float(len(truth))),
+        MetricTerm(r"\text{correct}", "Right predictions", float(np.sum(truth == predicted))),
+        MetricTerm("n", "Examples evaluated", float(len(truth))),
     )
 
 
@@ -72,7 +72,7 @@ def _balanced_accuracy_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
         if code in seen:  # as classes que não aparecem nos dados avaliados não entram na média
             true_positives, _, false_negatives = _counts(inputs, code)
             recall = _ratio(true_positives, true_positives + false_negatives)
-            terms.append(MetricTerm(r"\text{recall}_c", "Recall da classe", recall, code))
+            terms.append(MetricTerm(r"\text{recall}_c", "Recall of the class", recall, code))
     return tuple(terms)
 
 
@@ -103,7 +103,7 @@ def _f1_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
         group = _group(inputs, code)
         precision = _ratio(true_positives, true_positives + false_positives)
         recall = _ratio(true_positives, true_positives + false_negatives)
-        terms.append(MetricTerm("P", "Precisão", precision, group))
+        terms.append(MetricTerm("P", "Precision", precision, group))
         terms.append(MetricTerm("R", "Recall", recall, group))
     return tuple(terms)
 
@@ -116,9 +116,9 @@ def _log_loss_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
     right = np.clip(inputs.y_proba[np.arange(len(truth)), truth], np.finfo(np.float64).eps, 1.0)
     return (
         MetricTerm(
-            r"\sum_{i=1}^{n} -\log p_i", "Soma das penalizações", float(np.sum(-np.log(right)))
+            r"\sum_{i=1}^{n} -\log p_i", "Sum of the penalties", float(np.sum(-np.log(right)))
         ),
-        MetricTerm("n", "Exemplos avaliados", float(len(truth))),
+        MetricTerm("n", "Examples evaluated", float(len(truth))),
     )
 
 
@@ -127,7 +127,7 @@ def _log_loss_terms(inputs: MetricInputs) -> tuple[MetricTerm, ...]:
 
 @metric(
     "accuracy",
-    display_name="Exatidão",
+    display_name="Accuracy",
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
@@ -140,7 +140,7 @@ def accuracy(inputs: MetricInputs) -> float:
 
 @metric(
     "balanced_accuracy",
-    display_name="Exatidão equilibrada",
+    display_name="Balanced accuracy",
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
@@ -162,7 +162,7 @@ def balanced_accuracy(inputs: MetricInputs) -> float:
 
 @metric(
     "precision",
-    display_name="Precisão",
+    display_name="Precision",
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,
@@ -183,7 +183,7 @@ def precision(inputs: MetricInputs) -> float:
 
 @metric(
     "recall",
-    display_name="Recall (sensibilidade)",
+    display_name="Recall (sensitivity)",
     task_types=CLASSIFICATION,
     higher_is_better=True,
     as_percent=True,

@@ -115,8 +115,8 @@ _KIND_LABELS: Final = {
     PackageFileKind.MARKDOWN: "Markdown",
     PackageFileKind.JSON: "JSON",
     PackageFileKind.CSV: "CSV",
-    PackageFileKind.TEXT: "Texto",
-    PackageFileKind.BINARY: "Binário",
+    PackageFileKind.TEXT: "Text",
+    PackageFileKind.BINARY: "Binary",
 }
 
 
@@ -129,7 +129,7 @@ class PackageOrigin(StrEnum):
     @property
     def label(self) -> str:
         """Nome a mostrar."""
-        return "Feito aqui" if self is PackageOrigin.MADE_HERE else "Carregado"
+        return "Made here" if self is PackageOrigin.MADE_HERE else "Loaded"
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,59 +141,58 @@ class _PartInfo:
 
 _PARTS: Final[Mapping[str, _PartInfo]] = {
     files.README: _PartInfo(
-        "A ficha do modelo",
-        "O que prevê, com que dados, como se portou, os limites e como se usa.",
+        "The model card",
+        "What it predicts, with what data, how it did, its limits and how to use it.",
         PackageFileKind.MARKDOWN,
     ),
     files.MANIFEST: _PartInfo(
-        "O manifesto",
-        "A identidade do pacote, as versões das bibliotecas e a impressão digital de cada "
-        "ficheiro.",
+        "The manifest",
+        "The package's identity, the library versions and the fingerprint of each file.",
         PackageFileKind.JSON,
     ),
     files.SIGNATURE: _PartInfo(
-        "A assinatura",
-        "Diz se o pacote foi feito neste ML Lab e se não mudou desde então.",
+        "The signature",
+        "Says whether the package was made in this Orbyte and hasn't changed since.",
         PackageFileKind.TEXT,
     ),
     files.INPUT: _PartInfo(
-        "A entrada",
-        "As colunas que o modelo espera, como chegam, com o que se viu no treino.",
+        "The input",
+        "The columns the model expects, as they arrive, with what was seen in the training.",
         PackageFileKind.JSON,
     ),
     files.PREPARATION: _PartInfo(
-        "A preparação",
-        "A receita da preparação, o que ela aprendeu no treino e a linhagem.",
+        "The preparation",
+        "The preparation recipe, what it learned from the training data and the lineage.",
         PackageFileKind.JSON,
     ),
     files.RUN: _PartInfo(
-        "O run",
-        "A configuração, as métricas em cada parte, o que o modelo aprendeu e a curva da loss.",
+        "The run",
+        "The configuration, the metrics on each part, what the model learned and the loss curve.",
         PackageFileKind.JSON,
     ),
     files.MODEL: _PartInfo(
-        "O modelo",
-        "O modelo treinado, para voltar a prever no ML Lab (joblib).",
+        "The model",
+        "The trained model, to predict again in Orbyte (joblib).",
         PackageFileKind.BINARY,
     ),
     files.ONNX: _PartInfo(
-        "O modelo para outras apps",
-        "A preparação e o modelo num só grafo ONNX, para o ONNX Runtime.",
+        "The model for other apps",
+        "The preparation and the model in a single ONNX graph, for ONNX Runtime.",
         PackageFileKind.BINARY,
     ),
     files.ANIMATION: _PartInfo(
-        "O treino passo a passo",
-        "O que o modelo respondia em cada snapshot, para rever o treino.",
+        "The training step by step",
+        "What the model answered at each snapshot, to review the training.",
         PackageFileKind.JSON,
     ),
     files.NETWORK: _PartInfo(
-        "As camadas da rede",
-        "O que cada camada da rede fez em cada snapshot.",
+        "The network's layers",
+        "What each layer of the network did at each snapshot.",
         PackageFileKind.JSON,
     ),
     files.EXAMPLES: _PartInfo(
-        "As linhas de exemplo",
-        "Algumas linhas do teste, como chegaram, com o valor real e o previsto.",
+        "The example rows",
+        "A few test rows, as they arrived, with the actual and the predicted value.",
         PackageFileKind.CSV,
     ),
 }
@@ -457,8 +456,8 @@ class PackageService:
                     reason=None
                     if available
                     else (
-                        "Este run só ficou registado, sem o modelo: reproduz-o no Histórico "
-                        "para o guardar num pacote."
+                        "This run was only recorded, without the model: replay it in History "
+                        "to save it in a package."
                     ),
                 )
             )
@@ -711,7 +710,7 @@ class PackageService:
         # O ONNX é um extra: uma conversão que rebenta de outra maneira não impede o pacote.
         except Exception:
             logger.exception("a conversão para ONNX falhou", extra={"run_id": run_id})
-            exported = None, "A conversão para ONNX falhou com um erro inesperado."
+            exported = None, "The conversion to ONNX failed with an unexpected error."
         with self._onnx_lock:
             self._onnx_cache[run_id] = exported
             while len(self._onnx_cache) > ONNX_CACHE:
@@ -732,11 +731,11 @@ class PackageService:
             result = replace(result, run_id=f"run-{secrets.token_hex(4)}")
         manifest = opened.manifest
         name = str(manifest.get("name") or result.model_display_name)
-        where = "neste ML Lab" if opened.made_here else "noutro ML Lab"
+        where = "in this Orbyte" if opened.made_here else "in another Orbyte"
         notice = Notice.info(
             "loaded_from_package",
-            f"Este run veio do pacote «{entry.file_name}», feito {where} e carregado a "
-            f"{entry.added_at:%d/%m/%Y}.",
+            f"This run came from the package “{entry.file_name}”, made {where} and loaded on "
+            f"{entry.added_at:%d %b %Y}.",
         )
         result = replace(result, notices=(notice, *result.notices))
         documents = {
@@ -745,7 +744,7 @@ class PackageService:
             if opened.contents.get(path) is not None
         }
         _check_documents(documents)
-        self._history.adopt(result, model, documents, name=f"{name} (carregado)")
+        self._history.adopt(result, model, documents, name=f"{name} (loaded)")
         return result.run_id
 
     def _saved(self, entry: LibraryEntry) -> SavedPackage:
@@ -760,17 +759,18 @@ class PackageService:
             notices.append(
                 Notice.error(
                     "package_damaged",
-                    "O pacote está estragado ou foi alterado depois de feito: "
-                    f"{' '.join(entry.problems)} O modelo não abre.",
+                    "The package is damaged or was changed after it was made: "
+                    f"{' '.join(entry.problems)} The model won't open.",
                 )
             )
         elif not entry.trusted:
             notices.append(
                 Notice.warning(
                     "package_from_elsewhere",
-                    "Este modelo foi feito noutro ML Lab. Vem num ficheiro joblib, e abri-lo "
-                    "corre o código de quem o fez: só o abras se confias em quem to deu. A "
-                    "ficha, a avaliação e a preparação já estão à vista, e lê-las não tem risco.",
+                    "This model was made in another Orbyte. It comes in a joblib file, and "
+                    "opening it runs the code of whoever made it: only open it if you trust who "
+                    "gave it to you. The card, the evaluation and the preparation are already in "
+                    "view, and reading them carries no risk.",
                 )
             )
         notices.extend(_version_notices(manifest))
@@ -901,32 +901,33 @@ def _notices(
         notices.append(
             Notice.warning(
                 "package_real_rows",
-                f"As linhas de exemplo são dados reais de {result.dataset_name}: quem tiver o "
-                "ficheiro vê-as.",
+                f"The example rows are real data from {result.dataset_name}: whoever has the "
+                "file can see them.",
             )
         )
     if request.include_model and info.keeps_training_rows:
         notices.append(
             Notice.warning(
                 "package_memorized_rows",
-                f"{info.display_name} guarda linhas do treino dentro dele (já transformadas): "
-                "quem tiver o modelo consegue vê-las.",
+                f"{info.display_name} keeps training rows inside it (already transformed): "
+                "whoever has the model can see them.",
             )
         )
     if not info.supports_new_data:
         notices.append(
             Notice.info(
                 "package_cannot_predict",
-                f"{info.display_name} não prevê linhas novas: o pacote serve para ler o que o "
-                "modelo fez, não para prever.",
+                f"{info.display_name} doesn't predict new rows: the package is for reading what "
+                "the model did, not for predicting.",
             )
         )
     if not request.include_model:
         notices.append(
             Notice.info(
                 "package_without_model",
-                "Sem o modelo, o pacote lê-se todo (a ficha, a avaliação, a preparação), mas não "
-                "prevê. Em troca, não tem pickle nenhum e pode partilhar-se à vontade.",
+                "Without the model, the whole package can be read (the card, the evaluation, the "
+                "preparation), but it doesn't predict. In return, it has no pickle at all and "
+                "can be shared freely.",
             )
         )
     elif contents.get(files.ONNX) is None:
@@ -935,8 +936,8 @@ def _notices(
         notices.append(
             Notice.warning(
                 "package_large",
-                f"O pacote «{name}» tem {contents.size // (1024 * 1024)} MB: guardar e "
-                "descarregar demora, e partilhá-lo também.",
+                f"The package “{name}” is {contents.size // (1024 * 1024)} MB: saving and "
+                "downloading take a while, and so does sharing it.",
             )
         )
     return tuple(notices)
@@ -949,7 +950,7 @@ def _version_notices(manifest: Mapping[str, Any]) -> list[Notice]:
         return []
     current = _versions()
     different = [
-        f"{name} {recorded[name]} (aqui, {current[name]})"
+        f"{name} {recorded[name]} (here, {current[name]})"
         for name in _PICKLED
         if recorded.get(name)
         and current.get(name)
@@ -960,8 +961,8 @@ def _version_notices(manifest: Mapping[str, Any]) -> list[Notice]:
     return [
         Notice.warning(
             "package_other_versions",
-            f"O pacote foi feito com outras versões: {', '.join(different)}. O modelo pode não "
-            "abrir, ou prever de outra maneira.",
+            f"The package was made with other versions: {', '.join(different)}. The model may "
+            "not open, or may predict differently.",
         )
     ]
 
@@ -977,8 +978,8 @@ def _preparation(artifacts: RunArtifacts) -> FittedPreparation:
     preparation = artifacts.dataset.preparation
     if preparation is None:
         raise PackageError(
-            "Os dados deste run não guardaram a preparação aprendida: reproduz o run para o "
-            "guardar num pacote."
+            "This run's data didn't keep the learned preparation: replay the run to save it in "
+            "a package."
         )
     return preparation
 
@@ -991,10 +992,10 @@ def _choices(artifacts: RunArtifacts, preparation: FittedPreparation) -> tuple[P
     return (
         PackageChoice(
             key="include_model",
-            title="O modelo, para prever",
+            title="The model, to predict",
             description=(
-                "O modelo treinado, para voltar a prever no ML Lab (e, quando há conversão, "
-                "noutras apps, em ONNX). Sem ele, o pacote só se lê."
+                "The trained model, to predict again in Orbyte (and, when there's a conversion, "
+                "in other apps, as ONNX). Without it, the package can only be read."
             ),
             included=True,
             available=True,
@@ -1002,10 +1003,10 @@ def _choices(artifacts: RunArtifacts, preparation: FittedPreparation) -> tuple[P
         ),
         PackageChoice(
             key="include_examples",
-            title="Linhas de exemplo",
+            title="Example rows",
             description=(
-                f"{_PARTS[files.EXAMPLES].description} Servem para confirmar que o modelo "
-                "prevê o mesmo noutro sítio."
+                f"{_PARTS[files.EXAMPLES].description} They're there to confirm that the model "
+                "predicts the same somewhere else."
             ),
             # Por omissão, só as dos datasets de exemplo e dos sintéticos: as de um ficheiro
             # carregado podem ser de alguém.
@@ -1015,18 +1016,18 @@ def _choices(artifacts: RunArtifacts, preparation: FittedPreparation) -> tuple[P
         ),
         PackageChoice(
             key="include_training",
-            title="O treino passo a passo",
+            title="The training step by step",
             description=(
-                "O que o modelo respondia em cada snapshot (e o que cada camada da rede fez), "
-                "para rever o treino. Pode ocupar bastante."
+                "What the model answered at each snapshot (and what each layer of the network "
+                "did), to review the training. It can take up quite a lot of space."
             ),
             included=False,
             available=training,
             reason=None
             if training
             else (
-                "Este run não tem o treino passo a passo: os dados não têm uma projeção 2D, ou "
-                "o run voltou do histórico sem ele."
+                "This run doesn't have the step-by-step training: the data has no 2D projection, "
+                "or the run came back from the history without it."
             ),
         ),
     )
@@ -1039,9 +1040,9 @@ def _examples_reason(artifacts: RunArtifacts, preparation: FittedPreparation) ->
         not info.supports_new_data
         or artifacts.result.task_type is TaskType.DIMENSIONALITY_REDUCTION
     ):
-        return "Este modelo não prevê linhas novas: não há exemplos com a previsão."
+        return "This model doesn't predict new rows: there are no examples with the prediction."
     if len(preparation.examples) == 0:
-        return "O teste deste run não ficou com linhas para dar de exemplo."
+        return "This run's test data kept no rows to give as examples."
     return None
 
 
@@ -1094,7 +1095,7 @@ def _file_name(name: str) -> str:
     """O nome do ficheiro de um pacote: o nome sem acentos, em minúsculas e com hífenes."""
     plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
-    return f"{slug or 'modelo'}{files.EXTENSION}"
+    return f"{slug or 'model'}{files.EXTENSION}"
 
 
 def _family(model_name: str) -> ModelFamily | None:

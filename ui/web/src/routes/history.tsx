@@ -4,15 +4,15 @@ import { HistoryScreen } from "@/features/history/history-screen";
 
 interface HistorySearch {
   /** Os filtros do histórico: a tarefa, o dataset (ou ambiente) e o modelo (ou agente). */
-  tarefa?: string;
+  task?: string;
   dataset?: string;
-  modelo?: string;
+  model?: string;
 }
 
-export const Route = createFileRoute("/experiencias")({
+export const Route = createFileRoute("/history")({
   validateSearch: (search: Record<string, unknown>): HistorySearch => {
     const kept: HistorySearch = {};
-    for (const key of ["tarefa", "dataset", "modelo"] as const) {
+    for (const key of ["task", "dataset", "model"] as const) {
       const value = search[key];
       if (typeof value === "string" && value !== "") {
         kept[key] = value;

@@ -94,14 +94,13 @@ def model_graph(graph: Graph, model: LabModel[Any], features: str, n_features: i
     info = model.info
     if not info.supports_new_data:
         raise CapabilityError(
-            f"{info.display_name} não sabe colocar pontos novos: não há nada para levar para "
-            "outra app."
+            f"{info.display_name} can't place new points: there's nothing to take to another app."
         )
     if info.name in CONVERTERS:
         return CONVERTERS.get(info.name)(graph, model, features, n_features)
     if isinstance(model, SklearnModel):
         return _sklearn(graph, model, features, n_features)
-    raise CapabilityError(f"{info.display_name} ainda não tem conversão para ONNX.")
+    raise CapabilityError(f"{info.display_name} has no ONNX conversion yet.")
 
 
 # --- scikit-learn ------------------------------------------------------------------------
@@ -158,7 +157,7 @@ def _converted(estimator: Any, n_features: int, classifier: bool) -> tuple[onnx.
             problem = str(error).splitlines()[0][:200]
             continue
         return converted, elem_type
-    raise CapabilityError(f"O skl2onnx não converte {type(estimator).__name__} ({problem}).")
+    raise CapabilityError(f"skl2onnx doesn't convert {type(estimator).__name__} ({problem}).")
 
 
 def _runs(model: onnx.ModelProto, elem_type: int, n_features: int) -> None:
@@ -329,7 +328,7 @@ def _mlp_classifier(
     logits = _dense(graph, model, features)
     classes = model.classes()
     if classes is None:
-        raise CapabilityError("A rede não guardou as classes do treino.")
+        raise CapabilityError("The network didn't keep the training classes.")
     # As probabilidades em double, como no laboratório (o softmax das saídas em float32).
     wide = graph.op("Cast", [logits], "saidas_double", to=DOUBLE)
     probabilities = graph.op("Softmax", [wide], "probabilidades", axis=1)
@@ -354,7 +353,7 @@ def _mlp_regressor(
 def _dense(graph: Graph, model: LabModel[Any], features: str) -> str:
     """A rede, camada a camada (``Gemm`` e a ativação), em ``float32`` como no PyTorch."""
     if not isinstance(model, _Layered):
-        raise CapabilityError(f"{model.info.display_name} não mostra as camadas da rede.")
+        raise CapabilityError(f"{model.info.display_name} doesn't expose the network's layers.")
     activations = {"relu": "Relu", "tanh": "Tanh", "sigmoid": "Sigmoid"}
     value = graph.op("Cast", [features], "features_float", to=FLOAT)
     for number, layer in enumerate(model.dense_layers(), start=1):
@@ -431,5 +430,5 @@ def _flat(graph: Graph, value: str) -> str:
 
 def _memory(model: LabModel[Any]) -> Memory:
     if not isinstance(model, _Remembering):
-        raise CapabilityError(f"{model.info.display_name} não mostra as linhas que guarda.")
+        raise CapabilityError(f"{model.info.display_name} doesn't expose the rows it keeps.")
     return model.memory()

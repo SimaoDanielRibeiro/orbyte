@@ -31,6 +31,23 @@ CATEGORICAL_MAX_RATIO: Final = 0.5
 FEW_VALUES: Final = 10
 """Inteiros com até este número de valores distintos podem ser categorias (ou classes)."""
 
+IDENTIFIER_UNIQUE_RATIO: Final = 0.95
+"""Um código sem espaços com pelo menos esta parte de valores diferentes é um identificador."""
+
+CATEGORY_REPEATS: Final = 5
+"""Quantas vezes, em média, cada valor se repete para o texto ser categorias a mais, não livre."""
+
+
+def repeated_categories(n_unique: int, n_values: int) -> bool:
+    """Se um texto com valores a mais para categorias os repete (cidades, e não comentários).
+
+    Os dois ficam de fora do modelo (uma coluna por categoria daria centenas de colunas), mas a
+    razão é outra, e a explicação também: 484 cidades repetidas em 150 mil linhas são
+    categorias a mais, não texto livre (ADR 0051).
+    """
+    return n_unique > 0 and n_unique * CATEGORY_REPEATS <= n_values
+
+
 PARSE_THRESHOLD: Final = 0.95
 """Proporção mínima de valores convertíveis para um texto ser tratado como número ou data."""
 
@@ -79,7 +96,7 @@ class TypeInference:
     Attributes:
         column: Nome da coluna.
         kind: O que a coluna significa.
-        reason: Porque se chegou a este tipo, em português.
+        reason: Porque se chegou a este tipo (a mostrar na interface).
         stored_as_text: Se os valores estão guardados como texto, mas são números, datas
             ou booleanos (a limpeza deve convertê-los).
         text_format: Como converter o texto: o separador decimal (``"."`` ou ``","``) dos
@@ -99,20 +116,20 @@ def infer_column(series: pd.Series) -> TypeInference:
     values = series.dropna()
     if values.empty:
         kind = ColumnKind.NUMERIC if pd.api.types.is_numeric_dtype(series) else ColumnKind.TEXT
-        return TypeInference(name, kind, "A coluna não tem valores, só nulos.")
+        return TypeInference(name, kind, "The column has no values, only nulls.")
     # A ordem importa: no pandas, bool conta como numérico e category conta como texto.
     if pd.api.types.is_bool_dtype(series):
-        return TypeInference(name, ColumnKind.BOOLEAN, "Valores verdadeiro/falso.")
+        return TypeInference(name, ColumnKind.BOOLEAN, "True/false values.")
     if pd.api.types.is_datetime64_any_dtype(series):
-        return TypeInference(name, ColumnKind.DATETIME, "Valores do tipo data.")
+        return TypeInference(name, ColumnKind.DATETIME, "Date values.")
     if isinstance(series.dtype, pd.CategoricalDtype):
-        return TypeInference(name, ColumnKind.CATEGORICAL, "Coluna do tipo category do pandas.")
+        return TypeInference(name, ColumnKind.CATEGORICAL, "A pandas category column.")
     if pd.api.types.is_numeric_dtype(series):
         return _infer_numeric(name, values)
     if pd.api.types.is_string_dtype(series) or pd.api.types.is_object_dtype(series):
         return _infer_text(name, values.astype(str).str.strip())
     return TypeInference(
-        name, ColumnKind.TEXT, f"Tipo {series.dtype} sem tratamento próprio: fica como texto."
+        name, ColumnKind.TEXT, f"Type {series.dtype} has no handling of its own: it stays text."
     )
 
 
@@ -169,24 +186,24 @@ def looks_like_an_identifier_name(name: str) -> bool:
 def _infer_numeric(name: str, values: pd.Series) -> TypeInference:
     n_unique = int(values.nunique())
     if n_unique == 2 and set(values.unique().tolist()) <= {0, 1}:
-        return TypeInference(name, ColumnKind.BOOLEAN, "Só tem os valores 0 e 1.")
+        return TypeInference(name, ColumnKind.BOOLEAN, "It only has the values 0 and 1.")
     integral = bool((values == values.round()).all())
     if pd.api.types.is_integer_dtype(values) and n_unique == len(values) > 1:
         consecutive = int(values.max()) - int(values.min()) + 1 == len(values)
         if consecutive or looks_like_an_identifier_name(name):
-            why = "seguidos" if consecutive else "com nome de identificador"
+            why = "consecutive" if consecutive else "with an identifier's name"
             return TypeInference(
                 name,
                 ColumnKind.IDENTIFIER,
-                f"Inteiros todos diferentes e {why}: parece um identificador de cada linha.",
+                f"All-different integers, {why}: it looks like an identifier for each row.",
             )
     if integral and n_unique <= FEW_VALUES:
         return TypeInference(
             name,
             ColumnKind.NUMERIC,
-            f"Números inteiros com poucos valores distintos ({n_unique}): podem ser categorias.",
+            f"Whole numbers with few distinct values ({n_unique}): they may be categories.",
         )
-    return TypeInference(name, ColumnKind.NUMERIC, "Valores numéricos.")
+    return TypeInference(name, ColumnKind.NUMERIC, "Numeric values.")
 
 
 def _infer_text(name: str, text: pd.Series) -> TypeInference:
@@ -195,7 +212,7 @@ def _infer_text(name: str, text: pd.Series) -> TypeInference:
         return TypeInference(
             name,
             ColumnKind.BOOLEAN,
-            f"Texto com valores de verdadeiro/falso ({', '.join(sorted(lowered))}).",
+            f"Text with true/false values ({', '.join(sorted(lowered))}).",
             stored_as_text=True,
         )
     sample = text.sample(_SAMPLE_SIZE, random_state=0) if len(text) > _SAMPLE_SIZE else text
@@ -206,8 +223,8 @@ def _infer_text(name: str, text: pd.Series) -> TypeInference:
             return TypeInference(
                 name,
                 ColumnKind.NUMERIC,
-                f"{format_percent(ratio)} dos valores são números guardados como texto"
-                + (" (com vírgula decimal)." if decimal == "," else "."),
+                f"{format_percent(ratio)} of the values are numbers stored as text"
+                + (" (with a decimal comma)." if decimal == "," else "."),
                 stored_as_text=True,
                 text_format=decimal,
             )
@@ -216,7 +233,7 @@ def _infer_text(name: str, text: pd.Series) -> TypeInference:
         return TypeInference(
             name,
             ColumnKind.DATETIME,
-            f"{format_percent(best_ratio)} dos valores são datas guardadas como texto.",
+            f"{format_percent(best_ratio)} of the values are dates stored as text.",
             stored_as_text=True,
             text_format=best_format,
         )
@@ -225,20 +242,30 @@ def _infer_text(name: str, text: pd.Series) -> TypeInference:
     n_unique = int(text.nunique())
     if n_unique <= min(CATEGORICAL_MAX_UNIQUE, max(2, CATEGORICAL_MAX_RATIO * n_values)):
         return TypeInference(
-            name, ColumnKind.CATEGORICAL, f"Texto com poucos valores distintos ({n_unique})."
+            name, ColumnKind.CATEGORICAL, f"Text with few distinct values ({n_unique})."
         )
     with_spaces = float(text.str.contains(" ", regex=False).mean())
-    if n_unique == n_values and with_spaces < 0.1:
+    # Quase todos diferentes chega: as linhas repetidas repetem também o identificador.
+    if n_unique >= IDENTIFIER_UNIQUE_RATIO * n_values and with_spaces < 0.1:
+        each = "each row" if n_unique == n_values else "almost every row"
         return TypeInference(
             name,
             ColumnKind.IDENTIFIER,
-            "Um valor diferente em cada linha, sem espaços: parece um código ou identificador.",
+            f"A different value in {each}, without spaces: it looks like a code or identifier.",
+        )
+    if repeated_categories(n_unique, n_values):
+        return TypeInference(
+            name,
+            ColumnKind.TEXT,
+            f"{format_count(n_unique)} distinct values that repeat in {format_count(n_values)} "
+            f"rows: too many categories to give each one its own column (the limit is "
+            f"{CATEGORICAL_MAX_UNIQUE}).",
         )
     return TypeInference(
         name,
         ColumnKind.TEXT,
-        f"Texto livre: {format_count(n_unique)} valores distintos em "
-        f"{format_count(n_values)} linhas, demasiados para categorias.",
+        f"Free text: {format_count(n_unique)} distinct values in "
+        f"{format_count(n_values)} rows, too many for categories.",
     )
 
 

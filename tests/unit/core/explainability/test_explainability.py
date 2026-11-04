@@ -74,7 +74,7 @@ def test_the_partial_dependence_of_a_linear_model_is_a_straight_line(line: Datas
     assert slope == pytest.approx(coefficients(line)[0])
     assert np.allclose(np.diff(average) / np.diff(grid), slope)
     assert len(dependence.individual) > 0
-    assert dependence.output_labels == ("Previsão de target",)
+    assert dependence.output_labels == ("Prediction of target",)
 
 
 def test_classification_shows_the_probability_of_each_class() -> None:
@@ -93,7 +93,7 @@ def test_explanations_need_a_target_and_an_existing_feature(line: Dataset) -> No
     clustering = prepared(REGRESSION, PreparationConfig(task_type=TaskType.CLUSTERING))
     kmeans = MODELS.get("kmeans")().fit(clustering.train.X)
 
-    with pytest.raises(ModelError, match="não existe"):
+    with pytest.raises(ModelError, match="doesn't exist"):
         partial_dependence(model, line, "x99", seed=0)
-    with pytest.raises(ModelError, match="alvo"):
+    with pytest.raises(ModelError, match="against a target"):
         permutation_importance(kmeans, clustering, seed=0)

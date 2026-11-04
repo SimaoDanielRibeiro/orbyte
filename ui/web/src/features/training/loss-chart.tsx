@@ -31,7 +31,7 @@ export function LossCharts({ steps, height = 240 }: LossChartsProps) {
   const lossSeries: LineSeries[] = [
     {
       key: "loss",
-      label: "Loss no treino",
+      label: "Training loss",
       color: CATEGORICAL[0],
       points: steps.map((record) => ({ x: record.step, y: record.loss })),
     },
@@ -49,10 +49,10 @@ export function LossCharts({ steps, height = 240 }: LossChartsProps) {
       <LineChart
         series={lossSeries}
         height={height}
-        xLabel="Passo do treino"
+        xLabel="Training step"
         yLabel="Loss"
         formatY={formatStatistic}
-        description="A loss em cada passo do treino."
+        description="The loss at each training step."
         caption={<TopicText topic="loss" />}
       />
       {scores.length > 0 && (
@@ -67,11 +67,11 @@ export function LossCharts({ steps, height = 240 }: LossChartsProps) {
             })),
           }))}
           height={200}
-          xLabel="Passo do treino"
+          xLabel="Training step"
           yLabel={scores.length === 1 ? scores[0]?.label : undefined}
           yDomain={[0, 1]}
           formatY={(value) => formatPercent(value, 0)}
-          description="As métricas que o modelo mede em cada passo do treino."
+          description="The metrics the model measures at each training step."
         />
       )}
     </div>

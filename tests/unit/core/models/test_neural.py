@@ -80,7 +80,7 @@ def test_each_snapshot_shows_what_each_layer_does() -> None:
     make("mlp", hidden_layers=2, units=8, max_epochs=20).fit(X, y, context)
 
     layers = context.snapshots[-1][1]["layers"]
-    assert [layer["name"] for layer in layers] == ["Camada 1", "Camada 2", "Saída"]
+    assert [layer["name"] for layer in layers] == ["Layer 1", "Layer 2", "Output"]
     hidden = layers[0]
     assert len(hidden["activations"]) == len(hidden["stuck_units"]) == 8
     assert 0.0 <= hidden["stuck"] <= 1.0
@@ -119,7 +119,5 @@ def test_every_activation_trains_and_is_named(activation: str) -> None:
 
     state = make("mlp", activation=activation, max_epochs=10).fit(X, y).state()
 
-    assert (
-        state["activation"] == {"relu": "ReLU", "tanh": "tanh", "sigmoid": "sigmoide"}[activation]
-    )
+    assert state["activation"] == {"relu": "ReLU", "tanh": "tanh", "sigmoid": "sigmoid"}[activation]
     assert state["architecture"] == "2 → 16 → 16 → 2"

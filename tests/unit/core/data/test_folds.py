@@ -69,7 +69,7 @@ def test_a_large_training_set_is_sampled_keeping_the_class_proportions() -> None
     assert set(used.tolist()) <= set(whole.train.rows.tolist())  # o teste continua de fora
     assert np.bincount(labels.astype(np.int64)).tolist() == [20, 20, 20]
     step = next(step for step in folds[0].lineage.steps if step.operation == "sample_train")
-    assert step.description.startswith("Amostra de 60 linhas das 120 do treino")
+    assert step.description.startswith("Sample of 60 rows out of the 120 training rows")
 
 
 def test_the_same_seed_draws_the_same_sample() -> None:
@@ -93,7 +93,7 @@ def test_a_training_set_that_fits_is_not_sampled() -> None:
 
 
 def test_the_sample_needs_a_row_per_fold() -> None:
-    with pytest.raises(InvalidParameterError, match="uma linha por fold"):
+    with pytest.raises(InvalidParameterError, match="at least one row per fold"):
         prepare_folds(open_source(IRIS).load(), STRATIFIED, seeds=SeedManager(7), k=5, max_rows=3)
 
 
@@ -107,5 +107,5 @@ def test_a_target_with_an_unsupervised_task_becomes_a_reference() -> None:
     assert dataset.train.y is not None
     assert "species" not in dataset.feature_names
     task_step = next(step for step in dataset.lineage.steps if step.operation == "choose_task")
-    assert task_step.description.startswith("Referência species (não entra no treino")
+    assert task_step.description.startswith("Reference species (not used in the training")
     assert dataset.splits[Partition.TEST].y is not None

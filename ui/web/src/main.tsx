@@ -1,5 +1,6 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
+import "@fontsource-variable/unbounded";
 import "./styles/globals.css";
 import "./api/client";
 
@@ -13,7 +14,7 @@ import { router } from "./router";
 
 const root = document.getElementById("root");
 if (root === null) {
-  throw new Error("Falta o elemento #root no index.html.");
+  throw new Error("The #root element is missing from index.html.");
 }
 
 createRoot(root).render(

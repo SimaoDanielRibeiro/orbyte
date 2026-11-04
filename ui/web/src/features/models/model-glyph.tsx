@@ -4,8 +4,8 @@
  * ao ponto novo, a árvore cresce, os centróides andam até aos grupos, a luz passa pela rede…
  *
  * O desenho escolhe-se pelo que o backend já diz de cada modelo (a família e as tarefas), não pelo
- * nome: um modelo novo de uma família conhecida tem desenho sem mudar nada aqui. A cor é a da
- * família (`lib/families.ts`).
+ * nome: um modelo novo de uma família conhecida tem desenho sem mudar nada aqui. A cor é a do
+ * problema que o modelo resolve (`lib/problems.ts`, ADR 0048).
  *
  * O movimento são as classes `glyph-*` de `globals.css`: ciclos lentos, desencontrados entre
  * modelos (`delay`). Parado (com "reduzir movimento"), cada desenho fica no seu estado de base,

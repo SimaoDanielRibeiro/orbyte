@@ -14,12 +14,12 @@ from ml_lab.core.services.laboratory import LaboratoryDemo
 from ml_lab.core.training.step_metrics import STEP_METRICS
 
 SECTIONS = (
-    "intuicao",
-    "matematica-essencial",
-    "hiperparametros",
-    "quando-usar",
-    "armadilhas",
-    "o-que-observar-no-treino",
+    "intuition",
+    "essential-maths",
+    "hyperparameters",
+    "when-to-use",
+    "pitfalls",
+    "what-to-watch-in-training",
 )
 """As secções do modelo das fichas (``docs/algorithms/README.md``), por esta ordem."""
 

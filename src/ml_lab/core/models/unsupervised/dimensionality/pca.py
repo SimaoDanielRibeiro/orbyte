@@ -29,10 +29,10 @@ class SklearnPCAParams(PCAParams):
 
     whiten: bool = Field(
         default=False,
-        title="Branquear",
+        title="Whiten",
         description=(
-            "Dividir cada componente pelo seu desvio padrão, para todas terem variância 1. "
-            "Útil antes de outros modelos; perde-se a noção de qual componente varia mais."
+            "Divide each component by its standard deviation, so they all have variance 1. "
+            "Useful before other models; you lose track of which component varies most."
         ),
     )
 
@@ -45,8 +45,8 @@ class PCA(SklearnModel[SklearnPCAParams]):
         name="pca",
         display_name="PCA",
         summary=(
-            "Resume muitas features em poucas direções, as de maior variância: para ver os "
-            "dados num gráfico ou para os simplificar antes de outro modelo."
+            "Sums up many features in a few directions, those of greatest variance: to see the "
+            "data on a chart or to simplify it before another model."
         ),
         task_types=frozenset({TaskType.DIMENSIONALITY_REDUCTION}),
         family=ModelFamily.PROJECTION,

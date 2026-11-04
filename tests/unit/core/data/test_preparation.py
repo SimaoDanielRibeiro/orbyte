@@ -74,7 +74,7 @@ def test_nothing_is_learned_from_the_test_rows(passengers: pd.DataFrame) -> None
     # Depois da padronização, a média da idade no treino é 0; no teste, normalmente não.
     assert dataset.train.X[:, age].mean() == pytest.approx(0.0)
     step = next(s for s in dataset.lineage if s.operation == "impute")
-    assert f"{train_rows['Age'].median():.2f}".replace(".", ",") in step.description
+    assert f"{train_rows['Age'].median():.2f}" in step.description
 
 
 def test_the_same_seed_gives_the_same_split(passengers: pd.DataFrame) -> None:
@@ -138,11 +138,11 @@ def test_the_projection_is_part_of_the_dataset(passengers: pd.DataFrame) -> None
 @pytest.mark.parametrize(
     ("overrides", "error", "message"),
     [
-        ({"task_type": TaskType.REGRESSION}, InvalidParameterError, "não serve para o alvo"),
+        ({"task_type": TaskType.REGRESSION}, InvalidParameterError, "doesn't suit the target"),
         (
             {"target": None, "task_type": TaskType.BINARY_CLASSIFICATION},
             InvalidParameterError,
-            "precisa de uma coluna-alvo",
+            "needs a target column",
         ),
         (
             {
@@ -155,12 +155,12 @@ def test_the_projection_is_part_of_the_dataset(passengers: pd.DataFrame) -> None
                 )
             },
             DataError,
-            "nenhuma feature",
+            "No feature the model can use",
         ),
         (
             {"cleaning": (CleaningStep("drop_missing_rows", {"how": "any"}),)},
             DataError,
-            "não sobrou nenhuma linha",
+            "No rows were left",
         ),
     ],
 )
@@ -176,7 +176,7 @@ def test_impossible_configurations_are_explained(
 def test_stratification_needs_classes(numbers: pd.DataFrame) -> None:
     config = PreparationConfig(target="y", split=SplitConfig(SplitStrategy.STRATIFIED))
 
-    with pytest.raises(InvalidParameterError, match="precisa de classes"):
+    with pytest.raises(InvalidParameterError, match="needs classes"):
         prepare(table(numbers), config, seeds=SeedManager(0))
 
 
@@ -199,7 +199,7 @@ def test_task_options_say_what_the_chosen_task_changes() -> None:
 
     assert clustering.reference == "species"
     assert clustering.reference_note is not None
-    assert "não entra no treino" in clustering.reference_note
+    assert "doesn't go into the training" in clustering.reference_note
     assert clustering.split_strategies[0] is SplitStrategy.STRATIFIED  # há classes
     assert regression.reference is None
     assert SplitStrategy.STRATIFIED not in regression.split_strategies

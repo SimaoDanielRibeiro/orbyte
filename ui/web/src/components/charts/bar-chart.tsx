@@ -89,7 +89,7 @@ export function BarChart({
             <TooltipRow value={format(item.value, item)} label={item.label} />
             {item.error !== undefined && (
               <div className="text-muted-foreground tabular-nums">
-                ± {format(item.error, item)} entre repetições
+                ± {format(item.error, item)} across repeats
               </div>
             )}
             {valueLabel !== "" && <div className="text-muted-foreground">{valueLabel}</div>}
@@ -145,9 +145,9 @@ export function BarChart({
                     y={center}
                     dy="0.32em"
                     textAnchor="end"
-                    className="fill-foreground text-xs"
+                    className="fill-foreground text-[14px]"
                   >
-                    {truncate(item.label, Math.floor(plot.margin.left / 7))}
+                    {truncate(item.label, Math.floor(plot.margin.left / 7.6))}
                   </text>
                   <path
                     d={bar(left, center - THICKNESS / 2, width, THICKNESS, item.value >= 0)}
@@ -179,7 +179,7 @@ export function BarChart({
                     y={center}
                     dy="0.32em"
                     textAnchor={outside ? "start" : "end"}
-                    className="fill-muted-foreground text-xs tabular-nums"
+                    className="fill-muted-foreground text-[14px] tabular-nums"
                   >
                     {written}
                   </text>
@@ -294,7 +294,7 @@ export function Histogram({
                   y={y(tick)}
                   dy="0.32em"
                   textAnchor="end"
-                  className="fill-muted-foreground text-[12px] tabular-nums"
+                  className="fill-muted-foreground text-[13px] tabular-nums"
                 >
                   {formatCount(tick)}
                 </text>
@@ -307,7 +307,7 @@ export function Histogram({
                 x={x(tick)}
                 y={plot.height + 16}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[12px] tabular-nums"
+                className="fill-muted-foreground text-[13px] tabular-nums"
               >
                 {formatEdge(tick)}
               </text>
@@ -317,7 +317,7 @@ export function Histogram({
                 x={plot.width / 2}
                 y={plot.height + 32}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[12px]"
+                className="fill-muted-foreground text-[13px]"
               >
                 {xLabel}
               </text>
@@ -374,7 +374,7 @@ export function Histogram({
                   stroke="var(--foreground)"
                   strokeDasharray="4 3"
                 />
-                <text x={x(marker.value) + 4} y={10} className="fill-foreground text-[12px]">
+                <text x={x(marker.value) + 4} y={10} className="fill-foreground text-[13px]">
                   {marker.label}
                 </text>
               </g>

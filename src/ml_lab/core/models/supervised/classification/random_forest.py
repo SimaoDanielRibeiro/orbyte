@@ -32,10 +32,10 @@ class RandomForest(GrowingSklearnModel[ForestParams]):
 
     info = ModelInfo(
         name="random_forest",
-        display_name="Random Forest",
+        display_name="Random forest",
         summary=(
-            "Muitas árvores de decisão diferentes a votar: corrige o overfitting de cada árvore "
-            "e é um dos modelos mais fiáveis para dados em tabela."
+            "Many different decision trees voting: it corrects each tree's overfitting and is "
+            "one of the most reliable models for tabular data."
         ),
         task_types=frozenset({TaskType.BINARY_CLASSIFICATION, TaskType.MULTICLASS_CLASSIFICATION}),
         family=ModelFamily.ENSEMBLE,

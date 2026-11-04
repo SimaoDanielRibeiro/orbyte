@@ -18,7 +18,7 @@ SAMPLE: Final = 1_000
 
 @metric(
     "trustworthiness",
-    display_name="Confiança dos vizinhos",
+    display_name="Trustworthiness",
     task_types=(TaskType.DIMENSIONALITY_REDUCTION,),
     higher_is_better=True,
     needs=("X", "embedding"),

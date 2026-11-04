@@ -4,7 +4,9 @@
  * o coordenador cinzento, porque não são famílias de modelos (e têm o seu ícone). O agente de IA
  * tem um lilás que nenhuma família usa: vê-se logo que é outro tipo de agente (ADR 0042).
  */
-import type { AgentMessage } from "@/api/generated";
+import { Database, Network, Sparkles, Workflow, type LucideIcon } from "lucide-react";
+
+import type { AgentMessage, AgentRole } from "@/api/generated";
 import { familyColor } from "@/lib/families";
 
 export { familyColor };
@@ -12,6 +14,14 @@ export { familyColor };
 export const DATA_AGENT_COLOR = "#fafafa";
 export const COORDINATOR_COLOR = "#a0a0a0";
 export const AI_AGENT_COLOR = "#c4b5fd";
+
+/** O ícone de cada papel, o mesmo na conversa e na conversa em ecrã inteiro. */
+export const ROLE_ICONS: Readonly<Record<AgentRole, LucideIcon>> = {
+  data: Database,
+  coordinator: Workflow,
+  model: Network,
+  ai: Sparkles,
+};
 
 /** A cor de quem escreveu uma mensagem da conversa. */
 export function messageColor(message: AgentMessage): string {

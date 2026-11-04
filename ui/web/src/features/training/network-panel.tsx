@@ -23,7 +23,7 @@ export function NetworkPanel({ network, step }: NetworkPanelProps) {
       <NetworkView
         network={network}
         step={step}
-        description="As camadas da rede neuronal, com a ativação média de cada neurónio no passo à vista."
+        description="The neural network's layers, with each neuron's mean activation at the step shown."
         caption={<TopicText topic="network_diagram" />}
       />
       <div className="grid gap-10 @5xl/main:grid-cols-2">
@@ -39,9 +39,9 @@ export function NetworkPanel({ network, step }: NetworkPanelProps) {
           }))}
           logY
           height={240}
-          xLabel="Passo do treino"
-          yLabel="Gradiente"
-          description="O tamanho do gradiente dos pesos de cada camada, passo a passo."
+          xLabel="Training step"
+          yLabel="Gradient"
+          description="The size of each layer's weight gradient, step by step."
           caption={<TopicText topic="network_gradients" />}
         />
         <LineChart
@@ -59,10 +59,10 @@ export function NetworkPanel({ network, step }: NetworkPanelProps) {
             }))}
           height={240}
           yDomain={[0, 1]}
-          xLabel="Passo do treino"
-          yLabel="Neurónios parados"
+          xLabel="Training step"
+          yLabel="Stuck neurons"
           formatY={(value) => formatPercent(value, 0)}
-          description="A parte dos neurónios parados em cada camada escondida, passo a passo."
+          description="The share of stuck neurons in each hidden layer, step by step."
           caption={<TopicText topic="network_stuck" />}
         />
       </div>

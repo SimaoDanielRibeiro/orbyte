@@ -28,9 +28,9 @@ def test_the_package_is_previewed_saved_and_downloaded(
     download = client.get(f"/packages/{saved.json()['package_id']}/file")
 
     assert [candidate["run_id"] for candidate in candidates] == [run_id]
-    assert options["file_name"] == "iris-regressao-logistica.mllab"
+    assert options["file_name"] == "iris-logistic-regression.mllab"
     assert preview["parts"][0]["path"] == "README.md"
-    assert preview["parts"][0]["content"].startswith("# Iris — Regressão logística")
+    assert preview["parts"][0]["content"].startswith("# Iris — Logistic regression")
     assert saved.status_code == 201
     assert saved.json()["file_name"] == "iris.mllab"
     assert download.status_code == 200
@@ -74,5 +74,5 @@ def test_what_is_not_a_package_is_refused_clearly(client: TestClient) -> None:
 
     assert response.status_code == 422
     assert response.json()["code"] == "package"
-    assert "não é um pacote do ML Lab" in response.json()["message"]
+    assert "isn't an Orbyte package" in response.json()["message"]
     assert client.get("/packages/pkg-00000000").status_code == 404

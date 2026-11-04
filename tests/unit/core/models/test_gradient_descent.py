@@ -164,5 +164,5 @@ def test_the_learned_state_names_the_classes_and_one_weight_vector_for_two() -> 
 def test_a_single_class_is_refused() -> None:
     X, _ = binary()
 
-    with pytest.raises(ModelError, match="duas classes"):
+    with pytest.raises(ModelError, match="two classes"):
         LogisticRegressionGD().fit(X, np.zeros(len(X), dtype=np.int64))

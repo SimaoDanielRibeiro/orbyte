@@ -63,7 +63,7 @@ class Dimension:
             ModelError: Se a dimensão for uma lista de valores.
         """
         if self.low is None or self.high is None:
-            raise ModelError(f"{self.name} procura-se numa lista de valores, não entre dois.")
+            raise ModelError(f"{self.name} is searched in a list of values, not between two.")
         return self.low, self.high
 
     def sample(self, rng: np.random.Generator) -> Any:
@@ -91,16 +91,18 @@ class Dimension:
             if any(_same(value, option) for option in self.values):
                 return None
             shown = ", ".join(written_value(option) for option in self.values)
-            return f"{self.name} = {written_value(value)} não é um dos valores procurados ({shown})"
+            return (
+                f"{self.name} = {written_value(value)} isn't one of the values searched ({shown})"
+            )
         if isinstance(value, bool) or not isinstance(value, int | float):
-            return f"{self.name} tem de ser um número, e veio {written_value(value)}"
+            return f"{self.name} must be a number, and it came as {written_value(value)}"
         if self.integer and float(value) != round(value):
-            return f"{self.name} tem de ser um número inteiro, e veio {written_value(value)}"
+            return f"{self.name} must be a whole number, and it came as {written_value(value)}"
         low, high = self.bounds
         if not low <= value <= high:
             return (
-                f"{self.name} = {written_value(value)} sai do espaço procurado "
-                f"(de {written_value(low)} a {written_value(high)})"
+                f"{self.name} = {written_value(value)} is outside the searched space "
+                f"(from {written_value(low)} to {written_value(high)})"
             )
         return None
 
@@ -113,17 +115,21 @@ class Dimension:
             return {"type": "integer", "minimum": int(low), "maximum": int(high)}
         return {"type": "number", "minimum": low, "maximum": high}
 
+    def shown(self, value: Any) -> str:
+        """Um valor como se mostra: pelo nome, se tiver (``x-labels``), ou escrito."""
+        return self.labels.get(str(value), written_value(value))
+
     @property
     def description(self) -> str:
-        """O que se procura, em português ("C: de 0,1 a 100, em escala logarítmica")."""
+        """O que se procura, por extenso ("C: from 0.1 to 100, on a logarithmic scale")."""
         if self.values:
             shown = (self.labels.get(str(value), written_value(value)) for value in self.values)
             return f"{self.title}: {', '.join(shown)}"
         low, high = self.bounds
-        scale = ", em escala logarítmica" if self.log else ""
+        scale = ", on a logarithmic scale" if self.log else ""
         if self.integer:
-            return f"{self.title}: de {written_value(int(low))} a {written_value(int(high))}"
-        return f"{self.title}: de {written_value(low)} a {written_value(high)}{scale}"
+            return f"{self.title}: from {written_value(int(low))} to {written_value(int(high))}"
+        return f"{self.title}: from {written_value(low)} to {written_value(high)}{scale}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,7 +167,7 @@ class SearchSpace:
         """
         known = {dimension.name: dimension for dimension in self.dimensions}
         found = [
-            f"{name} não é um hiperparâmetro procurado em {self.model}"
+            f"{name} isn't a hyperparameter searched in {self.model}"
             for name in values
             if name not in known
         ]
@@ -203,11 +209,11 @@ def search_space(model: type[LabModel[Any]]) -> SearchSpace:
         title = spec.title or name
         integer = spec.annotation is int
         if not isinstance(search, Mapping) or len(search) != 1:
-            raise ModelError(f"O x-search de {where} tem de ter só «values» ou só «range».")
+            raise ModelError(f"The x-search of {where} must have only “values” or only “range”.")
         if "values" in search:
             values = search["values"]
             if not isinstance(values, list | tuple) or not values:
-                raise ModelError(f"O x-search de {where} tem de ter pelo menos um valor.")
+                raise ModelError(f"The x-search of {where} must have at least one value.")
             labels = extra.get("x-labels", {})
             dimensions.append(
                 Dimension(name, title, values=tuple(values), integer=integer, labels=dict(labels))
@@ -216,10 +222,12 @@ def search_space(model: type[LabModel[Any]]) -> SearchSpace:
             low, high = _bounds(search["range"], where)
             log = extra.get("x-scale") == "log"
             if log and low <= 0:
-                raise ModelError(f"O x-search de {where} é logarítmico: o mínimo tem de ser > 0.")
+                raise ModelError(
+                    f"The x-search of {where} is logarithmic: the minimum must be > 0."
+                )
             dimensions.append(Dimension(name, title, low=low, high=high, log=log, integer=integer))
         else:
-            raise ModelError(f"O x-search de {where} tem de ter «values» ou «range».")
+            raise ModelError(f"The x-search of {where} must have “values” or “range”.")
     return SearchSpace(info.name, tuple(dimensions))
 
 
@@ -229,7 +237,9 @@ def _bounds(bounds: Any, where: str) -> tuple[float, float]:
         isinstance(bound, int | float) and not isinstance(bound, bool) for bound in bounds
     )
     if not numbers or len(bounds) != 2 or bounds[0] >= bounds[1]:
-        raise ModelError(f"O x-search de {where} tem de ser [mínimo, máximo], com mínimo < máximo.")
+        raise ModelError(
+            f"The x-search of {where} must be [minimum, maximum], with minimum < maximum."
+        )
     return float(bounds[0]), float(bounds[1])
 
 

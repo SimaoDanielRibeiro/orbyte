@@ -67,7 +67,7 @@ def test_missing_values_are_graded_by_proportion() -> None:
 
     assert few[0].level == "info"
     assert some[0].level == "warning"
-    assert "considera removê-la" in many[0].message
+    assert "consider dropping it" in many[0].message
 
 
 def test_skewed_columns_and_outliers_are_noted() -> None:

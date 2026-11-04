@@ -40,18 +40,18 @@ class TSNEParams(Hyperparameters):
         default=30.0,
         ge=2,
         le=100,
-        title="Perplexidade",
+        title="Perplexity",
         description=(
-            "Mais ou menos quantos vizinhos cada ponto tenta manter perto. Pequena: muitos "
-            "grupinhos; grande: a estrutura global, mais esborratada."
+            "Roughly how many neighbours each point tries to keep close. Small: many tiny "
+            "clusters; large: the global structure, more smudged."
         ),
     )
     max_iter: int = Field(
         default=1_000,
         ge=250,
         le=5_000,
-        title="Máximo de iterações",
-        description="Quantos passos de gradiente, no máximo, para arrumar o mapa.",
+        title="Maximum iterations",
+        description="How many gradient steps, at most, to lay out the map.",
     )
 
 
@@ -67,8 +67,8 @@ class TSNE(SklearnModel[TSNEParams]):
         name="tsne",
         display_name="t-SNE",
         summary=(
-            "Desenha os dados num mapa 2D em que pontos parecidos ficam juntos: ótimo para ver "
-            "grupos, mas as distâncias entre grupos enganam."
+            "Draws the data on a 2D map where similar points stay together: great for seeing "
+            "clusters, but the distances between clusters mislead."
         ),
         task_types=frozenset({TaskType.DIMENSIONALITY_REDUCTION}),
         family=ModelFamily.PROJECTION,
@@ -101,8 +101,8 @@ class TSNE(SklearnModel[TSNEParams]):
     def _fit(self, X: Features, y: Target | None, context: TrainingContext) -> None:
         if self.hyperparameters.perplexity >= len(X):
             raise ModelError(
-                f"A perplexidade ({self.hyperparameters.perplexity:g}) tem de ser menor do que o "
-                f"número de linhas de treino ({len(X)}): escolhe uma menor."
+                f"The perplexity ({self.hyperparameters.perplexity:g}) has to be smaller than "
+                f"the number of training rows ({len(X)}): pick a smaller one."
             )
         estimator = self.build_estimator()
         self.estimator_ = self._fit_estimator(estimator, X, None)
@@ -113,8 +113,8 @@ class TSNE(SklearnModel[TSNEParams]):
     def _transform(self, X: Features) -> NDArray[np.float64]:
         if not same_rows(X, self._train):
             raise CapabilityError(
-                "O t-SNE só coloca no mapa os pontos com que treinou: para ver outros pontos, "
-                "treina-o outra vez com eles."
+                "t-SNE only places on the map the points it trained on: to see other points, "
+                "train it again with them."
             )
         return self._embedding.copy()
 

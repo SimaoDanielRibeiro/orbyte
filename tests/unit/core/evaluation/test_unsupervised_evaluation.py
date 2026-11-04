@@ -11,6 +11,7 @@ from ml_lab.core.evaluation.anomaly import AnomalyEvaluator
 from ml_lab.core.evaluation.clustering import ClusteringEvaluator, group_names
 from ml_lab.core.evaluation.dimensionality import DimensionalityEvaluator
 from ml_lab.core.evaluation.metrics.base import METRICS, MetricInputs
+from ml_lab.core.foundation.notices import Notice, NoticeLevel
 from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import MODELS, LabModel
 
@@ -94,7 +95,7 @@ def test_the_clustering_report_crosses_the_groups_with_the_reference() -> None:
     assert report.metric("adjusted_rand").value == pytest.approx(1.0)
     matrix = report.confusion_matrix
     assert matrix is not None
-    assert matrix.columns == ("Grupo 1", "Grupo 2", "Grupo 3")
+    assert matrix.columns == ("Group 1", "Group 2", "Group 3")
     assert sorted(max(row) for row in matrix.counts) == [40, 40, 40]  # cada classe num só grupo
 
 
@@ -112,7 +113,7 @@ def test_without_a_reference_the_clustering_report_only_measures_the_shape() -> 
 
 
 def test_group_names_put_the_noise_last() -> None:
-    assert group_names(np.array([1, 0, -1, 1])) == ("Grupo 1", "Grupo 2", "Ruído")
+    assert group_names(np.array([1, 0, -1, 1])) == ("Group 1", "Group 2", "Noise")
 
 
 def test_a_model_that_only_maps_its_training_points_has_no_test_report() -> None:
@@ -163,3 +164,59 @@ def test_the_anomaly_report_uses_a_binary_reference_and_explains_a_wrong_one() -
     assert report.find("anomaly_precision") is not None
     assert three.find("anomaly_precision") is None
     assert "reference_not_binary" in [notice.code for notice in three.notices]
+
+
+def test_a_detector_that_flags_nothing_is_warned_only_if_it_missed_real_anomalies() -> None:
+    X, _ = clouds()
+    model = make("isolation_forest", contamination=0.001).fit(X)
+    # Pontos no meio das nuvens: com um limiar tão alto, nenhum parece anómalo.
+    centers = np.repeat([[0.0, 0.0], [6.0, 0.0], [3.0, 5.0]], 10, axis=0)
+    test = centers + np.random.default_rng(1).normal(scale=0.1, size=centers.shape)
+    assert not model.predict(test).any()
+
+    def nothing_flagged(reference: NDArray[np.int64] | None) -> Notice | None:
+        report = AnomalyEvaluator().evaluate(
+            model,
+            test,
+            reference,
+            partition=Partition.TEST,
+            task_type=TaskType.ANOMALY_DETECTION,
+            class_labels=("normal", "anomaly") if reference is not None else (),
+        )
+        return next((n for n in report.notices if n.code == "nothing_flagged"), None)
+
+    two = np.zeros(len(test), dtype=np.int64)
+    two[:2] = 1
+    missed = nothing_flagged(two)
+    assert missed is not None
+    assert missed.level is NoticeLevel.WARNING
+    assert "missed both real anomalies" in missed.message
+    # Sem anomalias verdadeiras no teste, não marcar nada é acertar.
+    assert nothing_flagged(np.zeros(len(test), dtype=np.int64)) is None
+    # Sem referência não se sabe se havia o que marcar: fica uma nota, não um aviso.
+    unknown = nothing_flagged(None)
+    assert unknown is not None
+    assert unknown.level is NoticeLevel.INFO
+
+
+def test_a_detector_that_only_flags_normal_rows_is_warned() -> None:
+    X, _ = clouds()
+    X = np.vstack([X, [[20.0, 20.0], [-15.0, 10.0]]])
+    model = make("isolation_forest", contamination=0.02).fit(X)
+    flags = model.predict(X)
+    reference = np.zeros(len(X), dtype=np.int64)
+    reference[np.flatnonzero(flags == 0)[:2]] = 1  # duas linhas que ele não marcou
+
+    report = AnomalyEvaluator().evaluate(
+        model,
+        X,
+        reference,
+        partition=Partition.TEST,
+        task_type=TaskType.ANOMALY_DETECTION,
+        class_labels=("normal", "anomaly"),
+    )
+
+    caught = [n for n in report.notices if n.code == "no_anomaly_caught"]
+    assert len(caught) == 1
+    assert caught[0].level is NoticeLevel.WARNING
+    assert "it missed both real anomalies" in caught[0].message

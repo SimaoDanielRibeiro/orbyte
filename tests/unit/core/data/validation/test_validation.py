@@ -34,13 +34,24 @@ def codes(notices: tuple[Notice, ...]) -> list[str]:
         ("dados.csv.gz", "delimited"),
         ("livro.xlsx", "excel"),
         ("livro.xlsm", "excel"),
+        ("livro-antigo.XLS", "excel"),
+        ("registos.json", "json"),
+        ("linhas.jsonl", "json"),
+        ("linhas.NDJSON", "json"),
+        ("linhas.jsonl.gz", "json"),
+        ("colunas.parquet", "parquet"),
+        ("colunas.pq", "parquet"),
     ],
 )
 def test_supported_formats(name: str, expected: str) -> None:
     assert file_format(Path(name)) == expected
 
 
-@pytest.mark.parametrize("name", ["dados.json", "livro.xls", "dados.gz", "dados"])
+# O Excel e o Parquet já vêm comprimidos por dentro: com um .gz por cima, não se leem.
+@pytest.mark.parametrize(
+    "name",
+    ["dados.sav", "livro.xls.gz", "colunas.parquet.gz", "dados.gz", "dados", "livro.xlsx.gz"],
+)
 def test_unsupported_formats_list_the_alternatives(name: str) -> None:
     with pytest.raises(DataSourceError, match=r"\.csv"):
         file_format(Path(name))
@@ -134,7 +145,7 @@ def test_rows_without_any_value_are_counted() -> None:
 
     notice = next(n for n in validate_table(frame).notices if n.code == "empty_rows")
 
-    assert "10 linhas sem nenhum valor" in notice.message
+    assert "10 rows with no values at all" in notice.message
 
 
 def test_merged_reports_put_errors_first() -> None:
