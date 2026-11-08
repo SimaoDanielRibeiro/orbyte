@@ -20,6 +20,17 @@ def strict(text: str) -> Any:
     return json.loads(text, parse_constant=refuse)
 
 
+def new_step(client: TestClient, run_id: str, *, after: int, timeout: float = 10) -> int:
+    """Espera que o treino passe do passo ``after`` e devolve o passo a que chegou."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        steps: int = client.get(f"/experiments/{run_id}/job").json()["progress"]["steps"]
+        if steps > after:
+            return steps
+        time.sleep(0.02)
+    raise AssertionError(f"O treino {run_id} não passou do passo {after} em {timeout} s.")
+
+
 def test_training_runs_in_the_background_and_ends_with_a_result(
     client: TestClient, config: Config, finished: Waiter
 ) -> None:
@@ -54,15 +65,22 @@ def test_updates_bring_only_what_is_new(
 def test_a_paused_training_has_no_result_yet_and_can_be_stopped(
     client: TestClient, config: Config, finished: Waiter
 ) -> None:
-    # O máximo de épocas, a tolerância mínima e passos pequenos: não acaba antes da pausa.
-    long = config("linear_regression_gd", max_epochs=20_000, tol=1e-10, learning_rate=0.001)
-    long["preparation"] = {"target": "petal_width"}
+    # Entre retomar e parar, o treino corre à solta: para não acabar sozinho antes do cancel,
+    # tem de durar muito mais do que esses pedidos. O máximo de épocas em 5 000 pontos, com
+    # passos pequenos e a tolerância mínima, dura segundos; e, com tantos pontos, o tempo vai
+    # para as contas do NumPy, que largam o GIL, por isso os pedidos não esperam pelo treino.
+    long = config("logistic_regression_gd", max_epochs=20_000, tol=1e-10, learning_rate=0.0001)
+    long["dataset"] = {
+        "kind": "synthetic",
+        "params": {"generator": "blobs", "seed": 0, "parameters": {"n_samples": 5_000}},
+    }
+    long["preparation"] = {"target": "target"}
     run_id = client.post("/experiments", json=long).json()["run_id"]
 
     paused = client.post(f"/experiments/{run_id}/pause").json()
     early = client.get(f"/experiments/{run_id}/result")
     resumed = client.post(f"/experiments/{run_id}/resume").json()
-    time.sleep(0.1)
+    moved = new_step(client, run_id, after=resumed["progress"]["steps"])  # voltou a treinar
     client.post(f"/experiments/{run_id}/cancel")
 
     assert paused["status"] == "paused"
@@ -72,7 +90,7 @@ def test_a_paused_training_has_no_result_yet_and_can_be_stopped(
     assert finished(run_id)["status"] == "finished"
     result = client.get(f"/experiments/{run_id}/result").json()
     assert result["stopped_early"] is True
-    assert 0 < len(result["history"]) < 20_000
+    assert moved <= len(result["history"]) < 20_000
 
 
 def test_the_websocket_sends_the_training_until_it_ends(client: TestClient, config: Config) -> None:
