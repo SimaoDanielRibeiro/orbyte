@@ -76,7 +76,12 @@ método novo no serviço. A gaveta do run continua a ter o seu "Delete the run".
   antigo, uma porta ocupada (uma API esquecida noutro terminal), e as dependências da interface,
   que instala com `npm ci` (as versões exatas do `package-lock.json`) da primeira vez e sempre que
   o `package-lock.json` mudar depois delas (um `git pull`). As do backend, o `uv run` já as acerta
-  com o `uv.lock`;
+  com o `uv.lock`, e cria o ambiente da primeira vez: a instalação rápida do README são só o
+  `git clone`, o `cd` e o `uv run python scripts/dev.py`, sem `uv sync`;
+- o mesmo script espera que a API (`/health`) e a interface respondam, diz "Pronto" e abre a
+  interface no browser (`--no-browser` não abre). Abrir a página antes de a API acabar de arrancar
+  mostrava o ecrã de erro. No Linux sem sessão gráfica (por SSH) não abre nada: o `webbrowser`
+  abria um browser de texto dentro do terminal;
 - o CI ganha o job "Outros sistemas": no Windows e no macOS (Apple Silicon), o `uv sync --frozen`,
   os testes rápidos, o `npm ci`, o `npm run check` e o build. Corre a cada push no `main` com o
   repositório público, e à mão sempre: num repositório privado, cada minuto do macOS conta por

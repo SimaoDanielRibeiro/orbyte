@@ -32,8 +32,9 @@ uv run python scripts/dev.py
 ```
 
 Na primeira vez, e depois de um `git pull` que mude o `package-lock.json`, o script instala as
-dependências com `npm ci` (as versões exatas do lockfile). Também se arrancam à parte, cada uma
-no seu terminal: `uv run python -m ml_lab.api` na raiz e `npm run dev` aqui.
+dependências com `npm ci` (as versões exatas do lockfile); quando a API e a interface respondem,
+abre a interface no browser (`--no-browser` não abre). Também se arrancam à parte, cada uma no
+seu terminal: `uv run python -m ml_lab.api` na raiz e `npm run dev` aqui.
 
 Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço de
 `ML_LAB_API_HOST` e `ML_LAB_API_PORT` (os mesmos do `.env` da raiz do projeto).

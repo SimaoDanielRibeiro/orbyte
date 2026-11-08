@@ -961,7 +961,7 @@ cada vez.
 | 7 — API ✅ | Rotas de dados, catálogo e experiências; treino em background; WebSocket | — (a simples continua a usar os serviços) | FastAPI, Uvicorn | Pela documentação em `/docs`: carregar CSV, lançar treino e receber snapshots |
 | 8 — Reinforcement learning ✅ | Contratos de ambiente, agente e episódio; ambiente em grelha próprio; Q-learning didático; DQN em PyTorch | Reinforcement learning | — | Um agente aprende a atravessar a grelha e o run fica registado |
 | 9 — Agentes (AutoML) ✅ | Agente de dados (limpeza, tarefa, divisão e transformações, cada decisão com a razão); um agente por família de modelos; coordenador com triagem e procura aleatória, escolhidas por validação cruzada só com o treino; orçamento, pausa e paragem; o vencedor treina como um run normal | Agentes (o modo automático, ao lado do manual) | — (procura de hiperparâmetros, validação cruzada para escolher) | No Titanic, os agentes preparam os dados, experimentam uma família de cada vez e afinam os finalistas sem tocar no teste; o vencedor usa o teste uma só vez, fica no histórico e abre-se no Avaliar |
-| 10 — Interface aprimorada | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
+| 10 — Interface aprimorada ✅ | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
 | 11 — Guardar e carregar o modelo ✅ | A preparação aprendida fica com o dataset e passa a JSON; o pacote `.mllab` (um ZIP com a ficha, o manifesto assinado, a entrada, a preparação, o run, o modelo e o ONNX); a biblioteca dos pacotes; carregar um pacote, com um aviso se vier de fora; o `PackageService` (ADR 0039) | Guardar: o ficheiro pré-visualizado parte a parte antes de existir, a biblioteca e o carregar | ONNX (`onnx`, `skl2onnx`, `onnxruntime`) | No Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o gravar; guardá-lo descarrega um `.mllab` que abre em qualquer programa de ZIP; carregado noutra instalação, pede confirmação e o run abre no Treinar e avaliar; e o modelo de dentro dá as mesmas previsões do run original, no laboratório e no ONNX Runtime |
 | 12 — Prever | Abrir um pacote, transformar linhas novas com a preparação guardada, prever com a explicação de cada previsão e avisos de extrapolação; um CSV inteiro de uma vez | Prever: o formulário gerado da entrada do pacote, a previsão ao vivo, o "e se…" e o ficheiro com a coluna da previsão | — | Escolher o pacote do Titanic, preencher um passageiro e ver a previsão mudar ao mexer na idade; um CSV inteiro sai com a previsão de cada linha |
 | 13 — Agentes de IA ✅ | A interface `LanguageModel` e o cliente do Ollama, com o raciocínio à parte, saída estruturada e ferramentas; o estado do modelo como serviço; um agente de IA que propõe hiperparâmetros a pensar (o coordenador continua a medir); um analista que responde sobre a procura com ferramentas; as respostas guardadas para repetir a procura (ADR 0042) | Agentes: o agente de IA no fluxograma e o pensamento ao vivo na conversa; a comparação com a procura aleatória; o analista | Ollama (`qwen3:8b`) | Com o Ollama aberto, no Titanic, o agente de IA pensa à vista antes de cada proposta, as propostas medem-se como as outras sem tocar no teste, e o analista explica o vencedor usando as ferramentas; sem o Ollama, o ecrã diz como o ligar e tudo o resto funciona |
@@ -3035,3 +3035,29 @@ Uma lição: no Windows, o `npm ci` não consegue apagar um `node_modules` com u
 correr dessa pasta (o ficheiro nativo do `lightningcss` fica preso, `EPERM`). O
 `scripts/dev.py` não cai nisto, porque verifica a porta 5173 antes de instalar; quem tiver outro
 Vite aberto noutra porta tem de o fechar primeiro.
+
+### A instalação rápida e a revisão antes do GitHub
+
+O pedido seguinte: o commit, uma revisão geral do projeto e o README com uma maneira rápida de
+instalar e arrancar (ADR 0054).
+
+- **A instalação rápida são três comandos**: `git clone`, `cd ml-lab` e
+  `uv run python scripts/dev.py`. O `uv run` cria o ambiente e instala o `uv.lock` da primeira
+  vez (confirmado numa cópia limpa, sem `.venv`), por isso o `uv sync` deixou de ser um passo.
+- **O arranque abre o browser quando está pronto**: o `scripts/dev.py` espera pelo `/health` da
+  API e pela página do Vite, diz "Pronto" e abre a interface (`--no-browser` não abre). Abrir a
+  página antes de a API acabar de arrancar mostrava o ecrã de erro.
+- **O README arrumou-se** para quem chega: a instalação rápida e o que a app faz em cima, os
+  pormenores de cada sistema a seguir, e a tabela das fases no fim, com a fase 10 concluída (as
+  etapas 10.1 a 10.9 estavam todas feitas, mas o estado tinha ficado "em curso").
+
+**A revisão** passou por tudo o que se verifica sozinho, e não encontrou erros:
+
+- os 2544 testes passam (2428 do backend, com os seis novos do `scripts/dev.py`, 66 da interface
+  e 50 de ponta a ponta), também os dois que falam com o `qwen3:8b` a sério;
+- nenhuma dependência com avisos de segurança: o `pip-audit` no backend e o `npm audit` na
+  interface;
+- os 14 ecrãs abrem sem nenhum erro na consola, com os dados de quem usa o laboratório;
+- nenhum `TODO` por fazer; e as regras mais exigentes do ruff, corridas só para ver, só
+  encontraram estilo e falsos alarmes (o SQL junta só nomes de colunas fixos, e os valores vão
+  sempre como parâmetros).

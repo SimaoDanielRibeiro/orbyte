@@ -8,6 +8,9 @@ instalar ou desatualizadas depois de um ``git pull``.
 import importlib.util
 import os
 import socket
+import threading
+from collections.abc import Iterator
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import ModuleType
 
@@ -35,6 +38,57 @@ def test_the_node_version_is_read_as_node_writes_it(
     dev: ModuleType, written: str, major: int | None
 ) -> None:
     assert dev.parse_node_major(written) == major
+
+
+class _Health(BaseHTTPRequestHandler):
+    """Responde como a API: 200 em ``/health`` e 404 no resto."""
+
+    def do_GET(self) -> None:
+        self.send_response(200 if self.path == "/health" else 404)
+        self.end_headers()
+
+    def log_message(self, format: str, *args: object) -> None:
+        """Sem registos no terminal dos testes."""
+
+
+@pytest.fixture
+def server() -> Iterator[str]:
+    """Um servidor HTTP local, numa porta livre; dá o endereço."""
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), _Health)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{httpd.server_address[1]}"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_it_is_ready_only_when_the_address_answers(dev: ModuleType, server: str) -> None:
+    assert dev.responds(f"{server}/health") is True
+    assert dev.responds(f"{server}/nada") is False  # responde, mas com um erro
+    port = int(server.rsplit(":", 1)[1])
+    with socket.socket() as probe:  # uma porta livre, onde ninguém escuta
+        probe.bind(("127.0.0.1", 0))
+        free = probe.getsockname()[1]
+    assert free != port
+    assert dev.responds(f"http://127.0.0.1:{free}/health") is False
+
+
+@pytest.mark.parametrize(
+    ("platform", "environ", "opens"),
+    [
+        ("win32", {}, True),
+        ("darwin", {}, True),
+        ("linux", {"DISPLAY": ":0"}, True),
+        ("linux", {"WAYLAND_DISPLAY": "wayland-0"}, True),
+        ("linux", {}, False),  # por SSH, sem ecrã: abria um browser de texto no terminal
+    ],
+)
+def test_the_browser_only_opens_where_there_is_a_screen(
+    dev: ModuleType, platform: str, environ: dict[str, str], opens: bool
+) -> None:
+    assert dev.can_open_browser(platform, environ) is opens
 
 
 def test_a_port_with_someone_listening_is_in_use(dev: ModuleType) -> None:

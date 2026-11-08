@@ -1,32 +1,53 @@
 # Orbyte
 
+[![CI](https://github.com/SimaoDanielRibeiro/ml-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/SimaoDanielRibeiro/ml-lab/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![Node.js 24+](https://img.shields.io/badge/node.js-24%2B-green.svg)
+
 Laboratório de machine learning para aprender. Carregas um dataset, escolhes um tipo de
 aprendizagem e um algoritmo (ou pedes aos agentes que o procurem), e vês o treino passo a passo,
 as métricas de avaliação, as explicações das previsões e o registo de cada experiência.
+
+## Instalação rápida
+
+Precisas de três programas: o [Git](https://git-scm.com/downloads), o
+[uv](https://docs.astral.sh/uv/getting-started/installation/) (que traz o Python) e o
+[Node.js](https://nodejs.org/) 24 ou mais recente. Depois, num terminal:
+
+```bash
+git clone https://github.com/SimaoDanielRibeiro/ml-lab.git
+cd ml-lab
+uv run python scripts/dev.py
+```
+
+Da primeira vez, o último comando instala tudo sozinho (o Python 3.12, as bibliotecas e a
+interface: uns minutos) e, quando estiver pronto, abre o Orbyte no browser, em
+<http://localhost:5173>. `Ctrl+C` pára. Para atualizar mais tarde: `git pull` e o mesmo comando.
+
+Os comandos para instalar o uv e o Node.js em cada sistema, e o que fazer se alguma coisa
+falhar, estão em [Começar](#começar).
+
+## O que dá para fazer
+
+- **Treinar à mão:** carregar um dataset (CSV, Excel, JSON, Parquet ou um dos exemplos),
+  explorá-lo, prepará-lo e treinar um dos 34 modelos, com a fronteira de decisão a mover-se
+  época a época.
+- **Pedir aos agentes:** um agente de dados, um por família de modelos e um coordenador procuram
+  o melhor modelo com validação cruzada, e dizem por palavras o que mediram. Com o
+  [Ollama](https://ollama.com/), um agente de IA propõe hiperparâmetros a pensar à vista, e um
+  analista responde, numa conversa, a perguntas sobre a procura.
+- **Perceber o modelo:** cada métrica com a fórmula e a conta do run, a história do treino e
+  as explicações das previsões (o que pesa, como uma feature muda a previsão, porque saiu uma).
+- **Aprender:** seis demonstrações no Lab, o glossário das métricas e o reinforcement learning
+  numa grelha (Q-learning e DQN).
+- **Guardar:** cada treino fica no History, para comparar e repetir, e um modelo guarda-se num
+  ficheiro `.mllab` (com o ONNX) que se carrega noutra instalação.
 
 Chamava-se ML Lab: o site passou a Orbyte, todo em inglês, e o pacote Python continua a ser
 `ml_lab` (ADR 0043). O plano completo está em [docs/architecture.md](docs/architecture.md); as
 decisões e as suas razões, em [docs/adr/](docs/adr/); e cada algoritmo tem a sua ficha didática
 em [docs/algorithms/](docs/algorithms/).
-
-## Estado
-
-| Fase | O que entrega | Estado |
-|---|---|---|
-| 0 — Fundações | Repositório, configuração, logs, registo de componentes, tipos, eventos, seeds, testes de arquitetura | ✅ concluída |
-| 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Data, Explore e Prepare | ✅ concluída |
-| 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação de classificação, serviço de experiências | ✅ concluída |
-| 3 — Eventos e snapshots | Contexto de treino, snapshots com a fronteira de decisão, treino em segundo plano, regressões didáticas em NumPy | ✅ concluída |
-| 4 — Catálogo clássico | Os modelos supervisionados e não supervisionados, avaliadores de todas as tarefas, diagnósticos, validação cruzada, explicações das previsões | ✅ concluída |
-| 5 — Memória | Registo de experiências em SQLite, runs guardados com o modelo, comparação e reprodução de runs | ✅ concluída |
-| 6 — Deep learning | Adaptador PyTorch, rede neuronal (MLP) de classificação e de regressão, early stopping, gradientes e ativações de cada camada | ✅ concluída |
-| 7 — API | Os serviços por HTTP com FastAPI (uma rota por método, documentação em `/docs`), treino acompanhado por HTTP ou WebSocket, erros com um código e uma mensagem que diz o que fazer | ✅ concluída |
-| 8 — Reinforcement learning | Uma grelha com três mapas, Q-learning (NumPy) e DQN (PyTorch), a política aprendida, uma lição por agente, runs no histórico | ✅ concluída |
-| 9 — Agentes (AutoML) | Um agente de dados, um agente por família de modelos e um coordenador que procura o melhor modelo com validação cruzada, sem tocar no teste | ✅ concluída |
-| 10 — Interface aprimorada | Todos os ecrãs em React, por cima da API; a interface simples, em Streamlit, saiu depois dela (ADR 0031) | em curso |
-| 11 — Guardar e carregar o modelo | O pacote `.mllab` (a ficha, o manifesto assinado, a preparação, o run, o modelo e o ONNX), a biblioteca e o carregar com aviso | ✅ concluída |
-| 12 — Prever | Prever com um pacote, linha a linha ou um CSV inteiro | por fazer |
-| 13 — Agentes de IA | Um modelo de linguagem local (Ollama) que propõe hiperparâmetros a pensar à vista, e um analista que responde sobre a procura numa conversa, com ferramentas; as regras continuam a medir (ADR 0042, 0053 e 0054) | ✅ concluída |
 
 ## Começar
 
@@ -59,42 +80,39 @@ faz uma vez.
 Depois de os instalar, abre um terminal novo: é ele que encontra os programas acabados de
 instalar.
 
-### 2. Descarregar e instalar o projeto
+### 2. Descarregar o projeto
 
 ```bash
 git clone https://github.com/SimaoDanielRibeiro/ml-lab.git
 cd ml-lab
-uv sync
 ```
-
-O `uv sync` cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em `uv.lock`
-(as bibliotecas do pacote e as ferramentas de desenvolvimento) e instala o pacote `ml_lab` em
-modo editável: as alterações em `src/` ficam ativas sem reinstalar. Da primeira vez demora uns
-minutos, sobretudo pelo PyTorch (as redes neuronais): no Windows e no macOS vem a versão só para
-o processador, que chega para as redes do laboratório; no Linux vem com as bibliotecas do CUDA
-(uns 3 GB a descarregar).
 
 Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no repositório, em
 `data/samples/`. Para os voltar a descarregar das origens, com verificação SHA-256:
-
-```bash
-uv run python scripts/download_samples.py --force
-```
+`uv run python scripts/download_samples.py --force`.
 
 ### 3. Abrir o Orbyte
 
 A interface é uma aplicação web (React, em `ui/web`) que fala com o backend pela API. Um só
-comando, a partir da pasta do projeto, arranca as duas:
+comando, a partir da pasta do projeto, instala o que faltar e arranca as duas:
 
 ```bash
 uv run python scripts/dev.py
 ```
 
-A interface abre em <http://localhost:5173> e, como a API, só este computador lhe tem acesso.
-Recarrega sozinha quando gravas um ficheiro, e `Ctrl+C` pára as duas. Antes de arrancar, o
-comando confirma que o Node.js é o 24 ou mais recente e que as portas 8000 e 5173 estão livres,
-e instala as dependências da interface (`npm ci`, em `ui/web`) da primeira vez e sempre que um
-`git pull` as mude. As do backend acerta-as o próprio `uv run`, com o `uv.lock`.
+Da primeira vez, o `uv run` cria o ambiente virtual em `.venv/` e instala as versões exatas do
+`uv.lock` (o mesmo que um `uv sync`): as bibliotecas do backend, as ferramentas de
+desenvolvimento e o pacote `ml_lab`, em modo editável (as alterações em `src/` ficam ativas sem
+reinstalar). Demora uns minutos, sobretudo pelo PyTorch: no Windows e no macOS vem a versão só
+para o processador, que chega para as redes do laboratório; no Linux vem com as bibliotecas do
+CUDA (uns 3 GB a descarregar).
+
+Depois, o `scripts/dev.py` confirma que o Node.js é o 24 ou mais recente e que as portas 8000 e
+5173 estão livres, instala as dependências da interface (`npm ci`, em `ui/web`) da primeira vez
+e sempre que um `git pull` as mude, e arranca a API e a interface. Quando as duas respondem,
+diz "Pronto" e abre <http://localhost:5173> no browser (com `--no-browser`, não abre). Só este
+computador lhes tem acesso. A interface recarrega sozinha quando gravas um ficheiro, e `Ctrl+C`
+pára as duas.
 
 ### Se alguma coisa falhar
 
@@ -105,7 +123,8 @@ e instala as dependências da interface (`npm ci`, em `ui/web`) da primeira vez 
 | "A porta 8000 (da API) já está ocupada" | O Orbyte já está a correr noutro terminal: fecha-o (`Ctrl+C`). Ou muda a porta da API no `.env` (`ML_LAB_API_PORT=8010`); a interface segue-a sozinha. |
 | "A porta 5173 (da interface) já está ocupada" | Outro servidor do Vite está aberto: fecha-o e corre outra vez. |
 | O `npm ci` falha no Windows com `EPERM` | Um servidor da interface ainda está a correr dessa pasta e prende os ficheiros do `node_modules`: fecha-o e corre outra vez. |
-| O `uv sync` não encontra o `torch` num Mac com Intel ou num Windows em ARM | O PyTorch deixou de ter versões para eles: o Orbyte precisa de um Mac com Apple Silicon ou de um PC x64 (ou ARM64 com Linux). |
+| O `uv` não encontra o `torch` num Mac com Intel ou num Windows em ARM | O PyTorch deixou de ter versões para eles: o Orbyte precisa de um Mac com Apple Silicon ou de um PC x64 (ou ARM64 com Linux). |
+| O browser abriu, mas a página diz que a API não responde | Recarrega a página: a API pode ainda estar a acabar de arrancar. Se continuar, os erros dela estão no terminal. |
 | O ecrã Agents diz que o Ollama não está a correr | Abre o Ollama (ou `ollama serve`, num terminal) e descarrega o modelo: `ollama pull qwen3:8b`. |
 
 Para atualizar depois um projeto já descarregado: `git pull` e o mesmo
@@ -238,6 +257,10 @@ uv run python scripts/export_openapi.py
 
 ## Testes e verificações
 
+São mais de 2500 testes: 2428 do backend (1007 de unidade, 1278 de contrato, 15 de
+arquitetura, 62 de integração e 66 da API, dois deles com o Ollama a sério), 66 das peças da
+interface e 50 de ponta a ponta, num browser.
+
 Uma fase só termina quando estas verificações passam (corre-as antes de cada push; o GitHub
 Actions corre-as também, em `.github/workflows/ci.yml`):
 
@@ -322,6 +345,28 @@ docs/                arquitetura, ADRs, o formato .mllab e as fichas dos algorit
 A árvore completa, com o papel de cada ficheiro, está em
 [docs/architecture.md](docs/architecture.md#estrutura-de-pastas). Cada camada tem um
 `README.md` curto com as suas regras.
+
+## Estado das fases
+
+O laboratório fez-se fase a fase, cada uma com o seu critério de "pronto" (o plano está em
+[docs/architecture.md](docs/architecture.md#roadmap-por-fases)).
+
+| Fase | O que entrega | Estado |
+|---|---|---|
+| 0 — Fundações | Repositório, configuração, logs, registo de componentes, tipos, eventos, seeds, testes de arquitetura | ✅ concluída |
+| 1 — Camada de dados | As nove etapas da camada de dados; ecrãs Data, Explore e Prepare | ✅ concluída |
+| 2 — Primeiro fluxo completo | Contrato de modelo, regressão logística, avaliação de classificação, serviço de experiências | ✅ concluída |
+| 3 — Eventos e snapshots | Contexto de treino, snapshots com a fronteira de decisão, treino em segundo plano, regressões didáticas em NumPy | ✅ concluída |
+| 4 — Catálogo clássico | Os modelos supervisionados e não supervisionados, avaliadores de todas as tarefas, diagnósticos, validação cruzada, explicações das previsões | ✅ concluída |
+| 5 — Memória | Registo de experiências em SQLite, runs guardados com o modelo, comparação e reprodução de runs | ✅ concluída |
+| 6 — Deep learning | Adaptador PyTorch, rede neuronal (MLP) de classificação e de regressão, early stopping, gradientes e ativações de cada camada | ✅ concluída |
+| 7 — API | Os serviços por HTTP com FastAPI (uma rota por método, documentação em `/docs`), treino acompanhado por HTTP ou WebSocket, erros com um código e uma mensagem que diz o que fazer | ✅ concluída |
+| 8 — Reinforcement learning | Uma grelha com três mapas, Q-learning (NumPy) e DQN (PyTorch), a política aprendida, uma lição por agente, runs no histórico | ✅ concluída |
+| 9 — Agentes (AutoML) | Um agente de dados, um agente por família de modelos e um coordenador que procura o melhor modelo com validação cruzada, sem tocar no teste | ✅ concluída |
+| 10 — Interface aprimorada | Todos os ecrãs em React, por cima da API, nas etapas 10.1 a 10.9; a interface simples, em Streamlit, saiu depois dela (ADR 0031) | ✅ concluída |
+| 11 — Guardar e carregar o modelo | O pacote `.mllab` (a ficha, o manifesto assinado, a preparação, o run, o modelo e o ONNX), a biblioteca e o carregar com aviso | ✅ concluída |
+| 12 — Prever | Prever com um pacote, linha a linha ou um CSV inteiro | por fazer |
+| 13 — Agentes de IA | Um modelo de linguagem local (Ollama) que propõe hiperparâmetros a pensar à vista, e um analista que responde sobre a procura numa conversa, com ferramentas; as regras continuam a medir (ADR 0042, 0053 e 0054) | ✅ concluída |
 
 ## Convenções
 
