@@ -17,11 +17,14 @@ from ml_lab.core.services import JobState, JobStatus, Progress, StepRecord
 
 @dataclass(frozen=True, slots=True)
 class _Update:
-    """Uma resposta do serviço; ``working`` faz de candidato a ser medido pelos agentes."""
+    """Uma resposta do serviço; ``working`` faz de candidato a ser medido pelos agentes, e
+    ``thought`` e ``live`` do raciocínio que cresce (o do agente de IA e o do analista)."""
 
     state: JobState
     steps: tuple[StepRecord, ...] = ()
     working: str | None = None
+    thought: str | None = None
+    live: str | None = None
 
     @property
     def snapshot_step(self) -> int | None:
@@ -76,6 +79,30 @@ def test_the_work_in_progress_alone_is_worth_a_message(monkeypatch: pytest.Monke
         "candidato 3, fold 1",
         "candidato 3, fold 2",
         None,
+    ]
+
+
+def test_a_thought_that_grows_is_worth_a_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    # O raciocínio cresce sem passos nem mensagens novas: sem isto, só se via no fim (fase 13).
+    running = _state(JobStatus.RUNNING)
+    sent = _streamed(
+        [
+            _Update(running, thought="The tree "),
+            _Update(running, thought="The tree memorises."),
+            _Update(running, thought="The tree memorises."),
+            _Update(running, live="Look at "),
+            _Update(running, live="Look at the board."),
+            _Update(_state(JobStatus.FINISHED)),
+        ],
+        monkeypatch,
+    )
+
+    assert [(data["thought"], data["live"]) for data in sent] == [
+        ("The tree ", None),
+        ("The tree memorises.", None),
+        (None, "Look at "),
+        (None, "Look at the board."),
+        (None, None),
     ]
 
 

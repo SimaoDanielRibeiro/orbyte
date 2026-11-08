@@ -7,15 +7,24 @@ Uso, a partir da raiz do projeto::
 Corre a API (``python -m ml_lab.api``) e o servidor de desenvolvimento do Vite (``npm run dev``,
 em ``ui/web``), cada um no seu processo, com a saída dos dois neste terminal. A interface abre
 em http://localhost:5173 e recarrega sozinha ao gravar um ficheiro. ``Ctrl+C`` pára os dois; se
-um deles parar sozinho (a porta já estava ocupada, por exemplo), o outro pára também.
+um deles parar sozinho, o outro pára também.
 
-Na primeira vez, se faltarem as dependências da interface (``ui/web/node_modules``), instala-as
-com ``npm install``.
+É o comando de quem acabou de descarregar o projeto, em qualquer computador (ADR 0054), por isso
+verifica antes de arrancar o que costuma falhar, e diz o que fazer:
+
+- o Node.js tem de existir e ser o 24 ou mais recente (o ``engines`` do ``package.json``);
+- as portas da API e da interface têm de estar livres (uma API esquecida noutro terminal é o
+  caso mais comum);
+- as dependências da interface instalam-se com ``npm ci`` (as versões exatas do
+  ``package-lock.json``) na primeira vez e sempre que o ``package-lock.json`` mudar (um
+  ``git pull``). As do backend, o ``uv run`` já as acerta sozinho com o ``uv.lock``.
 """
 
 import os
+import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -29,9 +38,17 @@ logger = get_logger("scripts.dev")
 WEB = Path("ui") / "web"
 """A pasta da interface web, relativa à raiz do projeto."""
 
-WEB_URL = "http://localhost:5173"
+WEB_PORT = 5173
+"""A porta do Vite (``server.port`` no ``ui/web/vite.config.ts``)."""
+
+WEB_URL = f"http://localhost:{WEB_PORT}"
+NODE_MAJOR = 24
+"""A versão mínima do Node.js (o ``engines`` do ``ui/web/package.json``)."""
+
 POLL_SECONDS = 0.5
 STOP_SECONDS = 10
+PORT_TIMEOUT = 0.3
+"""Quanto se espera para saber se alguém já escuta numa porta, em segundos."""
 
 
 def main() -> int:
@@ -40,13 +57,41 @@ def main() -> int:
     settings = get_settings()
     web = settings.home / WEB
     npm = shutil.which("npm")
-    if npm is None:
-        logger.error("Falta o npm: instala o Node 24 (que o traz) e corre outra vez.")
+    node = shutil.which("node")
+    if npm is None or node is None:
+        logger.error(
+            "Falta o Node.js (que traz o npm): instala o %s ou mais recente, de "
+            "https://nodejs.org, abre um terminal novo e corre outra vez.",
+            NODE_MAJOR,
+        )
         return 1
-    if not (web / "node_modules").is_dir():
-        logger.info("A instalar as dependências da interface (só da primeira vez)")
-        if subprocess.run([npm, "install"], cwd=web, check=False).returncode != 0:
-            logger.error("O npm install falhou: as mensagens acima dizem porquê.")
+    major = node_major(node)
+    if major is not None and major < NODE_MAJOR:
+        logger.error(
+            "O Node.js deste computador é o %s, e a interface precisa do %s ou mais recente: "
+            "instala-o de https://nodejs.org e corre outra vez.",
+            major,
+            NODE_MAJOR,
+        )
+        return 1
+    host = "127.0.0.1" if settings.api_host in ("0.0.0.0", "::") else settings.api_host
+    for name, address, port, change in (
+        ("API", host, settings.api_port, "muda a porta no .env (ML_LAB_API_PORT)"),
+        ("interface", "localhost", WEB_PORT, "fecha o programa que a usa"),
+    ):
+        if port_in_use(address, port):
+            logger.error(
+                "A porta %s (da %s) já está ocupada: talvez o Orbyte já esteja a correr noutro "
+                "terminal. Fecha-o, ou %s, e corre outra vez.",
+                port,
+                name,
+                change,
+            )
+            return 1
+    if needs_install(web):
+        logger.info("A instalar as dependências da interface, com as versões do package-lock.json")
+        if subprocess.run([npm, "ci"], cwd=web, check=False).returncode != 0:
+            logger.error("O npm ci falhou: as mensagens acima dizem porquê.")
             return 1
     processes = {
         "API": _start([sys.executable, "-m", "ml_lab.api"], settings.home),
@@ -73,6 +118,45 @@ def main() -> int:
     finally:
         for process in processes.values():
             _stop(process)
+
+
+def node_major(node: str) -> int | None:
+    """A versão principal do Node.js instalado, ou ``None`` se não se souber."""
+    try:
+        found = subprocess.run(
+            [node, "--version"], capture_output=True, text=True, check=False, timeout=10
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return parse_node_major(found.stdout)
+
+
+def parse_node_major(version: str) -> int | None:
+    """A versão principal no que ``node --version`` escreve: ``24`` em ``v24.11.0``."""
+    match = re.match(r"v?(\d+)\.", version.strip())
+    return int(match.group(1)) if match else None
+
+
+def port_in_use(host: str, port: int) -> bool:
+    """Se já há alguém a escutar em ``host:port`` (todas as moradas do nome, IPv4 e IPv6)."""
+    try:
+        with socket.create_connection((host, port), timeout=PORT_TIMEOUT):
+            return True
+    except OSError:
+        return False
+
+
+def needs_install(web: Path) -> bool:
+    """Se faltam as dependências da interface, ou se o ``package-lock.json`` mudou depois delas.
+
+    O npm deixa em ``node_modules/.package-lock.json`` o retrato do que instalou: se o
+    ``package-lock.json`` do projeto é mais recente do que ele (um ``git pull`` trouxe
+    dependências novas), as que estão instaladas já não são as certas.
+    """
+    installed = web / "node_modules" / ".package-lock.json"
+    if not installed.is_file():
+        return True
+    return (web / "package-lock.json").stat().st_mtime > installed.stat().st_mtime
 
 
 def _start(command: list[str], folder: Path) -> subprocess.Popen[bytes]:

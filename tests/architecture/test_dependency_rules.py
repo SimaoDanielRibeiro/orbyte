@@ -274,6 +274,32 @@ def test_the_ollama_is_only_known_by_the_language_models_and_the_services() -> N
     )
 
 
+def test_the_analyst_reads_the_search_and_never_measures() -> None:
+    # A IA explica; as regras medem (ADR 0042 e 0053). O analista só lê o que a procura já mediu:
+    # não treina, não avalia nem vê os dados, por isso não chega aos módulos que o fazem.
+    analyst = [CORE / "automl" / "analyst.py", CORE / "automl" / "analyst_tools.py"]
+    forbidden = (
+        "ml_lab.core.models",
+        "ml_lab.core.data",
+        "ml_lab.core.evaluation",
+        "ml_lab.core.training",
+        "ml_lab.core.automl.coordinator",
+        "numpy",
+        "pandas",
+        "sklearn",
+    )
+
+    violations = find_violations(
+        analyst, lambda name: any(is_within(name, prefix) for prefix in forbidden)
+    )
+
+    assert not violations, report(
+        "O analista só lê a procura: não importa os modelos, os dados, a avaliação, o treino "
+        "nem o coordenador:",
+        violations,
+    )
+
+
 def test_the_core_does_not_import_the_services() -> None:
     violations = find_violations(
         python_files(CORE, exclude=[SERVICES]),

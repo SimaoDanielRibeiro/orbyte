@@ -7,6 +7,11 @@ pede-se com ``GET .../result``. Cada candidato medido é um passo.
 
 ``POST .../candidates/{number}/train`` é a ponte para o modo manual: treina um candidato
 como um run normal, que se acompanha nas rotas de ``/experiments``.
+
+Depois de a procura acabar, o analista (fase 13, ADR 0053) responde a perguntas sobre ela:
+``POST .../questions`` faz a pergunta e responde logo (202) com o estado; a pergunta acompanha-se
+pelo seu id em ``/automl/questions/{question_id}/...`` (``updates``, o WebSocket ``stream``,
+``result`` e ``cancel``), como uma procura.
 """
 
 from typing import Annotated
@@ -17,6 +22,10 @@ from ml_lab.api.errors import ERROR_RESPONSES
 from ml_lab.api.routing import LabDep, ServiceRouter
 from ml_lab.api.stream import stream_updates
 from ml_lab.core.services import (
+    AnalystAnswer,
+    AnalystOptions,
+    AnalystRequest,
+    AnalystUpdate,
     AutoMLOptions,
     AutoMLPlan,
     AutoMLRequest,
@@ -116,5 +125,70 @@ async def stream(websocket: WebSocket, lab: LabDep, search_id: str) -> None:
 
     def poll(after_step: int, after_message: int) -> AutoMLUpdate:
         return lab.automl.updates(search_id, after_step, after_message)
+
+    await stream_updates(websocket, poll)
+
+
+# --- o analista (fase 13, ADR 0053) ----------------------------------------------------
+
+
+@router.get("/{search_id}/analyst")
+def analyst_options(lab: LabDep, search_id: str) -> AnalystOptions:
+    """O que se pode perguntar ao analista sobre uma procura: as sugestões e as ferramentas."""
+    return lab.automl.analyst_options(search_id)
+
+
+@router.get("/{search_id}/questions")
+def questions(lab: LabDep, search_id: str) -> tuple[AnalystAnswer, ...]:
+    """As perguntas já respondidas sobre uma procura, pela ordem em que se fizeram."""
+    return lab.automl.questions(search_id)
+
+
+@router.post("/{search_id}/questions", status_code=202)
+def ask(lab: LabDep, search_id: str, request: AnalystRequest) -> JobState:
+    """Pergunta ao analista sobre uma procura acabada; ele responde em segundo plano.
+
+    Sem respostas guardadas (``replies``), é preciso o Ollama: sem ele, responde 400 com o que
+    fazer (o estado está em ``GET /llm/status``).
+    """
+    return lab.automl.ask(search_id, request).state()
+
+
+@router.get("/questions/{question_id}/job")
+def question_job(lab: LabDep, question_id: str) -> JobState:
+    """O estado de uma pergunta ao analista: em curso, terminada ou falhada."""
+    return lab.automl.question_job(question_id)
+
+
+@router.get("/questions/{question_id}/updates")
+def question_updates(
+    lab: LabDep,
+    question_id: str,
+    after_step: Annotated[
+        int, Query(ge=0, description="O número do último passo do analista que já tens.")
+    ] = 0,
+) -> AnalystUpdate:
+    """O que mudou na pergunta: os passos novos do analista e o que está a pensar agora."""
+    return lab.automl.question_updates(question_id, after_step)
+
+
+@router.get("/questions/{question_id}/result")
+def question_result(lab: LabDep, question_id: str) -> AnalystAnswer:
+    """A resposta do analista, com o raciocínio, cada ferramenta usada e o que devolveu."""
+    return lab.automl.question_result(question_id)
+
+
+@router.post("/questions/{question_id}/cancel")
+def cancel_question(lab: LabDep, question_id: str) -> JobState:
+    """Pede ao analista que pare, mesmo a meio de uma resposta do modelo de linguagem."""
+    return lab.automl.cancel_question(question_id)
+
+
+@router.websocket("/questions/{question_id}/stream")
+async def question_stream(websocket: WebSocket, lab: LabDep, question_id: str) -> None:
+    """Envia as mudanças da pergunta (o mesmo que ``question_updates``) até ela terminar."""
+
+    def poll(after_step: int, _after_snapshot: int) -> AnalystUpdate:
+        return lab.automl.question_updates(question_id, after_step)
 
     await stream_updates(websocket, poll)

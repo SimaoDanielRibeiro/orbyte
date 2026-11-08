@@ -19,7 +19,7 @@ import pytest
 from ml_lab.config import Settings
 from ml_lab.core.foundation.errors import LanguageModelError
 from ml_lab.core.llm import Message, Tool, ToolCall, collect
-from ml_lab.core.llm.ollama import OllamaModel, OllamaServer
+from ml_lab.core.llm.ollama import CONTEXT_LENGTH, OllamaModel, OllamaServer
 from ml_lab.core.services.llm import LanguageModelService, has_model
 
 SCHEMA = {"type": "object", "properties": {"max_depth": {"type": "integer"}}}
@@ -163,7 +163,8 @@ def test_the_request_asks_for_the_thinking_the_format_and_a_fixed_temperature(
     assert body["stream"] is True
     assert body["think"] is True
     assert body["format"] == SCHEMA
-    assert body["options"] == {"temperature": 0.0, "seed": 7}
+    # O contexto vai sempre o mesmo: com outro, o Ollama voltava a carregar o modelo (ADR 0053).
+    assert body["options"] == {"temperature": 0.0, "num_ctx": CONTEXT_LENGTH, "seed": 7}
     assert body["messages"] == [{"role": "user", "content": "Propose."}]
 
 

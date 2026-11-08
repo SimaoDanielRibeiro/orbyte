@@ -203,6 +203,21 @@ class SearchNotFoundError(MLLabError, LookupError):
         )
 
 
+class QuestionNotFoundError(MLLabError, LookupError):
+    """Não há nenhuma pergunta ao analista com o identificador pedido (ADR 0053).
+
+    Args:
+        question_id: O identificador pedido.
+    """
+
+    def __init__(self, question_id: str) -> None:
+        self.question_id = question_id
+        super().__init__(
+            f"There's no question '{question_id}' in this session: only the latest ones stay in "
+            "memory, and a server that restarts starts with none. Ask it again."
+        )
+
+
 class CandidateNotFoundError(MLLabError, LookupError):
     """A procura não tem nenhum candidato com o número pedido.
 

@@ -3,10 +3,11 @@
  *
  * Ao vivo: as fases por ordem, o fluxograma com o agente que trabalha agora (a amarelo), o
  * melhor até agora, os candidatos que vão sendo medidos e a conversa dos agentes, com os botões
- * para pausar, retomar e parar. No fim: o vencedor e a sua nota no teste, a procura num gráfico,
- * o melhor de cada agente, o quadro completo e a ponte para o modo manual (treinar qualquer
- * candidato como um run normal). A conversa abre-se em ecrã inteiro, como um chat
- * (`ConversationRoom`), para se ler como a procura aconteceu.
+ * para pausar, retomar e parar. No fim: o vencedor e a sua nota no teste, o analista a quem se
+ * pergunta sobre a procura (`AnalystPanel`, fase 13), a procura num gráfico, o melhor de cada
+ * agente, o quadro completo e a ponte para o modo manual (treinar qualquer candidato como um run
+ * normal). A conversa abre-se em ecrã inteiro, como um chat (`ConversationRoom`), para se ler como
+ * a procura aconteceu.
  */
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
@@ -47,6 +48,7 @@ import { formatCount, formatMetric, formatNumber, formatOrdinal } from "@/lib/fo
 import { useSession } from "@/state/session";
 
 import { AgentDetail } from "./agent-detail";
+import { AnalystPanel } from "./analyst-panel";
 import { ConversationRoom } from "./conversation-room";
 import { ExchangeHistory } from "./exchange-history";
 import { Flowchart, type FlowNode } from "./flowchart";
@@ -134,6 +136,7 @@ function Search({ searchId }: { searchId: string }) {
                 ...(searchPlan?.ai_agent === true ? ["ai_agent"] : []),
                 "winners_curse",
                 "train_candidate",
+                "analyst",
               ]}
             />
           </div>
@@ -575,6 +578,8 @@ function Finished({ result, winner }: { result: AutoMlResult; winner: Candidate 
           </Part>
         )}
       </div>
+      {/* Logo a seguir ao vencedor: a pergunta que se quer fazer é porque ganhou (ADR 0053). */}
+      <AnalystPanel searchId={result.search_id} />
       <Part title="The search">
         <SearchChart
           candidates={result.candidates}

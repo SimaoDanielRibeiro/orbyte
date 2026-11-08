@@ -18,7 +18,13 @@ import pytest
 from ml_lab.core.data.preparation import PreparationConfig
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.models.base import ModelFamily
-from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
+from ml_lab.core.schemas.automl import (
+    AnalystRequest,
+    AutoMLRequest,
+    RecordedReply,
+    RecordedToolCall,
+    SearchSettings,
+)
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.schemas.packages import PackageRequest
 from ml_lab.core.schemas.serialization import from_json, is_internal, json_schema, to_json
@@ -90,12 +96,27 @@ def test_real_results_become_strict_json(lab: Lab) -> None:
     )
     automl = lab.automl.start(search)
     automl.wait(timeout=60)
+    # O analista com respostas guardadas (sem o Ollama): o quadro, um candidato e a resposta.
+    replies = (
+        RecordedReply(tool_calls=(RecordedToolCall(name="list_candidates"),)),
+        RecordedReply(
+            tool_calls=(RecordedToolCall(name="get_candidate", arguments={"number": 1}),)
+        ),
+        RecordedReply(thinking="Enough.", content="#1 is on the board."),
+    )
+    question = lab.automl.ask(automl.run_id, AnalystRequest(question="Why?", replies=replies))
+    question.wait(timeout=60)
     saved = lab.packages.save(result.run_id, PackageRequest(examples=2))
     outputs = [
         lab.automl.options(TaskType.BINARY_CLASSIFICATION),
         lab.automl.plan(search),
         lab.automl.updates(automl.run_id),
         lab.automl.result(automl.run_id),
+        lab.automl.analyst_options(automl.run_id),
+        question.state(),
+        lab.automl.question_updates(question.run_id),
+        lab.automl.question_result(question.run_id),
+        list(lab.automl.questions(automl.run_id)),
         lab.datasets.profile(iris.id, "species"),
         lab.datasets.prepare(iris.id, supervised, 0),
         lab.catalog.models(),

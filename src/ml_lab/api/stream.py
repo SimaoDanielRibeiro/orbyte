@@ -14,7 +14,8 @@ Cada mensagem é um objeto ``{"kind": ..., "data": ...}``:
 
 - ``{"kind": "update", "data": <update>}`` quando há passos novos, um snapshot novo, o
   estado mudou ou mudou o trabalho a decorrer (na procura dos agentes, o candidato que um
-  agente está a medir e o fold em que vai, e a fase: o fluxograma acompanha-os);
+  agente está a medir e o fold em que vai, a fase e o que o agente de IA está a pensar; numa
+  pergunta ao analista, o que ele está a pensar e a escrever);
 - ``{"kind": "error", "data": <ApiError>}`` se o treino não existir.
 
 A ligação fecha quando o treino termina (a última mensagem tem o estado final) e o
@@ -35,6 +36,9 @@ from ml_lab.core.services import JobState, JobStatus, MLLabError, StepRecord
 POLL_SECONDS: Final = 0.25
 
 _DONE: Final = frozenset({JobStatus.FINISHED, JobStatus.FAILED})
+
+_WORK: Final = ("working", "phase", "thought", "live")
+"""Os campos do trabalho a decorrer que não são passos nem mensagens (ver ``_work``)."""
 
 
 class Update(Protocol):
@@ -103,7 +107,9 @@ def _work(update: Update) -> object:
     """O trabalho a decorrer que não conta como passo nem como mensagem.
 
     Na procura dos agentes, um candidato só entra no quadro depois de medido: até lá, o que
-    muda é o candidato que um agente mede, o fold em que vai e a fase. Os outros trabalhos (o
-    treino, o RL) não têm nada disto.
+    muda é o candidato que um agente mede, o fold em que vai e a fase. E o agente de IA pensa
+    antes de propor (``thought``), como o analista antes de cada ferramenta (``live``): o
+    raciocínio cresce sem passos nem mensagens novas, e cada bocado novo também vale uma
+    mensagem, para se ver a crescer. Os outros trabalhos (o treino, o RL) não têm nada disto.
     """
-    return (getattr(update, "working", None), getattr(update, "phase", None))
+    return tuple(getattr(update, name, None) for name in _WORK)

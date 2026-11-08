@@ -1,4 +1,5 @@
-"""O serviço dos agentes: o pedido, a procura em segundo plano e o vencedor no histórico."""
+"""O serviço dos agentes: o pedido, a procura em segundo plano, o vencedor no histórico e o
+analista que responde a perguntas sobre a procura acabada."""
 
 import json
 import socket
@@ -12,12 +13,16 @@ from ml_lab.core.foundation.errors import (
     ColumnNotFoundError,
     InvalidParameterError,
     LanguageModelError,
+    QuestionNotFoundError,
     SearchNotFoundError,
+    TrainingInProgressError,
 )
-from ml_lab.core.schemas.automl import RecordedReply
+from ml_lab.core.schemas.automl import RecordedReply, RecordedToolCall
 from ml_lab.core.schemas.serialization import to_json
 from ml_lab.core.services import (
     AgentRole,
+    AnalystRequest,
+    AnalystStepKind,
     AutoMLRequest,
     AutoMLService,
     JobStatus,
@@ -291,3 +296,168 @@ def test_without_the_ollama_the_ai_agent_is_refused_saying_how_to_start_it(
     with pytest.raises(LanguageModelError, match="has no language model connected"):
         alone.start(request)
     assert service.plan(request).ai_agent  # o plano mostra-se na mesma, antes de pedir
+
+
+# --- o analista (fase 13, etapa 13.3) ------------------------------------------------
+
+
+def saved_replies(winner: int, second: int) -> tuple[RecordedReply, ...]:
+    """As respostas de um modelo: o quadro, o vencedor contra o segundo e a resposta."""
+    return (
+        RecordedReply(
+            thinking="The board first.", tool_calls=(RecordedToolCall(name="list_candidates"),)
+        ),
+        RecordedReply(
+            thinking="Now the winner against the second.",
+            tool_calls=(
+                RecordedToolCall(
+                    name="compare_candidates", arguments={"first": winner, "second": second}
+                ),
+            ),
+        ),
+        RecordedReply(thinking="I know enough.", content=f"#{winner} is first on the board."),
+    )
+
+
+def test_the_analyst_answers_about_a_finished_search_with_its_tools(lab: Lab) -> None:
+    result = lab.automl.run(REQUEST)
+    winner, second = result.ranking[:2]
+    request = AnalystRequest(
+        question="Why did the winner win?", replies=saved_replies(winner, second)
+    )
+
+    job = lab.automl.ask(result.search_id, request)
+    answer = job.wait(timeout=60)
+
+    assert job.state().status is JobStatus.FINISHED
+    assert answer.question_id.startswith("question-")
+    assert answer.search_id == result.search_id
+    assert [step.kind for step in answer.trace] == [
+        AnalystStepKind.THOUGHT,
+        AnalystStepKind.TOOL,
+        AnalystStepKind.THOUGHT,
+        AnalystStepKind.TOOL,
+        AnalystStepKind.THOUGHT,
+        AnalystStepKind.ANSWER,
+    ]
+    tools = [step.tool for step in answer.trace if step.tool is not None]
+    assert [tool.label for tool in tools] == ["The candidate board", "Compare two candidates"]
+    assert json.loads(tools[0].result)["winner"]["number"] == result.winner
+    assert answer.answer == f"#{winner} is first on the board."
+    assert (answer.tools_used, answer.model) == (2, "saved answers")
+    assert [notice.code for notice in answer.notices] == ["numbers_checked"]
+    # Cada passo do analista é um passo do trabalho, e o pedido traz as respostas que usou.
+    assert job.state().progress.steps == len(answer.trace)
+    assert answer.request == request
+    assert lab.automl.questions(result.search_id) == (answer,)
+    json.dumps(to_json(answer), allow_nan=False)
+
+
+def test_the_answer_s_request_repeats_it_without_the_ollama(lab: Lab) -> None:
+    result = lab.automl.run(REQUEST)
+    first = lab.automl.ask(
+        result.search_id,
+        AnalystRequest(
+            question="Why did the winner win?", replies=saved_replies(*result.ranking[:2])
+        ),
+    ).wait(timeout=60)
+
+    again = lab.automl.ask(result.search_id, first.request).wait(timeout=60)
+
+    assert again.question_id != first.question_id
+    assert [(s.kind, s.text, s.tool) for s in again.trace] == [
+        (s.kind, s.text, s.tool) for s in first.trace
+    ]
+
+
+def test_updates_bring_the_new_steps_of_a_question(lab: Lab) -> None:
+    result = lab.automl.run(REQUEST)
+    job = lab.automl.ask(
+        result.search_id,
+        AnalystRequest(question="Why?", replies=saved_replies(*result.ranking[:2])),
+    )
+    job.wait(timeout=60)
+
+    everything = lab.automl.question_updates(job.run_id)
+    later = lab.automl.question_updates(job.run_id, after_step=4)
+
+    assert everything.question == "Why?"
+    assert everything.search_id == result.search_id
+    assert [step.number for step in everything.trace] == [1, 2, 3, 4, 5, 6]
+    assert [step.number for step in later.trace] == [5, 6]
+    assert [record.step for record in later.steps] == [5, 6]  # o cursor do WebSocket
+    assert later.live is None  # acabou: não está a pensar
+    assert lab.automl.question_job(job.run_id).status is JobStatus.FINISHED
+    assert lab.automl.question_result(job.run_id).trace == everything.trace
+    assert lab.automl.cancel_question(job.run_id).status is JobStatus.FINISHED  # já acabou
+
+
+def test_the_analyst_only_reads_finished_searches(lab: Lab) -> None:
+    longer = REQUEST.model_copy(update={"settings": SearchSettings(budget=200, folds=3)})
+    running = lab.automl.start(longer)
+    lab.automl.pause(running.run_id)
+
+    with pytest.raises(TrainingInProgressError):
+        lab.automl.ask(running.run_id, AnalystRequest(question="Why?"))
+    with pytest.raises(TrainingInProgressError):
+        lab.automl.analyst_options(running.run_id)
+    lab.automl.cancel(running.run_id)
+    running.wait(timeout=120)
+    with pytest.raises(SearchNotFoundError):
+        lab.automl.ask("search-nada", AnalystRequest(question="Why?"))
+    with pytest.raises(SearchNotFoundError):
+        lab.automl.questions("search-nada")
+
+
+def test_an_unknown_question_is_not_found(lab: Lab) -> None:
+    for method in (
+        lab.automl.question_job,
+        lab.automl.question_updates,
+        lab.automl.question_result,
+        lab.automl.cancel_question,
+    ):
+        with pytest.raises(QuestionNotFoundError, match="question-nada"):
+            method("question-nada")
+
+
+def test_the_suggestions_depend_on_what_the_search_has(lab: Lab) -> None:
+    plain = lab.automl.run(REQUEST)
+    with_ai = lab.automl.run(WITH_AI)
+
+    options = lab.automl.analyst_options(plain.search_id)
+    ai_options = lab.automl.analyst_options(with_ai.search_id)
+
+    assert options.suggestions[0] == "Why did the winner win?"
+    assert "Did the AI agent beat the random search?" not in options.suggestions
+    assert "Did the AI agent beat the random search?" in ai_options.suggestions
+    assert [tool.name for tool in options.tools] == [
+        "list_candidates",
+        "get_candidate",
+        "compare_candidates",
+        "data_plan",
+    ]
+    assert options.max_turns > 1
+    json.dumps(to_json(options), allow_nan=False)
+
+
+def test_without_the_ollama_the_analyst_is_refused_saying_how_to_start_it(
+    lab: Lab, tmp_path: Path
+) -> None:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        closed = f"http://127.0.0.1:{probe.getsockname()[1]}"
+    settings = Settings.from_env({"ML_LAB_OLLAMA_URL": closed}, home=tmp_path)
+    service = AutoMLService(lab.datasets, lab.experiments, llm=LanguageModelService(settings))
+    alone = AutoMLService(lab.datasets, lab.experiments)
+    searched = service.run(REQUEST)
+    alone_searched = alone.run(REQUEST)
+
+    with pytest.raises(LanguageModelError, match="ollama serve"):
+        service.ask(searched.search_id, AnalystRequest(question="Why?"))
+    with pytest.raises(LanguageModelError, match="has no language model connected"):
+        alone.ask(alone_searched.search_id, AnalystRequest(question="Why?"))
+    # Com as respostas guardadas, responde na mesma: não precisa do Ollama.
+    replies = saved_replies(*searched.ranking[:2])
+    answer = service.ask(searched.search_id, AnalystRequest(question="Why?", replies=replies))
+    assert answer.wait(timeout=60).answer
+    assert alone.analyst_options(alone_searched.search_id).model is None

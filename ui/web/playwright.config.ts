@@ -5,6 +5,10 @@
  * no início de cada corrida: os testes nunca tocam nos datasets, nos artefactos nem no registo
  * de quem usa o laboratório. A interface (o build final) corre na porta 5174, para não chocar com
  * a do dia a dia.
+ *
+ * O Ollama procura-se numa porta fechada: os testes dão o mesmo com ou sem o Ollama aberto no
+ * computador, e nunca esperam por um modelo de linguagem (os do analista levam as respostas
+ * guardadas, `e2e/analyst.spec.ts`).
  */
 import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,6 +19,10 @@ import { defineConfig, devices } from "@playwright/test";
 const API_PORT = "8001";
 const WEB_PORT = "5174";
 const DATA = join(tmpdir(), "ml-lab-e2e");
+// A porta 9 (o "discard" dos serviços antigos) está fechada nos computadores de hoje.
+const NO_OLLAMA = "http://127.0.0.1:9";
+// Os testes do projeto `no-fim`, que corre depois dos outros (ver `projects`).
+const NO_FIM = /history-delete\.spec\.ts/;
 
 // Só o processo principal arranca os servidores; os outros só leem a configuração.
 if (!process.env.TEST_WORKER_INDEX) {
@@ -32,7 +40,18 @@ export default defineConfig({
     baseURL: `http://localhost:${WEB_PORT}`,
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: NO_FIM },
+    // Os testes que treinam muitos runs de uma vez correm no fim, depois de todos os outros: a
+    // API guarda só os cinco runs mais recentes em memória, e a correr ao mesmo tempo empurravam
+    // para fora os runs que os outros testes ainda iam guardar ou explicar.
+    {
+      name: "no-fim",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: NO_FIM,
+      dependencies: ["chromium"],
+    },
+  ],
   webServer: [
     {
       command: "uv run python -m ml_lab.api",
@@ -45,6 +64,7 @@ export default defineConfig({
         ML_LAB_UPLOADS_DIR: join(DATA, "uploads"),
         ML_LAB_ARTIFACTS_DIR: join(DATA, "artifacts"),
         ML_LAB_DATABASE_PATH: join(DATA, "ml_lab.db"),
+        ML_LAB_OLLAMA_URL: NO_OLLAMA,
         ML_LAB_LOG_LEVEL: "WARNING",
       },
     },

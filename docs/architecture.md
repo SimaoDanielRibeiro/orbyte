@@ -964,7 +964,7 @@ cada vez.
 | 10 — Interface aprimorada | Ajustes à API que a interface pedir: o agente que trabalha, as demonstrações dos modelos, as fórmulas das métricas | Todos os ecrãs refeitos em React com design próprio, barra lateral recolhível e um painel inicial com os dois caminhos | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Motion, TanStack, D3.js | Tudo o que a versão simples faz, com animações suaves e treino em tempo real; cada modelo e cada métrica explicados com exemplos visuais |
 | 11 — Guardar e carregar o modelo ✅ | A preparação aprendida fica com o dataset e passa a JSON; o pacote `.mllab` (um ZIP com a ficha, o manifesto assinado, a entrada, a preparação, o run, o modelo e o ONNX); a biblioteca dos pacotes; carregar um pacote, com um aviso se vier de fora; o `PackageService` (ADR 0039) | Guardar: o ficheiro pré-visualizado parte a parte antes de existir, a biblioteca e o carregar | ONNX (`onnx`, `skl2onnx`, `onnxruntime`) | No Titanic, depois de treinar, o ecrã Guardar mostra o ficheiro antes de o gravar; guardá-lo descarrega um `.mllab` que abre em qualquer programa de ZIP; carregado noutra instalação, pede confirmação e o run abre no Treinar e avaliar; e o modelo de dentro dá as mesmas previsões do run original, no laboratório e no ONNX Runtime |
 | 12 — Prever | Abrir um pacote, transformar linhas novas com a preparação guardada, prever com a explicação de cada previsão e avisos de extrapolação; um CSV inteiro de uma vez | Prever: o formulário gerado da entrada do pacote, a previsão ao vivo, o "e se…" e o ficheiro com a coluna da previsão | — | Escolher o pacote do Titanic, preencher um passageiro e ver a previsão mudar ao mexer na idade; um CSV inteiro sai com a previsão de cada linha |
-| 13 — Agentes de IA | A interface `LanguageModel` e o cliente do Ollama, com o raciocínio à parte, saída estruturada e ferramentas; o estado do modelo como serviço; um agente de IA que propõe hiperparâmetros a pensar (o coordenador continua a medir); um analista que responde sobre a procura com ferramentas; as respostas guardadas para repetir a procura (ADR 0042) | Agentes: o agente de IA no fluxograma e o pensamento ao vivo na conversa; a comparação com a procura aleatória; o analista | Ollama (`qwen3:8b`) | Com o Ollama aberto, no Titanic, o agente de IA pensa à vista antes de cada proposta, as propostas medem-se como as outras sem tocar no teste, e o analista explica o vencedor usando as ferramentas; sem o Ollama, o ecrã diz como o ligar e tudo o resto funciona |
+| 13 — Agentes de IA ✅ | A interface `LanguageModel` e o cliente do Ollama, com o raciocínio à parte, saída estruturada e ferramentas; o estado do modelo como serviço; um agente de IA que propõe hiperparâmetros a pensar (o coordenador continua a medir); um analista que responde sobre a procura com ferramentas; as respostas guardadas para repetir a procura (ADR 0042) | Agentes: o agente de IA no fluxograma e o pensamento ao vivo na conversa; a comparação com a procura aleatória; o analista | Ollama (`qwen3:8b`) | Com o Ollama aberto, no Titanic, o agente de IA pensa à vista antes de cada proposta, as propostas medem-se como as outras sem tocar no teste, e o analista explica o vencedor usando as ferramentas; sem o Ollama, o ecrã diz como o ligar e tudo o resto funciona |
 
 ### Ordem de leitura recomendada para aprender
 
@@ -2612,8 +2612,8 @@ regras estão na ADR 0042: **a IA propõe e explica; as regras decidem e medem**
 | Etapa | O quê | Pronto quando | Estado |
 |---|---|---|---|
 | 13.1 — A base | `core/llm/`: a interface `LanguageModel` (a conversa aos bocados, o raciocínio à parte, a saída num JSON Schema e as ferramentas), o cliente do Ollama por HTTP e o `ScriptedModel` para os testes; as definições `ML_LAB_OLLAMA_URL` e `ML_LAB_OLLAMA_MODEL`; `LanguageModelService.status()` e `GET /llm/status`; duas regras de arquitetura | Sem o Ollama, `GET /llm/status` diz como o ligar; com ele, diz se tem o modelo; o cliente passa os testes contra um Ollama de mentira, e o teste com o Ollama a sério passa quando ele está a correr | ✅ |
-| 13.2 — O agente de IA | Um agente que propõe hiperparâmetros com o modelo de linguagem, com a forma do `ModelAgent`; o pensamento ao vivo no trabalho em curso e uma mensagem "Pensamento" na conversa; as propostas validadas pelo espaço de procura; as respostas guardadas para reproduzir; no ecrã Agentes, o interruptor, o nó da IA no fluxograma e a comparação com a procura aleatória | No Titanic, com o Ollama aberto, vê-se o agente de IA a pensar antes de cada proposta, e as propostas medem-se como as outras, sem tocar no teste | ✅ (sem o Ollama: verificado com respostas guardadas) |
-| 13.3 — O analista | Um agente com ferramentas (o quadro, um candidato, comparar dois, o plano dos dados) que responde a perguntas sobre a procura; o ciclo pensar → usar uma ferramenta → ler o resultado → responder, à vista | O analista explica porque ganhou o vencedor, e vê-se cada ferramenta que usou | |
+| 13.2 — O agente de IA | Um agente que propõe hiperparâmetros com o modelo de linguagem, com a forma do `ModelAgent`; o pensamento ao vivo no trabalho em curso e uma mensagem "Pensamento" na conversa; as propostas validadas pelo espaço de procura; as respostas guardadas para reproduzir; no ecrã Agentes, o interruptor, o nó da IA no fluxograma e a comparação com a procura aleatória | No Titanic, com o Ollama aberto, vê-se o agente de IA a pensar antes de cada proposta, e as propostas medem-se como as outras, sem tocar no teste | ✅ (com respostas guardadas; o raciocínio ao vivo, com o Ollama a sério, só na 13.3, depois de corrigido o WebSocket) |
+| 13.3 — O analista | Um agente com ferramentas (o quadro, um candidato, comparar dois, o plano dos dados) que responde a perguntas sobre a procura; o ciclo pensar → usar uma ferramenta → ler o resultado → responder, à vista | O analista explica porque ganhou o vencedor, e vê-se cada ferramenta que usou | ✅ (com o `qwen3:8b` a sério, no ecrã e no teste `ollama`) |
 
 Decisões tomadas na etapa 13.1:
 
@@ -2655,6 +2655,66 @@ Decisões tomadas na etapa 13.2:
 - **Verificado sem o Ollama:** a procura com respostas guardadas passa pelo mesmo caminho (é o
   `ScriptedModel` a responder). Com o Ollama a sério, falta ver o raciocínio a crescer ao vivo
   (o teste marcado `ollama` cobre o cliente, não o ecrã).
+
+Decisões tomadas na etapa 13.3 (a principal tem ADR própria, a 0053):
+
+- **Um agente com ferramentas, num ciclo à vista.** O analista (`core/automl/analyst.py`) começa
+  só com a pergunta: pensa, pede uma ferramenta, lê o que ela devolveu e volta a pensar, até
+  responder. Cada passo fica no `AnalystLog`: o raciocínio, cada ferramenta (os argumentos, um
+  resumo e o JSON que o modelo leu) e a resposta. Ao fim de seis voltas com ferramentas, a última
+  vai sem elas e com o pedido de responder.
+- **As ferramentas leem, não medem** (`core/automl/analyst_tools.py`): o quadro, um candidato,
+  dois lado a lado e o plano dos dados leem um `SearchFacts`, que o serviço monta do resultado
+  (`search_facts`). Do teste, só a nota do vencedor. Uma regra de arquitetura nova confirma que os
+  ficheiros do analista não chegam aos modelos, aos dados, à avaliação, ao treino nem ao
+  coordenador. Um pedido que não serve volta ao modelo com a razão, e ele corrige-se.
+- **O `qwen3:8b` a sério desenhou as ferramentas.** A primeira versão punha tudo no quadro, e o
+  modelo, numa procura do Titanic: atribuiu ao vencedor os números da referência; fez contas
+  ("0.2", "1.1") que ninguém pediu; comparou o teste do vencedor com o "teste" da referência, que
+  não existe; e respondeu só com o quadro. Cada erro deu uma regra:
+  - as contas e as leituras vêm das ferramentas, escritas como o ecrã as mostra (a distância, o
+    empate na prática com a regra do aviso `close_race`, o desempate, os folds ganhos e o "decora
+    o treino" do `Objective`);
+  - o quadro é um índice: o vencedor à parte, quanto cada candidato fica atrás do primeiro, e as
+    chamadas seguintes já escritas (`compare_candidates(first=3, second=10)`); o treino, o empate
+    e os folds ficam nas ferramentas dos pormenores;
+  - quem não foi ao teste diz que não foi.
+
+  Com isto, na pergunta principal, o modelo passou a ler o quadro e a comparar o vencedor com o
+  segundo, e todos os números da resposta vieram das ferramentas.
+- **A resposta passa por uma verificação**: cada número dela tem de estar no que as ferramentas
+  devolveram (ou na pergunta). Os que não estão vão para o aviso `unsupported_numbers`; quando estão
+  todos, `numbers_checked`. Também há `no_tools_used`, `forced_answer`, `empty_answer` e
+  `stopped_early`. A verificação só olha para os números: uma frase errada com números certos
+  passa, e é o registo passo a passo que deixa ver de onde veio cada coisa.
+- **As respostas guardam-se**: o `RecordedReply` ganha `tool_calls`, e a pergunta
+  (`AnalystRequest.replies`) repete uma resposta tal e qual com o `ScriptedModel`, sem o Ollama. Os
+  testes do Python, da API e de ponta a ponta perguntam assim; o teste `ollama` pergunta ao modelo
+  a sério e depois repete a resposta com o pedido dela.
+- **Em segundo plano, como as procuras**: `AutoMLService.ask` lança a pergunta num `TrainingJob`
+  próprio, e `question_job`, `question_updates` (e o WebSocket), `question_result` e
+  `cancel_question` seguem-na pelo id; `questions` dá as respondidas de uma procura e
+  `analyst_options` as perguntas sugeridas (uma regra do domínio: a do agente de IA só aparece se
+  ele entrou) e as ferramentas. Sem pausa: parar fecha a ligação ao Ollama, a meio da resposta.
+- **O contexto do Ollama vai a 8192 tokens em todos os pedidos** (`num_ctx`): o Ollama carrega os
+  modelos com 4096, e a conversa do analista passa disso (e aí o Ollama corta o princípio sem
+  avisar). O mesmo valor para o agente de IA, para o modelo não voltar a carregar ao alternarem.
+- **O raciocínio ao vivo da 13.2 não chegava ao ecrã.** O WebSocket só mandava uma atualização
+  quando havia passos ou mensagens novas, ou mudava o estado, o candidato ou a fase; o raciocínio
+  cresce sem nada disso, por isso só aparecia no fim, já fechado na mensagem "Thought". O `thought`
+  da procura e o `live` da pergunta passaram a contar (`api/stream.py`, com um teste).
+- **No ecrã Agents**, o painel "Ask the analyst" fica logo a seguir ao vencedor: as perguntas
+  sugeridas, as ferramentas e, para cada pergunta, a linha do tempo dos passos (o raciocínio ao
+  vivo, cada ferramenta com "What it returned", a resposta e a leitura dela). Sem o Ollama mostra o
+  estado de `GET /llm/status`, e as respostas que já houver ficam à vista. A pergunta a decorrer
+  fica na sessão do cliente (`analystQuestion`): sair do ecrã e voltar segue-a outra vez. Os
+  testes de ponta a ponta apontam o Ollama para uma porta fechada; para perguntar, a página finge-o
+  pronto e o pedido leva as respostas guardadas.
+- **Verificado com o Ollama a sério** (`qwen3:8b`, numa RTX 4060 de portátil): no ecrã, o raciocínio
+  cresce ao vivo e, na pergunta "Why did the winner win?", o analista leu o quadro, comparou o #3
+  com o #10 e respondeu em cerca de um minuto, com todos os números verificados. O raciocínio do
+  agente de IA da 13.2 também cresce agora no ecrã, numa procura do Titanic: com isto, a fase 13
+  cumpre o "Pronto quando".
 
 ### Orbyte, o site em inglês e a revisão do desenho
 
@@ -2893,3 +2953,85 @@ Duas lições dos testes:
 
 O `.xls` dos testes foi gravado pelo próprio Excel, porque nenhuma biblioteca de Python o grava
 sem mais uma dependência; fica em `tests/unit/core/data/io/files/`, marcado como binário.
+
+### O analista numa conversa, o quadro inteiro, apagar no History e pronto para outros computadores
+
+O pedido seguinte, já com o analista da etapa 13.3 a responder (ADR 0054):
+
+1. **O analista é uma conversa.** Um cartão ao centro da página, com a altura fixa (78% do ecrã,
+   entre 32 e 52 rem), em que só a conversa desliza: em cima, o nome e o modelo de linguagem com
+   o estado; no meio, as perguntas à direita e o analista à esquerda; em baixo, a caixa da
+   pergunta (Enter pergunta, e o "Stop" toma o lugar do botão enquanto ele trabalha), com as
+   sugestões que faltam numa fila que desliza para o lado. Sem perguntas, o meio dá as
+   boas-vindas: as sugestões e as ferramentas. Ao vivo, a conversa segue os passos (quem sobe
+   deixa de seguir, com o botão "Latest"); na resposta, os passos fecham-se numa linha com as
+   ferramentas usadas ("How it got there"), e a resposta fica numa bolha, com a leitura por
+   baixo. A página nunca mexe: nada de `scrollIntoView`, e o `overscroll-contain` não passa o
+   deslizar à página.
+2. **O quadro tem todos os candidatos e todos os modelos.** O `list_candidates` perdeu o `limit`
+   (o `qwen3:8b` pedia sempre `limit=10`), cada candidato passou a uma linha de texto, com o
+   número, o modelo e a nota juntos, e a lista `models` diz cada modelo uma vez, com o melhor
+   candidato dele. Até 40 linhas (`MAX_ROWS`); acima disso, os de baixo saem das linhas mas não
+   dos modelos.
+3. **Apagar no History, à vista**: o caixote do lixo ao fim de cada linha (presa à direita, para
+   se ver num portátil, onde a tabela desliza dentro da caixa) e "Delete the selected" ao lado de
+   "Clear the selection", os dois com confirmação.
+4. **Pronto para outros computadores**: o README abre com "Começar" (o que instalar em cada
+   sistema, o `git clone`, o `uv sync`, o arranque e uma tabela "Se alguma coisa falhar"); o
+   `scripts/dev.py` verifica o Node.js e as portas e instala a interface com `npm ci` quando o
+   `package-lock.json` muda; o CI ganha o Windows e o macOS; o Prettier aceita os fins de linha
+   de cada ficheiro; e as cópias de trabalho locais ficam fora do Git.
+
+**Verificado com o `qwen3:8b` a sério**, numa procura do Titanic com 24 candidatos e 12 modelos:
+
+- "Why did the winner win?": leu o quadro e comparou o #22 (gradient boosting) com o #16, em
+  50,8 s, com todos os números verificados; a página não mexeu enquanto ele escrevia, e a
+  conversa seguiu os passos até ao fim;
+- "Which models did the agents try, and how far behind the winner was each one?": só com o
+  quadro, em 35,1 s, disse os 12 modelos com o melhor candidato e a distância de cada um,
+  incluindo os do 13.º ao 24.º lugar (a árvore de decisão, a random forest, o SVM, o AdaBoost,
+  o KNN e o perceptrão), que o quadro dos dez primeiros nunca lhe mostrava.
+
+Quatro lições:
+
+- **Um teste que treina muitos runs corre no fim.** A API dos testes de ponta a ponta é uma só, e
+  guarda em memória só os cinco runs mais recentes (`KEPT_RUNS`). O teste novo de apagar treina
+  três, e, a correr ao mesmo tempo que os outros, empurrava para fora da memória os runs que o
+  teste do History ia guardar e o do Explain ia explicar ("is no longer in memory"). Passou para
+  um ficheiro seu (`e2e/history-delete.spec.ts`), num projeto do Playwright (`no-fim`) que só
+  começa quando os outros acabam.
+- **O tamanho mede-se, não se adivinha.** O plano eram 60 linhas, a contar 40 tokens cada. Com o
+  `qwen3:8b` a contar: as instruções e as ferramentas custam 966 tokens; o quadro de 24
+  candidatos, 2611 (as linhas, 1532, uns 65 cada, porque as mudanças dos hiperparâmetros são
+  compridas); dez objetos do quadro antigo custavam 1098. Com 60 linhas, a conversa podia passar
+  dos 8192 e o Ollama cortava o princípio sem avisar: ficaram 40.
+- **Um botão que aparece não pode mexer na página.** O "Delete the selected" começou na linha dos
+  filtros, que partia em duas ao marcar o primeiro run e empurrava a tabela: o segundo clique
+  caía noutra linha. Foi para junto do "Clear the selection", que já era das ações sobre os
+  escolhidos.
+- **O Windows tem os seus fins de linha.** Com o `core.autocrlf` ligado, os ficheiros chegam com
+  CRLF, e o `npm run format:check` dava 203 ficheiros por formatar sem nenhum estar mal: o
+  Prettier passou a aceitar os fins de linha de cada ficheiro, e o repositório continua em LF.
+
+### As dependências da interface sem avisos de segurança
+
+O pedido seguinte (ADR 0055): limpar os 23 avisos do `npm audit` da interface antes de o
+repositório ficar público. Vinham todos de quatro pacotes indiretos (`js-yaml`, `minimatch`,
+`katex` e `deepmerge`), e o `npm audit fix --force` só sabia descer de versão.
+
+- **Três `overrides`** obrigam a árvore a usar as versões corrigidas: o `js-yaml` 4.3.2 (o gerador
+  do cliente fixava a 4.2.0), o `minimatch` 11.0.5 (a correção não chegou ao 10, que o ESLint pede)
+  e o KaTeX do próprio projeto, 0.19.1, para o `rehype-katex` e o `remark-math` (`"$katex"`).
+- **A ferramenta do shadcn saiu**: trazia o `deepmerge`, sem versão corrigida, e 230 pacotes, para o
+  projeto usar só nove variantes e um utilitário da folha de estilos dela. Essas linhas estão
+  agora no `globals.css`, e um componente novo acrescenta-se com `npx shadcn@latest add <nome>`.
+
+Ficou o `npm audit` a 0, e o lockfile com 680 pacotes em vez de 910. Para ver que nada mudou:
+o ESLint analisa os mesmos 205 ficheiros, o cliente gerado é igual byte a byte, o CSS do build só
+perdeu sete propriedades que nenhuma classe usava, e os testes de ponta a ponta passam, com as
+fórmulas do Metrics e do Train & evaluate desenhadas pelo KaTeX 0.19.1.
+
+Uma lição: no Windows, o `npm ci` não consegue apagar um `node_modules` com um servidor do Vite a
+correr dessa pasta (o ficheiro nativo do `lightningcss` fica preso, `EPERM`). O
+`scripts/dev.py` não cai nisto, porque verifica a porta 5173 antes de instalar; quem tiver outro
+Vite aberto noutra porta tem de o fechar primeiro.

@@ -130,14 +130,7 @@ class ModelAgent:
         "maximum depth 8 (default 5) and minimum examples per leaf 10 (default 1)": o nome que
         se mostra em vez do nome no código, e o ponto de partida, para se ver o que mudou.
         """
-        dimensions = {dimension.name: dimension for dimension in self.space(model).dimensions}
-        defaults = self.defaults(model)
-        return format_list(
-            [
-                _change_in_words(dimensions.get(name), name, value, defaults.get(name))
-                for name, value in changes.items()
-            ]
-        )
+        return changes_in_words(model, changes, space=self.space(model))
 
     def report(
         self,
@@ -280,6 +273,33 @@ def model_agents(
 def describe_changes(changes: dict[str, Any]) -> str:
     """Os hiperparâmetros mudados, em texto ("max_depth 8, min_samples_leaf 5")."""
     return ", ".join(f"{name} {written_value(value)}" for name, value in changes.items())
+
+
+def changes_in_words(
+    model: type[LabModel[Any]], changes: Mapping[str, Any], *, space: SearchSpace | None = None
+) -> str:
+    """Os hiperparâmetros mudados de ``model``, por palavras, com o valor por omissão ao lado.
+
+    É o que ``ModelAgent.explain_changes`` diz, sem precisar do agente: o analista (ADR 0053)
+    lê assim os candidatos de uma procura que já acabou. Sem mudanças, diz que ficaram os
+    valores por omissão.
+
+    Args:
+        model: O modelo.
+        changes: Os hiperparâmetros que mudaram (o ``Candidate.changes``).
+        space: O espaço de procura do modelo, se já o houver; senão, lê-se do modelo.
+    """
+    if not changes:
+        return "its default settings"
+    found = space if space is not None else search_space(model)
+    dimensions = {dimension.name: dimension for dimension in found.dimensions}
+    defaults = model.info.hyperparameters().model_dump(mode="json")
+    return format_list(
+        [
+            _change_in_words(dimensions.get(name), name, value, defaults.get(name))
+            for name, value in changes.items()
+        ]
+    )
 
 
 def _change_in_words(dimension: Dimension | None, name: str, value: Any, default: Any) -> str:

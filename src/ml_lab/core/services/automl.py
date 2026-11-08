@@ -17,6 +17,12 @@
 ``updates``, ``pause``, ``resume``, ``cancel`` e ``result`` servem quem só sabe o
 identificador da procura (a API, ADR 0022). ``train_candidate`` é a ponte para o modo
 manual: treina um candidato do quadro como um run normal, para o ver no Treinar e avaliar.
+
+Depois de a procura acabar, **o analista** (fase 13, ADR 0053) responde a perguntas sobre ela,
+com ferramentas que leem o resultado: ``ask`` faz a pergunta em segundo plano, e
+``question_job``, ``question_updates``, ``question_result`` e ``cancel_question`` acompanham-na
+pelo id da pergunta; ``questions`` dá as que já se responderam e ``analyst_options`` o que se
+pode perguntar.
 """
 
 import threading
@@ -29,11 +35,13 @@ from typing import Any, Final
 
 from ml_lab.config import Settings, get_settings
 from ml_lab.core.automl.ai_agent import AiAgent
+from ml_lab.core.automl.analyst_tools import SearchFacts
 from ml_lab.core.automl.coordinator import Coordinator, SearchOutcome, rank
 from ml_lab.core.automl.data_agent import DataAgent, DataDecision
 from ml_lab.core.automl.model_agent import (
     ModelAgent,
     SkippedModel,
+    changes_in_words,
     describe_changes,
     describe_skipped,
     model_agents,
@@ -68,6 +76,7 @@ from ml_lab.core.evaluation.report import MetricResult
 from ml_lab.core.foundation.errors import (
     CandidateNotFoundError,
     ColumnNotFoundError,
+    ComponentNotFoundError,
     InvalidParameterError,
     LanguageModelError,
     MLLabError,
@@ -78,9 +87,15 @@ from ml_lab.core.foundation.notices import Notice
 from ml_lab.core.foundation.random import SeedManager
 from ml_lab.core.foundation.types import TaskType
 from ml_lab.core.llm import LanguageModel, Reply, ScriptedModel
-from ml_lab.core.models.base import ModelFamily
-from ml_lab.core.schemas.automl import AutoMLRequest, RecordedReply, SearchSettings
+from ml_lab.core.models.base import MODELS, ModelFamily
+from ml_lab.core.schemas.automl import (
+    AnalystRequest,
+    AutoMLRequest,
+    RecordedReply,
+    SearchSettings,
+)
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
+from ml_lab.core.services.analyst import AnalystAnswer, AnalystDesk, AnalystOptions, AnalystUpdate
 from ml_lab.core.services.catalog import SUGGESTED_MODELS
 from ml_lab.core.services.datasets import DatasetService
 from ml_lab.core.services.experiments import MODEL_SEED, ExperimentResult, ExperimentService
@@ -99,6 +114,9 @@ SEARCH_SEED: Final = "automl"
 
 AI_SEED: Final = "automl-ai"
 """Nome do componente do agente de IA: a seed que vai no pedido ao modelo de linguagem."""
+
+ANALYST_SEED: Final = "automl-analyst"
+"""Nome do componente do analista: a seed das suas conversas com o modelo de linguagem."""
 
 KEPT_SEARCHES: Final = 5
 """Quantas procuras ficam em memória (com a conversa e o quadro dos candidatos)."""
@@ -371,6 +389,7 @@ class AutoMLService:
         self._jobs: JobRegistry[AutoMLResult] = JobRegistry(KEPT_SEARCHES)
         self._searches: OrderedDict[str, _Plan] = OrderedDict()
         self._results: OrderedDict[str, AutoMLResult] = OrderedDict()
+        self._analyst = AnalystDesk(llm)
         self._lock = threading.Lock()
 
     def options(self, task_type: TaskType, objective: str | None = None) -> AutoMLOptions:
@@ -560,6 +579,82 @@ class AutoMLService:
         """
         result = self.result(search_id)
         return self._experiments.start(_experiment(result, result.candidate(number)))
+
+    # --- o analista (fase 13, ADR 0053) --------------------------------------------------
+
+    def analyst_options(self, search_id: str) -> AnalystOptions:
+        """O que se pode perguntar ao analista sobre uma procura: as sugestões e as ferramentas.
+
+        Raises:
+            SearchNotFoundError: Se a procura não estiver em memória.
+            TrainingInProgressError: Se a procura ainda decorrer (o analista só lê procuras
+                acabadas).
+        """
+        return self._analyst.options(search_id, search_facts(self.result(search_id)))
+
+    def ask(self, search_id: str, request: AnalystRequest) -> TrainingJob[AnalystAnswer]:
+        """Pergunta ao analista sobre uma procura acabada; ele responde em segundo plano.
+
+        O analista lê a procura com ferramentas (o quadro, um candidato, dois lado a lado, o plano
+        dos dados), a pensar à vista, e cada passo dele é um passo do trabalho.
+
+        Raises:
+            SearchNotFoundError: Se a procura não estiver em memória.
+            TrainingInProgressError: Se a procura ainda decorrer.
+            TrainingFailedError: Se a procura falhou.
+            LanguageModelError: Se for preciso o Ollama (sem respostas guardadas) e ele não
+                estiver pronto; a mensagem diz o que fazer.
+        """
+        result = self.result(search_id)
+        seed = SeedManager.create(result.seed).seed_for(ANALYST_SEED)
+        return self._analyst.ask(search_id, search_facts(result), request, seed=seed)
+
+    def questions(self, search_id: str) -> tuple[AnalystAnswer, ...]:
+        """As perguntas já respondidas sobre uma procura, pela ordem em que se fizeram.
+
+        Raises:
+            SearchNotFoundError: Se a procura já não estiver em memória.
+        """
+        self.search_plan(search_id)
+        return self._analyst.answers(search_id)
+
+    def question_job(self, question_id: str) -> JobState:
+        """O estado de uma pergunta ao analista.
+
+        Raises:
+            QuestionNotFoundError: Se não houver nenhuma pergunta com esse identificador.
+        """
+        return self._analyst.job(question_id)
+
+    def question_updates(self, question_id: str, after_step: int = 0) -> AnalystUpdate:
+        """O que mudou numa pergunta: os passos novos do analista e o que está a pensar agora.
+
+        Args:
+            question_id: A pergunta.
+            after_step: O número do último passo que quem pergunta já tem.
+
+        Raises:
+            QuestionNotFoundError: Se não houver nenhuma pergunta com esse identificador.
+        """
+        return self._analyst.updates(question_id, after_step)
+
+    def question_result(self, question_id: str) -> AnalystAnswer:
+        """A resposta do analista, com cada passo que deu até ela.
+
+        Raises:
+            TrainingInProgressError: Se o analista ainda estiver a responder.
+            TrainingFailedError: Se o modelo de linguagem deixou de responder a meio.
+            QuestionNotFoundError: Se a pergunta já não estiver em memória.
+        """
+        return self._analyst.result(question_id)
+
+    def cancel_question(self, question_id: str) -> JobState:
+        """Pede ao analista que pare, mesmo a meio de uma resposta do modelo de linguagem.
+
+        Raises:
+            QuestionNotFoundError: Se não houver nenhuma pergunta com esse identificador.
+        """
+        return self._analyst.cancel(question_id)
 
     # --- o plano -----------------------------------------------------------------------
 
@@ -1031,6 +1126,51 @@ def _ai_reading(result: AutoMLResult, objective: Objective) -> Notice:
             f"{objective.written(rival.mean)}."
         )
     return Notice.info("ai_comparison", text)
+
+
+def search_facts(result: AutoMLResult) -> SearchFacts:
+    """O que o analista pode ler de uma procura acabada: o resultado e a conversa dos agentes.
+
+    Do teste vai só o que o ecrã da procura já mostra: a nota do vencedor, a única vez que o teste
+    se usou. Os hiperparâmetros de cada candidato vão por palavras, com o valor por omissão ao
+    lado, como na conversa dos agentes.
+    """
+    plan = result.plan
+    return SearchFacts(
+        dataset=plan.dataset_name,
+        target=plan.target,
+        task_type=plan.task_type,
+        objective=objective_for(plan.task_type, plan.objective.name),
+        candidates=result.candidates,
+        ranking=result.ranking,
+        winner=result.winner,
+        baseline=result.baseline,
+        messages=result.messages,
+        settings={candidate.number: _settings(candidate) for candidate in result.candidates},
+        test=None if result.test is None else result.test.formatted,
+        decisions=plan.decisions,
+        adopted=plan.adopted,
+        train_rows=plan.train_rows,
+        test_rows=plan.test_rows,
+        search_rows=plan.search_rows,
+        folds=plan.settings.folds,
+        budget=plan.settings.budget,
+        finalists=plan.settings.finalists,
+        agents=tuple(agent.name for agent in plan.agents),
+        skipped=plan.skipped,
+        ai_model=plan.ai_model if plan.ai_agent else None,
+        stopped_early=result.stopped_early,
+        readings=tuple(notice.message for notice in result.notices),
+    )
+
+
+def _settings(candidate: Candidate) -> str:
+    """Os hiperparâmetros que o candidato mudou, por palavras (como a conversa os diz)."""
+    try:
+        model = MODELS.get(candidate.model)
+    except ComponentNotFoundError:  # um modelo que saiu do registo: ficam os nomes do código
+        return describe_changes(candidate.changes) or "its default settings"
+    return changes_in_words(model, candidate.changes)
 
 
 def _experiment(result: AutoMLResult, candidate: Candidate) -> ExperimentConfig:

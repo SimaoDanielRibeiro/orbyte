@@ -2,7 +2,8 @@
 
 É o que entra no serviço dos agentes e o que fica no resultado, com a seed já resolvida: com
 o mesmo pedido, a procura repete-se tal e qual. Vai e volta de JSON sem perder nada, por isso
-serve também a API.
+serve também a API. A pergunta ao analista (``AnalystRequest``, fase 13) segue a mesma ideia: a
+resposta traz o pedido com as respostas do modelo de linguagem, e esse pedido repete-a.
 
 Exemplo:
     >>> request = AutoMLRequest.model_validate(
@@ -17,6 +18,8 @@ Exemplo:
     >>> AutoMLRequest.model_validate_json(request.model_dump_json()) == request
     True
 """
+
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -79,18 +82,53 @@ class SearchSettings(BaseModel):
     )
 
 
+class RecordedToolCall(BaseModel):
+    """Uma ferramenta que o modelo de linguagem pediu, guardada com a resposta (o analista).
+
+    Attributes:
+        name: O nome da ferramenta (``"list_candidates"``).
+        arguments: Os argumentos, como o modelo os escreveu.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str = Field(min_length=1)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+
 class RecordedReply(BaseModel):
-    """Uma resposta do agente de IA, guardada para a procura se repetir sem o modelo de linguagem.
+    """Uma resposta de um agente de IA, guardada para se repetir sem o modelo de linguagem.
+
+    Serve os dois agentes de IA (ADR 0042 e 0053): o da afinação responde com o JSON da proposta
+    em ``content``; o analista pede ferramentas (``tool_calls``) e, no fim, responde por palavras.
 
     Attributes:
         thinking: O raciocínio.
-        content: A resposta, como o modelo a escreveu (o JSON da proposta).
+        content: A resposta, como o modelo a escreveu.
+        tool_calls: As ferramentas que o modelo pediu nesta resposta (só o analista as usa).
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     thinking: str = ""
-    content: str
+    content: str = ""
+    tool_calls: tuple[RecordedToolCall, ...] = ()
+
+
+class AnalystRequest(BaseModel):
+    """Uma pergunta ao analista sobre uma procura acabada (fase 13, ADR 0053).
+
+    Attributes:
+        question: A pergunta, por palavras ("Why did the winner win?").
+        replies: As respostas do modelo de linguagem de uma pergunta anterior: com elas, o
+            analista responde outra vez tal e qual, sem o Ollama (o ``ScriptedModel`` dá-as pela
+            ordem). A resposta traz sempre as que usou.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    question: str = Field(min_length=1, max_length=500)
+    replies: tuple[RecordedReply, ...] = ()
 
 
 class AutoMLRequest(BaseModel):

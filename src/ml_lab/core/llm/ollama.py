@@ -11,7 +11,10 @@ Fala-se com ele em HTTP, com a biblioteca padrão (``urllib``), sem dependência
   ``"tools"`` o modelo pode pedir para usar uma ferramenta (``message.tool_calls``).
 
 A temperatura vai sempre a 0: o modelo escolhe a palavra mais provável em vez de sortear, e a
-mesma pergunta tende a dar a mesma resposta (ADR 0042).
+mesma pergunta tende a dar a mesma resposta (ADR 0042). O contexto (quantos tokens o modelo lê de
+uma vez) vai sempre a ``CONTEXT_LENGTH``: o Ollama carrega os modelos com 4096 por omissão, e a
+conversa do analista (as respostas das ferramentas e o raciocínio) passa disso; quando passa, o
+Ollama corta o princípio da conversa sem avisar (ADR 0053).
 
 Só este módulo sabe que o Ollama existe (há uma regra de arquitetura): o resto do laboratório
 usa a interface ``LanguageModel``.
@@ -29,6 +32,11 @@ from ml_lab.core.llm.base import Chunk, Message, Tool, ToolCall
 
 TEMPERATURE: Final = 0.0
 """A temperatura do sorteio das palavras: 0 escolhe sempre a mais provável."""
+
+CONTEXT_LENGTH: Final = 8192
+"""Quantos tokens o modelo lê de uma vez (``num_ctx``). O mesmo valor em todos os pedidos: com
+outro, o Ollama voltava a carregar o modelo, e isso demora. Num ``qwen3:8b`` (Q4_K_M), 8192
+tokens cabem com o modelo numa gráfica de 8 GB."""
 
 STATUS_TIMEOUT: Final = 2.0
 """Quanto se espera pelo Ollama para saber se está a correr (o ecrã não pode ficar parado)."""
@@ -175,7 +183,7 @@ def chat_body(
     seed: int | None,
 ) -> dict[str, Any]:
     """O corpo do ``POST /api/chat``: a conversa, as opções, o formato e as ferramentas."""
-    options: dict[str, Any] = {"temperature": TEMPERATURE}
+    options: dict[str, Any] = {"temperature": TEMPERATURE, "num_ctx": CONTEXT_LENGTH}
     if seed is not None:
         options["seed"] = seed
     body: dict[str, Any] = {

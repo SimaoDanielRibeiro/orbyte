@@ -26,27 +26,53 @@ em [docs/algorithms/](docs/algorithms/).
 | 10 — Interface aprimorada | Todos os ecrãs em React, por cima da API; a interface simples, em Streamlit, saiu depois dela (ADR 0031) | em curso |
 | 11 — Guardar e carregar o modelo | O pacote `.mllab` (a ficha, o manifesto assinado, a preparação, o run, o modelo e o ONNX), a biblioteca e o carregar com aviso | ✅ concluída |
 | 12 — Prever | Prever com um pacote, linha a linha ou um CSV inteiro | por fazer |
-| 13 — Agentes de IA | Um modelo de linguagem local (Ollama) que propõe hiperparâmetros a pensar à vista; as regras continuam a medir (ADR 0042) | em curso (13.1 e 13.2 ✅) |
+| 13 — Agentes de IA | Um modelo de linguagem local (Ollama) que propõe hiperparâmetros a pensar à vista, e um analista que responde sobre a procura numa conversa, com ferramentas; as regras continuam a medir (ADR 0042, 0053 e 0054) | ✅ concluída |
 
-## Requisitos
+## Começar
 
-- [uv](https://docs.astral.sh/uv/), que instala o Python 3.12 sozinho se for preciso.
-- [Node.js](https://nodejs.org/) 24 ou mais recente (traz o npm), para a interface.
-- Git.
-- Opcional: o [Ollama](https://ollama.com/), para os agentes de IA (`ollama pull qwen3:8b`).
-  Sem ele, tudo o resto funciona, e o ecrã Agents diz como o ligar.
+O Orbyte corre no teu computador, sem contas nem servidores de fora: no Windows (x64), no macOS
+(Apple Silicon, do M1 em diante) e no Linux (x64 ou ARM64). São três passos, e o primeiro só se
+faz uma vez.
 
-## Instalação
+### 1. Instalar o que é preciso
+
+- **[Git](https://git-scm.com/downloads)**, para descarregar o projeto.
+- **[uv](https://docs.astral.sh/uv/)**, que instala o Python 3.12 e as bibliotecas do backend
+  sozinho (não é preciso ter o Python instalado):
+
+  ```powershell
+  # Windows (PowerShell)
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+
+  ```bash
+  # macOS e Linux
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+- **[Node.js](https://nodejs.org/) 24 ou mais recente** (traz o npm), para a interface: o
+  instalador da versão LTS chega.
+- Opcional: o **[Ollama](https://ollama.com/)**, para os agentes de IA e o analista, com o
+  modelo `qwen3:8b` (`ollama pull qwen3:8b`, uns 5 GB). Sem ele, tudo o resto funciona, e o
+  ecrã Agents diz como o ligar.
+
+Depois de os instalar, abre um terminal novo: é ele que encontra os programas acabados de
+instalar.
+
+### 2. Descarregar e instalar o projeto
 
 ```bash
+git clone https://github.com/SimaoDanielRibeiro/ml-lab.git
+cd ml-lab
 uv sync
 ```
 
-Este comando cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em
-`uv.lock` (as bibliotecas do pacote e as ferramentas de desenvolvimento) e instala o pacote
-`ml_lab` em modo editável: as alterações em `src/` ficam ativas sem reinstalar. A biblioteca
-mais pesada é o PyTorch (as redes neuronais): no Windows vem a versão só para CPU, que chega
-para as redes do laboratório.
+O `uv sync` cria o ambiente virtual em `.venv/`, instala as versões exatas fixadas em `uv.lock`
+(as bibliotecas do pacote e as ferramentas de desenvolvimento) e instala o pacote `ml_lab` em
+modo editável: as alterações em `src/` ficam ativas sem reinstalar. Da primeira vez demora uns
+minutos, sobretudo pelo PyTorch (as redes neuronais): no Windows e no macOS vem a versão só para
+o processador, que chega para as redes do laboratório; no Linux vem com as bibliotecas do CUDA
+(uns 3 GB a descarregar).
 
 Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no repositório, em
 `data/samples/`. Para os voltar a descarregar das origens, com verificação SHA-256:
@@ -55,18 +81,35 @@ Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no re
 uv run python scripts/download_samples.py --force
 ```
 
-## Abrir a interface
+### 3. Abrir o Orbyte
 
 A interface é uma aplicação web (React, em `ui/web`) que fala com o backend pela API. Um só
-comando, a partir da raiz do projeto, arranca as duas:
+comando, a partir da pasta do projeto, arranca as duas:
 
 ```bash
 uv run python scripts/dev.py
 ```
 
 A interface abre em <http://localhost:5173> e, como a API, só este computador lhe tem acesso.
-Recarrega sozinha quando gravas um ficheiro, e `Ctrl+C` pára as duas. Na primeira vez, o
-comando instala as dependências da interface (`npm install`, em `ui/web`).
+Recarrega sozinha quando gravas um ficheiro, e `Ctrl+C` pára as duas. Antes de arrancar, o
+comando confirma que o Node.js é o 24 ou mais recente e que as portas 8000 e 5173 estão livres,
+e instala as dependências da interface (`npm ci`, em `ui/web`) da primeira vez e sempre que um
+`git pull` as mude. As do backend acerta-as o próprio `uv run`, com o `uv.lock`.
+
+### Se alguma coisa falhar
+
+| O que aparece | O que fazer |
+|---|---|
+| `uv`, `git`, `node` ou `npm` não é reconhecido (`command not found`) | Abre um terminal novo depois de os instalar; no Windows, se não chegar, termina a sessão e volta a entrar. |
+| "O Node.js deste computador é o 20…" | Instala o Node.js 24 ou mais recente, de <https://nodejs.org>, e abre um terminal novo. |
+| "A porta 8000 (da API) já está ocupada" | O Orbyte já está a correr noutro terminal: fecha-o (`Ctrl+C`). Ou muda a porta da API no `.env` (`ML_LAB_API_PORT=8010`); a interface segue-a sozinha. |
+| "A porta 5173 (da interface) já está ocupada" | Outro servidor do Vite está aberto: fecha-o e corre outra vez. |
+| O `npm ci` falha no Windows com `EPERM` | Um servidor da interface ainda está a correr dessa pasta e prende os ficheiros do `node_modules`: fecha-o e corre outra vez. |
+| O `uv sync` não encontra o `torch` num Mac com Intel ou num Windows em ARM | O PyTorch deixou de ter versões para eles: o Orbyte precisa de um Mac com Apple Silicon ou de um PC x64 (ou ARM64 com Linux). |
+| O ecrã Agents diz que o Ollama não está a correr | Abre o Ollama (ou `ollama serve`, num terminal) e descarrega o modelo: `ollama pull qwen3:8b`. |
+
+Para atualizar depois um projeto já descarregado: `git pull` e o mesmo
+`uv run python scripts/dev.py`, que trata do resto.
 
 A página de entrada tem os dois caminhos, "Start by hand" e "Start with the agents". Na barra
 lateral, os primeiros passos (**Data** e **Explore**) são dos dois; por baixo troca-se entre
@@ -139,6 +182,12 @@ validação cruzada escolheu-o; o teste usa-se uma só vez), o quadro dos candid
 histórico das trocas. "Open the winner" leva-o para o **Train & evaluate**, como um run feito à
 mão, e "Train in manual mode" treina qualquer candidato do quadro.
 
+Com o Ollama aberto, "Ask the analyst" conversa contigo sobre a procura acabada: pergunta "Why
+did the winner win?" e vês o analista ler o quadro inteiro (todos os candidatos e todos os
+modelos), comparar o vencedor com o segundo e responder, com cada número verificado. Só a
+conversa desliza, dentro do painel; os passos de cada resposta abrem-se para ver o que cada
+ferramenta devolveu.
+
 ### Para aprender
 
 - **Lab**: seis demonstrações, cada uma com um controlo, o que experimentar e o que fica — o
@@ -154,7 +203,9 @@ mão, e "Train in manual mode" treina qualquer candidato do quadro.
 
 No **History**, marca dois runs para os comparar lado a lado, com o melhor marcado e só as
 escolhas que mudaram. Pára a API e arranca-a outra vez: os runs continuam lá, e "Replay" treina
-outra vez a mesma configuração.
+outra vez a mesma configuração. Para apagar, o caixote do lixo ao fim de cada linha apaga esse
+run, e "Delete the selected" apaga os que estão marcados (os dois pedem confirmação: não se
+desfazem).
 
 ## Usar a API
 

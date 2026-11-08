@@ -152,3 +152,60 @@ it leaves the tuning.
 **What to watch.** The dashed "AI agent" node in the flowchart lights up while it thinks; in the
 conversation, the "Thought" opens to read the whole reasoning; on the board, its proposals carry the
 **AI** mark; and the closing reading compares its best proposal with the tuning's best draw.
+
+## The analyst (phase 13)
+
+When the search is over, you can ask about it: "Why did the winner win?", "Does the winner memorise
+the training data?". The **analyst** answers. It's an AI agent too, but a different kind (ADR 0053).
+
+**The intuition.** The AI agent gets everything at once, as text, and answers in a fixed format.
+The analyst starts with nothing but your question: it doesn't see the search, it has **tools**, and
+it chooses which ones to use. That's how most AI agents work today, with a loop:
+
+1. it **thinks** about what it needs;
+2. it **calls a tool**: the **board** (every candidate, best first, and each model's best),
+   **one candidate** in detail, **two candidates** side by side, or the **data plan**;
+3. it **reads** what the tool returned, which goes back into the conversation;
+4. it thinks again, and calls another tool or **answers**.
+
+**How it's put together** (`core/automl/analyst.py` and `analyst_tools.py`). Each tool is a
+function with a name, a description and its arguments in JSON Schema: that's all the model sees of
+it. When the model asks for one, the analyst runs it and sends the result back as a `tool` message.
+After six rounds of tools, it has to answer with what it has.
+
+**What keeps it honest.**
+
+- **The tools only read.** They read what the search measured (the result and the agents'
+  conversation): the analyst trains nothing, measures nothing new and sees nothing of the test
+  except the winner's score, which the result already shows.
+- **The tools do the maths.** A small language model gets arithmetic wrong and misreads a table of
+  numbers. So the gap between two candidates, whether it's a tie in practice (smaller than the
+  spread between folds), how many folds each one won and whether a model memorises the training
+  data all come already worked out, written as the screen shows them.
+- **The answer is checked.** Every number in it must be in what the tools returned. If one isn't,
+  a warning says which: a language model can invent a number that sounds right, and here that
+  shows.
+
+**Pitfalls.**
+
+- **Right numbers, wrong sentence.** The check only looks at numbers: "#10 had a higher training
+  score, 80.8% against 85.8%" passes, because both numbers are real. Read the answer next to the
+  tools it used: every step is there.
+- **General knowledge sneaks in.** "Random forests reduce overfitting" may be true in general and
+  say nothing about this search. The instructions ask for explanations from what was measured, but
+  a model doesn't always follow them.
+- **It's slow**: each round waits for the model. On a laptop graphics card, a question takes from
+  half a minute to a minute.
+
+**Why the board is one line per candidate.** The board has every candidate, not just the top ten:
+to explain why the winner won, the analyst needs the whole search. Written as one object per
+candidate, a board of 24 is long, and a small model mixes up the rows, giving one candidate
+another's score. So each candidate is a single line, with its number, model and score together,
+and a short list says each model once, with its best candidate.
+
+**What to watch.** On the Agents screen, after a search, **Ask the analyst** is a conversation:
+your questions on the right, the analyst on the left, and only the conversation scrolls. While it
+works, each step arrives as it comes: the reasoning growing live, each tool with its arguments and
+**What it returned** (the JSON the model read). When it answers, the steps fold into one line with
+the tools it used, and the answer comes with the check underneath. Its replies are kept with the
+answer: asking again with them gives the same answer, without Ollama.

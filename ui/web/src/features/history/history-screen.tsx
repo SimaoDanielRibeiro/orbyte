@@ -3,22 +3,39 @@
  * com os filtros, a comparação de dois a cinco runs e a gaveta de cada um (abrir, reproduzir,
  * guardar, mudar o nome, apagar).
  *
+ * Apagar está também no próprio ecrã (ADR 0054): o caixote do lixo ao fim de cada linha apaga
+ * esse run, e "Delete the selected" (ao lado de "Clear the selection") apaga os escolhidos. As
+ * duas pedem confirmação, porque não se desfazem.
+ *
  * Os filtros ficam no endereço (`?tarefa=…&dataset=…&modelo=…`), e a API filtra; as opções de
  * cada filtro são os valores que o histórico tem. Os runs a comparar escolhem-se na tabela.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { cn } from "cn";
-import { Check } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { RunEntry, TaskType } from "@/api/generated";
 import { historyRunsOptions } from "@/api/generated/@tanstack/react-query.gen";
+import { deleteRuns } from "@/api/history";
 import { useLabel } from "@/api/vocabulary";
 import { Explain } from "@/components/explain/explain";
 import { ErrorNote, NeedsStep, Section } from "@/components/shell/blocks";
 import { Page, PageHeader } from "@/components/shell/page";
 import { SCREENS } from "@/components/shell/screens";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,6 +48,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoment, formatQuantity } from "@/lib/format";
 
+import { invalidateHistory } from "./cache";
 import { ComparisonView } from "./comparison-view";
 import { RunSheet } from "./run-sheet";
 import { MAX_COMPARED, primaryValue } from "./values";
@@ -72,6 +90,12 @@ export function HistoryScreen() {
       ),
     );
   };
+  // Um run apagado sai da comparação e, se estava aberto, a gaveta fecha-se.
+  const forget = (runIds: readonly string[]) => {
+    setChosen((previous) => previous.filter((id) => !runIds.includes(id)));
+    setOpened((previous) => (previous !== null && runIds.includes(previous) ? null : previous));
+  };
+  const chosenEntries = (everything.data ?? []).filter((entry) => chosen.includes(entry.run_id));
 
   return (
     <Page>
@@ -102,6 +126,7 @@ export function HistoryScreen() {
             chosen={chosen}
             onToggle={toggle}
             onOpen={setOpened}
+            onDeleted={forget}
             loading={filtered.data === undefined}
           />
 
@@ -110,15 +135,20 @@ export function HistoryScreen() {
             topic="comparing_runs"
             actions={
               chosen.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setChosen([]);
-                  }}
-                >
-                  Clear the selection ({chosen.length})
-                </Button>
+                // As ações sobre os escolhidos ficam juntas, aqui: na linha dos filtros, mudavam a
+                // altura da página a cada caixa marcada.
+                <div className="flex flex-wrap items-start gap-2">
+                  <DeleteRuns entries={chosenEntries} onDeleted={forget} />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setChosen([]);
+                    }}
+                  >
+                    Clear the selection ({chosen.length})
+                  </Button>
+                </div>
               )
             }
           >
@@ -132,10 +162,137 @@ export function HistoryScreen() {
           setOpened(null);
         }}
         onDeleted={(runId) => {
-          setChosen((previous) => previous.filter((id) => id !== runId));
+          forget([runId]);
         }}
       />
     </Page>
+  );
+}
+
+/**
+ * Apagar os runs escolhidos na tabela, de uma vez, depois de os ver na confirmação. Só aparece
+ * com algum escolhido.
+ */
+function DeleteRuns({
+  entries,
+  onDeleted,
+}: {
+  entries: readonly RunEntry[];
+  onDeleted: (runIds: readonly string[]) => void;
+}) {
+  const queryClient = useQueryClient();
+  const remove = useMutation({
+    mutationFn: deleteRuns,
+    onSettled: () => {
+      invalidateHistory(queryClient);
+    },
+    onSuccess: (_, runIds) => {
+      onDeleted(runIds);
+      toast.success(`${formatQuantity(runIds.length, "run", "runs")} deleted from the history.`);
+    },
+  });
+  if (entries.length === 0) {
+    return null;
+  }
+  const runIds = entries.map((entry) => entry.run_id);
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" size="sm" disabled={remove.isPending}>
+            <Trash2 aria-hidden="true" />
+            Delete the selected ({entries.length})
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {formatQuantity(entries.length, "run", "runs")}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              They leave the history with their files (the model and the step-by-step training, if
+              they were saved). This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="flex flex-col gap-1 text-sm text-strong">
+            {entries.map((entry) => (
+              <li key={entry.run_id} className="truncate">
+                {entry.name}
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                remove.mutate(runIds);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <ErrorNote error={remove.error} />
+    </div>
+  );
+}
+
+/** O caixote do lixo de uma linha: apaga esse run, depois de confirmar. */
+function DeleteRunButton({
+  entry,
+  onDeleted,
+}: {
+  entry: RunEntry;
+  onDeleted: (runIds: readonly string[]) => void;
+}) {
+  const queryClient = useQueryClient();
+  const remove = useMutation({
+    mutationFn: deleteRuns,
+    onSettled: () => {
+      invalidateHistory(queryClient);
+    },
+    onSuccess: (_, runIds) => {
+      onDeleted(runIds);
+      toast.success("Run deleted from the history.");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Delete “${entry.name}”`}
+          disabled={remove.isPending}
+          className="text-dim hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 aria-hidden="true" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete “{entry.name}”?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The run leaves the history with its files (the model and the step-by-step training, if
+            it was saved). This can&apos;t be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              remove.mutate([entry.run_id]);
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -247,19 +404,21 @@ function Filter({
  * Cada célula tem uma linha principal e, por baixo, o pormenor em letra pequena (a tarefa por
  * baixo do dataset, o nome da métrica por baixo do valor): assim cabe num portátil sem o nome
  * partir em três linhas nem a tabela deslizar para o lado. A seed só aparece num ecrã largo
- * (está também na gaveta do run).
+ * (está também na gaveta do run). A última coluna apaga o run.
  */
 function RunsTable({
   entries,
   chosen,
   onToggle,
   onOpen,
+  onDeleted,
   loading,
 }: {
   entries: readonly RunEntry[];
   chosen: readonly string[];
   onToggle: (runId: string, on: boolean) => void;
   onOpen: (runId: string) => void;
+  onDeleted: (runIds: readonly string[]) => void;
   loading: boolean;
 }) {
   const label = useLabel();
@@ -302,6 +461,9 @@ function RunsTable({
             <th scope="col" className={head}>
               Saved
             </th>
+            <th scope="col" className={cn("sticky right-0 w-12 bg-background", head)}>
+              <span className="sr-only">Delete</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -311,7 +473,7 @@ function RunsTable({
               <tr
                 key={entry.run_id}
                 className={cn(
-                  "border-b border-border/60 transition-colors last:border-0 hover:bg-surface-high/50",
+                  "group/row border-b border-border/60 transition-colors last:border-0 hover:bg-surface-high/50",
                   on && "bg-surface-high hover:bg-surface-high",
                 )}
               >
@@ -366,6 +528,17 @@ function RunsTable({
                       <span className="sr-only">No</span>
                     </span>
                   )}
+                </td>
+                {/* Presa à direita: num portátil, a tabela desliza para o lado dentro da caixa, e
+                    o caixote do lixo fica à vista. O fundo opaco é o da linha (o mesmo cinzento
+                    por baixo do rato, ou o de escolhida), para o que desliza não se ver por baixo. */}
+                <td
+                  className={cn(
+                    "sticky right-0 px-2 py-2 text-right transition-colors",
+                    on ? "bg-surface-high" : "bg-background group-hover/row:bg-[#1b1b1b]",
+                  )}
+                >
+                  <DeleteRunButton entry={entry} onDeleted={onDeleted} />
                 </td>
               </tr>
             );

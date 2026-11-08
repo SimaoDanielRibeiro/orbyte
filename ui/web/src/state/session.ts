@@ -30,6 +30,13 @@ export interface PreparationDraft {
   choices: PrepareChoices;
 }
 
+/** Uma pergunta ao analista a decorrer (fase 13): volta-se a ela depois de sair do ecrã. */
+export interface AnalystQuestion {
+  searchId: string;
+  questionId: string;
+  question: string;
+}
+
 interface SessionState {
   /** O caminho escolhido: a barra lateral mostra os passos dele. */
   path: WorkPath;
@@ -50,6 +57,11 @@ interface SessionState {
    * tal como estava). "Nova procura" esquece-a, e abrir outro dataset também.
    */
   searchId: string | null;
+  /**
+   * A pergunta ao analista a decorrer: sair do ecrã (ou recarregar) e voltar segue-a outra vez.
+   * Quando a resposta chega, fica nas respondidas da procura e isto esquece-se.
+   */
+  analystQuestion: AnalystQuestion | null;
   /** O último treino de um agente de reinforcement learning. */
   agentRunId: string | null;
   choosePath: (path: WorkPath) => void;
@@ -61,6 +73,7 @@ interface SessionState {
   /** Abre um run; `title` é o nome do modelo, quando se acaba de o começar. */
   openRun: (runId: string | null, title?: string | null) => void;
   openSearch: (searchId: string | null) => void;
+  openAnalystQuestion: (question: AnalystQuestion | null) => void;
   openAgentRun: (runId: string | null) => void;
 }
 
@@ -75,6 +88,7 @@ export const useSession = create<SessionState>()(
       runId: null,
       runTitle: null,
       searchId: null,
+      analystQuestion: null,
       agentRunId: null,
       choosePath: (path) => {
         set({ path });
@@ -104,13 +118,16 @@ export const useSession = create<SessionState>()(
       openSearch: (searchId) => {
         set({ searchId });
       },
+      openAnalystQuestion: (analystQuestion) => {
+        set({ analystQuestion });
+      },
       openAgentRun: (agentRunId) => {
         set({ agentRunId });
       },
     }),
     {
       name: "ml-lab:session",
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       partialize: ({
         path,
@@ -121,6 +138,7 @@ export const useSession = create<SessionState>()(
         runId,
         runTitle,
         searchId,
+        analystQuestion,
         agentRunId,
       }) => ({
         path,
@@ -131,11 +149,17 @@ export const useSession = create<SessionState>()(
         runId,
         runTitle,
         searchId,
+        analystQuestion,
         agentRunId,
       }),
       // As versões anteriores não tinham alguns campos (a 1 só tinha o caminho e a barra; a 2,
-      // o rascunho da preparação; a 3, o treino de RL): os que faltam começam vazios.
-      migrate: (persisted) => ({ agentRunId: null, ...(persisted as Partial<SessionState>) }),
+      // o rascunho da preparação; a 3, o treino de RL; a 4, a pergunta ao analista): os que
+      // faltam começam vazios.
+      migrate: (persisted) => ({
+        agentRunId: null,
+        analystQuestion: null,
+        ...(persisted as Partial<SessionState>),
+      }),
     },
   ),
 );

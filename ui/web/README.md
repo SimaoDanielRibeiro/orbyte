@@ -31,8 +31,9 @@ Depois, a API e a interface juntas, com um só comando na raiz do projeto (a int
 uv run python scripts/dev.py
 ```
 
-Na primeira vez, se ainda não correste o `npm install`, o script corre-o. Também se arrancam à
-parte, cada uma no seu terminal: `uv run python -m ml_lab.api` na raiz e `npm run dev` aqui.
+Na primeira vez, e depois de um `git pull` que mude o `package-lock.json`, o script instala as
+dependências com `npm ci` (as versões exatas do lockfile). Também se arrancam à parte, cada uma
+no seu terminal: `uv run python -m ml_lab.api` na raiz e `npm run dev` aqui.
 
 Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço de
 `ML_LAB_API_HOST` e `ML_LAB_API_PORT` (os mesmos do `.env` da raiz do projeto).
@@ -44,7 +45,7 @@ Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço 
 | `npm run check` | A verificação toda: gera o cliente e corre o lint, os tipos e os testes |
 | `npm run typecheck` | Os tipos (o "mypy" do frontend), com o cliente já gerado |
 | `npm run lint` | O ESLint, sem avisos (o "ruff") |
-| `npm run format` | O Prettier, que também ordena as classes do Tailwind |
+| `npm run format` | O Prettier, que também ordena as classes do Tailwind; `npm run format:check` só confere. Aceita os fins de linha de cada ficheiro (`endOfLine: "auto"`): no Windows, o Git costuma dar CRLF, e o repositório guarda LF na mesma (ADR 0054) |
 | `npm test` | Os testes do Vitest (o "pytest") |
 | `npm run e2e` | Os testes de ponta a ponta, no Chromium, com a API numa pasta temporária |
 | `npm run build` | O build final, em `dist/` |
@@ -88,7 +89,7 @@ backend.
 | As cores dos dados (as classes, as séries, as escalas) | `src/lib/colors.ts` e as `--data-1` a `--data-8` de `globals.css`: a paleta categórica e as rampas. Uma paleta nova tem de se validar outra vez contra o cartão (`#191919`): o contraste, e a distinção para quem não vê bem as cores |
 | A cor de cada família de modelos (a mesma nos Modelos, nos agentes e na entrada) | `src/lib/families.ts` (ADR 0037): uma cor fixa por família, das oito da paleta; uma família nova no backend precisa da sua aqui |
 | O desenho animado de cada modelo, na lista dos Modelos | `src/features/models/glyphs.ts` (que desenho tem cada família e tarefa), `model-glyph.tsx` (os desenhos) e as classes `glyph-*` de `globals.css` (o movimento) |
-| Os componentes de base (botões, campos, gavetas, separadores) | `src/components/ui/`: são os do shadcn, copiados para o projeto para se adaptarem |
+| Os componentes de base (botões, campos, gavetas, separadores) | `src/components/ui/`: são os do shadcn, copiados para o projeto para se adaptarem. As variantes dos estados que eles usam (`data-open:`, `data-checked:`…) estão no `globals.css`; a ferramenta do shadcn não fica instalada, e corre-se quando é precisa: `npx shadcn@latest add <nome>` (ADR 0055) |
 | A moldura (a barra lateral, a pesquisa, o cabeçalho das páginas) | `src/components/shell/`; o cartão da secção aberta que desliza e o ponto do trilho estão em `app-sidebar.tsx` (`SLIDE`) |
 | Os blocos das páginas: o cartão (`Panel`), o número grande (`Stat`), a secção (`Section`) e os factos | `src/components/shell/blocks.tsx`; a classe `panel` e o rótulo `mono-label` estão em `globals.css` |
 | O "?" das explicações: ao lado de um título (`Explain`) e no título da página (`PageExplain`) | `src/components/explain/explain.tsx` |
@@ -207,6 +208,7 @@ maneira:
 | Modelo | `POST /experiments` | `GET /experiments/{run_id}/updates` | `.../pause`, `.../resume`, `.../cancel` | `GET /experiments/{run_id}/result` |
 | Agente de RL | `POST /reinforcement` | `GET /reinforcement/{run_id}/updates` | idem | `GET /reinforcement/{run_id}/result` |
 | Agentes (AutoML) | `POST /automl` | `GET /automl/{search_id}/updates` | idem | `GET /automl/{search_id}/result` |
+| Pergunta ao analista | `POST /automl/{search_id}/questions` | `GET /automl/questions/{question_id}/updates` | `.../cancel` (sem pausa) | `GET /automl/questions/{question_id}/result` |
 
 - A resposta de começar é um `JobState`: o `run_id` (na procura dos agentes, o id da procura,
   `search-...`), o estado e o progresso (`planned_steps` dá a barra de progresso).
@@ -214,15 +216,19 @@ maneira:
   - modelos e agentes de RL: `after_step` (o último passo que já tem) e `after_snapshot` (o
     passo da última fotografia);
   - procura dos agentes: `after_step` (o último candidato) e `after_message` (a última
-    mensagem da conversa).
+    mensagem da conversa);
+  - pergunta ao analista: `after_step` (o último passo do analista).
 - **WebSocket** (não aparece no OpenAPI): `/experiments/{run_id}/stream`,
-  `/reinforcement/{run_id}/stream` e `/automl/{search_id}/stream` enviam o mesmo que
-  `updates`, sozinhos, de 0,25 em 0,25 s, em mensagens `{"kind": "update", "data": ...}`
-  (ou `{"kind": "error", "data": <ApiError>}`). A ligação fecha quando o trabalho termina;
-  o resultado pede-se então por HTTP.
+  `/reinforcement/{run_id}/stream`, `/automl/{search_id}/stream` e
+  `/automl/questions/{question_id}/stream` enviam o mesmo que `updates`, sozinhos, de 0,25 em
+  0,25 s, em mensagens `{"kind": "update", "data": ...}` (ou `{"kind": "error", "data":
+  <ApiError>}`). A ligação fecha quando o trabalho termina; o resultado pede-se então por HTTP.
 - Na procura dos agentes, cada `updates` traz também o `working`: o candidato que um agente
   está a medir agora, o que muda nele e o fold em que vai (`fold` de `folds`). É `null` entre
-  candidatos e fora das rondas. É o que acende o agente certo no fluxograma.
+  candidatos e fora das rondas. É o que acende o agente certo no fluxograma. O `thought` é o
+  raciocínio do agente de IA até aqui; na pergunta ao analista, o `live` é o que ele está a
+  pensar e a escrever. Os dois crescem sem passos novos, e cada bocado novo também vem numa
+  mensagem do WebSocket.
 - Pedir o resultado antes do fim responde 409 (`training_in_progress`).
 - `POST /automl/{search_id}/candidates/{number}/train` treina um candidato à mão: devolve o
   `JobState` de um treino normal, que se acompanha nas rotas de `/experiments`.
@@ -307,7 +313,7 @@ comprimir 2 MB custa mais tempo do que os poupa numa ligação local.
 | Treinar e avaliar | `experiments_updates` (e o WebSocket), `experiments_pause`, `experiments_resume`, `experiments_cancel`, `experiments_job`, `experiments_preview`, `experiments_result` (ou `history_open`), `analysis_charts`, `analysis_cross_validation`, `analysis_learning_curve`, `catalog_metrics` |
 | Explicar | `history_story` (a história do treino, em capítulos com texto e visual, para qualquer run; ADR 0047), `experiments_result` (ou `history_open`), `analysis_permutation_importance`, `analysis_partial_dependence`, `analysis_test_rows`, `analysis_explain_row` |
 | Guardar | `packages_candidates`, `packages_options`, `packages_preview`, `packages_save`, `packages_saved`, `packages_contents`, `packages_load`, `packages_trust`, `packages_delete`, e o ficheiro (`GET /packages/{package_id}/file`, uma ligação normal) |
-| Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar) |
+| Agentes | `automl_options`, `automl_plan`, `automl_start`, `automl_search_plan` (o plano de uma procura, para desenhar os agentes enquanto ela decorre), `automl_updates` (e o WebSocket), `automl_pause`, `automl_resume`, `automl_cancel`, `automl_result`, `automl_train_candidate`; o vencedor é um run como os outros (`experiments_result`, ou `history_open` depois de a API recomeçar). O analista (ADR 0053): `automl_analyst_options` (as perguntas sugeridas e as ferramentas), `automl_questions` (as respondidas), `automl_ask`, `automl_question_updates` (e o WebSocket), `automl_question_job`, `automl_question_result`, `automl_cancel_question`, e `llm_status` para o painel dizer o que falta |
 | Métricas | `catalog_metrics` |
 | Laboratório | `laboratory_demos` (o que cada demonstração mostra, o seu guia, os valores do seu controlo e o de partida), `laboratory_overfitting`, `laboratory_learning_rate`, `laboratory_knn`, `laboratory_regularization`, `laboratory_threshold`, `laboratory_data_size` |
 | Reinforcement learning | `reinforcement_environments`, `reinforcement_agents`, `reinforcement_start`, `reinforcement_updates` (e o WebSocket), `reinforcement_pause`, `reinforcement_resume`, `reinforcement_cancel`, `reinforcement_job`, `reinforcement_result` (ou `history_open_reinforcement`), `history_entry`, `history_save` |

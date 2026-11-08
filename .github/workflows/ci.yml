@@ -1,6 +1,7 @@
 # As verificações de cada push: as mesmas que se correm à mão antes de um push (README.md,
 # "Testes e verificações"). O backend e a interface correm sempre; os testes de ponta a ponta
-# (a interface num browser, com a API a sério) demoram mais, por isso correm no main e à mão.
+# (a interface num browser, com a API a sério) demoram mais, por isso correm no main e à mão, e
+# os do Windows e do macOS também (ver o job "other-systems").
 
 name: CI
 
@@ -55,6 +56,41 @@ jobs:
       # Gera o cliente a partir do openapi.json e corre o lint, os tipos e os testes.
       - run: npm run check
       - run: npm run build
+
+  # Os computadores de quem descarrega o projeto (ADR 0054): no Windows e no macOS (Apple
+  # Silicon), o backend e a interface instalam-se das versões fixadas e passam os testes rápidos.
+  # O Linux já é o dos outros jobs. Corre a cada push no main com o repositório público (os
+  # minutos são grátis) e sempre à mão; num repositório privado, só à mão, porque cada minuto do
+  # macOS conta por dez.
+  other-systems:
+    name: Outros sistemas (${{ matrix.os }})
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && !github.event.repository.private)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run pytest -m "not integration and not api"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/web/package-lock.json
+      - run: npm ci
+        working-directory: ui/web
+      - run: npm run check
+        working-directory: ui/web
+      - run: npm run build
+        working-directory: ui/web
 
   e2e:
     name: Ponta a ponta (Playwright)

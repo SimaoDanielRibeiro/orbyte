@@ -16,6 +16,11 @@ Tudo o que os agentes decidem fica na conversa (``search_log.py``), em inglês, 
 perceber porque é que o vencedor ganhou. São regras e medições, não um modelo de
 linguagem: com a mesma seed, a procura repete-se tal e qual.
 
+Na fase 13 juntam-se dois agentes de IA, com um modelo de linguagem (ADR 0042): o agente de IA
+da afinação (``ai_agent.py``), que propõe candidatos a pensar, e o analista (``analyst.py`` e
+``analyst_tools.py``, ADR 0053), que responde a perguntas sobre a procura acabada usando
+ferramentas que só leem o que ela mediu.
+
 O vencedor não sai daqui treinado: o serviço (``services/automl.py``) treina-o como um run
 normal, que usa o teste uma única vez e fica no histórico, ao lado dos runs do modo manual.
 """

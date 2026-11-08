@@ -10,6 +10,7 @@ import { useCallback } from "react";
 
 import type {
   AgentRole,
+  AnalystStepKind,
   CellKind,
   ChoiceGroup,
   ColumnKind,
@@ -39,6 +40,7 @@ import { explanationsVocabularyOptions } from "./generated/@tanstack/react-query
 /** Cada enum do vocabulário, pelo nome do tipo (a chave de `labels`). */
 export interface VocabularyKinds {
   AgentRole: AgentRole;
+  AnalystStepKind: AnalystStepKind;
   CellKind: CellKind;
   ChoiceGroup: ChoiceGroup;
   ColumnKind: ColumnKind;

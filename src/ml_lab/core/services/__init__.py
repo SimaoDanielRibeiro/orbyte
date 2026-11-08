@@ -6,6 +6,8 @@ A API chama-os, e a interface web fala com a API. Como a API só pode importar
 resultados que os serviços devolvem, as configurações que recebem e o erro base do ML Lab.
 """
 
+from ml_lab.core.automl.analyst import AnalystStep, AnalystStepKind, LiveTurn
+from ml_lab.core.automl.analyst_tools import ToolUse
 from ml_lab.core.automl.data_agent import DataDecision
 from ml_lab.core.automl.model_agent import SkippedModel
 from ml_lab.core.automl.search_log import (
@@ -64,11 +66,17 @@ from ml_lab.core.foundation.types import Partition, TaskType
 from ml_lab.core.models.base import Implementation, ModelFamily
 from ml_lab.core.rl.environments.base import CellKind, GridLayout
 from ml_lab.core.rl.lesson import LessonEpisode, LessonStep, ReinforcementLesson
-from ml_lab.core.schemas.automl import AutoMLRequest, SearchSettings
+from ml_lab.core.schemas.automl import AnalystRequest, AutoMLRequest, SearchSettings
 from ml_lab.core.schemas.experiment import ExperimentConfig, ModelSpec
 from ml_lab.core.schemas.packages import PackageRequest
 from ml_lab.core.schemas.reinforcement import AgentSpec, EnvironmentSpec, ReinforcementConfig
 from ml_lab.core.services.analysis import AnalysisService, Contribution, RowExplanation
+from ml_lab.core.services.analyst import (
+    AnalystAnswer,
+    AnalystOptions,
+    AnalystToolInfo,
+    AnalystUpdate,
+)
 from ml_lab.core.services.automl import (
     AgentModel,
     AutoMLOptions,
@@ -189,6 +197,13 @@ __all__ = [
     "AgentRole",
     "AgentSpec",
     "AnalysisService",
+    "AnalystAnswer",
+    "AnalystOptions",
+    "AnalystRequest",
+    "AnalystStep",
+    "AnalystStepKind",
+    "AnalystToolInfo",
+    "AnalystUpdate",
     "AutoMLOptions",
     "AutoMLPlan",
     "AutoMLRequest",
@@ -263,6 +278,7 @@ __all__ = [
     "LessonStep",
     "LineageStep",
     "LinearWeights",
+    "LiveTurn",
     "LossCurve",
     "LossSeries",
     "MLLabError",
@@ -348,6 +364,7 @@ __all__ = [
     "TaskType",
     "Thought",
     "ThresholdDemo",
+    "ToolUse",
     "TrackingError",
     "TrainingAnimation",
     "TrainingJob",

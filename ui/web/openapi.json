@@ -6407,6 +6407,606 @@
         }
       }
     },
+    "/automl/{search_id}/analyst": {
+      "get": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "O que se pode perguntar ao analista sobre uma procura: as sugestões e as ferramentas.",
+        "operationId": "automl_analyst_options",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Search Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalystOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/automl/{search_id}/questions": {
+      "get": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "As perguntas já respondidas sobre uma procura, pela ordem em que se fizeram.",
+        "operationId": "automl_questions",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Search Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AnalystAnswer"
+                  },
+                  "title": "Response Automl Questions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "Pergunta ao analista sobre uma procura acabada; ele responde em segundo plano.",
+        "description": "Sem respostas guardadas (``replies``), é preciso o Ollama: sem ele, responde 400 com o que\nfazer (o estado está em ``GET /llm/status``).",
+        "operationId": "automl_ask",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Search Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalystRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/automl/questions/{question_id}/job": {
+      "get": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "O estado de uma pergunta ao analista: em curso, terminada ou falhada.",
+        "operationId": "automl_question_job",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/automl/questions/{question_id}/updates": {
+      "get": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "O que mudou na pergunta: os passos novos do analista e o que está a pensar agora.",
+        "operationId": "automl_question_updates",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          },
+          {
+            "name": "after_step",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "O número do último passo do analista que já tens.",
+              "default": 0,
+              "title": "After Step"
+            },
+            "description": "O número do último passo do analista que já tens."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalystUpdate"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/automl/questions/{question_id}/result": {
+      "get": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "A resposta do analista, com o raciocínio, cada ferramenta usada e o que devolveu.",
+        "operationId": "automl_question_result",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalystAnswer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/automl/questions/{question_id}/cancel": {
+      "post": {
+        "tags": [
+          "automl"
+        ],
+        "summary": "Pede ao analista que pare, mesmo a meio de uma resposta do modelo de linguagem.",
+        "operationId": "automl_cancel_question",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O pedido não se pode cumprir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O identificador não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O treino ainda decorre, ou falhou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Os valores do pedido não servem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "O registo de experiências falhou, ou um erro inesperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/packages/candidates": {
       "get": {
         "tags": [
@@ -7716,6 +8316,260 @@
         ],
         "title": "AgentSpec",
         "description": "O agente escolhido e os seus hiperparâmetros.\n\nAttributes:\n    name: Nome do agente no registo, por exemplo ``\"q_learning\"``.\n    hyperparameters: Valores escolhidos; os que faltam usam o valor por omissão."
+      },
+      "AnalystAnswer": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "search_id": {
+            "type": "string",
+            "title": "Search Id"
+          },
+          "request": {
+            "$ref": "#/components/schemas/AnalystRequest"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "trace": {
+            "items": {
+              "$ref": "#/components/schemas/AnalystStep"
+            },
+            "type": "array",
+            "title": "Trace"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "tools_used": {
+            "type": "integer",
+            "title": "Tools Used"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds"
+          },
+          "stopped_early": {
+            "type": "boolean",
+            "title": "Stopped Early",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "search_id",
+          "request",
+          "question",
+          "model",
+          "trace",
+          "answer",
+          "tools_used",
+          "notices",
+          "duration_seconds",
+          "stopped_early"
+        ],
+        "title": "AnalystAnswer",
+        "description": "A resposta do analista, com cada passo que deu até ela.\n\nAttributes:\n    question_id: O identificador da pergunta.\n    search_id: A procura de que fala.\n    request: O pedido, com as respostas do modelo de linguagem: repete a resposta tal e qual,\n        sem o Ollama.\n    question: A pergunta.\n    model: O modelo de linguagem que respondeu (\"qwen3:8b\", ou \"saved answers\").\n    trace: Cada passo, pela ordem: o raciocínio, as ferramentas (com os argumentos e o que\n        devolveram) e a resposta.\n    answer: A resposta (vazia se parou antes de responder).\n    tools_used: Quantas ferramentas usou.\n    notices: A leitura da resposta (os números verificados, uma resposta sem ferramentas…).\n    duration_seconds: Quanto tempo demorou.\n    stopped_early: Se parou a pedido, antes de responder."
+      },
+      "AnalystOptions": {
+        "properties": {
+          "search_id": {
+            "type": "string",
+            "title": "Search Id"
+          },
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/AnalystToolInfo"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "max_turns": {
+            "type": "integer",
+            "title": "Max Turns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "search_id",
+          "suggestions",
+          "tools",
+          "model",
+          "max_turns"
+        ],
+        "title": "AnalystOptions",
+        "description": "O que se pode perguntar ao analista sobre uma procura acabada.\n\nAttributes:\n    search_id: A procura.\n    suggestions: Perguntas que esta procura sabe responder (\"Why did the winner win?\"):\n        dependem do que ela tem (um vencedor, a referência, o agente de IA…).\n    tools: As ferramentas que o analista pode usar, pela ordem.\n    model: O modelo de linguagem configurado (\"qwen3:8b\"), se houver um ligado.\n    max_turns: Quantas vezes o analista pode pedir ferramentas antes de ter de responder."
+      },
+      "AnalystRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "replies": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedReply"
+            },
+            "type": "array",
+            "title": "Replies",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AnalystRequest",
+        "description": "Uma pergunta ao analista sobre uma procura acabada (fase 13, ADR 0053).\n\nAttributes:\n    question: A pergunta, por palavras (\"Why did the winner win?\").\n    replies: As respostas do modelo de linguagem de uma pergunta anterior: com elas, o\n        analista responde outra vez tal e qual, sem o Ollama (o ``ScriptedModel`` dá-as pela\n        ordem). A resposta traz sempre as que usou."
+      },
+      "AnalystStep": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AnalystStepKind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "default": ""
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolUse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "number",
+          "kind",
+          "text",
+          "tool"
+        ],
+        "title": "AnalystStep",
+        "description": "Um passo do analista: um raciocínio, uma ferramenta usada ou a resposta.\n\nAttributes:\n    number: A ordem (1, 2, 3…): quem acompanha pede só os passos novos.\n    kind: O que o passo é.\n    text: O raciocínio, o resumo do que a ferramenta devolveu, ou a resposta.\n    tool: Numa ferramenta, o que se pediu e o que se leu."
+      },
+      "AnalystStepKind": {
+        "type": "string",
+        "enum": [
+          "thought",
+          "tool",
+          "answer"
+        ],
+        "title": "AnalystStepKind",
+        "description": "O que é cada passo do analista."
+      },
+      "AnalystToolInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "purpose"
+        ],
+        "title": "AnalystToolInfo",
+        "description": "Uma ferramenta do analista, pronta a mostrar.\n\nAttributes:\n    name: O nome, como o modelo de linguagem a pede (``\"get_candidate\"``).\n    label: O nome a mostrar.\n    purpose: O que faz, numa frase."
+      },
+      "AnalystUpdate": {
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/JobState"
+          },
+          "search_id": {
+            "type": "string",
+            "title": "Search Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "trace": {
+            "items": {
+              "$ref": "#/components/schemas/AnalystStep"
+            },
+            "type": "array",
+            "title": "Trace",
+            "default": []
+          },
+          "live": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveTurn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "search_id",
+          "question",
+          "trace",
+          "live"
+        ],
+        "title": "AnalystUpdate",
+        "description": "O que mudou numa pergunta desde a última vez (o que a API transmite).\n\nAttributes:\n    state: O retrato do trabalho agora (o progresso conta os passos).\n    search_id: A procura de que fala.\n    question: A pergunta.\n    trace: Os passos novos (depois de ``after_step``), pela ordem.\n    live: O que o modelo de linguagem está a pensar e a escrever agora, até aqui (``None``\n        entre vezes e no fim)."
       },
       "ApiError": {
         "properties": {
@@ -11138,6 +11992,27 @@
         "title": "LinearWeights",
         "description": "Os pesos de um modelo linear.\n\nA previsão (ou a pontuação de uma classe) é a ordenada mais a soma de peso × valor de\ncada feature: cada parcela é o contributo exato dessa feature.\n\nAttributes:\n    features: As features, pela ordem dos pesos.\n    outputs: O que explica cada linha de pesos: a previsão do alvo, ou uma classe.\n    codes: Na classificação, o número da classe de cada linha (vazio na regressão).\n    weights: ``weights[i][j]`` é o peso da feature ``j`` na saída ``i``.\n    intercepts: A ordenada de cada saída.\n    how_to_read: Como se leem estes pesos."
       },
+      "LiveTurn": {
+        "properties": {
+          "thinking": {
+            "type": "string",
+            "title": "Thinking",
+            "default": ""
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "LiveTurn",
+        "description": "A vez do modelo de linguagem a decorrer: o que já pensou e escreveu, a crescer.\n\nAttributes:\n    thinking: O raciocínio até aqui.\n    answer: O texto até aqui (a resposta, se for a última vez).",
+        "required": [
+          "thinking",
+          "answer"
+        ]
+      },
       "LossCurve": {
         "properties": {
           "rate": {
@@ -13289,16 +14164,43 @@
           },
           "content": {
             "type": "string",
-            "title": "Content"
+            "title": "Content",
+            "default": ""
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedToolCall"
+            },
+            "type": "array",
+            "title": "Tool Calls",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RecordedReply",
+        "description": "Uma resposta de um agente de IA, guardada para se repetir sem o modelo de linguagem.\n\nServe os dois agentes de IA (ADR 0042 e 0053): o da afinação responde com o JSON da proposta\nem ``content``; o analista pede ferramentas (``tool_calls``) e, no fim, responde por palavras.\n\nAttributes:\n    thinking: O raciocínio.\n    content: A resposta, como o modelo a escreveu.\n    tool_calls: As ferramentas que o modelo pediu nesta resposta (só o analista as usa)."
+      },
+      "RecordedToolCall": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Arguments"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "content"
+          "name"
         ],
-        "title": "RecordedReply",
-        "description": "Uma resposta do agente de IA, guardada para a procura se repetir sem o modelo de linguagem.\n\nAttributes:\n    thinking: O raciocínio.\n    content: A resposta, como o modelo a escreveu (o JSON da proposta)."
+        "title": "RecordedToolCall",
+        "description": "Uma ferramenta que o modelo de linguagem pediu, guardada com a resposta (o analista).\n\nAttributes:\n    name: O nome da ferramenta (``\"list_candidates\"``).\n    arguments: Os argumentos, como o modelo os escreveu."
       },
       "RegularizationDemo": {
         "properties": {
@@ -15122,6 +16024,53 @@
         ],
         "title": "ThresholdDemo",
         "description": "As métricas para cada limiar, a matriz de confusão do escolhido e as probabilidades.\n\nAttributes:\n    threshold: O limiar escolhido.\n    thresholds: Os limiares comparados (com o escolhido).\n    precision: Dos que o modelo marca como positivos, a parte que o é (``None`` quando não\n        marca nenhum: não há de onde tirar a parte).\n    recall: Dos positivos, a parte que o modelo encontra.\n    f1: A média harmónica das duas.\n    accuracy: A parte das linhas certas.\n    baseline_accuracy: A exatidão de responder sempre \"negativo\" (a classe maior).\n    positive_share: A parte de positivos no teste.\n    class_labels: O nome de cada classe (negativa e positiva).\n    confusion: A matriz de confusão do limiar escolhido; as linhas são a classe real e as\n        colunas a prevista, pela ordem de ``class_labels``.\n    negatives: A probabilidade de \"positivo\" que o modelo dá a cada linha negativa do teste.\n    positives: A mesma probabilidade, para cada linha positiva do teste.\n    notices: A leitura do limiar escolhido."
+      },
+      "ToolUse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Arguments"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "arguments",
+          "summary",
+          "result",
+          "error"
+        ],
+        "title": "ToolUse",
+        "description": "Uma ferramenta que o analista usou: o que pediu e o que leu.\n\nAttributes:\n    name: O nome da ferramenta (``\"get_candidate\"``).\n    label: O nome a mostrar (\"One candidate\").\n    arguments: Os argumentos, como o modelo de linguagem os escreveu.\n    summary: O que devolveu, numa frase, em inglês.\n    result: O que devolveu, tal como o modelo de linguagem o leu (JSON).\n    error: Se a ferramenta recusou o pedido, porquê (o modelo também leu a razão)."
       },
       "TrainingAnimation": {
         "properties": {

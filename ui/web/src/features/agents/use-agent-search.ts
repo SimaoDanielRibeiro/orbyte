@@ -44,8 +44,11 @@ const EMPTY: LiveSearch = {
   thought: null,
 };
 
-/** Junta o que chegou ao que já se tinha (o WebSocket recomeça do princípio a cada ligação). */
-function merge<T extends { number: number }>(known: T[], fresh: readonly T[]): T[] {
+/**
+ * Junta o que chegou ao que já se tinha (o WebSocket recomeça do princípio a cada ligação). Serve
+ * as mensagens e os candidatos da procura, e os passos do analista (`use-question.ts`).
+ */
+export function merge<T extends { number: number }>(known: T[], fresh: readonly T[]): T[] {
   const last = known.at(-1)?.number ?? 0;
   const added = fresh.filter((item) => item.number > last);
   return added.length > 0 ? [...known, ...added] : known;

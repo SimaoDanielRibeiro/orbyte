@@ -17,6 +17,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
 
+from ml_lab.core.automl.analyst import AnalystStepKind
 from ml_lab.core.automl.objective import supports
 from ml_lab.core.automl.search_log import AgentRole, MessageKind, ParticipantKind, SearchPhase
 from ml_lab.core.data.lineage import Stage
@@ -98,6 +99,7 @@ def vocabulary() -> Vocabulary:
     """O nome a mostrar de cada valor de cada enum, e o que muda com cada tarefa."""
     labels = {
         "AgentRole": _labels(AgentRole),
+        "AnalystStepKind": _labels(AnalystStepKind),
         "CellKind": _labels(CellKind),
         "ChoiceGroup": _labels(ChoiceGroup),
         "ColumnKind": _labels(ColumnKind),

@@ -16,7 +16,27 @@ AUTOML_EXPLANATIONS: Final[Mapping[str, Explanation]] = MappingProxyType(
             "budget and picks the winner. Every decision stays in the conversation, with its "
             "reason. These agents have no magic and no language model: they're rules and "
             "measurements, and with the same seed the search repeats exactly. If Ollama is "
-            "open, an **AI agent** that thinks with a language model can join them.",
+            "open, an **AI agent** that thinks with a language model can join them, and at the "
+            "end an **analyst** answers your questions about the search.",
+        ),
+        "analyst": Explanation(
+            "The analyst",
+            "The **analyst** is an AI agent that answers questions about a finished search, such "
+            "as “Why did the winner win?”. It starts with nothing but your question: it doesn't "
+            "see the search. What it has are **tools**, and it chooses which to use: the "
+            "**board** (the candidates, best first), **one candidate** in detail, **two "
+            "candidates** side by side and the **data plan**. Its cycle is the one of any agent "
+            "with tools: it **thinks**, **calls a tool**, **reads** what the tool returned and "
+            "thinks again, until it knows enough to **answer**. You see every step: the "
+            "reasoning, each tool with what it asked for and what it got back, and the answer.\n\n"
+            "The tools do the maths (the gap between two candidates, whether it's smaller than the "
+            "spread between folds, how many folds each one won), so the language model only has "
+            "to explain them. And the rules check the answer: every number in it must be in what "
+            "the tools returned. A language model can invent a number that sounds right; here, "
+            "that shows. The analyst measures nothing new, and of the test it only sees what the "
+            "result already shows: the winner's score.\n\n"
+            "Its replies are kept with the answer: asking again with them gives the same answer, "
+            "without Ollama.",
         ),
         "ai_agent": Explanation(
             "The AI agent",
