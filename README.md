@@ -1,6 +1,6 @@
 # Orbyte
 
-[![CI](https://github.com/SimaoDanielRibeiro/ml-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/SimaoDanielRibeiro/ml-lab/actions/workflows/ci.yml)
+[![CI](https://github.com/SimaoDanielRibeiro/orbyte/actions/workflows/ci.yml/badge.svg)](https://github.com/SimaoDanielRibeiro/orbyte/actions/workflows/ci.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
 ![Node.js 24+](https://img.shields.io/badge/node.js-24%2B-green.svg)
@@ -9,6 +9,8 @@ Laboratório de machine learning para aprender. Carregas um dataset, escolhes um
 aprendizagem e um algoritmo (ou pedes aos agentes que o procurem), e vês o treino passo a passo,
 as métricas de avaliação, as explicações das previsões e o registo de cada experiência.
 
+![A entrada do Orbyte, com os dois caminhos: treinar à mão ou pedir aos agentes](docs/images/home.png)
+
 ## Instalação rápida
 
 Precisas de três programas: o [Git](https://git-scm.com/downloads), o
@@ -16,8 +18,8 @@ Precisas de três programas: o [Git](https://git-scm.com/downloads), o
 [Node.js](https://nodejs.org/) 24 ou mais recente. Depois, num terminal:
 
 ```bash
-git clone https://github.com/SimaoDanielRibeiro/ml-lab.git
-cd ml-lab
+git clone https://github.com/SimaoDanielRibeiro/orbyte.git
+cd orbyte
 uv run python scripts/dev.py
 ```
 
@@ -43,6 +45,73 @@ falhar, estão em [Começar](#começar).
   numa grelha (Q-learning e DQN).
 - **Guardar:** cada treino fica no History, para comparar e repetir, e um modelo guarda-se num
   ficheiro `.mllab` (com o ONNX) que se carrega noutra instalação.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/agents-at-work.png" alt="O ecrã Agents a meio de uma procura no Titanic: o fluxograma, com o agente de IA a pensar, e a conversa dos agentes ao lado">
+      <p><b>Os agentes a trabalhar.</b> Uma procura no Titanic: o fluxograma acende quem está a
+      trabalhar (aqui, o agente de IA a pensar no próximo candidato), e a conversa diz o que cada
+      um mediu e decidiu.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/agents-conversation.png" alt="A conversa dos agentes em ecrã inteiro, com a linha do tempo à esquerda e as mensagens agrupadas por fase">
+      <p><b>A conversa dos agentes, em grande</b> ("Expand"): as mensagens de cada fase, quem fala
+      com quem, e a linha do tempo para saltar.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/analyst.png" alt="O painel Ask the analyst, com a pergunta Why did the winner win? e a resposta do analista">
+      <p><b>O analista.</b> Uma conversa sobre a procura acabada, com um modelo de linguagem local
+      (o Ollama): lê o quadro, compara candidatos e responde com números verificados.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/training.png" alt="O ecrã Train and evaluate com uma rede neuronal nas luas: a fronteira de decisão e as curvas da loss e da exatidão">
+      <p><b>Treinar à mão.</b> Uma rede neuronal nas luas: a fronteira de decisão em cada
+      fotografia do treino, e as curvas da loss e da exatidão.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/metric.png" alt="A gaveta da métrica F1, com a fórmula e a conta deste run">
+      <p><b>Cada métrica com a sua conta.</b> A fórmula do F1 e os números deste run, passo a
+      passo.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/explain-predictions.png" alt="O ecrã Explain, com a importância de cada feature e a dependência parcial">
+      <p><b>Explicar as previsões.</b> O que pesa no conjunto (a importância por permutação), como
+      a previsão muda com uma feature e porque saiu uma previsão.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/lab.png" alt="O Lab, na demonstração do overfitting, com um polinómio de grau 9">
+      <p><b>O Lab.</b> Seis demonstrações, cada uma com um controlo; aqui, um polinómio de grau 9 a
+      decorar o ruído (overfitting).</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/reinforcement.png" alt="A lição do Q-learning no mapa do penhasco, com o valor de cada célula e o caminho do agente">
+      <p><b>Reinforcement learning.</b> A lição do Q-learning no penhasco, episódio a episódio,
+      com o valor que o agente dá a cada célula.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/models.png" alt="O catálogo dos modelos, com os cartões da classificação">
+      <p><b>34 modelos</b>, cada um com a ficha, um exemplo a aprender e os hiperparâmetros
+      explicados.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/history-compare.png" alt="O History com dois runs comparados lado a lado">
+      <p><b>O History.</b> Dois runs lado a lado, com o melhor marcado e só o que mudou entre
+      eles.</p>
+    </td>
+  </tr>
+</table>
+
+As imagens tiram-se sozinhas, com `npm run screenshots` em `ui/web` (ver
+[ui/web/README.md](ui/web/README.md)).
 
 Chamava-se ML Lab: o site passou a Orbyte, todo em inglês, e o pacote Python continua a ser
 `ml_lab` (ADR 0043). O plano completo está em [docs/architecture.md](docs/architecture.md); as
@@ -83,8 +152,8 @@ instalar.
 ### 2. Descarregar o projeto
 
 ```bash
-git clone https://github.com/SimaoDanielRibeiro/ml-lab.git
-cd ml-lab
+git clone https://github.com/SimaoDanielRibeiro/orbyte.git
+cd orbyte
 ```
 
 Os datasets de exemplo (Iris, Wine, Titanic e California Housing) já vêm no repositório, em

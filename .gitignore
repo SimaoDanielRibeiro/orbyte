@@ -23,6 +23,10 @@ artifacts/*
 # Notebooks
 .ipynb_checkpoints/
 
+# As imagens com o dobro dos píxeis (npm run screenshots, em ui/web), para publicações: as do
+# README, em docs/images/, chegam para o repositório
+docs/images/hd/
+
 # Sistema operativo e editores
 .DS_Store
 Thumbs.db

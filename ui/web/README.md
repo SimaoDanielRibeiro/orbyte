@@ -49,6 +49,7 @@ Os pedidos da interface vão para `/api`, e o Vite passa-os à API no endereço 
 | `npm run format` | O Prettier, que também ordena as classes do Tailwind; `npm run format:check` só confere. Aceita os fins de linha de cada ficheiro (`endOfLine: "auto"`): no Windows, o Git costuma dar CRLF, e o repositório guarda LF na mesma (ADR 0054) |
 | `npm test` | Os testes do Vitest (o "pytest") |
 | `npm run e2e` | Os testes de ponta a ponta, no Chromium, com a API numa pasta temporária |
+| `npm run screenshots` | As imagens do README (`e2e/readme.shots.ts`): o mesmo arranque, num ecrã Full HD, com o Ollama deste computador (precisa do `qwen3:8b`). As do README saem para `docs/images/`, e todas, com o dobro dos píxeis, para `docs/images/hd/` (fora do Git). Demora uns 7 minutos, quase todos da procura dos agentes |
 | `npm run build` | O build final, em `dist/` |
 
 O lint, os tipos e os testes não geram o cliente: usam o que lá está. Gerar enquanto o `dev`

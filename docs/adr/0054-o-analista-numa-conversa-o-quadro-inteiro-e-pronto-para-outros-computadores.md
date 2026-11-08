@@ -69,9 +69,9 @@ método novo no serviço. A gaveta do run continua a ter o seu "Delete the run".
 
 **Pronto para outros computadores:**
 
-- o README abre com "Começar": o que instalar, com os comandos de cada sistema (o uv, que traz o
-  Python; o Node.js 24; o Ollama, opcional), o `git clone`, o `uv sync` e o arranque, e uma tabela
-  "Se alguma coisa falhar" com o que aparece e o que fazer;
+- o README abre com a instalação rápida (três comandos) e, a seguir, "Começar": o que instalar,
+  com os comandos de cada sistema (o uv, que traz o Python; o Node.js 24; o Ollama, opcional), o
+  `git clone` e o arranque, e uma tabela "Se alguma coisa falhar" com o que aparece e o que fazer;
 - o `scripts/dev.py` verifica antes de arrancar o que costuma falhar e diz o que fazer: o Node.js
   antigo, uma porta ocupada (uma API esquecida noutro terminal), e as dependências da interface,
   que instala com `npm ci` (as versões exatas do `package-lock.json`) da primeira vez e sempre que
@@ -90,7 +90,20 @@ método novo no serviço. A gaveta do run continua a ter o seu "Delete the run".
   `core.autocrlf` ligado (o que o instalador do Git escolhe), os ficheiros chegam com CRLF, e o
   `npm run format:check` dava 200 ficheiros "mal formatados" sem nada mal formatado. O
   repositório guarda LF na mesma, pelo `.gitattributes`;
-- o `.gitignore` deixa de fora as cópias de trabalho locais.
+- as configurações locais de desenvolvimento saem do Git: as definições do assistente de código, o
+  `launch.json` das pré-visualizações e as cópias de trabalho são de quem desenvolve, e quem
+  clona o projeto arranca-o com o `scripts/dev.py`. As regras do projeto ficam no
+  `CONTRIBUTING.md`, na raiz;
+- o repositório passa a chamar-se `orbyte`, como o site (ADR 0043), e o GitHub redireciona o nome
+  antigo. Por dentro, os nomes ficam: o pacote `ml_lab`, a `ml-lab-web` da interface e os formatos
+  dos ficheiros já guardados (`ml-lab-package`, `ml-lab-onnx`), que é o que esses ficheiros dizem
+  ser;
+- as imagens do README tiram-se com um comando, `npm run screenshots` (em `ui/web`): o arranque
+  dos testes de ponta a ponta, num ecrã Full HD e com o Ollama deste computador, faz uma procura
+  dos agentes no Titanic com o agente de IA, pergunta ao analista porque ganhou o vencedor e
+  fotografa os ecrãs pelo caminho. As do README vão para `docs/images/`; todas saem também, com o
+  dobro dos píxeis, em `docs/images/hd/` (fora do Git), para publicações. Quando a interface
+  muda, voltam a tirar-se com o mesmo comando, nos mesmos ecrãs, em vez de à mão.
 
 ## Consequências
 
@@ -108,3 +121,6 @@ método novo no serviço. A gaveta do run continua a ter o seu "Delete the run".
 - **O macOS e o Windows passam a estar testados no CI**, mas só nos testes rápidos: os de
   ponta a ponta continuam só no Linux. O Mac com Intel e o Windows em ARM ficam de fora, porque o
   PyTorch deixou de ter versões para eles; o README diz isso.
+- **As imagens dos agentes precisam do Ollama** com o `qwen3:8b`, e mudam um pouco de cada vez que
+  se tiram: o modelo de linguagem não pensa duas vezes da mesma maneira. Sem ele, as outras saem
+  na mesma.

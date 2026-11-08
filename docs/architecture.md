@@ -426,7 +426,7 @@ Cada pasta do núcleo corresponde a uma responsabilidade; cada ficheiro de algor
 independente.
 
 ```text
-ml-lab/
+orbyte/
 ├── pyproject.toml            # dependências, grupos opcionais e config de ruff/mypy/pytest
 ├── uv.lock                   # versões exatas fixadas (gerado pelo uv)
 ├── README.md                 # como instalar, correr e contribuir
@@ -3041,7 +3041,7 @@ Vite aberto noutra porta tem de o fechar primeiro.
 O pedido seguinte: o commit, uma revisão geral do projeto e o README com uma maneira rápida de
 instalar e arrancar (ADR 0054).
 
-- **A instalação rápida são três comandos**: `git clone`, `cd ml-lab` e
+- **A instalação rápida são três comandos**: `git clone`, `cd orbyte` e
   `uv run python scripts/dev.py`. O `uv run` cria o ambiente e instala o `uv.lock` da primeira
   vez (confirmado numa cópia limpa, sem `.venv`), por isso o `uv sync` deixou de ser um passo.
 - **O arranque abre o browser quando está pronto**: o `scripts/dev.py` espera pelo `/health` da
@@ -3061,3 +3061,33 @@ instalar e arrancar (ADR 0054).
 - nenhum `TODO` por fazer; e as regras mais exigentes do ruff, corridas só para ver, só
   encontraram estilo e falsos alarmes (o SQL junta só nomes de colunas fixos, e os valores vão
   sempre como parâmetros).
+
+### O repositório no GitHub: o nome, as configurações locais e as imagens
+
+O pedido seguinte (ADR 0054): apagar o que já não servia, mudar o nome do repositório, tirar as
+imagens para o README e para publicações, e deixar fora do GitHub as configurações locais de
+desenvolvimento.
+
+- **O repositório chama-se `orbyte`**, como o site: `github.com/SimaoDanielRibeiro/orbyte`. O
+  GitHub redireciona o nome antigo, por isso um clone antigo continua a funcionar (o
+  `git remote set-url origin` acerta-o de vez). Por dentro, os nomes ficam (ADR 0043): o pacote
+  `ml_lab`, a `ml-lab-web` da interface e os formatos dos ficheiros já guardados.
+- **As configurações locais saíram do Git.** Tinham só o `launch.json` das pré-visualizações; as
+  definições locais e as cópias de trabalho já estavam fora. Quem clona o projeto arranca-o com
+  o `scripts/dev.py`, e as regras do projeto estão no `CONTRIBUTING.md`.
+- **As imagens tiram-se com um comando**, `npm run screenshots` em `ui/web`
+  (`e2e/readme.shots.ts`, com o `playwright.screenshots.config.ts`). É o arranque dos testes de
+  ponta a ponta, noutras portas e noutra pasta temporária, com duas diferenças: o ecrã é Full HD
+  (1920 × 1080, a largura a partir da qual o ecrã Agents põe o fluxograma e a conversa lado a
+  lado) e o Ollama é o deste computador, para o agente de IA e o analista responderem a sério.
+  Pelo caminho faz uma procura dos agentes no Titanic, treina uma rede neuronal nas luas, explica
+  uma regressão logística e compara dois runs. Todas as imagens saem em `docs/images/hd/`, com o
+  dobro dos píxeis (para publicações, fora do Git), e as onze do README também em `docs/images/`.
+  Não são testes: o `npm run e2e` só apanha os `*.spec.ts`, e estas são `*.shots.ts`.
+- **Os ramos já fundidos saíram**, aqui e no GitHub (os das fases antigas, o da interface
+  Streamlit e os das sessões de trabalho), e a cópia de trabalho de outubro, cuja única
+  alteração por gravar (o teste da pausa do treino) já estava no `main`, igual.
+
+Uma lição: **com o agente de IA, começar uma procura demora.** O pedido só volta depois de o
+Ollama carregar o `qwen3:8b` na memória (uns 5 GB), e a primeira versão das imagens esperava os
+cinco segundos de sempre pela página da procura.

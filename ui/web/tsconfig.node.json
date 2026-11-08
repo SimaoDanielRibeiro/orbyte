@@ -19,5 +19,11 @@
     "erasableSyntaxOnly": true,
     "skipLibCheck": true
   },
-  "include": ["vite.config.ts", "openapi-ts.config.ts", "playwright.config.ts", "e2e"]
+  "include": [
+    "vite.config.ts",
+    "openapi-ts.config.ts",
+    "playwright.config.ts",
+    "playwright.screenshots.config.ts",
+    "e2e"
+  ]
 }
