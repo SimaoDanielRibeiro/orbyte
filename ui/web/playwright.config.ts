@@ -22,7 +22,7 @@ const DATA = join(tmpdir(), "ml-lab-e2e");
 // A porta 9 (o "discard" dos serviços antigos) está fechada nos computadores de hoje.
 const NO_OLLAMA = "http://127.0.0.1:9";
 // Os testes do projeto `no-fim`, que corre depois dos outros (ver `projects`).
-const NO_FIM = /history-delete\.spec\.ts/;
+const NO_FIM = /(history-delete|reinforcement)\.spec\.ts/;
 
 // Só o processo principal arranca os servidores; os outros só leem a configuração.
 if (!process.env.TEST_WORKER_INDEX) {
@@ -42,9 +42,12 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: NO_FIM },
-    // Os testes que treinam muitos runs de uma vez correm no fim, depois de todos os outros: a
-    // API guarda só os cinco runs mais recentes em memória, e a correr ao mesmo tempo empurravam
-    // para fora os runs que os outros testes ainda iam guardar ou explicar.
+    // Correm no fim, depois de todos os outros, os testes que treinam muitos runs de uma vez (a
+    // API guarda só os cinco mais recentes em memória, e a correr ao mesmo tempo empurravam para
+    // fora os runs que os outros testes ainda iam guardar ou explicar) e os do reinforcement
+    // learning, que treinam o DQN. Os treinos de uma API andam à vez, porque o Python só corre
+    // uma thread de cada vez (o GIL): num computador com muitos núcleos, o Playwright abre muitos
+    // browsers, e o DQN, a meio de todos os outros treinos, passava dos três minutos.
     {
       name: "no-fim",
       use: { ...devices["Desktop Chrome"] },

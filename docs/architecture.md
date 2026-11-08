@@ -3088,6 +3088,16 @@ desenvolvimento.
   Streamlit e os das sessões de trabalho), e a cópia de trabalho de outubro, cuja única
   alteração por gravar (o teste da pausa do treino) já estava no `main`, igual.
 
-Uma lição: **com o agente de IA, começar uma procura demora.** O pedido só volta depois de o
-Ollama carregar o `qwen3:8b` na memória (uns 5 GB), e a primeira versão das imagens esperava os
-cinco segundos de sempre pela página da procura.
+Duas lições:
+
+- **Com o agente de IA, começar uma procura demora.** O pedido só volta depois de o Ollama
+  carregar o `qwen3:8b` na memória (uns 5 GB), e a primeira versão das imagens esperava os cinco
+  segundos de sempre pela página da procura.
+- **Os treinos de uma API andam à vez.** Na verificação final, os testes de ponta a ponta do DQN
+  passaram a falhar por tempo (o treino ia no episódio 34 de 300 ao fim de dois minutos). Medido
+  com a lição do DQN: sozinha, 13 s; duas ao mesmo tempo, 23 s cada; três, 46 s cada. Com o
+  PyTorch numa só thread, 9, 17 e 31 s: as threads do PyTorch pesam pouco, e o que manda é o GIL
+  (o Python corre uma thread de cada vez, e o ciclo do DQN é quase todo Python). Num computador
+  com 16 threads, o Playwright abre oito browsers, e o DQN treinava a meio de todos os outros
+  treinos: os testes do reinforcement learning passaram para o projeto `no-fim`, que corre depois
+  dos outros, e a corrida inteira desceu de 3,6 para 2,4 minutos.
