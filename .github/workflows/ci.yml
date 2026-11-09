@@ -2,6 +2,11 @@
 # "Testes e verificações"). O backend e a interface correm sempre; os testes de ponta a ponta
 # (a interface num browser, com a API a sério) demoram mais, por isso correm no main e à mão, e
 # os do Windows e do macOS também (ver o job "other-systems").
+#
+# As actions do GitHub (checkout, setup-node, upload-artifact) vão pela versão principal (@v7),
+# que o GitHub mantém. O setup-uv vai pela versão inteira: desde a v8, deixou de publicar as
+# etiquetas que se movem (@v10), porque uma etiqueta que se move pode passar a apontar para outro
+# código sem ninguém dar por isso; as versões inteiras são imutáveis.
 
 name: CI
 
@@ -25,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       # As versões exatas do uv.lock; o Python (3.12, do .python-version) vem com o uv.
@@ -45,8 +50,8 @@ jobs:
       run:
         working-directory: ui/web
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -74,13 +79,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       - run: uv sync --frozen
       - run: uv run pytest -m "not integration and not api"
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -99,12 +104,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       - run: uv sync --frozen
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -118,7 +123,7 @@ jobs:
         working-directory: ui/web
       - name: Guardar o relatório, se algum teste falhar
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |

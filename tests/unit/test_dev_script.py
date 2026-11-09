@@ -31,13 +31,40 @@ def dev() -> ModuleType:
 
 
 @pytest.mark.parametrize(
-    ("written", "major"),
-    [("v24.11.0\n", 24), ("v18.20.4", 18), ("26.0.0", 26), ("", None), ("node", None)],
+    ("written", "version"),
+    [
+        ("v24.11.0\n", (24, 11)),
+        ("v18.20.4", (18, 20)),
+        ("26.0.0", (26, 0)),
+        ("v24", None),
+        ("", None),
+        ("node", None),
+    ],
 )
 def test_the_node_version_is_read_as_node_writes_it(
-    dev: ModuleType, written: str, major: int | None
+    dev: ModuleType, written: str, version: tuple[int, int] | None
 ) -> None:
-    assert dev.parse_node_major(written) == major
+    assert dev.parse_node_version(written) == version
+
+
+@pytest.mark.parametrize(
+    ("written", "recent"),
+    [
+        ("v24.15.0", False),  # vai abaixo sem aviso no Windows, com muitas ligações (ADR 0056)
+        ("v24.9.1", False),  # 9 vem antes de 16: compara-se como números, não como texto
+        ("v22.20.0", False),
+        ("v24.16.0", True),
+        ("v24.22.2", True),
+        ("v26.0.0", True),
+    ],
+)
+def test_the_node_version_must_be_at_least_the_minimum(
+    dev: ModuleType, written: str, recent: bool
+) -> None:
+    version = dev.parse_node_version(written)
+
+    assert version is not None
+    assert (version >= dev.NODE_MINIMUM) is recent
 
 
 class _Health(BaseHTTPRequestHandler):

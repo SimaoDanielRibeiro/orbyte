@@ -18,7 +18,9 @@ falar com a API sem adivinhar (as razões estão nas ADRs 0019, 0022 e 0026).
 
 ## Como correr
 
-Precisa do Node 24 (traz o npm). Na primeira vez, nesta pasta:
+Precisa do Node 24.16 ou mais recente (traz o npm): até ao 24.15, no Windows, o Node ia abaixo sem
+aviso com muitas ligações seguidas, como as do proxy do Vite para a API (ADR 0056). Na primeira
+vez, nesta pasta:
 
 ```bash
 npm install

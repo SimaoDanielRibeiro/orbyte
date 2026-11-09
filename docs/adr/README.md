@@ -58,8 +58,9 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0051](0051-orbita-parar-laboratorio-guardar-e-dados-de-verdade.md) | Um logótipo só com a órbita, o Parar que para tudo, o Laboratório que se explica, o Guardar em passos e os dados de verdade | Proposta; mudada pela 0052 |
 | [0052](0052-parquet-excel-antigo-e-licenca-mit.md) | O Parquet e o Excel antigo entram, com o pyarrow e o calamine; e o código fica com a licença MIT | Proposta |
 | [0053](0053-o-analista-um-agente-com-ferramentas.md) | O analista: um agente com ferramentas que fazem as contas, e uma resposta verificada | Proposta; mudada pela 0054 |
-| [0054](0054-o-analista-numa-conversa-o-quadro-inteiro-e-pronto-para-outros-computadores.md) | O analista numa conversa com o quadro inteiro, apagar no histórico e o projeto pronto para outros computadores | Proposta |
+| [0054](0054-o-analista-numa-conversa-o-quadro-inteiro-e-pronto-para-outros-computadores.md) | O analista numa conversa com o quadro inteiro, apagar no histórico e o projeto pronto para outros computadores | Proposta; mudada pela 0056 |
 | [0055](0055-dependencias-da-interface-sem-avisos-de-seguranca.md) | As dependências da interface sem avisos de segurança: três overrides, e a ferramenta do shadcn só quando é precisa | Proposta |
+| [0056](0056-node-24-16-no-minimo-e-as-actions-do-ci-em-dia.md) | O Node.js 24.16 no mínimo, e as actions do CI em dia | Proposta |
 
 ## Como escrever uma ADR
 

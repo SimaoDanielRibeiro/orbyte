@@ -14,7 +14,8 @@ ficheiro. ``Ctrl+C`` pára os dois; se um deles parar sozinho, o outro pára tam
 É o comando de quem acabou de descarregar o projeto, em qualquer computador (ADR 0054), por isso
 verifica antes de arrancar o que costuma falhar, e diz o que fazer:
 
-- o Node.js tem de existir e ser o 24 ou mais recente (o ``engines`` do ``package.json``);
+- o Node.js tem de existir e ser o 24.16 ou mais recente (o ``engines`` do ``package.json``;
+  ADR 0056);
 - as portas da API e da interface têm de estar livres (uma API esquecida noutro terminal é o
   caso mais comum);
 - as dependências da interface instalam-se com ``npm ci`` (as versões exatas do
@@ -49,8 +50,13 @@ WEB_PORT = 5173
 """A porta do Vite (``server.port`` no ``ui/web/vite.config.ts``)."""
 
 WEB_URL = f"http://localhost:{WEB_PORT}"
-NODE_MAJOR = 24
-"""A versão mínima do Node.js (o ``engines`` do ``ui/web/package.json``)."""
+NODE_MINIMUM = (24, 16)
+"""A versão mínima do Node.js (o ``engines`` do ``ui/web/package.json``; ADR 0056).
+
+Até ao 24.15, no Windows, o Node.js ia abaixo sem aviso quando abria muitas ligações seguidas
+(um erro do libuv, corrigido no 24.16): é o que faz o proxy do Vite, a passar os pedidos da
+interface à API.
+"""
 
 POLL_SECONDS = 0.5
 STOP_SECONDS = 10
@@ -75,20 +81,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     web = settings.home / WEB
     npm = shutil.which("npm")
     node = shutil.which("node")
+    minimum = ".".join(str(part) for part in NODE_MINIMUM)
     if npm is None or node is None:
         logger.error(
-            "Falta o Node.js (que traz o npm): instala o %s ou mais recente, de "
+            "Falta o Node.js (que traz o npm): instala o %s ou mais recente (a versão LTS) de "
             "https://nodejs.org, abre um terminal novo e corre outra vez.",
-            NODE_MAJOR,
+            minimum,
         )
         return 1
-    major = node_major(node)
-    if major is not None and major < NODE_MAJOR:
+    version = node_version(node)
+    if version is not None and version < NODE_MINIMUM:
         logger.error(
             "O Node.js deste computador é o %s, e a interface precisa do %s ou mais recente: "
-            "instala-o de https://nodejs.org e corre outra vez.",
-            major,
-            NODE_MAJOR,
+            "instala a versão LTS de https://nodejs.org e corre outra vez.",
+            ".".join(str(part) for part in version),
+            minimum,
         )
         return 1
     host = "127.0.0.1" if settings.api_host in ("0.0.0.0", "::") else settings.api_host
@@ -144,21 +151,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             _stop(process)
 
 
-def node_major(node: str) -> int | None:
-    """A versão principal do Node.js instalado, ou ``None`` se não se souber."""
+def node_version(node: str) -> tuple[int, int] | None:
+    """A versão do Node.js instalado (a principal e a secundária), ou ``None`` se não se souber."""
     try:
         found = subprocess.run(
             [node, "--version"], capture_output=True, text=True, check=False, timeout=10
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
-    return parse_node_major(found.stdout)
+    return parse_node_version(found.stdout)
 
 
-def parse_node_major(version: str) -> int | None:
-    """A versão principal no que ``node --version`` escreve: ``24`` em ``v24.11.0``."""
-    match = re.match(r"v?(\d+)\.", version.strip())
-    return int(match.group(1)) if match else None
+def parse_node_version(version: str) -> tuple[int, int] | None:
+    """A versão no que ``node --version`` escreve: ``(24, 11)`` em ``v24.11.0``.
+
+    Fica um tuplo para se comparar com ``NODE_MINIMUM`` como números: ``(24, 9)`` vem antes de
+    ``(24, 16)``, e o texto ``"24.9"`` viria depois de ``"24.16"``.
+    """
+    match = re.match(r"v?(\d+)\.(\d+)", version.strip())
+    return (int(match.group(1)), int(match.group(2))) if match else None
 
 
 def responds(url: str) -> bool:

@@ -1,6 +1,7 @@
 # 0054 — O analista numa conversa com o quadro inteiro, apagar no histórico e o projeto pronto para outros computadores
 
-- **Estado:** Proposta
+- **Estado:** Proposta; mudada pela [0056](0056-node-24-16-no-minimo-e-as-actions-do-ci-em-dia.md)
+  (o Node.js mínimo passa do 24 ao 24.16, e as actions do CI às versões atuais)
 - **Data:** 2026-11-08
 - **Muda:** a [0053](0053-o-analista-um-agente-com-ferramentas.md) (o quadro deixa de mostrar só os
   dez primeiros, e o painel do analista passa a uma conversa)

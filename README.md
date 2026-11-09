@@ -3,7 +3,7 @@
 [![CI](https://github.com/SimaoDanielRibeiro/orbyte/actions/workflows/ci.yml/badge.svg)](https://github.com/SimaoDanielRibeiro/orbyte/actions/workflows/ci.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
-![Node.js 24+](https://img.shields.io/badge/node.js-24%2B-green.svg)
+![Node.js 24.16+](https://img.shields.io/badge/node.js-24.16%2B-green.svg)
 
 Laboratório de machine learning para aprender. Carregas um dataset, escolhes um tipo de
 aprendizagem e um algoritmo (ou pedes aos agentes que o procurem), e vês o treino passo a passo,
@@ -15,7 +15,7 @@ as métricas de avaliação, as explicações das previsões e o registo de cada
 
 Precisas de três programas: o [Git](https://git-scm.com/downloads), o
 [uv](https://docs.astral.sh/uv/getting-started/installation/) (que traz o Python) e o
-[Node.js](https://nodejs.org/) 24 ou mais recente. Depois, num terminal:
+[Node.js](https://nodejs.org/) 24.16 ou mais recente. Depois, num terminal:
 
 ```bash
 git clone https://github.com/SimaoDanielRibeiro/orbyte.git
@@ -140,7 +140,7 @@ faz uma vez.
   curl -LsSf https://astral.sh/uv/install.sh | sh
   ```
 
-- **[Node.js](https://nodejs.org/) 24 ou mais recente** (traz o npm), para a interface: o
+- **[Node.js](https://nodejs.org/) 24.16 ou mais recente** (traz o npm), para a interface: o
   instalador da versão LTS chega.
 - Opcional: o **[Ollama](https://ollama.com/)**, para os agentes de IA e o analista, com o
   modelo `qwen3:8b` (`ollama pull qwen3:8b`, uns 5 GB). Sem ele, tudo o resto funciona, e o
@@ -176,7 +176,7 @@ reinstalar). Demora uns minutos, sobretudo pelo PyTorch: no Windows e no macOS v
 para o processador, que chega para as redes do laboratório; no Linux vem com as bibliotecas do
 CUDA (uns 3 GB a descarregar).
 
-Depois, o `scripts/dev.py` confirma que o Node.js é o 24 ou mais recente e que as portas 8000 e
+Depois, o `scripts/dev.py` confirma que o Node.js é o 24.16 ou mais recente e que as portas 8000 e
 5173 estão livres, instala as dependências da interface (`npm ci`, em `ui/web`) da primeira vez
 e sempre que um `git pull` as mude, e arranca a API e a interface. Quando as duas respondem,
 diz "Pronto" e abre <http://localhost:5173> no browser (com `--no-browser`, não abre). Só este
@@ -188,7 +188,7 @@ pára as duas.
 | O que aparece | O que fazer |
 |---|---|
 | `uv`, `git`, `node` ou `npm` não é reconhecido (`command not found`) | Abre um terminal novo depois de os instalar; no Windows, se não chegar, termina a sessão e volta a entrar. |
-| "O Node.js deste computador é o 20…" | Instala o Node.js 24 ou mais recente, de <https://nodejs.org>, e abre um terminal novo. |
+| "O Node.js deste computador é o 20…" (ou o 24.15…) | Instala a versão LTS do Node.js (a 24.16 ou mais recente), de <https://nodejs.org>, e abre um terminal novo. Até ao 24.15, no Windows, o Node.js ia abaixo sem aviso quando abria muitas ligações seguidas, como faz a interface a falar com a API (ADR 0056). |
 | "A porta 8000 (da API) já está ocupada" | O Orbyte já está a correr noutro terminal: fecha-o (`Ctrl+C`). Ou muda a porta da API no `.env` (`ML_LAB_API_PORT=8010`); a interface segue-a sozinha. |
 | "A porta 5173 (da interface) já está ocupada" | Outro servidor do Vite está aberto: fecha-o e corre outra vez. |
 | O `npm ci` falha no Windows com `EPERM` | Um servidor da interface ainda está a correr dessa pasta e prende os ficheiros do `node_modules`: fecha-o e corre outra vez. |
@@ -326,7 +326,7 @@ uv run python scripts/export_openapi.py
 
 ## Testes e verificações
 
-São mais de 2500 testes: 2428 do backend (1007 de unidade, 1278 de contrato, 15 de
+São mais de 2500 testes: 2435 do backend (1014 de unidade, 1278 de contrato, 15 de
 arquitetura, 62 de integração e 66 da API, dois deles com o Ollama a sério), 66 das peças da
 interface e 50 de ponta a ponta, num browser.
 

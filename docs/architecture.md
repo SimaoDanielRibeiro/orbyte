@@ -3101,3 +3101,38 @@ Duas lições:
   com 16 threads, o Playwright abre oito browsers, e o DQN treinava a meio de todos os outros
   treinos: os testes do reinforcement learning passaram para o projeto `no-fim`, que corre depois
   dos outros, e a corrida inteira desceu de 3,6 para 2,4 minutos.
+
+### O servidor dos testes que caía, e o CI em dia
+
+O pedido seguinte (ADR 0056): descobrir porque é que o `vite preview` dos testes de ponta a ponta
+caía às vezes no Windows, e tirar o aviso do CI sobre o `setup-uv`, que ainda corria no Node 20.
+
+**Como se encontrou a causa** de um processo que morre sem dizer nada (um método que serve para
+outros casos):
+
+1. **Primeiro, o que ele escreve.** Com `DEBUG=pw:webserver`, o Playwright mostra tudo o que os
+   servidores escrevem. O `vite preview` não escrevia nada antes de morrer, e o Windows não
+   registava nenhum crash.
+2. **Depois, se sai ou se o terminam.** Uma sonda carregada em cada processo do Node
+   (`NODE_OPTIONS=--import=…`) registava quem chamava o `process.exit`, o evento `exit` e os
+   sinais da consola (o Ctrl+C e o Ctrl+Break). Ao mesmo tempo, um observador do WMI registava
+   cada `node.exe`, `cmd.exe` e `taskkill.exe` que nascia ou morria. O servidor não saía pelos
+   seus pés, e ninguém o terminava.
+3. **Por fim, o código de saída, visto de fora.** Quem morreu numa das corridas foi um *worker*
+   do Playwright, e o Playwright disse o código: `0xC0000409`. Um supervisor à volta do
+   `vite preview` apanhou o mesmo no servidor, 28 segundos depois de arrancar. É uma falha nativa:
+   o processo morre na hora, sem correr o `exit` e sem mensagem.
+
+Com o código e o que os dois processos faziam (muitas ligações TCP seguidas à API), a procura deu
+a [issue #63620 do Node.js](https://github.com/nodejs/node/issues/63620): um erro do libuv no
+Windows, até ao 24.15, corrigido no 24.16. O computador onde se trabalha tinha o 24.15.0. Pelo
+caminho caíram duas pistas falsas: a sonda parecia evitar a queda (seis corridas seguidas sem
+falhas), mas a corrida seguinte, sem ela, caiu na mesma; e o registo do Windows tinha um ecrã azul
+e dezenas de falhas do driver da placa gráfica, que eram relatórios antigos a ser reenviados (o
+computador não reiniciava desde outubro).
+
+- **O Node.js mínimo passa a 24.16**: o `engines` do `package.json`, o `scripts/dev.py` (que
+  compara a principal e a secundária, como números, e se recusa a arrancar com uma anterior) e o
+  README.
+- **As actions do CI em dia**: o `checkout`, o `setup-node` e o `upload-artifact` passam à v7, e o
+  `setup-uv` à v10.3.3, pela versão inteira, porque deixou de publicar as etiquetas que se movem.
