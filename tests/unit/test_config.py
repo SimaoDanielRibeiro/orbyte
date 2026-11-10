@@ -138,7 +138,9 @@ def test_the_ollama_is_local_by_default_and_can_move(tmp_path: Path) -> None:
         home=tmp_path,
     )
 
-    assert (default.ollama_url, default.ollama_model) == ("http://localhost:11434", "qwen3:8b")
+    # O IPv4, e não o localhost: no Windows, o localhost tenta primeiro o IPv6, onde o Ollama não
+    # escuta, e cada pedido demorava 2 s a mais (ADR 0058).
+    assert (default.ollama_url, default.ollama_model) == ("http://127.0.0.1:11434", "qwen3:8b")
     assert (moved.ollama_url, moved.ollama_model) == ("http://gpu.test:11434", "qwen3:4b")
 
 

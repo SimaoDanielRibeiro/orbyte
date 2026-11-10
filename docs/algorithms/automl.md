@@ -204,8 +204,11 @@ another's score. So each candidate is a single line, with its number, model and 
 and a short list says each model once, with its best candidate.
 
 **What to watch.** On the Agents screen, after a search, **Ask the analyst** is a conversation:
-your questions on the right, the analyst on the left, and only the conversation scrolls. While it
-works, each step arrives as it comes: the reasoning growing live, each tool with its arguments and
-**What it returned** (the JSON the model read). When it answers, the steps fold into one line with
-the tools it used, and the answer comes with the check underneath. Its replies are kept with the
-answer: asking again with them gives the same answer, without Ollama.
+your questions on the right, the analyst on the left, and only the conversation scrolls. **Expand**
+opens it full screen, like a chat. While it works, each step arrives as it comes: the reasoning
+growing live, each tool with its arguments and **What it returned** (the JSON the model read). When
+it answers, the steps fold into one line with the tools it used; opened, they list what it did (each
+tool, then the answer), with the **Thought** behind each one folded underneath. Under the answer
+there's **Copy** and, when every number passed the check, a **Numbers checked** badge; a number
+that didn't pass gets a warning, in full. Its replies are kept with the answer: asking again with
+them gives the same answer, without Ollama.

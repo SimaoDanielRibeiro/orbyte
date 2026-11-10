@@ -272,9 +272,10 @@ mão, e "Train in manual mode" treina qualquer candidato do quadro.
 
 Com o Ollama aberto, "Ask the analyst" conversa contigo sobre a procura acabada: pergunta "Why
 did the winner win?" e vês o analista ler o quadro inteiro (todos os candidatos e todos os
-modelos), comparar o vencedor com o segundo e responder, com cada número verificado. Só a
-conversa desliza, dentro do painel; os passos de cada resposta abrem-se para ver o que cada
-ferramenta devolveu.
+modelos), comparar o vencedor com o segundo e responder, com cada número verificado (o selo
+"Numbers checked"). Só a conversa desliza, dentro do painel, e "Expand" abre-a em ecrã inteiro,
+como num chat; os passos de cada resposta abrem-se pelo que ele fez, com o que cada ferramenta
+devolveu e o raciocínio que a pediu.
 
 ### Para aprender
 
@@ -327,8 +328,8 @@ uv run python scripts/export_openapi.py
 ## Testes e verificações
 
 São mais de 2500 testes: 2435 do backend (1014 de unidade, 1278 de contrato, 15 de
-arquitetura, 62 de integração e 66 da API, dois deles com o Ollama a sério), 66 das peças da
-interface e 50 de ponta a ponta, num browser.
+arquitetura, 62 de integração e 66 da API, dois deles com o Ollama a sério), 72 das peças da
+interface e 51 de ponta a ponta, num browser.
 
 Uma fase só termina quando estas verificações passam (corre-as antes de cada push; o GitHub
 Actions corre-as também, em `.github/workflows/ci.yml`):
@@ -382,7 +383,7 @@ para `.env` e edita-o, ou define variáveis de ambiente (que têm prioridade sob
 | `ML_LAB_API_HOST` | Onde a API escuta (`127.0.0.1` é só este computador) | `127.0.0.1` |
 | `ML_LAB_API_PORT` | A porta da API | `8000` |
 | `ML_LAB_API_CORS_ORIGINS` | As páginas que podem chamar a API a partir do navegador | o servidor do Vite |
-| `ML_LAB_OLLAMA_URL` | Onde o Ollama escuta (os agentes de IA) | `http://localhost:11434` |
+| `ML_LAB_OLLAMA_URL` | Onde o Ollama escuta (os agentes de IA) | `http://127.0.0.1:11434` |
 | `ML_LAB_OLLAMA_MODEL` | O modelo do Ollama que os agentes de IA usam | `qwen3:8b` |
 
 A API não tem autenticação: fica só neste computador. Os uploads, a base de dados, os runs, os
@@ -435,7 +436,7 @@ O laboratório fez-se fase a fase, cada uma com o seu critério de "pronto" (o p
 | 10 — Interface aprimorada | Todos os ecrãs em React, por cima da API, nas etapas 10.1 a 10.9; a interface simples, em Streamlit, saiu depois dela (ADR 0031) | ✅ concluída |
 | 11 — Guardar e carregar o modelo | O pacote `.mllab` (a ficha, o manifesto assinado, a preparação, o run, o modelo e o ONNX), a biblioteca e o carregar com aviso | ✅ concluída |
 | 12 — Prever | Prever com um pacote, linha a linha ou um CSV inteiro | por fazer |
-| 13 — Agentes de IA | Um modelo de linguagem local (Ollama) que propõe hiperparâmetros a pensar à vista, e um analista que responde sobre a procura numa conversa, com ferramentas; as regras continuam a medir (ADR 0042, 0053 e 0054) | ✅ concluída |
+| 13 — Agentes de IA | Um modelo de linguagem local (Ollama) que propõe hiperparâmetros a pensar à vista, e um analista que responde sobre a procura numa conversa, com ferramentas; as regras continuam a medir (ADR 0042, 0053, 0054 e 0057) | ✅ concluída |
 
 ## Convenções
 

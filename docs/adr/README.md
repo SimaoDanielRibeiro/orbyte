@@ -46,7 +46,7 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0039](0039-pacote-do-modelo.md) | O pacote do modelo: guardar, levar e voltar a carregar um modelo treinado | Aceite; a disposição do ecrã mudada pela 0051 |
 | [0040](0040-uma-thread-para-a-mesma-seed-dar-o-mesmo.md) | Uma só thread nos estimadores que somam em paralelo, para a mesma seed dar o mesmo | Proposta |
 | [0041](0041-procura-aberta-e-comparacao-por-grupos.md) | A procura dos agentes fica aberta, e a comparação arruma-se por grupos | Proposta |
-| [0042](0042-agentes-de-ia-com-o-ollama.md) | Agentes de IA com o Ollama, ao lado dos agentes de regras | Proposta; seguida pela 0053 |
+| [0042](0042-agentes-de-ia-com-o-ollama.md) | Agentes de IA com o Ollama, ao lado dos agentes de regras | Proposta; seguida pela 0053; o endereço mudado pela 0058 |
 | [0043](0043-orbyte-e-o-site-em-ingles.md) | Orbyte: o nome novo e o site todo em inglês | Proposta |
 | [0044](0044-um-botao-de-prosseguir-letra-maior-barra-alinhada.md) | Um só botão de prosseguir, a letra maior e a barra alinhada | Proposta; mudada pela 0048 |
 | [0045](0045-identidade-visual-letra-propria-e-barra-mais-estreita.md) | Identidade visual: uma letra própria nos títulos, rótulos sem maiúsculas e a barra a 18rem | Proposta; mudada pela 0048 |
@@ -58,9 +58,11 @@ Daqui a meses vais saber porque é que algo foi feito assim.
 | [0051](0051-orbita-parar-laboratorio-guardar-e-dados-de-verdade.md) | Um logótipo só com a órbita, o Parar que para tudo, o Laboratório que se explica, o Guardar em passos e os dados de verdade | Proposta; mudada pela 0052 |
 | [0052](0052-parquet-excel-antigo-e-licenca-mit.md) | O Parquet e o Excel antigo entram, com o pyarrow e o calamine; e o código fica com a licença MIT | Proposta |
 | [0053](0053-o-analista-um-agente-com-ferramentas.md) | O analista: um agente com ferramentas que fazem as contas, e uma resposta verificada | Proposta; mudada pela 0054 |
-| [0054](0054-o-analista-numa-conversa-o-quadro-inteiro-e-pronto-para-outros-computadores.md) | O analista numa conversa com o quadro inteiro, apagar no histórico e o projeto pronto para outros computadores | Proposta; mudada pela 0056 |
+| [0054](0054-o-analista-numa-conversa-o-quadro-inteiro-e-pronto-para-outros-computadores.md) | O analista numa conversa com o quadro inteiro, apagar no histórico e o projeto pronto para outros computadores | Proposta; mudada pela 0056 e pela 0057 |
 | [0055](0055-dependencias-da-interface-sem-avisos-de-seguranca.md) | As dependências da interface sem avisos de segurança: três overrides, e a ferramenta do shadcn só quando é precisa | Proposta |
 | [0056](0056-node-24-16-no-minimo-e-as-actions-do-ci-em-dia.md) | O Node.js 24.16 no mínimo, e as actions do CI em dia | Proposta |
+| [0057](0057-o-analista-em-ecra-inteiro-as-respostas-sem-caixa-e-os-passos-pelo-que-fez.md) | O analista em ecrã inteiro, as respostas sem caixa e os passos pelo que ele fez | Proposta |
+| [0058](0058-o-ollama-em-127-0-0-1-e-nao-em-localhost.md) | O Ollama em 127.0.0.1, e não em localhost | Proposta |
 
 ## Como escrever uma ADR
 

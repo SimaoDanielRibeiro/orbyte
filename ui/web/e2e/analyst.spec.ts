@@ -1,6 +1,6 @@
 /**
  * O analista (etapa 13.3): depois de uma procura, pergunta-se porque ganhou o vencedor, e vê-se cada
- * ferramenta que usou e o que ela devolveu.
+ * ferramenta que usou e o que ela devolveu. A conversa também se abre em ecrã inteiro (ADR 0057).
  *
  * Estes testes não precisam do Ollama. A API dos testes procura-o numa porta fechada (ver
  * `playwright.config.ts`), por isso o painel mostra o estado de `GET /llm/status` e o que fazer.
@@ -8,7 +8,7 @@
  * guardadas do modelo (`replies`): a API dá-as outra vez com o `ScriptedModel`, como faz para
  * repetir uma resposta. Tudo o resto é a sério: a procura, as ferramentas, o WebSocket e o ecrã.
  *
- * Os testes partilham uma procura, um depois do outro (o terceiro continua a conversa do segundo):
+ * Os testes partilham uma procura, um depois do outro (os últimos continuam a conversa do segundo):
  * cada procura treina um vencedor, e a API dos testes, partilhada por todos, guarda poucos runs em
  * memória (um run de outro teste que saísse dela já não se podia guardar).
  */
@@ -143,14 +143,15 @@ test("o analista explica porque ganhou o vencedor, e vê-se cada ferramenta que 
   await panel.getByRole("button", { name: QUESTION }).click();
 
   const turn = panel.getByRole("article", { name: `Question: ${QUESTION}` });
-  // A resposta fica numa bolha; os passos fecham-se numa linha com as ferramentas que usou.
+  // A resposta fica em texto corrido; os passos fecham-se numa linha com as ferramentas que usou.
   await expect(turn.getByText(answerText(winner, second))).toBeVisible({ timeout: 60_000 });
   const work = turn.getByText("How it got there");
   await expect(work).toBeVisible();
   await work.click();
   const steps = turn.getByRole("list", { name: "What the analyst did" });
-  // O ciclo à vista: pensar, o quadro, pensar, a comparação e pensar (a resposta vem à parte).
-  await expect(steps.getByRole("listitem")).toHaveCount(5);
+  // Os passos pelo que ele fez (ADR 0057): o quadro, a comparação e a resposta, cada um com o
+  // pensamento que o levou lá fechado por baixo.
+  await expect(steps.getByRole("listitem")).toHaveCount(3);
   await expect(steps.getByText("The candidate board")).toBeVisible();
   await expect(steps.getByText("list_candidates()")).toBeVisible();
   await expect(steps.getByText("Compare two candidates")).toBeVisible();
@@ -160,16 +161,34 @@ test("o analista explica porque ganhou o vencedor, e vê-se cada ferramenta que 
       exact: true,
     }),
   ).toBeVisible();
-  await expect(steps.getByText("Thought · The board first.")).toBeVisible();
-  // A leitura do backend: os números da resposta estão no que as ferramentas devolveram.
-  await expect(
-    turn.getByText("Every number in the answer is in what the tools returned."),
-  ).toBeVisible();
+  await expect(steps.getByText("Answer", { exact: true })).toBeVisible();
+  // Fechado, o pensamento diz o tamanho, e não o princípio; aberto, tem o texto inteiro.
+  await expect(steps.getByText("The board first.")).toBeHidden();
+  const thought = steps.getByRole("button", { name: "Thought · 3 words" }).first();
+  await thought.click();
+  await expect(thought).toHaveAttribute("aria-expanded", "true");
+  await expect(steps.getByText("The board first.")).toBeVisible();
+  // A leitura do backend: os números da resposta estão no que as ferramentas devolveram, num selo
+  // com a mensagem na dica.
+  const checked = turn.getByText("Numbers checked");
+  await expect(checked).toBeVisible();
+  await checked.hover();
+  await expect(page.getByRole("tooltip")).toHaveText(
+    "Every number in the answer is in what the tools returned.",
+  );
   await expect(turn.getByText(/saved answers · 2 tools/)).toBeVisible();
 
   // O que o quadro devolveu é o JSON que o modelo leu.
-  await steps.getByText("What it returned").first().click();
+  await steps.getByRole("button", { name: "What it returned" }).first().click();
   await expect(steps.locator("pre").first()).toContainText(`"winner": {`);
+
+  // "Copy" leva a resposta tal como o analista a escreveu.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await turn.getByRole("button", { name: "Copy" }).click();
+  await expect(turn.getByRole("button", { name: "Copied" })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    answerText(winner, second),
+  );
 
   await animationsSettled(page);
   const results = await new AxeBuilder({ page })
@@ -228,4 +247,51 @@ test("só a conversa desliza: a página fica onde está, e as sugestões que fal
   await expect(panel.getByRole("button", { name: "Latest" })).toBeVisible();
   await panel.getByRole("button", { name: "Latest" }).click();
   await expect(panel.getByRole("button", { name: "Latest" })).toBeHidden();
+});
+
+test("o Expand abre o analista em ecrã inteiro, e a conversa continua lá", async ({ page }) => {
+  const { searchId } = search;
+  await withSavedReplies(page, search);
+  await page.goto(`/agents/${searchId}`);
+  const panel = page.getByRole("region", { name: "Ask the analyst" });
+  await expect(panel.getByRole("article", { name: `Question: ${QUESTION}` })).toBeVisible();
+  const cardHeight = await panel
+    .getByRole("region", { name: "The conversation with the analyst" })
+    .evaluate((element) => element.clientHeight);
+  // O que se começou a escrever no cartão segue para o ecrã inteiro.
+  const draft = "Which model came last?";
+  await panel.getByRole("textbox", { name: "Your question to the analyst" }).fill(draft);
+
+  await panel.getByRole("button", { name: "Expand" }).click();
+  const room = page.getByRole("dialog", { name: "Ask the analyst" });
+  await expect(room).toBeVisible();
+  // A mesma conversa, com mais altura, e a caixa da pergunta pronta a escrever.
+  await expect(room.getByRole("article", { name: `Question: ${QUESTION}` })).toBeVisible();
+  const roomHeight = await room
+    .getByRole("region", { name: "The conversation with the analyst" })
+    .evaluate((element) => element.clientHeight);
+  expect(roomHeight).toBeGreaterThan(cardHeight);
+  const box = room.getByRole("textbox", { name: "Your question to the analyst" });
+  await expect(box).toBeFocused();
+  await expect(box).toHaveValue(draft);
+  await box.press("Enter");
+  await expect(
+    room.getByRole("article", { name: `Question: ${draft}` }).getByText(/saved answers/),
+  ).toBeVisible({ timeout: 60_000 });
+
+  await animationsSettled(page);
+  const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+  expect(results.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
+
+  // O "Collapse" volta ao cartão, com a resposta nova, e o foco volta ao "Expand".
+  await room.getByRole("button", { name: "Collapse" }).click();
+  await expect(room).toBeHidden();
+  await expect(panel.getByRole("article", { name: `Question: ${draft}` })).toBeVisible();
+  const expand = panel.getByRole("button", { name: "Expand" });
+  await expect(expand).toBeFocused();
+  // O Esc também fecha.
+  await expand.click();
+  await expect(room).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(room).toBeHidden();
 });

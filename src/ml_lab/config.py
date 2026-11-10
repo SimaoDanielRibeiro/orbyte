@@ -53,8 +53,14 @@ KNOWN_VARIABLES: Final = frozenset(
 DEFAULT_CORS_ORIGINS: Final = ("http://localhost:5173", "http://127.0.0.1:5173")
 """O servidor de desenvolvimento do Vite, onde corre a interface web (fase 10)."""
 
-DEFAULT_OLLAMA_URL: Final = "http://localhost:11434"
-"""Onde o Ollama escuta, por omissão (fase 13, ADR 0042)."""
+DEFAULT_OLLAMA_URL: Final = "http://127.0.0.1:11434"
+"""Onde o Ollama escuta, por omissão (fase 13, ADR 0042 e 0058).
+
+O endereço IPv4, e não ``localhost``: é onde o Ollama escuta de origem (o ``OLLAMA_HOST`` dele é
+``127.0.0.1:11434``). No Windows, ``localhost`` tenta primeiro o IPv6 (``::1``), onde ninguém
+escuta, e o Windows leva uns 2 s a desistir de cada ligação recusada: cada pedido ao Ollama
+demorava 2 s a mais, e o estado dele (``GET /llm/status``, três pedidos), 6 s.
+"""
 
 DEFAULT_OLLAMA_MODEL: Final = "qwen3:8b"
 """O modelo dos agentes de IA: pensa à parte, usa ferramentas e cabe numa gráfica de 8 GB."""

@@ -63,7 +63,7 @@ class OllamaServer:
     """O servidor do Ollama, num endereço.
 
     Args:
-        url: O endereço ("http://localhost:11434"), sem a barra no fim.
+        url: O endereço ("http://127.0.0.1:11434"), sem a barra no fim.
         timeout: Quanto se espera por cada resposta, em segundos.
     """
 

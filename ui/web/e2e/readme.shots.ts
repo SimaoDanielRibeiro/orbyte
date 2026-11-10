@@ -96,6 +96,9 @@ function iris(c: number): ExperimentRequest {
 
 const QUESTION = "Why did the winner win?";
 
+/** A segunda pergunta ao analista, no ecrã inteiro (uma das sugestões). */
+const FOLLOW_UP = "Does the winner memorise the training data?";
+
 test("a entrada", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -189,6 +192,29 @@ test("os agentes: a procura ao vivo, a conversa, o vencedor e o analista", async
   await expect(turn.getByRole("list", { name: "What the analyst did" })).toBeVisible();
   await entrancesDone(page);
   await shoot(page, "analyst-steps");
+
+  // Em ecrã inteiro, como num chat (ADR 0057): mais uma pergunta, pela sugestão, e a conversa
+  // toda; depois, os passos da resposta, com o pensamento que pediu a primeira ferramenta.
+  await panel.getByRole("button", { name: "Expand" }).click();
+  const chat = page.getByRole("dialog", { name: "Ask the analyst" });
+  await expect(chat).toBeVisible();
+  await chat.getByRole("button", { name: FOLLOW_UP }).click();
+  const answer = chat.getByRole("article", { name: `Question: ${FOLLOW_UP}` });
+  await expect(answer.getByText(/qwen3:8b · /)).toBeVisible({ timeout: 15 * 60_000 });
+  await entrancesDone(page);
+  await shoot(page, "analyst-expanded");
+  await answer.getByText("How it got there").click();
+  await answer
+    .getByRole("button", { name: /^Thought · / })
+    .first()
+    .click();
+  await answer.evaluate((element) => {
+    element.scrollIntoView({ block: "start" });
+  });
+  await entrancesDone(page);
+  await shoot(page, "analyst-expanded-steps");
+  await page.keyboard.press("Escape");
+  await expect(chat).toBeHidden();
 });
 
 test("treinar e avaliar: a rede neuronal nas luas, e a fórmula de uma métrica", async ({

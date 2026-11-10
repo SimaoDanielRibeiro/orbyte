@@ -3136,3 +3136,45 @@ computador não reiniciava desde outubro).
   README.
 - **As actions do CI em dia**: o `checkout`, o `setup-node` e o `upload-artifact` passam à v7, e o
   `setup-uv` à v10.3.3, pela versão inteira, porque deixou de publicar as etiquetas que se movem.
+
+### O analista em ecrã inteiro, as respostas sem caixa e o Ollama em 127.0.0.1
+
+O pedido seguinte (ADR 0057 e 0058): três melhorias ao painel do analista, e a correção de uma
+demora que apareceu a verificá-las.
+
+1. **O "Expand" abre o analista em ecrã inteiro**, como a conversa dos agentes: um diálogo que
+   ocupa a janela, com a conversa ao centro (48rem) e a caixa da pergunta em baixo, como num chat.
+   O estado da conversa vive num hook do painel (`useAnalystChat`), e o cartão e o ecrã inteiro
+   desenham-no com o mesmo componente (`Chat`), um sítio de cada vez: a pergunta a meio de
+   escrever e a que está a decorrer passam de um para o outro. Num portátil (1536 × 730), a
+   conversa passa de 353 para 493 píxeis de altura; num telemóvel (390 × 844), de 441 para 607.
+2. **A resposta em texto corrido, sem caixa.** Por baixo, numa linha: "Copy" (a resposta em
+   Markdown), o selo "Numbers checked" quando o backend dá o aviso `numbers_checked` (a mensagem
+   dele na dica), e o modelo, as ferramentas e o tempo. Os outros avisos ficam por extenso.
+3. **Os passos pelo que ele fez** (`analyst-steps.ts`): cada pensamento junta-se à ferramenta que
+   pediu a seguir (ou à resposta, no fim), e fica fechado por baixo dela, com o tamanho ("Thought ·
+   352 words") em vez do princípio, que nos do `qwen3:8b` é quase sempre "Okay, let's tackle…".
+   Na pergunta dos testes de ponta a ponta, a lista passou de cinco linhas para três.
+
+**O Ollama passou a `http://127.0.0.1:11434`** (ADR 0058). Com o `localhost`, o `GET /llm/status`
+demorava sempre 6,1 s neste Windows, e a caixa da pergunta ficava desligada esse tempo de cada vez
+que se abria a página. Medido com a biblioteca padrão do Python: 2,05 s por pedido com o
+`localhost`, 0,00 s com o `127.0.0.1`. O Windows tenta primeiro o IPv6 (`::1`), onde o Ollama não
+escuta, e leva uns 2 s a desistir de uma ligação recusada; o estado faz três pedidos. Depois da
+correção, o estado demora entre 0,14 e 0,32 s, e cada pedido ao modelo (o agente de IA, o
+analista) deixa de perder os 2 s.
+
+**Verificado com o `qwen3:8b` a sério**, numa procura do Titanic com 24 candidatos: "Why did the
+winner win?" (57,6 s, três pensamentos de 276 a 352 palavras, todos a começar da mesma maneira, o
+que pediu os passos novos) e "Does the winner memorise the training data?", perguntada no ecrã
+inteiro (36,2 s, com a conversa a seguir o analista até ao fim e o "Stop" no lugar do botão de
+perguntar). Os testes de ponta a ponta do analista ganharam um teste para o ecrã inteiro, com a
+acessibilidade (axe), e a imagem do analista no README voltou a tirar-se.
+
+Uma lição: **o que tem posição absoluta escapa a quem desliza sem ser o bloco de contenção.** Os
+textos só para os leitores de ecrã (`sr-only`) têm `position: absolute`; dentro da conversa, que
+desliza mas não tinha `position: relative`, ficavam presos ao bloco de fora e escapavam ao recorte
+dela, abaixo do cartão. O cartão, com `overflow-hidden`, não desliza com a roda do rato, mas
+desliza quando o foco ou um leitor de ecrã lá chega: mediu-se um cartão de 567 píxeis com 908 de
+conteúdo, e o cabeçalho desaparecia. Com `relative` na conversa, o conteúdo do cartão passou a
+medir o mesmo que o cartão.
